@@ -44,6 +44,8 @@ import {
   fighterIndexFor,
   rivalLook,
 } from "./fighters.js";
+import { arenaForFight, type Arena as ArenaDef } from "./arenas.js";
+import { gearItem, gearPoolFor, resolveLook, rollGearDrop, type Equipped, type GearItem, type GearSlot } from "./gear.js";
 import {
   applyDailyReset,
   freshQuests,
@@ -61,7 +63,13 @@ type Screen =
   | { s: "forge" }
   | { s: "home" }
   | { s: "arena" }
-  | { s: "fight"; result: FightResult; rival: Rival; rewards: { xp: number; kleos: number } }
+  | {
+      s: "fight";
+      result: FightResult;
+      rival: Rival;
+      arena: ArenaDef;
+      rewards: { xp: number; kleos: number; drops: string[] };
+    }
   | { s: "history" }
   | { s: "codex" };
 
@@ -107,7 +115,7 @@ function heldWeaponId(weapons: string[]): string | undefined {
 export function App() {
   const [save, setSave] = useState<SaveV1 | null>(() => load());
   const [screen, setScreen] = useState<Screen>(save ? { s: "home" } : { s: "forge" });
-  const [draft, setDraft] = useState<{ offers: FateOffer[]; nonce: number } | null>(null);
+  const [draft, setDraft] = useState<{ offers: FateOffer[]; pick: number; drop?: GearItem } | null>(null);
 
   // One crisp tick for every button in the game.
   useEffect(() => {
@@ -123,10 +131,22 @@ export function App() {
     setSave(next);
   };
 
+  /**
+   * Level-ups are RANDOM (MyBrute style): the Rift rolls one of the weighted
+   * offers and one themed gear drop — the player only claims, never chooses.
+   * Seeded from the champion, so the same hunter always rolls the same fate.
+   */
   const openDraftIfDue = (s: SaveV1) => {
     const c = s.champion;
     if (c.level < 50 && c.xp >= costToNext(c.level)) {
-      setDraft({ offers: generateDraft(c, c.level + 1, 0), nonce: 0 });
+      const offers = generateDraft(c, c.level + 1, 0);
+      const pick = makeRng(combineSeed(c.seed, "roll", c.level + 1)).int(offers.length);
+      const drop = rollGearDrop(
+        s.hero ?? fighterIndexFor(c.displayName),
+        s.gear ?? [],
+        combineSeed(c.seed, "gear", c.level + 1),
+      );
+      setDraft({ offers, pick, drop });
     } else {
       setDraft(null);
     }
@@ -164,19 +184,36 @@ export function App() {
     const kd = kleosDelta(won, fresh.kleos, rival.kleos);
     champion.xp += xpGain;
 
-    // Daily tasks: fight 3, win 2, land a crit → +1 reroll.
+    // Random loot: victory has a chance to shake gear loose, and finishing
+    // the daily tasks always drops a piece. New pieces auto-equip empty slots.
+    const hero = fresh.hero ?? fighterIndexFor(champion.displayName);
+    let gear = fresh.gear ?? [];
+    const equipped = { ...(fresh.equipped ?? {}) };
+    const drops: string[] = [];
+    const addDrop = (item?: GearItem) => {
+      if (!item) return;
+      gear = [...gear, item.id];
+      if (!equipped[item.slot]) equipped[item.slot] = item.id;
+      drops.push(item.name);
+    };
+
     const q = fresh.quests?.day === todayKey() ? { ...fresh.quests } : freshQuests();
     q.fights += 1;
     if (won) q.wins += 1;
     if (result.events.some((e) => e.type === "hit" && e.side === 0 && e.crit)) q.crits += 1;
     if (!q.claimed && q.fights >= 3 && q.wins >= 2 && q.crits >= 1) {
       q.claimed = true;
-      champion.favour = Math.min(6, champion.favour + 1);
+      addDrop(rollGearDrop(hero, gear, combineSeed(seed, "questdrop")));
+    }
+    if (won && makeRng(combineSeed(seed, "loot")).pct(25)) {
+      addDrop(rollGearDrop(hero, gear, combineSeed(seed, "lootdrop")));
     }
 
     const next: SaveV1 = {
       ...fresh,
       champion,
+      gear,
+      equipped,
       vigor: fresh.vigor - 1,
       totalFights: fresh.totalFights + 1,
       wins: fresh.wins + (won ? 1 : 0),
@@ -187,26 +224,26 @@ export function App() {
       quests: q,
     };
     update(next);
-    setScreen({ s: "fight", result, rival, rewards: { xp: xpGain, kleos: kd } });
+    setScreen({
+      s: "fight",
+      result,
+      rival,
+      arena: arenaForFight(seed),
+      rewards: { xp: xpGain, kleos: kd, drops },
+    });
   };
 
-  const pickDraft = (index: number) => {
+  const claimReward = () => {
     if (!draft) return;
     const champion = structuredClone(save.champion);
     champion.xp -= costToNext(champion.level);
-    applyDraft(champion, draft.offers, index, draft.nonce > 0);
-    const next = { ...save, champion };
+    applyDraft(champion, draft.offers, draft.pick, false);
+    const gear = [...(save.gear ?? []), ...(draft.drop ? [draft.drop.id] : [])];
+    const equipped = { ...(save.equipped ?? {}) };
+    if (draft.drop && !equipped[draft.drop.slot]) equipped[draft.drop.slot] = draft.drop.id;
+    const next = { ...save, champion, gear, equipped };
     update(next);
     openDraftIfDue(next);
-  };
-
-  const rerollDraft = () => {
-    if (!draft || save.champion.favour <= 0) return;
-    const champion = structuredClone(save.champion);
-    champion.favour -= 1;
-    const nonce = draft.nonce + 1;
-    update({ ...save, champion });
-    setDraft({ offers: generateDraft(champion, champion.level + 1, nonce), nonce });
   };
 
   return (
@@ -253,6 +290,7 @@ export function App() {
             champion.weapons.splice(to, 0, moved!);
             update({ ...save, champion });
           }}
+          onEquip={(slot, id) => update({ ...save, equipped: { ...save.equipped, [slot]: id } })}
           onRefill={() => update({ ...save, vigor: Math.min(VIGOR_CAP, save.vigor + 6) })}
           onDelete={() => {
             // Confirmation happens in-app (two taps) — window.confirm is
@@ -278,13 +316,19 @@ export function App() {
         <FightTheatre
           result={screen.result}
           rewards={screen.rewards}
+          arena={screen.arena}
           names={[c.displayName, screen.rival.snapshot.name]}
-          figures={
-            [
+          figures={(() => {
+            const look = resolveLook(
+              { style: save.styleFx ?? 0, aura: save.aura ?? 0 },
+              save.equipped,
+            );
+            return [
               {
                 fighter: save.hero ?? fighterIndexFor(c.displayName),
-                style: save.styleFx ?? 0,
-                aura: save.aura ?? 0,
+                style: look.style,
+                aura: look.aura,
+                particles: look.particles,
                 weaponId: heldWeaponId(c.weapons),
                 beasts: c.beasts,
               },
@@ -293,8 +337,8 @@ export function App() {
                 weaponId: heldWeaponId(screen.rival.snapshot.weapons),
                 beasts: screen.rival.snapshot.beasts,
               },
-            ] satisfies [StageFigure, StageFigure]
-          }
+            ] satisfies [StageFigure, StageFigure];
+          })()}
           onDone={() => {
             openDraftIfDue(save);
             setScreen({ s: "arena" });
@@ -306,12 +350,11 @@ export function App() {
       {screen.s === "codex" && <Codex champion={c} onBack={() => setScreen({ s: "home" })} />}
 
       {draft && (
-        <DraftModal
-          champion={c}
-          offers={draft.offers}
-          canReroll={c.favour > 0}
-          onReroll={rerollDraft}
-          onPick={pickDraft}
+        <RewardModal
+          level={c.level + 1}
+          offer={draft.offers[draft.pick]!}
+          drop={draft.drop}
+          onClaim={claimReward}
         />
       )}
     </Shell>
@@ -493,9 +536,13 @@ function Home(props: {
   onReorder: (from: number, to: number) => void;
   onRefill: () => void;
   onDelete: () => void;
+  onEquip: (slot: GearSlot, id: string | undefined) => void;
 }) {
   const { save } = props;
   const c = save.champion;
+  const fighter = save.hero ?? fighterIndexFor(c.displayName);
+  const look = resolveLook({ style: save.styleFx ?? 0, aura: save.aura ?? 0 }, save.equipped);
+  const ownedGear = (save.gear ?? []).map((id) => gearItem(id)).filter((g): g is GearItem => !!g);
   const need = costToNext(c.level);
   const hpNow = maxHp(c.level, c.stats.grit, c.beasts, c.skills.includes("beast_bond"));
   const [armDelete, setArmDelete] = useState(false);
@@ -518,10 +565,10 @@ function Home(props: {
       )}
 
       <section className="card champ-card">
-        <FighterBust fighter={save.hero ?? fighterIndexFor(c.displayName)} size={92} style={save.styleFx} />
+        <FighterBust fighter={fighter} size={92} style={look.style} />
         <div className="champ-meta">
           <h2 className="champ-name">
-            {c.displayName} <span className="epithet">{c.epithet}</span>
+            {c.displayName} <span className="epithet">{look.title ?? c.epithet}</span>
           </h2>
           <div className="muted">
             {omen(c.omen).name} · Level {c.level}
@@ -530,16 +577,17 @@ function Home(props: {
             <div className="xpbar-fill" style={{ width: `${Math.min(100, (c.xp / need) * 100)}%` }} />
           </div>
           <div className="statline">
-            XP {c.xp}/{need} · {save.wins}W – {save.losses}L · HP {hpNow} · Rerolls: {c.favour}
+            XP {c.xp}/{need} · {save.wins}W – {save.losses}L · HP {hpNow} · Gear {ownedGear.length}/{gearPoolFor(fighter).length}
           </div>
         </div>
         <div className="hero-fig">
-          <AuraSparks aura={save.aura} />
+          <AuraSparks aura={look.aura} />
           <FighterFig
-            fighter={save.hero ?? fighterIndexFor(c.displayName)}
+            fighter={fighter}
             height={120}
-            style={save.styleFx}
-            aura={save.aura}
+            style={look.style}
+            aura={look.aura}
+            particles={look.particles}
           />
         </div>
       </section>
@@ -579,7 +627,7 @@ function Home(props: {
       </section>
 
       <section className="card quests">
-        <h3>Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — +1 Reroll</span>}</h3>
+        <h3>Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — gear dropped!</span>}</h3>
         <ul className="qlist">
           <li className={(save.quests?.fights ?? 0) >= 3 ? "qdone" : ""}>
             Fight 3 times ({Math.min(3, save.quests?.fights ?? 0)}/3)
@@ -591,7 +639,7 @@ function Home(props: {
             Land a critical hit ({Math.min(1, save.quests?.crits ?? 0)}/1)
           </li>
         </ul>
-        <p className="muted small">Complete all three for +1 reroll. Resets daily.</p>
+        <p className="muted small">Complete all three for a bonus gear drop. Resets daily.</p>
       </section>
 
       {(c.skills.length > 0 || c.beasts.length > 0) && (
@@ -611,6 +659,51 @@ function Home(props: {
           </div>
         </section>
       )}
+
+      <section className="card">
+        <h3>
+          Wardrobe{" "}
+          <span className="muted small">
+            {ownedGear.length}/{gearPoolFor(fighter).length} found — drops are random, wear what you own
+          </span>
+        </h3>
+        {ownedGear.length === 0 ? (
+          <p className="muted small">
+            Nothing yet — every level up (and some victories) drops a random piece of {FIGHTERS[fighter]!.name} gear.
+          </p>
+        ) : (
+          (["body", "cloak", "trinket", "title"] as GearSlot[]).map((slot) => {
+            const items = ownedGear.filter((g) => g.slot === slot);
+            if (items.length === 0) return null;
+            const labels: Record<GearSlot, string> = {
+              body: "Armor",
+              cloak: "Cloak",
+              trinket: "Trinket",
+              title: "Title",
+            };
+            return (
+              <div key={slot} className="wardrobe-row">
+                <h4 className="slot-label">{labels[slot]}</h4>
+                <div className="chips">
+                  {items.map((g) => {
+                    const worn = save.equipped?.[slot] === g.id;
+                    return (
+                      <button
+                        key={g.id}
+                        className={`chip gear-chip ${worn ? "worn" : ""}`}
+                        title={g.flavour}
+                        onClick={() => props.onEquip(slot, worn ? undefined : g.id)}
+                      >
+                        {g.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </section>
 
       <div className="actions">
         <button className="btn primary big" onClick={props.onArena}>
@@ -695,39 +788,41 @@ function Arena(props: {
   );
 }
 
-/* ================= level-up draft ================= */
+/* ================= level-up reward (random — no choices) ================= */
 
-function DraftModal(props: {
-  champion: Champion;
-  offers: FateOffer[];
-  canReroll: boolean;
-  onReroll: () => void;
-  onPick: (i: number) => void;
+function RewardModal(props: {
+  level: number;
+  offer: FateOffer;
+  drop?: GearItem;
+  onClaim: () => void;
 }) {
-  const { champion, offers } = props;
+  const { offer, drop } = props;
   useEffect(() => {
     sound.levelUp();
   }, []);
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label="Level up">
       <div className="draft card">
-        <h2>Level up!</h2>
-        <p className="muted">
-          Choose one of three for level {champion.level + 1} — the choice is permanent.
-        </p>
+        <h2>Level {props.level}!</h2>
+        <p className="muted">The Rift decides what you find — no choices, no rerolls.</p>
         <div className="fate-row">
-          {offers.map((o, i) => (
-            <button key={i} className="fate-card" onClick={() => props.onPick(i)}>
-              <span className="fate-kind">
-                {o.kind.startsWith("stat") ? "Stats" : o.kind === "weapon" ? "New weapon" : o.kind === "skill" ? "New skill" : "New pet"}
-              </span>
-              <b>{describeOffer(o)}</b>
-              <span className="fate-detail">{offerDetail(o)}</span>
-            </button>
-          ))}
+          <div className="fate-card rolled">
+            <span className="fate-kind">
+              {offer.kind.startsWith("stat") ? "Stats" : offer.kind === "weapon" ? "New weapon" : offer.kind === "skill" ? "New skill" : "New pet"}
+            </span>
+            <b>{describeOffer(offer)}</b>
+            <span className="fate-detail">{offerDetail(offer)}</span>
+          </div>
+          {drop && (
+            <div className="fate-card rolled gear-card">
+              <span className="fate-kind">Gear drop — {drop.slot}</span>
+              <b>{drop.name}</b>
+              <span className="fate-detail">{drop.flavour}</span>
+            </div>
+          )}
         </div>
-        <button className="btn ghost" disabled={!props.canReroll} onClick={props.onReroll}>
-          Reroll all three ({champion.favour} reroll{champion.favour === 1 ? "" : "s"} left)
+        <button className="btn primary big" onClick={props.onClaim}>
+          Claim
         </button>
       </div>
     </div>
@@ -752,7 +847,7 @@ function History({ champion, onBack }: { champion: Champion; onBack: () => void 
         <span />
       </div>
       <p className="muted">
-        Every level-up choice {champion.displayName} has made — kept picks highlighted, declined ones struck through.
+        Everything the Rift has rolled for {champion.displayName} — what landed is highlighted, what the fates passed over is struck through.
       </p>
       {champion.tapestry.length === 0 && <p className="muted">Nothing yet — win fights to level up.</p>}
       <ol className="bands">

@@ -6,6 +6,7 @@
 
 import type { BattlePlan, Champion } from "@agoge/core";
 import { fighterIndexFor } from "./fighters.js";
+import type { Equipped } from "./gear.js";
 
 export interface DailyQuests {
   day: string;
@@ -31,10 +32,14 @@ export interface SaveV1 {
   quests?: DailyQuests;
   /** Roster index of the champion's awakened form (heroes.tsx). */
   hero?: number;
-  /** Colour-grade preset index (heroes.tsx STYLES). */
+  /** Colour-grade preset index (fighters.tsx STYLES). */
   styleFx?: number;
-  /** Aura colour index (heroes.tsx AURAS). */
+  /** Aura colour index (fighters.tsx AURAS). */
   aura?: number;
+  /** Gear item ids collected from random level-up drops (gear.ts). */
+  gear?: string[];
+  /** Which owned pieces are currently worn. */
+  equipped?: Equipped;
 }
 
 export function freshQuests(): DailyQuests {
@@ -62,6 +67,8 @@ export function newSave(
     hero: hero ?? fighterIndexFor(champion.displayName),
     styleFx: styleFx ?? 0,
     aura: aura ?? 0,
+    gear: [],
+    equipped: {},
     champion,
     kleos: 1500,
     vigor: VIGOR_CAP, // day-one bonus: +6 on top of the daily 6
@@ -102,6 +109,8 @@ export function load(): SaveV1 | null {
     if (a.tint == null) a.tint = 0;
     // Saves that predate the painted roster get a stable derived form.
     if (parsed.hero == null) parsed.hero = fighterIndexFor(parsed.champion.displayName);
+    if (parsed.gear == null) parsed.gear = [];
+    if (parsed.equipped == null) parsed.equipped = {};
     return applyDailyReset(parsed);
   } catch {
     return null;

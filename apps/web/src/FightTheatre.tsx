@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BEASTS, FISTS, WEAPONS, type FightResult } from "@agoge/core";
 import { BeastFigure, ImpactBurst, Javelin, Laurel, SlashArc } from "./art.js";
-import { FighterFig, fighterOf, pixelArenaImg, type FighterAnim } from "./fighters.js";
+import { FighterFig, WeatherFx, fighterOf, pixelArenaImg, type FighterAnim } from "./fighters.js";
+import type { Arena } from "./arenas.js";
 import { narrate, type Line } from "./narrate.js";
 import { sound } from "./sound.js";
 
@@ -12,6 +13,8 @@ export interface StageFigure {
   style: number;
   /** Aura colour (fighters.tsx AURAS). */
   aura: number;
+  /** Equipped trinket particle effect, if any. */
+  particles?: string;
   /** Weapon in hand at the start of the fight. */
   weaponId?: string;
   beasts: string[];
@@ -31,8 +34,10 @@ interface Props {
   result: FightResult;
   names: [string, string];
   figures: [StageFigure, StageFigure];
+  /** Where this fight takes place (arenas.ts). */
+  arena: Arena;
   /** Post-fight summary shown under the verdict. */
-  rewards: { xp: number; kleos: number };
+  rewards: { xp: number; kleos: number; drops?: string[] };
   onDone: () => void;
 }
 
@@ -42,7 +47,7 @@ const beastIdByName = new Map(BEASTS.map((b) => [b.name, b.id]));
  * The arena stage: champions run in, dash across to strike, swing, dodge,
  * block and fall — all directed by the deterministic event log.
  */
-export function FightTheatre({ result, names, figures, rewards, onDone }: Props) {
+export function FightTheatre({ result, names, figures, arena, rewards, onDone }: Props) {
   const lines = useMemo(() => narrate(result, names), [result, names]);
   const [shown, setShown] = useState(1);
   const [speed, setSpeed] = useState<1 | 2>(1);
@@ -237,9 +242,16 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
       <div
         className={`stage ${fx?.crit && !finished ? "quake" : ""}`}
         ref={stageRef}
-        style={{ "--dash": `${dash}px`, backgroundImage: `url(${pixelArenaImg})` } as React.CSSProperties}
+        style={{ "--dash": `${dash}px` } as React.CSSProperties}
       >
+        <div
+          className="stage-bg"
+          style={{ backgroundImage: `url(${pixelArenaImg})`, filter: arena.filter || undefined }}
+        />
+        <div className="stage-wash" style={{ background: arena.overlay }} />
+        {arena.weather && <WeatherFx kind={arena.weather} count={14} />}
         <div className="stage-shade" />
+        <div className="arena-chip">{arena.name}</div>
         <div className="stage-hp">
           <HpBar name={names[0]} hp={hp[0]!} max={result.hpMax[0]} mirror={false} />
           <HpBar name={names[1]} hp={hp[1]!} max={result.hpMax[1]} mirror={true} />
@@ -256,6 +268,7 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
                   anim={animOf(0)}
                   style={figures[0].style}
                   aura={figures[0].aura}
+                  particles={figures[0].particles}
                 />
                 {renderEffects(0)}
               </div>
@@ -275,6 +288,7 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
                   anim={animOf(1)}
                   style={figures[1].style}
                   aura={figures[1].aura}
+                  particles={figures[1].particles}
                   mirror
                 />
                 {renderEffects(1)}
@@ -316,6 +330,9 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
               <span className={`pill ${rewards.kleos >= 0 ? "gain" : "loss"}`}>
                 {rewards.kleos >= 0 ? "+" : ""}{rewards.kleos} Rating
               </span>
+              {rewards.drops?.map((d) => (
+                <span key={d} className="pill drop">✦ {d}</span>
+              ))}
             </div>
             <div className="verdict-sub">
               {names[result.winner]} · {result.ticks} ticks · sim v{result.simVersion}

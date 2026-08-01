@@ -364,6 +364,93 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   background-position: center bottom;
   min-height: 300px;
 }
+/* the arena painting, graded per-location (filter must not touch fighters) */
+.stage-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center bottom;
+  image-rendering: pixelated;
+}
+/* per-arena light wash over the painting */
+.stage-wash { position: absolute; inset: 0; pointer-events: none; }
+.arena-chip {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #cdd6ee;
+  background: rgba(10, 12, 22, 0.66);
+  border: 1.5px solid #ffffff22;
+  border-radius: 999px;
+  padding: 2px 12px;
+}
+
+/* --- weather / trinket particles --- */
+.weather { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+.fighter-fig .weather { inset: -40% -70%; z-index: 2; }
+.wpart { position: absolute; display: block; }
+.weather-embers .wpart {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: #ffb257; box-shadow: 0 0 6px #ff8a3c;
+  bottom: 6%;
+  animation: wRise linear infinite;
+}
+.weather-fireflies .wpart {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: #e4f7a8; box-shadow: 0 0 7px #cdf077;
+  bottom: 20%;
+  animation: wFloat ease-in-out infinite;
+}
+.weather-petals .wpart {
+  width: 7px; height: 5px;
+  background: #f7a8c4; border-radius: 70% 30% 60% 40%;
+  top: -8px;
+  animation: wDrift linear infinite;
+}
+.weather-snow .wpart {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: #eef4ff; opacity: 0.9;
+  top: -6px;
+  animation: wFall linear infinite;
+}
+.weather-storm .wpart {
+  width: 2px; height: 15px;
+  background: linear-gradient(#a8bfe8cc, transparent);
+  top: -16px;
+  animation: wRain linear infinite;
+  animation-duration: 0.7s !important;
+}
+.weather-storm::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #cfe0ff;
+  opacity: 0;
+  animation: wFlash 7s ease-out infinite;
+}
+@keyframes wRise { from { transform: translateY(0); opacity: 0.95; } to { transform: translateY(-300px); opacity: 0; } }
+@keyframes wFloat {
+  0%, 100% { transform: translate(0, 0); opacity: 0.2; }
+  30% { opacity: 1; }
+  50% { transform: translate(14px, -26px); opacity: 0.5; }
+  80% { opacity: 0.9; }
+}
+@keyframes wDrift {
+  from { transform: translate(0, 0) rotate(0deg); opacity: 0.95; }
+  55% { transform: translate(-26px, 200px) rotate(140deg); }
+  to { transform: translate(14px, 380px) rotate(280deg); opacity: 0; }
+}
+@keyframes wFall { from { transform: translateY(0); } to { transform: translateY(400px); } }
+@keyframes wRain { from { transform: translateY(0); opacity: 0.8; } to { transform: translateY(420px); opacity: 0.4; } }
+@keyframes wFlash { 0%, 92%, 100% { opacity: 0; } 93% { opacity: 0.22; } 95% { opacity: 0.05; } 96.5% { opacity: 0.16; } }
+
 /* darken the top of the painting so the HP bars stay readable */
 .stage-shade {
   position: absolute;
@@ -774,7 +861,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-anim, .hero-anim::after, .spark,
+  .hero-anim, .hero-anim::after, .spark, .wpart, .strip, .weather-storm::after,
   .line, .fig-slot, .fig-inner, .fig-inner > svg, .beast-idle, .beast-dash-r, .beast-dash-l,
   .burst, .slash, .missile, .floater, .verdict-wrap, .forge-preview {
     animation: none !important;
@@ -1059,6 +1146,33 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   box-shadow: inset 0 -6px 14px rgba(0, 0, 0, 0.45);
 }
 .hero-bust img { position: absolute; left: 50%; user-select: none; -webkit-user-drag: none; }
+
+/* ---------- wardrobe & random rewards ---------- */
+
+.wardrobe-row { margin-bottom: 8px; }
+.slot-label {
+  margin: 8px 0 5px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.gear-chip {
+  cursor: pointer;
+  font-family: var(--font-body);
+  border: 2px solid var(--line);
+}
+.gear-chip.worn {
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  color: #fff;
+  text-shadow: 0 1px 0 #00000055;
+  box-shadow: 0 0 0 2px var(--gold-bright);
+}
+.fate-card.rolled { cursor: default; }
+.fate-card.gear-card { border-color: var(--gold-bright); }
+.pill.drop { background: linear-gradient(180deg, var(--gold-bright), var(--gold)); color: #fff; }
 .styler h4 { margin: 8px 0 6px; font-family: var(--font-display); font-weight: 800; font-size: 0.95rem; }
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch {

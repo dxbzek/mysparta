@@ -183,6 +183,7 @@ export function FighterFig({
   mirror,
   style: styleFx,
   aura,
+  particles,
   className,
 }: {
   fighter: number;
@@ -192,6 +193,8 @@ export function FighterFig({
   mirror?: boolean;
   style?: number;
   aura?: number;
+  /** equipped trinket effect swirling around the fighter */
+  particles?: string;
   className?: string;
 }) {
   const f = fighterOf(fighter);
@@ -220,6 +223,26 @@ export function FighterFig({
       >
         <SheetAnim sheet={sheet} box={f.box} scale={scale} mirror={mirror} holdEnd={anim === "death"} />
       </span>
+      {particles && <WeatherFx kind={particles} count={5} />}
+    </span>
+  );
+}
+
+/**
+ * Ambient particle layer — used for arena weather (many, stage-wide) and
+ * equipped trinket effects (few, around one fighter). Pure CSS.
+ */
+export function WeatherFx({ kind, count }: { kind: string; count: number }) {
+  const items = Array.from({ length: count }, (_, i) => ({
+    left: `${(i * 83 + 13) % 100}%`,
+    delay: `${((i * 47) % 30) / 10}s`,
+    dur: `${2.6 + ((i * 31) % 25) / 10}s`,
+  }));
+  return (
+    <span className={`weather weather-${kind}`} aria-hidden>
+      {items.map((s, i) => (
+        <span key={i} className="wpart" style={{ left: s.left, animationDelay: s.delay, animationDuration: s.dur }} />
+      ))}
     </span>
   );
 }
