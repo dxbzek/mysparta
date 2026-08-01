@@ -223,16 +223,20 @@ export function applyDraft(
   if (c.level % 5 === 0) c.favour = Math.min(6, c.favour + 1);
 }
 
+/** Player-facing stat names (internal keys stay might/grace/tempo/grit). */
+export const STAT_LABEL: Record<StatName, string> = {
+  might: "Strength",
+  grace: "Agility",
+  tempo: "Speed",
+  grit: "Endurance",
+};
+
 export function describeOffer(o: FateOffer): string {
   switch (o.kind) {
-    case "stat3": return `+3 ${cap(o.stat)}`;
-    case "stat21": return `+2 ${cap(o.main)} / +1 ${cap(o.minor)}`;
+    case "stat3": return `+3 ${STAT_LABEL[o.stat]}`;
+    case "stat21": return `+2 ${STAT_LABEL[o.main]} / +1 ${STAT_LABEL[o.minor]}`;
     case "weapon": return `Weapon: ${WEAPONS.find((w) => w.id === o.weapon)?.name ?? o.weapon}`;
     case "skill": return `Skill: ${SKILLS.find((s) => s.id === o.skill)?.name ?? o.skill}`;
-    case "beast": return `Beast: ${BEASTS.find((b) => b.id === o.beast)?.name ?? o.beast}`;
+    case "beast": return `Pet: ${BEASTS.find((b) => b.id === o.beast)?.name ?? o.beast}`;
   }
-}
-
-function cap(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }

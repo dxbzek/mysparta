@@ -580,7 +580,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 /* HP plaques on the stage */
 .stage-hp {
   position: absolute;
-  top: 26px; left: 0; right: 0;
+  top: 40px; left: 0; right: 0;
   display: flex;
   justify-content: space-between;
   gap: 14px;
@@ -614,7 +614,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 .vs-badge {
   position: absolute;
-  top: 30px; left: 50%;
+  top: 44px; left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-display);
   font-weight: 800;
@@ -752,6 +752,172 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   background: linear-gradient(180deg, var(--gold-bright), var(--gold));
   box-shadow: 0 2px 0 rgb(64 44 22 / 25%);
 }
+
+/* ---------- articulated figure parts ---------- */
+
+.stage svg [class^="p-"], .styler-stage svg [class^="p-"] { transform-box: fill-box; }
+
+.fig-inner.idle .p-head { transform-origin: 50% 85%; animation: headTilt 2.4s ease-in-out infinite alternate; }
+.fig-inner.idle .p-armW { transform-origin: 30% 80%; animation: armSway 1.9s ease-in-out infinite alternate; }
+@keyframes headTilt { to { transform: rotate(3.5deg); } }
+@keyframes armSway { to { transform: rotate(-5deg); } }
+
+/* legs cycle while sprinting or entering */
+.strike-r .p-legF, .strike-l .p-legF, .enter-l .p-legF, .enter-r .p-legF {
+  transform-origin: 50% 5%;
+  animation: runF 140ms linear 4;
+}
+.strike-r .p-legB, .strike-l .p-legB, .enter-l .p-legB, .enter-r .p-legB {
+  transform-origin: 50% 5%;
+  animation: runB 140ms linear 4;
+}
+.enter-l .p-legF, .enter-r .p-legF { animation-iteration-count: 6; }
+.enter-l .p-legB, .enter-r .p-legB { animation-iteration-count: 6; }
+@keyframes runF { 0% { transform: rotate(24deg); } 50% { transform: rotate(-24deg); } 100% { transform: rotate(24deg); } }
+@keyframes runB { 0% { transform: rotate(-24deg); } 50% { transform: rotate(24deg); } 100% { transform: rotate(-24deg); } }
+
+/* the weapon arm swings at the moment of contact */
+.strike-r .p-armW, .strike-l .p-armW { transform-origin: 30% 80%; animation: armSwing 760ms ease; }
+@keyframes armSwing {
+  0%, 30% { transform: rotate(0); }
+  42% { transform: rotate(-42deg); }
+  52% { transform: rotate(48deg); }
+  66% { transform: rotate(10deg); }
+  100% { transform: rotate(0); }
+}
+.throw-r .p-armW, .throw-l .p-armW { transform-origin: 30% 80%; animation: armThrow 620ms ease; }
+@keyframes armThrow {
+  25% { transform: rotate(-55deg); }
+  55% { transform: rotate(28deg); }
+  100% { transform: rotate(0); }
+}
+
+/* boxers jab with the fist arms instead */
+.strike-r svg[data-disc="cestus"] .p-armS,
+.strike-l svg[data-disc="cestus"] .p-armS,
+.strike-r svg[data-disc="fists"] .p-armS,
+.strike-l svg[data-disc="fists"] .p-armS {
+  transform-origin: 15% 50%;
+  animation: jab 760ms ease;
+}
+@keyframes jab {
+  40% { transform: translateX(-8px); }
+  52% { transform: translateX(18px); }
+  64% { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
+}
+
+/* head snaps back when hurt; shield rises on block */
+.hurt-l .p-head, .hurt-r .p-head { transform-origin: 50% 85%; animation: headSnap 460ms ease 280ms; }
+@keyframes headSnap { 30% { transform: rotate(-15deg); } 100% { transform: rotate(0); } }
+.block-l .p-armS, .block-r .p-armS { transform-origin: 60% 45%; animation: shieldRaise 460ms ease 230ms; }
+@keyframes shieldRaise { 40% { transform: rotate(-16deg) translateY(-9px); } 100% { transform: none; } }
+
+.fig-inner.felled [class^="p-"] { animation: none !important; }
+
+/* dust kicked up by the sprint */
+.strike-r::after, .strike-l::after, .enter-l::after, .enter-r::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  width: 48px;
+  height: 16px;
+  background: radial-gradient(closest-side, #6a512e66, transparent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: dust 600ms ease;
+  pointer-events: none;
+}
+.strike-r::after, .enter-l::after { left: -20px; }
+.strike-l::after, .enter-r::after { right: -20px; }
+@keyframes dust {
+  15% { opacity: 1; transform: translateX(0) scale(0.6); }
+  100% { opacity: 0; transform: translateX(-28px) scale(1.5); }
+}
+
+/* ---------- crowd ---------- */
+
+.crowd { position: absolute; top: 20px; left: 0; right: 0; height: 28px; opacity: 0.55; z-index: 0; }
+.crowd-svg { width: 100%; height: 100%; display: block; }
+.crowd-svg g { transform-box: fill-box; }
+.crowd-head { animation: crowdBob 1.7s ease-in-out infinite alternate; }
+.ch-1 { animation-delay: 0.35s; }
+.ch-2 { animation-delay: 0.7s; }
+@keyframes crowdBob { to { transform: translateY(-2.5px); } }
+.crowd.hype .crowd-head { animation: crowdJump 450ms ease; }
+@keyframes crowdJump { 40% { transform: translateY(-9px); } 100% { transform: none; } }
+.stage-hp { z-index: 2; }
+.stage-figs { z-index: 1; }
+
+/* ---------- screen shake ---------- */
+
+.stage.quake { animation: quake 300ms ease; }
+@keyframes quake {
+  20% { transform: translate(-4px, 2px) rotate(-0.3deg); }
+  40% { transform: translate(4px, -2px) rotate(0.3deg); }
+  60% { transform: translate(-3px, -1px); }
+  80% { transform: translate(2px, 1px); }
+  100% { transform: none; }
+}
+
+/* ---------- victory petals & reward chips ---------- */
+
+.petal {
+  position: absolute;
+  top: -18px;
+  width: 10px;
+  height: 16px;
+  border-radius: 40% 60% 55% 45%;
+  border: 2px solid var(--line);
+  opacity: 0;
+  animation: petalFall 1700ms ease-in forwards;
+  z-index: 1;
+  pointer-events: none;
+}
+@keyframes petalFall {
+  0% { opacity: 1; transform: translateY(0) rotate(0); }
+  100% { opacity: 0.9; transform: translateY(320px) rotate(260deg); }
+}
+
+.reward-chips { display: flex; gap: 10px; margin-top: 10px; z-index: 2; }
+.reward-chips .pill { font-size: 1rem; }
+.reward-chips .pill.gain { background: #ddeac8; }
+.reward-chips .pill.loss { background: #f2cec2; }
+
+/* ---------- level-up ceremony ---------- */
+
+.fate-card { animation: cardIn 520ms cubic-bezier(0.2, 0.9, 0.3, 1.15) backwards; }
+.fate-card:nth-child(1) { animation-delay: 100ms; }
+.fate-card:nth-child(2) { animation-delay: 300ms; }
+.fate-card:nth-child(3) { animation-delay: 500ms; }
+@keyframes cardIn {
+  from { opacity: 0; transform: perspective(600px) rotateY(80deg) translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---------- league pill, sound toggle, tasks ---------- */
+
+.league-pill { color: #33240f; }
+.sound-toggle { cursor: pointer; font-family: inherit; }
+
+.quests h3 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.qlist { list-style: none; margin: 0; padding: 0; }
+.qlist li {
+  padding: 5px 0 5px 26px;
+  font-weight: 700;
+  position: relative;
+}
+.qlist li::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 7px;
+  width: 14px; height: 14px;
+  border: 2.5px solid var(--line);
+  border-radius: 5px;
+  background: #fdf6dd;
+}
+.qlist li.qdone { color: var(--olive); }
+.qlist li.qdone::before { content: "✓"; background: var(--olive); color: #fdf6dd; font-size: 12px; line-height: 14px; text-align: center; font-weight: 800; }
 
 /* ---------- forge customiser ---------- */
 

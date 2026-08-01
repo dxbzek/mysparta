@@ -1,7 +1,8 @@
 /**
- * AGOGE art library — chunky-cartoon style: big heads, thick ink outlines,
- * flat warm colours. All art is original SVG, fully parameterised for
- * customisation (skin, helmet, crest, armour tint, shield, sigil).
+ * AGOGE art library — chunky-cartoon style with articulated part groups
+ * (.p-legF, .p-legB, .p-armW, .p-armS, .p-head) that styles.css animates:
+ * legs cycle while running, the weapon arm swings at contact, shields
+ * raise on blocks. All art is original SVG, fully parameterised.
  */
 
 import type { Appearance, Discipline } from "@agoge/core";
@@ -76,7 +77,7 @@ function Head({
   p: Palette;
   helm: number;
 }) {
-  const s = r / 42; // scale relative to the figure head
+  const s = r / 42;
   return (
     <g transform={`translate(${cx} ${cy}) scale(${s})`}>
       <circle cx="0" cy="0" r="42" fill={p.skin} {...OUT} />
@@ -86,7 +87,6 @@ function Head({
       <circle cx="19" cy="2" r="5" fill={INK} />
       {helm === 0 && (
         <>
-          {/* Corinthian: dome + cheek guards + nose guard + tall crest */}
           <path d="M -43 -8 Q -41 -48 0 -50 Q 41 -48 43 -8 L 31 -8 Q 29 -36 0 -38 Q -29 -36 -31 -8 Z" fill={p.armour} {...OUT} />
           <path d="M -43 -8 L -31 -8 L -31 18 Q -40 14 -43 4 Z" fill={p.armour} {...OUT} />
           <path d="M 43 -8 L 31 -8 L 31 18 Q 40 14 43 4 Z" fill={p.armour} {...OUT} />
@@ -97,7 +97,6 @@ function Head({
       )}
       {helm === 1 && (
         <>
-          {/* Pilos cap: rounded cone, no guards, top tuft */}
           <path d="M -38 -14 Q -34 -56 0 -58 Q 34 -56 38 -14 Q 20 -24 0 -24 Q -20 -24 -38 -14 Z" fill={p.armour} {...OUT} />
           <path d="M -10 -54 Q 0 -76 14 -56 Q 4 -62 -2 -58 Z" fill={p.crest} {...OUT} />
           <path d="M -38 -14 Q 0 -30 38 -14" stroke={INK} strokeWidth="4" fill="none" />
@@ -105,7 +104,6 @@ function Head({
       )}
       {helm === 2 && (
         <>
-          {/* Bare: hair in the crest colour + laurel band */}
           <path d="M -40 -12 Q -38 -50 0 -52 Q 38 -50 40 -12 Q 26 -30 8 -34 Q 22 -22 18 -12 Q 4 -30 -14 -32 Q -2 -20 -8 -12 Q -22 -28 -40 -12 Z" fill={p.crest} {...OUT} />
           <ellipse cx="-28" cy="-26" rx="9" ry="4" transform="rotate(-30 -28 -26)" fill="#7c8a3a" stroke={INK} strokeWidth="2.5" />
           <ellipse cx="28" cy="-26" rx="9" ry="4" transform="rotate(30 28 -26)" fill="#7c8a3a" stroke={INK} strokeWidth="2.5" />
@@ -207,7 +205,7 @@ function StarShape({ cx, cy, r, fill }: { cx: number; cy: number; r: number; fil
 }
 
 /* ---------------------------------------------------------------- */
-/* Full hoplite figure.                                              */
+/* Full hoplite figure with articulated part groups.                 */
 /* ---------------------------------------------------------------- */
 
 export function HopliteFigure({
@@ -238,42 +236,55 @@ export function HopliteFigure({
       height={height}
       viewBox="0 0 200 230"
       aria-hidden
+      data-disc={discipline}
       style={mirror ? { transform: "scaleX(-1)" } : undefined}
     >
       <ellipse cx="102" cy="216" rx="58" ry="10" fill="#00000030" />
 
-      <path d="M 88 152 L 82 196" {...LIMB} strokeWidth={16} stroke={p.skin} />
-      <path d="M 118 152 L 128 196" {...LIMB} strokeWidth={16} stroke={p.skin} />
-      <path d="M 84 172 L 82 196" {...LIMB} strokeWidth={16} stroke={p.armour} />
-      <path d="M 122 172 L 128 196" {...LIMB} strokeWidth={16} stroke={p.armour} />
-      <ellipse cx="80" cy="204" rx="16" ry="8" fill="#8a5a2e" {...OUT} />
-      <ellipse cx="132" cy="204" rx="16" ry="8" fill="#8a5a2e" {...OUT} />
+      <g className="p-legB">
+        <path d="M 88 152 L 82 196" {...LIMB} strokeWidth={16} stroke={p.skin} />
+        <path d="M 84 172 L 82 196" {...LIMB} strokeWidth={16} stroke={p.armour} />
+        <ellipse cx="80" cy="204" rx="16" ry="8" fill="#8a5a2e" {...OUT} />
+      </g>
+      <g className="p-legF">
+        <path d="M 118 152 L 128 196" {...LIMB} strokeWidth={16} stroke={p.skin} />
+        <path d="M 122 172 L 128 196" {...LIMB} strokeWidth={16} stroke={p.armour} />
+        <ellipse cx="132" cy="204" rx="16" ry="8" fill="#8a5a2e" {...OUT} />
+      </g>
 
-      <WeaponArm discipline={discipline} p={p} />
+      <g className="p-armW">
+        <WeaponArm discipline={discipline} p={p} />
+      </g>
 
-      <path d="M 76 146 L 84 164 L 92 146 L 100 164 L 108 146 L 116 164 L 124 146 L 126 150 L 122 154 L 80 154 L 78 150 Z" fill="#b98d4f" {...OUT} />
-      <path d="M 74 110 Q 102 100 128 110 L 124 150 Q 102 158 78 150 Z" fill={p.armour} {...OUT} />
-      <path d="M 84 122 Q 102 116 118 122" stroke={INK} strokeWidth="3" fill="none" opacity="0.45" />
+      <g className="p-body">
+        <path d="M 76 146 L 84 164 L 92 146 L 100 164 L 108 146 L 116 164 L 124 146 L 126 150 L 122 154 L 80 154 L 78 150 Z" fill="#b98d4f" {...OUT} />
+        <path d="M 74 110 Q 102 100 128 110 L 124 150 Q 102 158 78 150 Z" fill={p.armour} {...OUT} />
+        <path d="M 84 122 Q 102 116 118 122" stroke={INK} strokeWidth="3" fill="none" opacity="0.45" />
+      </g>
 
-      <Head cx={103} cy={62} r={42} p={p} helm={helm} />
+      <g className="p-head">
+        <Head cx={103} cy={62} r={42} p={p} helm={helm} />
+      </g>
 
-      {showShield && (
-        <g>
-          <path d="M 82 118 L 60 138" {...LIMB} strokeWidth={14} stroke={p.skin} />
-          <circle cx="50" cy="146" r="36" fill={p.shield} {...OUT} />
-          <circle cx="50" cy="146" r="24" fill="none" stroke={INK} strokeWidth="3" opacity="0.4" />
-          <Sigil cx={50} cy={146} r={13} variant={sigil} fill={p.armour} />
-        </g>
-      )}
-      {boxer && (
-        <g>
-          <path d="M 118 116 L 152 102" {...LIMB} strokeWidth={14} stroke={p.skin} />
-          <path d="M 112 134 L 156 126" {...LIMB} strokeWidth={14} stroke={p.skin} />
-          <circle cx="158" cy="98" r="12" fill={p.armour} {...OUT} />
-          <circle cx="163" cy="126" r="12" fill={p.armour} {...OUT} />
-        </g>
-      )}
-      {thrower && <path d="M 84 120 L 52 132" {...LIMB} strokeWidth={14} stroke={p.skin} />}
+      <g className="p-armS">
+        {showShield && (
+          <g>
+            <path d="M 82 118 L 60 138" {...LIMB} strokeWidth={14} stroke={p.skin} />
+            <circle cx="50" cy="146" r="36" fill={p.shield} {...OUT} />
+            <circle cx="50" cy="146" r="24" fill="none" stroke={INK} strokeWidth="3" opacity="0.4" />
+            <Sigil cx={50} cy={146} r={13} variant={sigil} fill={p.armour} />
+          </g>
+        )}
+        {boxer && (
+          <g>
+            <path d="M 118 116 L 152 102" {...LIMB} strokeWidth={14} stroke={p.skin} />
+            <path d="M 112 134 L 156 126" {...LIMB} strokeWidth={14} stroke={p.skin} />
+            <circle cx="158" cy="98" r="12" fill={p.armour} {...OUT} />
+            <circle cx="163" cy="126" r="12" fill={p.armour} {...OUT} />
+          </g>
+        )}
+        {thrower && <path d="M 84 120 L 52 132" {...LIMB} strokeWidth={14} stroke={p.skin} />}
+      </g>
     </svg>
   );
 }
@@ -327,18 +338,21 @@ function WeaponArm({ discipline, p }: { discipline: Discipline | "fists"; p: Pal
 }
 
 /* ---------------------------------------------------------------- */
-/* Beasts — chibi companions for the stage and the Codex.            */
+/* Beasts — fanged, glow-eyed, built to menace.                      */
 /* ---------------------------------------------------------------- */
 
-const BEAST_LOOKS: Record<string, { colour: string; scale: number; kind: "quad" | "bird" | "shell" }> = {
-  lykos: { colour: "#8d8d94", scale: 0.9, kind: "quad" },
-  stymphal_shrike: { colour: "#7f95a8", scale: 0.75, kind: "bird" },
-  kalydon_boar: { colour: "#7a5b3c", scale: 1.05, kind: "quad" },
-  nemean_cub: { colour: "#c9973f", scale: 1.15, kind: "quad" },
-  ember_fox: { colour: "#cf6a35", scale: 0.8, kind: "quad" },
-  bronze_owl: { colour: "#a58a4e", scale: 0.7, kind: "bird" },
-  kerberos_pup: { colour: "#54484a", scale: 0.95, kind: "quad" },
-  marble_tortoise: { colour: "#8fa08a", scale: 0.9, kind: "shell" },
+const EYE = "#e3452f";
+const FANG = "#f5efdd";
+
+const BEAST_LOOKS: Record<string, { colour: string; dark: string; scale: number }> = {
+  lykos: { colour: "#6e6e78", dark: "#4c4c56", scale: 0.95 },
+  stymphal_shrike: { colour: "#5c7284", dark: "#43555f", scale: 0.85 },
+  kalydon_boar: { colour: "#6b4a2c", dark: "#4e3520", scale: 1.1 },
+  nemean_cub: { colour: "#b9862f", dark: "#8f6420", scale: 1.2 },
+  ember_fox: { colour: "#bf5426", dark: "#8f3c18", scale: 0.85 },
+  bronze_owl: { colour: "#8d7440", dark: "#6a562d", scale: 0.75 },
+  kerberos_pup: { colour: "#3f3438", dark: "#2a2226", scale: 1.0 },
+  marble_tortoise: { colour: "#77876f", dark: "#576550", scale: 0.95 },
 };
 
 export function BeastFigure({
@@ -352,69 +366,135 @@ export function BeastFigure({
   mirror?: boolean;
   down?: boolean;
 }) {
-  const look = BEAST_LOOKS[beastId] ?? { colour: "#8d8d94", scale: 0.9, kind: "quad" as const };
+  const look = BEAST_LOOKS[beastId] ?? BEAST_LOOKS.lykos!;
   const c = look.colour;
+  const d = look.dark;
   const style: React.CSSProperties = {
     transform: `${mirror ? "scaleX(-1) " : ""}${down ? "rotate(80deg)" : ""}`,
     filter: down ? "grayscale(0.8) brightness(0.85)" : undefined,
   };
   const s = size * look.scale;
+  const bird = beastId === "stymphal_shrike" || beastId === "bronze_owl";
+  const shell = beastId === "marble_tortoise";
+
   return (
-    <svg width={s} height={s * 0.8} viewBox="0 0 120 96" aria-hidden style={style}>
-      <ellipse cx="60" cy="90" rx="38" ry="6" fill="#00000028" />
-      {look.kind === "bird" && (
+    <svg width={s} height={s * 0.84} viewBox="0 0 120 100" aria-hidden style={style}>
+      <ellipse cx="60" cy="94" rx="40" ry="6" fill="#00000028" />
+
+      {bird && (
         <g>
-          <ellipse cx="55" cy="58" rx="30" ry="24" fill={c} {...OUT} />
-          <path d="M 40 52 Q 24 60 36 74 Q 46 68 52 60 Z" fill={c} stroke={INK} strokeWidth="4" strokeLinejoin="round" />
-          <circle cx="86" cy="40" r="17" fill={c} {...OUT} />
-          <path d="M 101 40 L 116 45 L 101 50 Z" fill="#e9c04a" stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
-          <circle cx="90" cy="36" r="4" fill={INK} />
-          <path d="M 48 80 L 48 88 M 64 80 L 64 88" stroke={INK} strokeWidth="4" strokeLinecap="round" />
+          {/* hunched predatory body, wing raised */}
+          <path d="M 26 64 Q 24 34 58 34 Q 88 36 88 60 Q 88 76 58 78 Q 32 78 26 64 Z" fill={c} {...OUT} />
+          <path d="M 34 52 Q 12 40 18 68 Q 30 74 44 64 Z" fill={d} stroke={INK} strokeWidth="4" strokeLinejoin="round" />
+          {/* head low and forward, hooked beak */}
+          <circle cx="92" cy="40" r="16" fill={c} {...OUT} />
+          <path d="M 104 34 Q 122 38 108 50 L 102 44 Z" fill="#d9a43c" stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
+          {/* glowing eye + angry brow */}
+          <circle cx="94" cy="36" r="4.5" fill={EYE} />
+          <circle cx="95.5" cy="34.5" r="1.5" fill="#fff" />
+          <path d="M 86 30 L 100 34" stroke={INK} strokeWidth="4" strokeLinecap="round" />
+          {/* talons spread */}
+          <path d="M 48 80 L 44 92 M 48 80 L 50 93 M 66 80 L 64 93 M 66 80 L 71 92" stroke={INK} strokeWidth="4" strokeLinecap="round" />
+          {beastId === "stymphal_shrike" && (
+            <path d="M 40 40 L 52 30 L 56 42 L 68 32 L 70 44" stroke="#aab0b4" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+          )}
         </g>
       )}
-      {look.kind === "shell" && (
+
+      {shell && (
         <g>
-          <path d="M 24 70 Q 24 34 60 34 Q 96 34 96 70 Z" fill={c} {...OUT} />
-          <path d="M 42 52 Q 60 42 78 52 M 34 64 Q 60 52 86 64" stroke={INK} strokeWidth="3" fill="none" opacity="0.5" />
-          <circle cx="103" cy="66" r="12" fill="#b5c2b0" {...OUT} />
-          <circle cx="107" cy="63" r="3.5" fill={INK} />
-          <path d="M 34 70 L 32 84 M 84 70 L 88 84" stroke={INK} strokeWidth="6" strokeLinecap="round" />
+          {/* jagged war-shell */}
+          <path d="M 22 72 Q 22 36 60 34 Q 98 36 98 72 Z" fill={c} {...OUT} />
+          <path d="M 32 46 L 40 34 L 46 46 L 56 32 L 64 46 L 74 34 L 80 46 L 90 40" stroke={INK} strokeWidth="3.5" fill="none" strokeLinejoin="round" />
+          <path d="M 40 58 Q 60 48 80 58 M 32 68 Q 60 56 88 68" stroke={INK} strokeWidth="3" fill="none" opacity="0.5" />
+          {/* snapping head */}
+          <circle cx="104" cy="64" r="13" fill="#9aa892" {...OUT} />
+          <path d="M 112 62 L 121 58 L 115 66 L 121 72 L 111 69 Z" fill={FANG} stroke={INK} strokeWidth="3" strokeLinejoin="round" />
+          <circle cx="104" cy="60" r="3.5" fill={EYE} />
+          <path d="M 34 72 L 32 88 M 84 72 L 88 88" stroke={INK} strokeWidth="6" strokeLinecap="round" />
         </g>
       )}
-      {look.kind === "quad" && (
+
+      {!bird && !shell && (
         <g>
-          <ellipse cx="56" cy="60" rx="34" ry="22" fill={c} {...OUT} />
+          {/* low prowling body */}
+          <path d="M 22 66 Q 22 44 52 42 Q 84 42 90 58 L 90 72 Q 60 82 30 76 Z" fill={c} {...OUT} />
+          {/* raised hackles */}
+          <path d="M 30 48 L 38 38 L 44 48 L 52 38 L 58 47 L 66 39 L 70 48" fill={d} stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
           {/* tail */}
           {beastId === "ember_fox" ? (
-            <path d="M 24 56 Q 2 46 8 68 Q 16 74 26 68 Z" fill="#f0e0c8" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
+            <path d="M 24 56 Q -2 42 8 70 Q 16 78 28 70 Z" fill="#e88b3a" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
           ) : (
-            <path d="M 26 52 Q 12 44 14 58" stroke={INK} strokeWidth="5" strokeLinecap="round" fill="none" />
+            <path d="M 26 54 Q 8 44 12 62" stroke={INK} strokeWidth="5" strokeLinecap="round" fill="none" />
           )}
-          {/* legs */}
-          <path d="M 38 76 L 36 90 M 52 78 L 52 90 M 66 78 L 66 90 M 78 76 L 82 90" stroke={INK} strokeWidth="6" strokeLinecap="round" />
-          {/* head(s) */}
-          <circle cx="90" cy="42" r="18" fill={c} {...OUT} />
+          {/* clawed legs */}
+          <path d="M 38 78 L 36 92 M 54 80 L 54 92 M 70 80 L 70 92 M 82 76 L 86 92" stroke={INK} strokeWidth="6" strokeLinecap="round" />
+          <path d="M 33 92 L 39 92 M 51 92 L 57 92 M 67 92 L 73 92 M 83 92 L 89 92" stroke={FANG} strokeWidth="4" strokeLinecap="round" />
+
+          {/* main head: snarling, jaws open */}
+          <g>
+            <path d="M 78 34 Q 76 20 92 20 Q 110 20 112 36 Q 114 46 106 50 L 84 50 Q 76 44 78 34 Z" fill={c} {...OUT} />
+            {/* ears pinned back */}
+            <path d="M 80 24 L 70 10 L 88 18 Z" fill={d} stroke={INK} strokeWidth="4" strokeLinejoin="round" />
+            <path d="M 98 18 L 102 4 L 110 20 Z" fill={d} stroke={INK} strokeWidth="4" strokeLinejoin="round" />
+            {/* glowing eye, angry brow */}
+            <circle cx="96" cy="33" r="4.5" fill={EYE} />
+            <circle cx="97.5" cy="31.5" r="1.5" fill="#fff" />
+            <path d="M 88 27 L 102 31" stroke={INK} strokeWidth="4" strokeLinecap="round" />
+            {/* open jaw with fangs */}
+            <path d="M 106 50 L 84 50 L 86 58 Q 98 62 110 56 Z" fill="#7c2f24" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
+            <path d="M 88 50 L 91 56 L 94 50 Z M 100 50 L 103 56 L 106 50 Z" fill={FANG} />
+            <path d="M 90 58 L 93 53 L 96 58 Z" fill={FANG} />
+          </g>
+
+          {/* extra heads for Kerberos */}
           {beastId === "kerberos_pup" && (
             <>
-              <circle cx="72" cy="32" r="13" fill={c} {...OUT} />
-              <circle cx="102" cy="28" r="13" fill={c} {...OUT} />
-              <circle cx="74" cy="30" r="3" fill={INK} />
-              <circle cx="104" cy="26" r="3" fill={INK} />
+              <g transform="translate(-22 -6) scale(0.72)">
+                <path d="M 78 34 Q 76 20 92 20 Q 110 20 112 36 Q 114 46 106 50 L 84 50 Q 76 44 78 34 Z" fill={c} {...OUT} />
+                <circle cx="96" cy="33" r="5" fill={EYE} />
+                <path d="M 106 50 L 84 50 L 86 58 Q 98 62 110 56 Z" fill="#7c2f24" stroke={INK} strokeWidth="4" />
+              </g>
+              <g transform="translate(14 -14) scale(0.66)">
+                <path d="M 78 34 Q 76 20 92 20 Q 110 20 112 36 Q 114 46 106 50 L 84 50 Q 76 44 78 34 Z" fill={c} {...OUT} />
+                <circle cx="96" cy="33" r="5" fill={EYE} />
+                <path d="M 106 50 L 84 50 L 86 58 Q 98 62 110 56 Z" fill="#7c2f24" stroke={INK} strokeWidth="4" />
+              </g>
             </>
           )}
+          {/* mane for the Nemean cub */}
           {beastId === "nemean_cub" && (
-            <path d="M 72 32 Q 66 14 84 20 Q 96 8 102 24 Q 116 20 112 36 Z" fill="#a06c2c" stroke={INK} strokeWidth="4" strokeLinejoin="round" />
+            <path d="M 74 40 Q 62 16 84 14 Q 92 0 102 12 Q 118 6 118 24 Q 130 30 118 42 L 108 36 Q 94 24 80 32 Z" fill={d} stroke={INK} strokeWidth="4" strokeLinejoin="round" />
           )}
+          {/* tusks for the boar */}
           {beastId === "kalydon_boar" && (
-            <path d="M 100 52 Q 110 56 112 46" stroke="#f0e6d2" strokeWidth="5" strokeLinecap="round" fill="none" />
+            <path d="M 104 52 Q 114 58 118 46 M 86 52 Q 78 60 72 50" stroke={FANG} strokeWidth="5" strokeLinecap="round" fill="none" />
           )}
-          {/* ears */}
-          <path d="M 80 28 L 84 14 L 92 26 Z" fill={c} stroke={INK} strokeWidth="4" strokeLinejoin="round" />
-          <path d="M 96 26 L 104 14 L 106 28 Z" fill={c} stroke={INK} strokeWidth="4" strokeLinejoin="round" />
-          <circle cx="95" cy="40" r="4" fill={INK} />
-          <path d="M 104 48 Q 108 50 106 44" stroke={INK} strokeWidth="3" fill="none" />
         </g>
       )}
+    </svg>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/* Crowd — silhouettes that bob, and roar on crits.                  */
+/* ---------------------------------------------------------------- */
+
+export function CrowdStrip() {
+  const heads = Array.from({ length: 26 });
+  return (
+    <svg viewBox="0 0 520 36" preserveAspectRatio="none" className="crowd-svg" aria-hidden>
+      {heads.map((_, i) => {
+        const x = 6 + i * 20 + (i % 3) * 3;
+        const y = 18 + ((i * 7) % 3) * 4;
+        const dark = i % 2 === 0 ? "#4e3a22" : "#5d4628";
+        return (
+          <g key={i} className={`crowd-head ch-${i % 3}`}>
+            <circle cx={x} cy={y} r="8" fill={dark} />
+            <path d={`M ${x - 10} 36 Q ${x} ${y + 6} ${x + 10} 36 Z`} fill={dark} />
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -432,7 +512,6 @@ export function ImpactBurst({ size, crit }: { size: number; crit: boolean }) {
   );
 }
 
-/** Slash arc that flashes at the point of contact for melee hits. */
 export function SlashArc({ size, mirror }: { size: number; mirror?: boolean }) {
   return (
     <svg
@@ -447,7 +526,6 @@ export function SlashArc({ size, mirror }: { size: number; mirror?: boolean }) {
   );
 }
 
-/** Javelin projectile for thrown attacks. */
 export function Javelin({ size, mirror }: { size: number; mirror?: boolean }) {
   return (
     <svg

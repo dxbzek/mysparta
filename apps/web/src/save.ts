@@ -6,6 +6,14 @@
 
 import type { BattlePlan, Champion } from "@agoge/core";
 
+export interface DailyQuests {
+  day: string;
+  fights: number;
+  wins: number;
+  crits: number;
+  claimed: boolean;
+}
+
 export interface SaveV1 {
   v: 1;
   champion: Champion;
@@ -19,6 +27,11 @@ export interface SaveV1 {
   /** Last plan we SAW each rival use (the "last-known plan" scouting rule). */
   seenPlans: Record<string, BattlePlan>;
   boardRefresh: number;
+  quests?: DailyQuests;
+}
+
+export function freshQuests(): DailyQuests {
+  return { day: todayKey(), fights: 0, wins: 0, crits: 0, claimed: false };
 }
 
 const KEY = "agoge.save.v1";
@@ -55,6 +68,7 @@ export function applyDailyReset(save: SaveV1): SaveV1 {
     vigor: Math.min(VIGOR_CAP, save.vigor + VIGOR_DAILY),
     vigorDate: today,
     boardRefresh: 0,
+    quests: freshQuests(),
   };
 }
 

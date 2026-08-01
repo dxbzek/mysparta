@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BEASTS,
   BOONS,
+  STAT_LABEL,
   TECHNIQUES,
   TRUMPS,
   WEAPONS,
@@ -45,6 +46,7 @@ import {
 } from "./art.js";
 import {
   applyDailyReset,
+  freshQuests,
   load,
   newSave,
   persist,
@@ -53,14 +55,24 @@ import {
   type SaveV1,
   VIGOR_CAP,
 } from "./save.js";
+import { sound } from "./sound.js";
 
 type Screen =
   | { s: "forge" }
   | { s: "home" }
   | { s: "arena" }
-  | { s: "fight"; result: FightResult; rival: Rival }
+  | { s: "fight"; result: FightResult; rival: Rival; rewards: { xp: number; kleos: number } }
   | { s: "history" }
   | { s: "codex" };
+
+/** League tiers give the rating number meaning (03-gdd-systems.md §1.4). */
+function league(kleos: number): { name: string; color: string } {
+  if (kleos >= 1900) return { name: "Olympian", color: "#8a96e8" };
+  if (kleos >= 1750) return { name: "Marble", color: "#e6e1d4" };
+  if (kleos >= 1650) return { name: "Gold", color: "#f0c052" };
+  if (kleos >= 1550) return { name: "Silver", color: "#cdd3d8" };
+  return { name: "Bronze", color: "#d09054" };
+}
 
 const STANCE_OPTS: { id: Stance; name: string; blurb: string }[] = [
   { id: "aggressive", name: "Aggressive", blurb: "+15% damage, faster — thinner guard" },
@@ -162,7 +174,20 @@ export function App() {
       defender: rival.snapshot,
     });
     const won = result.winner === 0;
-    champion.xp += fightXp(won, fresh.kleos, rival.kleos);
+    const xpGain = fightXp(won, fresh.kleos, rival.kleos);
+    const kd = kleosDelta(won, fresh.kleos, rival.kleos);
+    champion.xp += xpGain;
+
+    // Daily tasks: fight 3, win 2, land a crit → +1 reroll.
+    const q = fresh.quests?.day === todayKey() ? { ...fresh.quests } : freshQuests();
+    q.fights += 1;
+    if (won) q.wins += 1;
+    if (result.events.some((e) => e.type === "hit" && e.side === 0 && e.crit)) q.crits += 1;
+    if (!q.claimed && q.fights >= 3 && q.wins >= 2 && q.crits >= 1) {
+      q.claimed = true;
+      champion.favour = Math.min(6, champion.favour + 1);
+    }
+
     const next: SaveV1 = {
       ...fresh,
       champion,
@@ -170,12 +195,13 @@ export function App() {
       totalFights: fresh.totalFights + 1,
       wins: fresh.wins + (won ? 1 : 0),
       losses: fresh.losses + (won ? 0 : 1),
-      kleos: Math.max(1000, fresh.kleos + kleosDelta(won, fresh.kleos, rival.kleos)),
+      kleos: Math.max(1000, fresh.kleos + kd),
       plan,
       seenPlans: { ...fresh.seenPlans, [rival.snapshot.name]: rival.snapshot.plan },
+      quests: q,
     };
     update(next);
-    setScreen({ s: "fight", result, rival });
+    setScreen({ s: "fight", result, rival, rewards: { xp: xpGain, kleos: kd } });
   };
 
   const pickDraft = (index: number) => {
@@ -205,10 +231,26 @@ export function App() {
             AGOGE
           </button>
           <div className="topbar-right">
-            <span className="pill" title="Kleos — your arena rating">✦ {save.kleos}</span>
+            <span
+              className="pill league-pill"
+              style={{ background: league(save.kleos).color }}
+              title={`Rating ${save.kleos} — ${league(save.kleos).name} league`}
+            >
+              {league(save.kleos).name} {save.kleos}
+            </span>
             <span className="pill" title={`Fights refill daily (+6, up to ${VIGOR_CAP})`}>
               ⚡ {save.vigor} fights
             </span>
+            <button
+              className="pill sound-toggle"
+              onClick={() => {
+                sound.setMuted(!sound.isMuted());
+                update({ ...save });
+              }}
+              title={sound.isMuted() ? "Sound is off" : "Sound is on"}
+            >
+              {sound.isMuted() ? "🔇" : "🔊"}
+            </button>
           </div>
         </header>
       }
@@ -250,6 +292,7 @@ export function App() {
       {screen.s === "fight" && (
         <FightTheatre
           result={screen.result}
+          rewards={screen.rewards}
           names={[c.displayName, screen.rival.snapshot.name]}
           figures={
             [
@@ -346,7 +389,8 @@ function Forge({ onForge }: { onForge: (c: Champion) => void }) {
                 </div>
                 <div className="muted">{omen(preview.omen).name}</div>
                 <div className="statline">
-                  Might {preview.stats.might} · Grace {preview.stats.grace} · Tempo {preview.stats.tempo} · Grit {preview.stats.grit}
+                  {STAT_LABEL.might} {preview.stats.might} · {STAT_LABEL.grace} {preview.stats.grace} ·{" "}
+                  {STAT_LABEL.tempo} {preview.stats.tempo} · {STAT_LABEL.grit} {preview.stats.grit}
                 </div>
               </div>
             </div>
@@ -518,7 +562,7 @@ function Home(props: {
             <div className="xpbar-fill" style={{ width: `${Math.min(100, (c.xp / need) * 100)}%` }} />
           </div>
           <div className="statline">
-            XP {c.xp}/{need} · {save.wins}W – {save.losses}L · HP {hpNow} · Rerolls (Favour): {c.favour}
+            XP {c.xp}/{need} · {save.wins}W – {save.losses}L · HP {hpNow} · Rerolls: {c.favour}
           </div>
         </div>
         <div className="hero-fig">
@@ -536,10 +580,10 @@ function Home(props: {
         <div className="card">
           <h3>Stats</h3>
           <ul className="stats">
-            <li><b>Might</b><span>{c.stats.might}</span></li>
-            <li><b>Grace</b><span>{c.stats.grace}</span></li>
-            <li><b>Tempo</b><span>{c.stats.tempo}</span></li>
-            <li><b>Grit</b><span>{c.stats.grit}</span></li>
+            <li><b>{STAT_LABEL.might}</b><span>{c.stats.might}</span></li>
+            <li><b>{STAT_LABEL.grace}</b><span>{c.stats.grace}</span></li>
+            <li><b>{STAT_LABEL.tempo}</b><span>{c.stats.tempo}</span></li>
+            <li><b>{STAT_LABEL.grit}</b><span>{c.stats.grit}</span></li>
           </ul>
         </div>
         <div className="card">
@@ -561,9 +605,25 @@ function Home(props: {
         </div>
       </section>
 
+      <section className="card quests">
+        <h3>Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — +1 Reroll</span>}</h3>
+        <ul className="qlist">
+          <li className={(save.quests?.fights ?? 0) >= 3 ? "qdone" : ""}>
+            Fight 3 times ({Math.min(3, save.quests?.fights ?? 0)}/3)
+          </li>
+          <li className={(save.quests?.wins ?? 0) >= 2 ? "qdone" : ""}>
+            Win 2 fights ({Math.min(2, save.quests?.wins ?? 0)}/2)
+          </li>
+          <li className={(save.quests?.crits ?? 0) >= 1 ? "qdone" : ""}>
+            Land a critical hit ({Math.min(1, save.quests?.crits ?? 0)}/1)
+          </li>
+        </ul>
+        <p className="muted small">Complete all three for +1 reroll. Resets daily.</p>
+      </section>
+
       {(c.skills.length > 0 || c.beasts.length > 0) && (
         <section className="card">
-          <h3>Skills & Beasts</h3>
+          <h3>Skills & Pets</h3>
           <div className="chips">
             {c.skills.map((s) => (
               <span key={s} className={`chip chip-${skill(s).kind}`} title={skill(s).text}>
@@ -731,6 +791,9 @@ function DraftModal(props: {
   onPick: (i: number) => void;
 }) {
   const { champion, offers } = props;
+  useEffect(() => {
+    sound.levelUp();
+  }, []);
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label="Level up">
       <div className="draft card">
@@ -742,7 +805,7 @@ function DraftModal(props: {
           {offers.map((o, i) => (
             <button key={i} className="fate-card" onClick={() => props.onPick(i)}>
               <span className="fate-kind">
-                {o.kind.startsWith("stat") ? "Stats" : o.kind === "weapon" ? "New weapon" : o.kind === "skill" ? "New skill" : "New beast"}
+                {o.kind.startsWith("stat") ? "Stats" : o.kind === "weapon" ? "New weapon" : o.kind === "skill" ? "New skill" : "New pet"}
               </span>
               <b>{describeOffer(o)}</b>
               <span className="fate-detail">{offerDetail(o)}</span>
@@ -750,7 +813,7 @@ function DraftModal(props: {
           ))}
         </div>
         <button className="btn ghost" disabled={!props.canReroll} onClick={props.onReroll}>
-          Reroll all three — costs 1 Favour ({champion.favour} held)
+          Reroll all three ({champion.favour} reroll{champion.favour === 1 ? "" : "s"} left)
         </button>
       </div>
     </div>
@@ -760,7 +823,7 @@ function DraftModal(props: {
 function offerDetail(o: FateOffer): string {
   if (o.kind === "weapon") return weapon(o.weapon).flavour;
   if (o.kind === "skill") return skill(o.skill).text;
-  if (o.kind === "beast") return `${beast(o.beast).flavour} Costs ${beast(o.beast).gritTax} Grit while equipped.`;
+  if (o.kind === "beast") return `${beast(o.beast).flavour} Costs ${beast(o.beast).gritTax} Endurance while it fights for you.`;
   return "Reliable. Permanent. Yours.";
 }
 
@@ -860,14 +923,14 @@ function Codex({ champion, onBack }: { champion: Champion; onBack: () => void })
       ))}
 
       <section className="card">
-        <h3>Beasts — {BEASTS.length} ({champion.beasts.length} at your side)</h3>
+        <h3>Pets — {BEASTS.length} ({champion.beasts.length} at your side)</h3>
         {BEASTS.map((b) => (
           <div className="codex-row" key={b.id}>
             <BeastFigure beastId={b.id} size={52} />
             <div className="grow">
               <div className="cname">{b.name}</div>
               <div className="cmeta">
-                HP {b.hpBase}+level · hits {b.dmgMin}–{b.dmgMax} · costs {b.gritTax} Grit — {b.flavour}
+                HP {b.hpBase}+level · hits {b.dmgMin}–{b.dmgMax} · costs {b.gritTax} Endurance — {b.flavour}
               </div>
             </div>
             {champion.beasts.includes(b.id) ? (

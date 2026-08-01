@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BEASTS, type Appearance, type Discipline, type FightResult } from "@agoge/core";
 import {
   BeastFigure,
+  CrowdStrip,
   HopliteFigure,
   ImpactBurst,
   Javelin,
@@ -10,6 +11,7 @@ import {
   paletteFromAppearance,
 } from "./art.js";
 import { narrate, type Line } from "./narrate.js";
+import { sound } from "./sound.js";
 
 export interface StageFigure {
   appearance: Appearance;
@@ -21,6 +23,8 @@ interface Props {
   result: FightResult;
   names: [string, string];
   figures: [StageFigure, StageFigure];
+  /** Post-fight summary shown under the verdict. */
+  rewards: { xp: number; kleos: number };
   onDone: () => void;
 }
 
@@ -30,7 +34,7 @@ const beastIdByName = new Map(BEASTS.map((b) => [b.name, b.id]));
  * The arena stage: champions run in, dash across to strike, swing, dodge,
  * block and fall — all directed by the deterministic event log.
  */
-export function FightTheatre({ result, names, figures, onDone }: Props) {
+export function FightTheatre({ result, names, figures, rewards, onDone }: Props) {
   const lines = useMemo(() => narrate(result, names), [result, names]);
   const [shown, setShown] = useState(1);
   const [speed, setSpeed] = useState<1 | 2>(1);
@@ -68,6 +72,42 @@ export function FightTheatre({ result, names, figures, onDone }: Props) {
   useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
   }, [shown, skipped]);
+
+  // SFX per beat, timed to land at contact.
+  useEffect(() => {
+    if (skipped) return;
+    const l = lines[shown - 1];
+    if (!l) return;
+    if (l.kind === "end") {
+      sound.fanfare(l.text.includes(names[0]));
+      return;
+    }
+    if (l.anim?.beastName) sound.beast();
+    switch (l.kind) {
+      case "info":
+        if (l.text.includes("enter the arena")) sound.drum();
+        break;
+      case "hit":
+        sound.hit(false);
+        break;
+      case "crit":
+        sound.hit(true);
+        break;
+      case "defend":
+        if (l.fx?.heal) sound.heal();
+        else if (l.anim?.reaction?.kind === "block" || l.fx) sound.block();
+        else if (l.anim?.thrown) sound.throwSpear();
+        else sound.whoosh();
+        break;
+      case "trump":
+        sound.power();
+        break;
+    }
+  }, [shown, skipped, lines, names]);
+
+  useEffect(() => {
+    if (skipped) sound.fanfare(result.winner === 0);
+  }, [skipped, result.winner]);
 
   const visible: Line[] = skipped ? lines : lines.slice(0, shown);
   const idx = visible.length;
@@ -162,8 +202,15 @@ export function FightTheatre({ result, names, figures, onDone }: Props) {
 
   return (
     <div className="theatre">
-      <div className="stage" ref={stageRef} style={{ "--dash": `${dash}px` } as React.CSSProperties}>
+      <div
+        className={`stage ${fx?.crit && !finished ? "quake" : ""}`}
+        ref={stageRef}
+        style={{ "--dash": `${dash}px` } as React.CSSProperties}
+      >
         <div className="stage-floor" />
+        <div className={`crowd ${fx?.crit ? "hype" : ""}`}>
+          <CrowdStrip />
+        </div>
         <div className="stage-hp">
           <HpBar name={names[0]} hp={hp[0]!} max={result.hpMax[0]} mirror={false} />
           <HpBar name={names[1]} hp={hp[1]!} max={result.hpMax[1]} mirror={true} />
@@ -213,9 +260,27 @@ export function FightTheatre({ result, names, figures, onDone }: Props) {
 
         {finished && (
           <div className="verdict-wrap">
+            {result.winner === 0 &&
+              Array.from({ length: 14 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="petal"
+                  style={{
+                    left: `${5 + i * 6.5}%`,
+                    background: ["#f4c94e", "#7c8a3a", "#c95b32"][i % 3],
+                    animationDelay: `${i * 90}ms`,
+                  }}
+                />
+              ))}
             <Laurel size={150} color={result.winner === 0 ? "#7c8a3a" : "#8a7550"} />
             <div className={`verdict ${result.winner === 0 ? "won" : "lost"}`}>
               {result.winner === 0 ? "VICTORY" : "DEFEAT"}
+            </div>
+            <div className="reward-chips">
+              <span className="pill">+{rewards.xp} XP</span>
+              <span className={`pill ${rewards.kleos >= 0 ? "gain" : "loss"}`}>
+                {rewards.kleos >= 0 ? "+" : ""}{rewards.kleos} Rating
+              </span>
             </div>
             <div className="verdict-sub">
               {names[result.winner]} · {result.ticks} ticks · sim v{result.simVersion}
