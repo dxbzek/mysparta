@@ -11,19 +11,19 @@
  * steps(N) — no per-frame JS, no canvas.
  */
 
-import mackIdle from "./assets/fighters/mack-idle.png";
-import mackRun from "./assets/fighters/mack-run.png";
-import mackAttack1 from "./assets/fighters/mack-attack1.png";
-import mackAttack2 from "./assets/fighters/mack-attack2.png";
-import mackHit from "./assets/fighters/mack-hit.png";
-import mackDeath from "./assets/fighters/mack-death.png";
-import kenjiIdle from "./assets/fighters/kenji-idle.png";
-import kenjiRun from "./assets/fighters/kenji-run.png";
-import kenjiAttack1 from "./assets/fighters/kenji-attack1.png";
-import kenjiAttack2 from "./assets/fighters/kenji-attack2.png";
-import kenjiHit from "./assets/fighters/kenji-hit.png";
-import kenjiDeath from "./assets/fighters/kenji-death.png";
-import pixelArenaImg from "./assets/fighters/pixel-arena.png";
+import mackIdle from "./assets/fighters/mack-idle.webp";
+import mackRun from "./assets/fighters/mack-run.webp";
+import mackAttack1 from "./assets/fighters/mack-attack1.webp";
+import mackAttack2 from "./assets/fighters/mack-attack2.webp";
+import mackHit from "./assets/fighters/mack-hit.webp";
+import mackDeath from "./assets/fighters/mack-death.webp";
+import kenjiIdle from "./assets/fighters/kenji-idle.webp";
+import kenjiRun from "./assets/fighters/kenji-run.webp";
+import kenjiAttack1 from "./assets/fighters/kenji-attack1.webp";
+import kenjiAttack2 from "./assets/fighters/kenji-attack2.webp";
+import kenjiHit from "./assets/fighters/kenji-hit.webp";
+import kenjiDeath from "./assets/fighters/kenji-death.webp";
+import pixelArenaImg from "./assets/fighters/pixel-arena.webp";
 
 export { pixelArenaImg };
 
@@ -150,12 +150,12 @@ function SheetAnim({
   holdEnd?: boolean;
 }) {
   const w = box * scale;
-  const anim = `sheetPlay ${sheet.dur}s steps(${sheet.frames}) ${
+  const anim = `stripPlay ${sheet.dur}s steps(${sheet.frames}) ${
     sheet.loop ? "infinite" : `1 ${holdEnd ? "forwards" : ""}`
   }`;
   return (
     <div
-      className="sheet"
+      className="strip"
       style={
         {
           width: w,
