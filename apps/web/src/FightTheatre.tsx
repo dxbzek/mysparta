@@ -1,13 +1,17 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BEASTS, FISTS, WEAPONS, type FightResult } from "@agoge/core";
 import { BeastFigure, ImpactBurst, Javelin, Laurel, SlashArc } from "./art.js";
-import { HeroSprite, arenaBgImg, heroOf } from "./heroes.js";
+import { HeroSprite, arenaBgImg, heroOf, type Pose } from "./heroes.js";
 import { narrate, type Line } from "./narrate.js";
 import { sound } from "./sound.js";
 
 export interface StageFigure {
   /** Roster index of the painted sprite (heroes.tsx). */
   hero: number;
+  /** Colour-grade preset (heroes.tsx STYLES). */
+  style: number;
+  /** Aura colour (heroes.tsx AURAS). */
+  aura: number;
   /** Weapon in hand at the start of the fight. */
   weaponId?: string;
   beasts: string[];
@@ -167,6 +171,15 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
     return cls.join(" ");
   };
 
+  /** Which painted pose each fighter shows this beat. */
+  const poseOf = (side: 0 | 1): Pose => {
+    if (finished && side === loser && result.reason === "ko") return "hurt";
+    if (finished) return "idle";
+    if (anim?.reaction?.side === side && anim.reaction.kind === "hurt") return "hurt";
+    if (anim?.striker === side) return "attack";
+    return "idle";
+  };
+
   const renderEffects = (side: 0 | 1) => {
     const showBurst = fx && !fx.heal && fx.target === side;
     const showSlash = showBurst && anim?.striker !== undefined && !anim.thrown;
@@ -234,7 +247,13 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
           <div className="corner">
             <div key={`a${idx}`} className={slotClass(0)}>
               <div className={innerClass(0)}>
-                <HeroSprite hero={figures[0].hero} height={figH} />
+                <HeroSprite
+                  hero={figures[0].hero}
+                  height={figH}
+                  pose={poseOf(0)}
+                  style={figures[0].style}
+                  aura={figures[0].aura}
+                />
                 {renderEffects(0)}
               </div>
             </div>
@@ -247,7 +266,14 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
           <div className="corner">
             <div key={`b${idx}`} className={slotClass(1)}>
               <div className={innerClass(1)}>
-                <HeroSprite hero={figures[1].hero} height={figH} mirror />
+                <HeroSprite
+                  hero={figures[1].hero}
+                  height={figH}
+                  pose={poseOf(1)}
+                  style={figures[1].style}
+                  aura={figures[1].aura}
+                  mirror
+                />
                 {renderEffects(1)}
               </div>
             </div>

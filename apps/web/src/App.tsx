@@ -34,7 +34,7 @@ import {
 } from "@agoge/core";
 import { FightTheatre, type StageFigure } from "./FightTheatre.js";
 import { BeastFigure, DisciplineGlyph } from "./art.js";
-import { HEROES, HeroBust, HeroSprite, heroIndexFor } from "./heroes.js";
+import { AURAS, HEROES, HeroBust, HeroSprite, STYLES, heroIndexFor, rivalLook } from "./heroes.js";
 import {
   applyDailyReset,
   freshQuests,
@@ -100,6 +100,15 @@ export function App() {
   const [screen, setScreen] = useState<Screen>(save ? { s: "home" } : { s: "forge" });
   const [draft, setDraft] = useState<{ offers: FateOffer[]; nonce: number } | null>(null);
 
+  // One crisp tick for every button in the game.
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if ((e.target as HTMLElement | null)?.closest("button")) sound.click();
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
+
   const update = (next: SaveV1) => {
     persist(next);
     setSave(next);
@@ -118,8 +127,8 @@ export function App() {
     return (
       <Shell>
         <Forge
-          onForge={(champion, hero) => {
-            const s = newSave(champion, { stance: "measured", gambit: "close_the_gap" }, hero);
+          onForge={(champion, hero, styleFx, aura) => {
+            const s = newSave(champion, { stance: "measured", gambit: "close_the_gap" }, hero, styleFx, aura);
             update(s);
             setScreen({ s: "home" });
           }}
@@ -265,11 +274,13 @@ export function App() {
             [
               {
                 hero: save.hero ?? heroIndexFor(c.displayName),
+                style: save.styleFx ?? 0,
+                aura: save.aura ?? 0,
                 weaponId: heldWeaponId(c.weapons),
                 beasts: c.beasts,
               },
               {
-                hero: heroIndexFor(screen.rival.snapshot.name),
+                ...rivalLook(screen.rival.snapshot.name),
                 weaponId: heldWeaponId(screen.rival.snapshot.weapons),
                 beasts: screen.rival.snapshot.beasts,
               },
@@ -314,10 +325,17 @@ function Shell({ children, header }: { children: React.ReactNode; header?: React
 
 /* ================= forge (2 steps: name → style) ================= */
 
-function Forge({ onForge }: { onForge: (c: Champion, hero: number) => void }) {
+function Forge({
+  onForge,
+}: {
+  onForge: (c: Champion, hero: number, styleFx: number, aura: number) => void;
+}) {
   const [name, setName] = useState("");
   const [champ, setChamp] = useState<Champion | null>(null);
   const [hero, setHero] = useState<number | null>(null);
+  const [styleFx, setStyleFx] = useState(0);
+  const [aura, setAura] = useState(0);
+  const [previewPose, setPreviewPose] = useState<"idle" | "attack">("idle");
   const preview = useMemo(() => {
     const trimmed = name.trim();
     if (trimmed.length < 2) return null;
@@ -384,29 +402,67 @@ function Forge({ onForge }: { onForge: (c: Champion, hero: number) => void }) {
         {champ.displayName} <span className="epithet">{champ.epithet}</span> — the look is yours to choose; strength you earn.
       </p>
       <div className="styler">
-        <div className="styler-stage">
-          <HeroSprite hero={picked} height={210} />
+        <div
+          className="styler-stage"
+          onPointerDown={() => setPreviewPose("attack")}
+          onPointerUp={() => setPreviewPose("idle")}
+          onPointerLeave={() => setPreviewPose("idle")}
+          title="Hold to see the attack pose"
+        >
+          <HeroSprite hero={picked} height={210} pose={previewPose} style={styleFx} aura={aura} />
           <div className="hero-caption">
             <b>{HEROES[picked]!.name}</b>
-            <span className="muted small">{HEROES[picked]!.blurb}</span>
+            <span className="muted small">{HEROES[picked]!.blurb} <em>(hold to preview the attack)</em></span>
           </div>
         </div>
 
         <div className="roster">
           {HEROES.map((h, i) => (
             <button key={h.name} className={`hero-card ${picked === i ? "picked" : ""}`} onClick={() => setHero(i)}>
-              <HeroSprite hero={i} height={110} />
+              <HeroSprite hero={i} height={110} pose={picked === i ? "attack" : "idle"} style={styleFx} aura={aura} />
               <b>{h.name}</b>
               <span className="muted small">{h.role}</span>
             </button>
           ))}
         </div>
 
+        <div className="card">
+          <h4>Style</h4>
+          <div className="opt-row">
+            {STYLES.map((s, i) => (
+              <button key={s.name} className={`opt ${styleFx === i ? "picked" : ""}`} onClick={() => setStyleFx(i)}>
+                {s.name}
+              </button>
+            ))}
+          </div>
+
+          <h4>Aura</h4>
+          <div className="swatches">
+            {AURAS.map((a, i) => (
+              <button
+                key={a.name}
+                className={`swatch ${aura === i ? "picked" : ""}`}
+                style={{ background: a.color, boxShadow: `0 0 10px ${a.color}88` }}
+                onClick={() => setAura(i)}
+                aria-label={`${a.name} aura`}
+                title={a.name}
+              />
+            ))}
+          </div>
+        </div>
+
         <div className="actions">
-          <button className="btn ghost" onClick={() => setHero(Math.floor(Math.random() * HEROES.length))}>
+          <button
+            className="btn ghost"
+            onClick={() => {
+              setHero(Math.floor(Math.random() * HEROES.length));
+              setStyleFx(Math.floor(Math.random() * STYLES.length));
+              setAura(Math.floor(Math.random() * AURAS.length));
+            }}
+          >
             Surprise me
           </button>
-          <button className="btn primary big" onClick={() => onForge(champ, picked)}>
+          <button className="btn primary big" onClick={() => onForge(champ, picked, styleFx, aura)}>
             Start Hunting →
           </button>
         </div>
@@ -450,7 +506,7 @@ function Home(props: {
       )}
 
       <section className="card champ-card">
-        <HeroBust hero={save.hero ?? heroIndexFor(c.displayName)} size={92} />
+        <HeroBust hero={save.hero ?? heroIndexFor(c.displayName)} size={92} style={save.styleFx} />
         <div className="champ-meta">
           <h2 className="champ-name">
             {c.displayName} <span className="epithet">{c.epithet}</span>
@@ -466,7 +522,12 @@ function Home(props: {
           </div>
         </div>
         <div className="hero-fig">
-          <HeroSprite hero={save.hero ?? heroIndexFor(c.displayName)} height={150} />
+          <HeroSprite
+            hero={save.hero ?? heroIndexFor(c.displayName)}
+            height={150}
+            style={save.styleFx}
+            aura={save.aura}
+          />
         </div>
       </section>
 
@@ -596,7 +657,7 @@ function Arena(props: {
           return (
             <div className="card rival" key={r.snapshot.name}>
               <div className="rival-top">
-                <HeroBust hero={heroIndexFor(r.snapshot.name)} size={52} mirror />
+                <HeroBust hero={rivalLook(r.snapshot.name).hero} size={52} style={rivalLook(r.snapshot.name).style} mirror />
                 <span className="champ-name small">{r.snapshot.name}</span>
                 <span className="pill">Lv {r.snapshot.level}</span>
               </div>

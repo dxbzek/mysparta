@@ -491,9 +491,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .fig-inner.win > .hero-sprite { animation: heroGlow 800ms ease-in-out infinite alternate; }
 @keyframes heroGlow {
-  from { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 10px rgba(167, 139, 250, 0.45)); }
-  to { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 26px rgba(167, 139, 250, 0.95)); }
+  from { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 10px var(--aura, #a78bfa)); }
+  to { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 28px var(--aura, #a78bfa)); }
 }
+/* landing squash when a pose snaps in — sells the impact frames */
+.fig-inner > .hero-sprite { transform-origin: 50% 100%; }
 
 /* held-weapon label under each corner */
 .held-chip {

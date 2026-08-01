@@ -31,6 +31,10 @@ export interface SaveV1 {
   quests?: DailyQuests;
   /** Roster index of the champion's awakened form (heroes.tsx). */
   hero?: number;
+  /** Colour-grade preset index (heroes.tsx STYLES). */
+  styleFx?: number;
+  /** Aura colour index (heroes.tsx AURAS). */
+  aura?: number;
 }
 
 export function freshQuests(): DailyQuests {
@@ -46,10 +50,18 @@ export function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function newSave(champion: Champion, plan: BattlePlan, hero?: number): SaveV1 {
+export function newSave(
+  champion: Champion,
+  plan: BattlePlan,
+  hero?: number,
+  styleFx?: number,
+  aura?: number,
+): SaveV1 {
   return {
     v: 1,
     hero: hero ?? heroIndexFor(champion.displayName),
+    styleFx: styleFx ?? 0,
+    aura: aura ?? 0,
     champion,
     kleos: 1500,
     vigor: VIGOR_CAP, // day-one bonus: +6 on top of the daily 6
