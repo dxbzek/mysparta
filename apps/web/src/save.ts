@@ -82,7 +82,7 @@ export function load(): SaveV1 | null {
     const a = parsed.champion.appearance;
     if (a.skin == null) a.skin = a.hue % 6;
     if (a.sigil == null) a.sigil = a.hue2 % 4;
-    if (a.helm == null) a.helm = a.hue % 3;
+    if (a.helm == null) a.helm = a.hue % 4;
     if (a.tint == null) a.tint = 0;
     return applyDailyReset(parsed);
   } catch {

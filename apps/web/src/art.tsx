@@ -8,7 +8,7 @@
 import type { Appearance, Discipline } from "@agoge/core";
 import { hashString, weapon as weaponDef } from "@agoge/core";
 
-export const INK = "#402c16";
+export const INK = "#322b38";
 
 export const SKIN_TONES = [
   { base: "#f6d7ae", shade: "#e0b98a" },
@@ -19,8 +19,9 @@ export const SKIN_TONES = [
   { base: "#6f4b2d", shade: "#57381f" },
 ];
 
-export const ARMOUR_TINTS = ["#cfa040", "#aab0b4", "#e9c04a", "#8a6134"];
-export const ARMOUR_TINT_NAMES = ["Bronze", "Iron", "Gold", "Dark bronze"];
+/** Outfit colours (hunter jackets, not bronze cuirasses). */
+export const ARMOUR_TINTS = ["#4a5268", "#b43a4a", "#e8e4da", "#2f4a75"];
+export const ARMOUR_TINT_NAMES = ["Charcoal", "Crimson", "Ivory", "Navy"];
 
 export interface Palette {
   skin: string;
@@ -52,7 +53,7 @@ export function rivalAppearance(name: string): Appearance {
     pose: h % 4,
     skin: (h >>> 3) % 6,
     sigil: (h >>> 5) % 4,
-    helm: (h >>> 7) % 3,
+    helm: (h >>> 7) % 4,
     tint: (h >>> 9) % 4,
   };
 }
@@ -64,12 +65,16 @@ const LIMB = { stroke: INK, strokeLinecap: "round" as const, fill: "none" };
 /* Helmet + head, shared between bust and figure.                    */
 /* ---------------------------------------------------------------- */
 
+/**
+ * Anime head: big expressive eyes with shine, and four hairstyles in the
+ * player's hair colour — 0 spiky shonen, 1 messy, 2 ponytail, 3 twin tails.
+ */
 function Head({
   cx,
   cy,
   r,
   p,
-  helm,
+  helm: hair,
 }: {
   cx: number;
   cy: number;
@@ -78,36 +83,56 @@ function Head({
   helm: number;
 }) {
   const s = r / 42;
+  const h = p.crest; // hair colour
   return (
     <g transform={`translate(${cx} ${cy}) scale(${s})`}>
+      {/* back hair (behind the face) */}
+      {hair === 2 && (
+        <path d="M 26 -26 Q 66 -12 58 46 Q 46 20 30 4 Z" fill={h} {...OUT} />
+      )}
+      {hair === 3 && (
+        <>
+          <path d="M -32 -14 Q -68 0 -58 48 Q -48 20 -32 2 Z" fill={h} {...OUT} />
+          <path d="M 32 -14 Q 68 0 58 48 Q 48 20 32 2 Z" fill={h} {...OUT} />
+        </>
+      )}
+
+      {/* face */}
       <circle cx="0" cy="0" r="42" fill={p.skin} {...OUT} />
-      <circle cx="-17" cy="14" r="5" fill={p.skinShade} stroke="none" />
-      <path d="M -11 22 Q 1 30 13 22" stroke={INK} strokeWidth="4" strokeLinecap="round" fill="none" />
-      <circle cx="-13" cy="2" r="5" fill={INK} />
-      <circle cx="19" cy="2" r="5" fill={INK} />
-      {helm === 0 && (
-        <>
-          <path d="M -43 -8 Q -41 -48 0 -50 Q 41 -48 43 -8 L 31 -8 Q 29 -36 0 -38 Q -29 -36 -31 -8 Z" fill={p.armour} {...OUT} />
-          <path d="M -43 -8 L -31 -8 L -31 18 Q -40 14 -43 4 Z" fill={p.armour} {...OUT} />
-          <path d="M 43 -8 L 31 -8 L 31 18 Q 40 14 43 4 Z" fill={p.armour} {...OUT} />
-          <path d="M -6 -22 L 6 -22 L 4 0 L -4 0 Z" fill={p.armour} {...OUT} />
-          <path d="M -41 -26 Q -29 -80 42 -60 Q 9 -58 -9 -48 Q -29 -40 -35 -22 Z" fill={p.crest} {...OUT} />
-          <path d="M -25 -44 Q -7 -62 17 -60 M -33 -34 Q -19 -54 3 -58" stroke={INK} strokeWidth="3" fill="none" opacity="0.45" />
-        </>
+      <circle cx="-24" cy="18" r="5" fill={p.skinShade} stroke="none" />
+      <circle cx="24" cy="18" r="5" fill={p.skinShade} stroke="none" />
+      <path d="M -7 26 Q 1 32 9 26" stroke={INK} strokeWidth="4" strokeLinecap="round" fill="none" />
+
+      {/* big anime eyes */}
+      <ellipse cx="-15" cy="8" rx="8.5" ry="11" fill="#fff" stroke={INK} strokeWidth="3" />
+      <ellipse cx="17" cy="8" rx="8.5" ry="11" fill="#fff" stroke={INK} strokeWidth="3" />
+      <circle cx="-14" cy="10" r="5" fill={INK} />
+      <circle cx="18" cy="10" r="5" fill={INK} />
+      <circle cx="-12" cy="7" r="2" fill="#fff" />
+      <circle cx="20" cy="7" r="2" fill="#fff" />
+      <path d="M -24 -8 L -6 -6 M 8 -6 L 26 -8" stroke={INK} strokeWidth="4" strokeLinecap="round" />
+
+      {/* front hair */}
+      {hair === 0 && (
+        <path
+          d="M -43 6 Q -48 -34 -12 -46 Q 28 -52 43 -10 L 43 4 L 33 -16 L 28 2 L 18 -20 L 11 0 L 2 -22 L -6 -2 L -15 -24 L -22 0 L -31 -18 L -37 4 Z"
+          fill={h}
+          {...OUT}
+        />
       )}
-      {helm === 1 && (
-        <>
-          <path d="M -38 -14 Q -34 -56 0 -58 Q 34 -56 38 -14 Q 20 -24 0 -24 Q -20 -24 -38 -14 Z" fill={p.armour} {...OUT} />
-          <path d="M -10 -54 Q 0 -76 14 -56 Q 4 -62 -2 -58 Z" fill={p.crest} {...OUT} />
-          <path d="M -38 -14 Q 0 -30 38 -14" stroke={INK} strokeWidth="4" fill="none" />
-        </>
+      {hair === 1 && (
+        <path
+          d="M -43 2 Q -46 -40 0 -47 Q 46 -40 43 2 Q 34 -12 25 -15 Q 31 -4 20 -7 Q 8 -18 -2 -13 Q -12 -18 -21 -9 Q -29 -13 -35 -2 Z"
+          fill={h}
+          {...OUT}
+        />
       )}
-      {helm === 2 && (
-        <>
-          <path d="M -40 -12 Q -38 -50 0 -52 Q 38 -50 40 -12 Q 26 -30 8 -34 Q 22 -22 18 -12 Q 4 -30 -14 -32 Q -2 -20 -8 -12 Q -22 -28 -40 -12 Z" fill={p.crest} {...OUT} />
-          <ellipse cx="-28" cy="-26" rx="9" ry="4" transform="rotate(-30 -28 -26)" fill="#7c8a3a" stroke={INK} strokeWidth="2.5" />
-          <ellipse cx="28" cy="-26" rx="9" ry="4" transform="rotate(30 28 -26)" fill="#7c8a3a" stroke={INK} strokeWidth="2.5" />
-        </>
+      {(hair === 2 || hair === 3) && (
+        <path
+          d="M -43 0 Q -43 -42 0 -47 Q 43 -42 43 0 Q 28 -22 10 -24 Q 16 -12 4 -18 Q -14 -26 -28 -12 Q -36 -8 -43 0 Z"
+          fill={h}
+          {...OUT}
+        />
       )}
     </g>
   );
@@ -138,7 +163,7 @@ export function HelmBust({
       aria-hidden
       style={mirror ? { transform: "scaleX(-1)" } : undefined}
     >
-      {ring && <circle cx="70" cy="70" r="66" fill="#f7edd2" stroke={INK} strokeWidth="5" />}
+      {ring && <circle cx="70" cy="70" r="66" fill="#232a3c" stroke={INK} strokeWidth="5" />}
       <path d="M 22 132 Q 34 100 70 98 Q 106 100 118 132 Z" fill={palette.armour} {...OUT} />
       <Head cx={70} cy={70} r={38} p={palette} helm={helm} />
     </svg>
@@ -247,17 +272,18 @@ export function HopliteFigure({
       data-disc={discipline}
       style={mirror ? { transform: "scaleX(-1)" } : undefined}
     >
+      <ellipse className="fig-aura" cx="102" cy="128" rx="82" ry="100" fill={p.crest} opacity="0" />
       <ellipse cx="102" cy="216" rx="58" ry="10" fill="#00000030" />
 
       <g className="p-legB">
         <path d="M 88 152 L 82 196" {...LIMB} strokeWidth={16} stroke={p.skin} />
         <path d="M 84 172 L 82 196" {...LIMB} strokeWidth={16} stroke={p.armour} />
-        <ellipse cx="80" cy="204" rx="16" ry="8" fill="#8a5a2e" {...OUT} />
+        <ellipse cx="80" cy="204" rx="16" ry="8" fill="#454b5e" {...OUT} />
       </g>
       <g className="p-legF">
         <path d="M 118 152 L 128 196" {...LIMB} strokeWidth={16} stroke={p.skin} />
         <path d="M 122 172 L 128 196" {...LIMB} strokeWidth={16} stroke={p.armour} />
-        <ellipse cx="132" cy="204" rx="16" ry="8" fill="#8a5a2e" {...OUT} />
+        <ellipse cx="132" cy="204" rx="16" ry="8" fill="#454b5e" {...OUT} />
       </g>
 
       <g className="p-armW">
@@ -265,7 +291,7 @@ export function HopliteFigure({
       </g>
 
       <g className="p-body">
-        <path d="M 76 146 L 84 164 L 92 146 L 100 164 L 108 146 L 116 164 L 124 146 L 126 150 L 122 154 L 80 154 L 78 150 Z" fill="#b98d4f" {...OUT} />
+        <path d="M 76 146 L 84 164 L 92 146 L 100 164 L 108 146 L 116 164 L 124 146 L 126 150 L 122 154 L 80 154 L 78 150 Z" fill="#3b4254" {...OUT} />
         <path d="M 74 110 Q 102 100 128 110 L 124 150 Q 102 158 78 150 Z" fill={p.armour} {...OUT} />
         <path d="M 84 122 Q 102 116 118 122" stroke={INK} strokeWidth="3" fill="none" opacity="0.45" />
       </g>
@@ -626,7 +652,7 @@ export function CrowdStrip() {
       {heads.map((_, i) => {
         const x = 6 + i * 20 + (i % 3) * 3;
         const y = 18 + ((i * 7) % 3) * 4;
-        const dark = i % 2 === 0 ? "#4e3a22" : "#5d4628";
+        const dark = i % 2 === 0 ? "#10141f" : "#161b2b";
         return (
           <g key={i} className={`crowd-head ch-${i % 3}`}>
             <circle cx={x} cy={y} r="8" fill={dark} />

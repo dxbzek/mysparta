@@ -55,7 +55,7 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
 
     switch (e.type) {
       case "start":
-        push(-1, `The Herald raises a fist. ${names[0]} and ${names[1]} enter the arena!`, "info", 1100);
+        push(-1, `The bell rings! ${names[0]} and ${names[1]} enter the arena!`, "info", 1100);
         break;
       case "gambit": {
         const g = e.gambit.replace(/_/g, " ");
@@ -152,7 +152,7 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         });
         break;
       case "disarm":
-        push(e.side, `${n(e.side)}'s ${e.weapon} clatters across the marble!`, "trump", 900, {
+        push(e.side, `${n(e.side)}'s ${e.weapon} clatters across the arena floor!`, "trump", 900, {
           anim: { label: { side: e.side, text: "Disarmed!" } },
         });
         break;
@@ -205,7 +205,7 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         }
         break;
       case "beastDown":
-        push(e.side, `${n(e.side)}'s ${e.beast} falls, bursting into bronze dust.`, "trump", 850, {
+        push(e.side, `${n(e.side)}'s ${e.beast} falls, vanishing in a burst of light.`, "trump", 850, {
           beastDown: { side: e.side, beast: e.beast },
         });
         break;
@@ -217,8 +217,8 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         push(
           -1,
           e.reason === "ko"
-            ? `${w} stands alone. The Herald bellows their name!`
-            : `The judges call it — ${w} takes it on vigour remaining.`,
+            ? `${w} stands alone. The crowd roars their name!`
+            : `The judges call it — ${w} wins on stamina.`,
           "end",
           1200,
         );

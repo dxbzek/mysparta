@@ -51,7 +51,7 @@ export function createChampion(rawName: string): Champion {
       pose: rng.int(4),
       skin: rng.int(6),
       sigil: rng.int(4),
-      helm: rng.int(3),
+      helm: rng.int(4),
       tint: rng.int(4),
     },
   };

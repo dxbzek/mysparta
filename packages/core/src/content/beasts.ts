@@ -4,7 +4,7 @@ import type { BeastDef } from "../types.js";
 export const BEASTS: BeastDef[] = [
   {
     id: "lykos",
-    name: "Lykos",
+    name: "Ash Wolf",
     gritTax: 2,
     hpBase: 16,
     dmgMin: 4,
@@ -13,11 +13,11 @@ export const BEASTS: BeastDef[] = [
     evasion: 15,
     armour: 0,
     init: 0,
-    flavour: "Pack instinct: each additional Lykos grants all Lykoi +5% damage.",
+    flavour: "Pack instinct: each extra Ash Wolf grants the pack +5% damage.",
   },
   {
     id: "stymphal_shrike",
-    name: "Stymphal Shrike",
+    name: "Storm Shrike",
     gritTax: 4,
     hpBase: 22,
     dmgMin: 5,
@@ -30,7 +30,7 @@ export const BEASTS: BeastDef[] = [
   },
   {
     id: "kalydon_boar",
-    name: "Kalydon Boar",
+    name: "Iron Boar",
     gritTax: 5,
     hpBase: 45,
     dmgMin: 10,
@@ -43,7 +43,7 @@ export const BEASTS: BeastDef[] = [
   },
   {
     id: "nemean_cub",
-    name: "Nemean Cub",
+    name: "Regal Cub",
     gritTax: 6,
     hpBase: 70,
     dmgMin: 8,
@@ -82,7 +82,7 @@ export const BEASTS: BeastDef[] = [
   },
   {
     id: "kerberos_pup",
-    name: "Kerberos Pup",
+    name: "Hellhound Pup",
     gritTax: 5,
     hpBase: 34,
     dmgMin: 8,
@@ -95,7 +95,7 @@ export const BEASTS: BeastDef[] = [
   },
   {
     id: "marble_tortoise",
-    name: "Marble Tortoise",
+    name: "Granite Tortoise",
     gritTax: 4,
     hpBase: 60,
     dmgMin: 4,

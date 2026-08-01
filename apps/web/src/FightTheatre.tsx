@@ -292,12 +292,12 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
                   className="petal"
                   style={{
                     left: `${5 + i * 6.5}%`,
-                    background: ["#f4c94e", "#7c8a3a", "#c95b32"][i % 3],
+                    background: ["#a78bfa", "#34d399", "#f47c8e"][i % 3],
                     animationDelay: `${i * 90}ms`,
                   }}
                 />
               ))}
-            <Laurel size={150} color={result.winner === 0 ? "#7c8a3a" : "#8a7550"} />
+            <Laurel size={150} color={result.winner === 0 ? "#a78bfa" : "#5b6178"} />
             <div className={`verdict ${result.winner === 0 ? "won" : "lost"}`}>
               {result.winner === 0 ? "VICTORY" : "DEFEAT"}
             </div>

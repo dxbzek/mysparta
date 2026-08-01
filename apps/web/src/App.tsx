@@ -68,11 +68,12 @@ type Screen =
 
 /** League tiers give the rating number meaning (03-gdd-systems.md §1.4). */
 function league(kleos: number): { name: string; color: string } {
-  if (kleos >= 1900) return { name: "Olympian", color: "#8a96e8" };
-  if (kleos >= 1750) return { name: "Marble", color: "#e6e1d4" };
-  if (kleos >= 1650) return { name: "Gold", color: "#f0c052" };
-  if (kleos >= 1550) return { name: "Silver", color: "#cdd3d8" };
-  return { name: "Bronze", color: "#d09054" };
+  if (kleos >= 1950) return { name: "S-Rank", color: "#f4c94e" };
+  if (kleos >= 1850) return { name: "A-Rank", color: "#f47c8e" };
+  if (kleos >= 1750) return { name: "B-Rank", color: "#a78bfa" };
+  if (kleos >= 1650) return { name: "C-Rank", color: "#5fc9f5" };
+  if (kleos >= 1550) return { name: "D-Rank", color: "#4ed4a7" };
+  return { name: "E-Rank", color: "#aab3c8" };
 }
 
 const CREST_HUES = [2, 30, 48, 90, 140, 175, 210, 250, 290, 330];
@@ -219,7 +220,7 @@ export function App() {
       header={
         <header className="topbar">
           <button className="wordmark" onClick={() => setScreen({ s: "home" })}>
-            AGOGE
+            RANK ZERO
           </button>
           <div className="topbar-right">
             <span
@@ -333,7 +334,7 @@ function Shell({ children, header }: { children: React.ReactNode; header?: React
       {header}
       <main className="content">{children}</main>
       <footer className="foot">
-        AGOGE prototype — deterministic sim v1 · your progress is saved in this browser
+        RANK ZERO prototype — deterministic sim v1 · your progress is saved in this browser
       </footer>
     </div>
   );
@@ -357,8 +358,8 @@ function Forge({ onForge }: { onForge: (c: Champion) => void }) {
   if (!champ) {
     return (
       <div className="forge">
-        <h1 className="forge-title">Speak a name.</h1>
-        <p className="forge-sub">Every name forges a different fighter — same name, same fighter, always.</p>
+        <h1 className="forge-title">Enter your name.</h1>
+        <p className="forge-sub">Every name awakens a different hunter — same name, same hunter, always.</p>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -390,7 +391,7 @@ function Forge({ onForge }: { onForge: (c: Champion) => void }) {
             </div>
           )}
           <button className="btn primary big" type="submit" disabled={!preview}>
-            Forge my Champion
+            Awaken my Hunter
           </button>
         </form>
         <p className="fineprint">Next: style their look. Stats and gear grow from your choices as you level.</p>
@@ -435,9 +436,9 @@ function Forge({ onForge }: { onForge: (c: Champion) => void }) {
             ))}
           </div>
 
-          <h4>Helmet</h4>
+          <h4>Hair</h4>
           <div className="opt-row">
-            {["Corinthian", "Pilos cap", "Bare + laurel"].map((label, i) => (
+            {["Spiky", "Messy", "Ponytail", "Twin tails"].map((label, i) => (
               <button key={i} className={`opt ${a.helm === i ? "picked" : ""}`} onClick={() => setA({ helm: i })}>
                 <HelmBust size={38} palette={paletteFromAppearance({ ...a, helm: i })} helm={i} ring={false} />
                 {label}
@@ -445,7 +446,7 @@ function Forge({ onForge }: { onForge: (c: Champion) => void }) {
             ))}
           </div>
 
-          <h4>Crest / hair colour</h4>
+          <h4>Hair colour</h4>
           <div className="swatches">
             {CREST_HUES.map((h) => (
               <button
@@ -458,7 +459,7 @@ function Forge({ onForge }: { onForge: (c: Champion) => void }) {
             ))}
           </div>
 
-          <h4>Armour</h4>
+          <h4>Outfit</h4>
           <div className="opt-row">
             {ARMOUR_TINTS.map((t, i) => (
               <button key={i} className={`opt ${a.tint === i ? "picked" : ""}`} onClick={() => setA({ tint: i })}>
@@ -495,7 +496,7 @@ function Forge({ onForge }: { onForge: (c: Champion) => void }) {
             onClick={() =>
               setA({
                 skin: Math.floor(Math.random() * 6),
-                helm: Math.floor(Math.random() * 3),
+                helm: Math.floor(Math.random() * 4),
                 tint: Math.floor(Math.random() * 4),
                 hue: CREST_HUES[Math.floor(Math.random() * CREST_HUES.length)],
                 hue2: CREST_HUES[Math.floor(Math.random() * CREST_HUES.length)],
@@ -506,7 +507,7 @@ function Forge({ onForge }: { onForge: (c: Champion) => void }) {
             Surprise me
           </button>
           <button className="btn primary big" onClick={() => onForge(champ)}>
-            Enter the Agoge →
+            Start Hunting →
           </button>
         </div>
       </div>
@@ -543,7 +544,7 @@ function Home(props: {
           <p>
             <b>How it plays:</b> fight rivals → earn XP → level up → pick 1 of 3 upgrades
             (stats, weapons, skills or beasts). You get <b>6 fights a day</b> (they bank up to 12).{" "}
-            <span className="muted">Your name forged the starting kit — your choices forge the rest.</span>
+            <span className="muted">Your name set your awakening — your choices decide the rest.</span>
           </p>
         </section>
       )}
@@ -665,7 +666,7 @@ function Home(props: {
           className={`btn tiny danger ${armDelete ? "armed" : ""}`}
           onClick={() => (armDelete ? props.onDelete() : setArmDelete(true))}
         >
-          {armDelete ? "Tap again — deletes forever!" : "Delete Champion"}
+          {armDelete ? "Tap again — deletes forever!" : "Delete Hunter"}
         </button>
       </div>
     </div>
@@ -819,7 +820,7 @@ function Codex({ champion, onBack }: { champion: Champion; onBack: () => void })
         <span />
       </div>
       <p className="muted">
-        Everything that exists in the arena. New weapons, skills and beasts arrive through level-up choices — nothing is ever sold.
+        Relic weapons and skills recovered from the Rifts, and the beasts tamed there. New ones arrive through level-up choices — nothing is ever sold.
       </p>
 
       <section className="card">
