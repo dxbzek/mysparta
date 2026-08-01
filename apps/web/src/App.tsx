@@ -34,7 +34,7 @@ import {
 } from "@agoge/core";
 import { FightTheatre, type StageFigure } from "./FightTheatre.js";
 import { BeastFigure, DisciplineGlyph } from "./art.js";
-import { AURAS, HEROES, HeroBust, HeroSprite, STYLES, heroIndexFor, rivalLook } from "./heroes.js";
+import { AURAS, AuraSparks, HEROES, HeroBust, HeroSprite, STYLES, heroIndexFor, rivalLook } from "./heroes.js";
 import {
   applyDailyReset,
   freshQuests,
@@ -409,6 +409,7 @@ function Forge({
           onPointerLeave={() => setPreviewPose("idle")}
           title="Hold to see the attack pose"
         >
+          <AuraSparks aura={aura} />
           <HeroSprite hero={picked} height={210} pose={previewPose} style={styleFx} aura={aura} />
           <div className="hero-caption">
             <b>{HEROES[picked]!.name}</b>
@@ -522,6 +523,7 @@ function Home(props: {
           </div>
         </div>
         <div className="hero-fig">
+          <AuraSparks aura={save.aura} />
           <HeroSprite
             hero={save.hero ?? heroIndexFor(c.displayName)}
             height={150}

@@ -224,7 +224,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .champ-meta { flex: 1; }
 .hero-fig { display: none; }
 @media (min-width: 640px) {
-  .hero-fig { display: block; margin: -10px -4px -14px 0; }
+  .hero-fig { display: block; position: relative; margin: -10px -4px -14px 0; }
 }
 .champ-name { margin: 0; font-size: 1.5rem; font-weight: 800; }
 .champ-name.small { font-size: 1.1rem; }
@@ -479,7 +479,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 @keyframes blockR { 35% { transform: translateX(8px) rotate(-7deg); } 100% { transform: none; } }
 
 /* white-hot flash on the struck body */
-.fig-inner.flash > svg, .fig-inner.flash > .hero-sprite { animation: flash 420ms ease 300ms; }
+.fig-inner.flash > svg, .fig-inner.flash .hero-sprite { animation: flash 420ms ease 300ms; }
 @keyframes flash { 30% { filter: brightness(1.9) saturate(0.5); } }
 
 /* --- painted hero sprites --- */
@@ -489,13 +489,58 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   -webkit-user-drag: none;
   filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.5));
 }
-.fig-inner.win > .hero-sprite { animation: heroGlow 800ms ease-in-out infinite alternate; }
+.fig-inner.win .hero-sprite { animation: heroGlow 800ms ease-in-out infinite alternate; }
 @keyframes heroGlow {
   from { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 10px var(--aura, #a78bfa)); }
   to { filter: drop-shadow(0 10px 10px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 28px var(--aura, #a78bfa)); }
 }
-/* landing squash when a pose snaps in — sells the impact frames */
-.fig-inner > .hero-sprite { transform-origin: 50% 100%; }
+
+/* --- the character is ALIVE: breathing wrapper + grounded breathing shadow --- */
+.hero-anim {
+  position: relative;
+  display: inline-block;
+  transform-origin: 50% 100%;
+}
+.hero-anim.breathe { animation: breathe 2.9s ease-in-out infinite; }
+@keyframes breathe {
+  0%, 100% { transform: scaleY(1) scaleX(1) rotate(0deg); }
+  38% { transform: scaleY(1.022) scaleX(0.994) rotate(0.35deg); }
+  55% { transform: scaleY(1.018) scaleX(0.995) rotate(-0.2deg); }
+}
+/* contact shadow that swells with the breath */
+.hero-anim::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: -7px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.5), transparent 70%);
+  z-index: -1;
+}
+.hero-anim.breathe::after { animation: shadowBreathe 2.9s ease-in-out infinite; }
+@keyframes shadowBreathe {
+  0%, 100% { transform: scaleX(1); opacity: 0.9; }
+  38% { transform: scaleX(0.94); opacity: 0.7; }
+}
+.fig-inner.felled .hero-anim, .fig-inner.felled .hero-anim::after { animation: none; }
+
+/* floating energy motes around showcased heroes */
+.sparks { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.spark {
+  position: absolute;
+  bottom: 8%;
+  border-radius: 50%;
+  opacity: 0;
+  animation: sparkRise 3.5s ease-in infinite;
+}
+@keyframes sparkRise {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  12% { opacity: 0.9; }
+  70% { opacity: 0.5; }
+  100% { transform: translateY(-150px) translateX(8px); opacity: 0; }
+}
 
 /* held-weapon label under each corner */
 .held-chip {
@@ -714,6 +759,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .hero-anim, .hero-anim::after, .spark,
   .line, .fig-slot, .fig-inner, .fig-inner > svg, .beast-idle, .beast-dash-r, .beast-dash-l,
   .burst, .slash, .missile, .floater, .verdict-wrap, .forge-preview {
     animation: none !important;
@@ -953,6 +999,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 .styler { display: flex; flex-direction: column; gap: 14px; max-width: 640px; margin: 0 auto; text-align: left; }
 .styler-stage {
+  position: relative;
   display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 8px;
   background:
     radial-gradient(ellipse at 50% 100%, rgba(124, 92, 240, 0.28), transparent 62%),
@@ -960,6 +1007,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   border: var(--border); border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 18px 12px 12px;
+  overflow: hidden;
 }
 .hero-caption { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
 .hero-caption b { font-family: var(--font-display); font-size: 1.05rem; }

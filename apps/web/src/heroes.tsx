@@ -160,7 +160,12 @@ function composedFilter(style?: number, aura?: number): string {
   return `${grade} drop-shadow(0 10px 10px rgba(0,0,0,0.5)) drop-shadow(0 0 12px ${glow}55)`.trim();
 }
 
-/** Full-body sprite with pose + customization. */
+/**
+ * Full-body sprite with pose + customization. The wrapper carries the
+ * always-on breathing animation (transforms), the img carries pose art and
+ * colour filters — keeping them on separate elements means breathing never
+ * fights the theatre's flash/glow filter animations.
+ */
 export function HeroSprite({
   hero,
   height,
@@ -181,20 +186,54 @@ export function HeroSprite({
   const h = heroOf(hero);
   const src = pose === "attack" ? h.atk : pose === "hurt" ? h.hurt : h.img;
   return (
-    <img
-      className={`hero-sprite ${className ?? ""}`}
-      src={src}
-      alt={h.name}
-      style={
-        {
+    <span
+      className={`hero-anim ${pose === "idle" ? "breathe" : ""} ${className ?? ""}`}
+      style={{ "--aura": AURAS[(aura ?? 0) % AURAS.length]!.color } as React.CSSProperties}
+    >
+      <img
+        className="hero-sprite"
+        src={src}
+        alt={h.name}
+        style={{
           height,
           transform: mirror ? "scaleX(-1)" : undefined,
           filter: composedFilter(styleFx, aura),
-          "--aura": AURAS[(aura ?? 0) % AURAS.length]!.color,
-        } as React.CSSProperties
-      }
-      draggable={false}
-    />
+        }}
+        draggable={false}
+      />
+    </span>
+  );
+}
+
+/** Floating energy motes for showcase stages (forge preview, home card). */
+export function AuraSparks({ aura }: { aura?: number }) {
+  const color = AURAS[(aura ?? 0) % AURAS.length]!.color;
+  const sparks = [
+    { left: "16%", delay: "0s", dur: "3.2s", size: 5 },
+    { left: "30%", delay: "1.1s", dur: "4.1s", size: 4 },
+    { left: "48%", delay: "0.4s", dur: "3.6s", size: 6 },
+    { left: "63%", delay: "1.8s", dur: "3.1s", size: 4 },
+    { left: "78%", delay: "0.8s", dur: "4.4s", size: 5 },
+    { left: "88%", delay: "2.2s", dur: "3.8s", size: 3 },
+  ];
+  return (
+    <span className="sparks" aria-hidden>
+      {sparks.map((s, i) => (
+        <span
+          key={i}
+          className="spark"
+          style={{
+            left: s.left,
+            width: s.size,
+            height: s.size,
+            background: color,
+            boxShadow: `0 0 ${s.size * 2}px ${color}`,
+            animationDelay: s.delay,
+            animationDuration: s.dur,
+          }}
+        />
+      ))}
+    </span>
   );
 }
 
