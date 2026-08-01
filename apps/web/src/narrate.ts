@@ -14,6 +14,8 @@ export interface Line {
   /** ms of theatre time this line holds the stage at 1× speed. */
   hold: number;
   hp?: [number, number];
+  /** Stage effect: who takes the number, how big, was it a crit/heal. */
+  fx?: { target: 0 | 1; amount: number; crit?: boolean; heal?: boolean };
 }
 
 export function narrate(result: FightResult, names: [string, string]): Line[] {
@@ -28,7 +30,8 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
       text: string,
       kind: Line["kind"],
       hold = 550,
-    ) => lines.push({ t: e.t, side, text, kind, hold, hp: [hp[0], hp[1]] });
+      fx?: Line["fx"],
+    ) => lines.push({ t: e.t, side, text, kind, hold, hp: [hp[0], hp[1]], fx });
 
     switch (e.type) {
       case "start":
@@ -48,13 +51,14 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         push(e.side, `${n(e.side)} slips the blow.`, "defend", 700);
         break;
       case "block":
+        if (e.chip > 0) hp[e.side] = Math.max(0, hp[e.side] - e.chip);
         push(
           e.side,
           e.chip > 0 ? `${n(e.side)} blocks — ${e.chip} chips through.` : `${n(e.side)} blocks it cold.`,
           "defend",
           700,
+          e.chip > 0 ? { target: e.side, amount: e.chip } : undefined,
         );
-        if (e.chip > 0) hp[e.side] = Math.max(0, hp[e.side] - e.chip);
         break;
       case "hit": {
         if (e.target.kind === "champion") {
@@ -67,6 +71,7 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
               : `${n(e.side)} strikes for ${e.amount}${comboTag}.`,
             e.crit ? "crit" : "hit",
             e.crit ? 1000 : 800,
+            { target: foe(e.side), amount: e.amount, crit: e.crit },
           );
         } else {
           push(e.side, `${n(e.side)} strikes the beast for ${e.amount}.`, "hit", 650);
@@ -75,11 +80,18 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
       }
       case "counter":
         hp[foe(e.side)] = Math.max(0, e.targetHp);
-        push(e.side, `COUNTER! ${n(e.side)}'s reach punishes the advance — ${e.amount}!`, "crit", 950);
+        push(e.side, `COUNTER! ${n(e.side)}'s reach punishes the advance — ${e.amount}!`, "crit", 950, {
+          target: foe(e.side),
+          amount: e.amount,
+          crit: true,
+        });
         break;
       case "riposte":
         hp[foe(e.side)] = Math.max(0, e.targetHp);
-        push(e.side, `Riposte! ${n(e.side)} answers for ${e.amount}.`, "hit", 850);
+        push(e.side, `Riposte! ${n(e.side)} answers for ${e.amount}.`, "hit", 850, {
+          target: foe(e.side),
+          amount: e.amount,
+        });
         break;
       case "disarm":
         push(e.side, `${n(e.side)}'s ${e.weapon} clatters across the marble!`, "trump", 900);
@@ -91,11 +103,21 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         push(e.side, `⚡ ${n(e.side)} unleashes their Trump — ${prettySkill(e.skill)}!`, "trump", 1100);
         break;
       case "technique":
-        push(e.side, `${n(e.side)} — ${prettySkill(e.skill)}${e.amount ? ` (${e.amount})` : ""}.`, "trump", 750);
+        push(
+          e.side,
+          `${n(e.side)} — ${prettySkill(e.skill)}${e.amount ? ` (${e.amount})` : ""}.`,
+          "trump",
+          750,
+          e.amount ? { target: foe(e.side), amount: e.amount } : undefined,
+        );
         break;
       case "heal":
         hp[e.side] = e.hp;
-        push(e.side, `${n(e.side)} recovers ${e.amount} (${e.source}).`, "defend", 650);
+        push(e.side, `${n(e.side)} recovers ${e.amount} (${e.source}).`, "defend", 650, {
+          target: e.side,
+          amount: e.amount,
+          heal: true,
+        });
         break;
       case "beastAttack":
         hp[foe(e.side)] = Math.max(0, e.targetHp);
@@ -104,6 +126,7 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
           e.amount > 0 ? `${n(e.side)}'s ${e.beast} savages for ${e.amount}!` : `${n(e.side)}'s ${e.beast} lunges and misses.`,
           e.amount > 0 ? "hit" : "defend",
           700,
+          e.amount > 0 ? { target: foe(e.side), amount: e.amount } : undefined,
         );
         break;
       case "beastDown":

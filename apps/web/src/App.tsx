@@ -24,7 +24,9 @@ import {
   type Stance,
   type TrumpTrigger,
 } from "@agoge/core";
-import { FightTheatre } from "./FightTheatre.js";
+import { hashString, type Discipline } from "@agoge/core";
+import { FightTheatre, type StageFigure } from "./FightTheatre.js";
+import { DisciplineGlyph, HelmBust, HopliteFigure, paletteFromHues } from "./art.js";
 import {
   applyDailyReset,
   load,
@@ -235,6 +237,18 @@ export function App() {
         <FightTheatre
           result={screen.result}
           names={[c.displayName, screen.rival.snapshot.name]}
+          figures={
+            [
+              {
+                palette: paletteFromHues(c.appearance.hue, c.appearance.hue2),
+                discipline: primaryDiscipline(c.weapons),
+              },
+              {
+                palette: rivalPalette(screen.rival.snapshot.name),
+                discipline: primaryDiscipline(screen.rival.snapshot.weapons),
+              },
+            ] satisfies [StageFigure, StageFigure]
+          }
           onDone={() => {
             openDraftIfDue(save);
             setScreen({ s: "arena" });
@@ -340,22 +354,19 @@ function Forge({ onForge }: { onForge: (name: string) => void }) {
 
 function Medallion({ champion, size }: { champion: Champion; size: number }) {
   const { hue, hue2 } = champion.appearance;
-  const initial = champion.displayName.charAt(0).toUpperCase();
-  return (
-    <svg width={size} height={size} viewBox="0 0 100 100" className="medallion" aria-hidden>
-      <defs>
-        <linearGradient id={`g${champion.seed}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor={`hsl(${hue} 45% 42%)`} />
-          <stop offset="100%" stopColor={`hsl(${hue2} 50% 30%)`} />
-        </linearGradient>
-      </defs>
-      <circle cx="50" cy="50" r="47" fill={`url(#g${champion.seed})`} stroke="#c08a3e" strokeWidth="4" />
-      <circle cx="50" cy="50" r="38" fill="none" stroke="#00000033" strokeWidth="2" />
-      <text x="50" y="63" textAnchor="middle" fontSize="40" fontWeight="700" fill="#f2e8d8">
-        {initial}
-      </text>
-    </svg>
-  );
+  return <HelmBust size={size} palette={paletteFromHues(hue, hue2)} />;
+}
+
+/** The discipline that defines a loadout's stage pose. */
+function primaryDiscipline(weapons: string[]): Discipline | "fists" {
+  const held = weapons.find((id) => weapon(id).discipline !== "aspis");
+  if (held) return weapon(held).discipline;
+  return weapons.length > 0 ? "aspis" : "fists";
+}
+
+function rivalPalette(name: string) {
+  const h = hashString(name.toLowerCase());
+  return paletteFromHues(h % 360, (h * 7) % 360);
 }
 
 function VigorPips({ vigor }: { vigor: number }) {
@@ -399,6 +410,13 @@ function Home(props: {
             {save.wins}W – {save.losses}L · HP {hpNow} · Favour {c.favour}
           </div>
         </div>
+        <div className="hero-fig">
+          <HopliteFigure
+            height={150}
+            palette={paletteFromHues(c.appearance.hue, c.appearance.hue2)}
+            discipline={primaryDiscipline(c.weapons)}
+          />
+        </div>
       </section>
 
       <section className="grid-2">
@@ -416,7 +434,9 @@ function Home(props: {
           <ul className="arsenal">
             {c.weapons.map((id, i) => (
               <li key={id}>
-                <span>{weapon(id).name}</span>
+                <span className="wname">
+                  <DisciplineGlyph d={weapon(id).discipline} /> {weapon(id).name}
+                </span>
                 <span className="reorder">
                   <button aria-label="earlier" disabled={i === 0} onClick={() => props.onReorder(i, i - 1)}>▲</button>
                   <button aria-label="later" disabled={i === c.weapons.length - 1} onClick={() => props.onReorder(i, i + 1)}>▼</button>
@@ -492,6 +512,7 @@ function Arena(props: {
           return (
             <div className="card rival" key={r.snapshot.name}>
               <div className="rival-top">
+                <HelmBust size={52} palette={rivalPalette(r.snapshot.name)} mirror />
                 <span className="champ-name small">{r.snapshot.name}</span>
                 <span className="pill">Lv {r.snapshot.level}</span>
               </div>
