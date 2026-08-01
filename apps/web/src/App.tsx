@@ -25,7 +25,6 @@ import {
   weapon,
   type BattlePlan,
   type Champion,
-  type Discipline,
   type FateOffer,
   type FightResult,
   type GambitId,
@@ -34,17 +33,8 @@ import {
   type TrumpTrigger,
 } from "@agoge/core";
 import { FightTheatre, type StageFigure } from "./FightTheatre.js";
-import {
-  ARMOUR_TINTS,
-  ARMOUR_TINT_NAMES,
-  BeastFigure,
-  DisciplineGlyph,
-  HelmBust,
-  HopliteFigure,
-  SKIN_TONES,
-  paletteFromAppearance,
-  rivalAppearance,
-} from "./art.js";
+import { BeastFigure, DisciplineGlyph } from "./art.js";
+import { HEROES, HeroBust, HeroSprite, heroIndexFor } from "./heroes.js";
 import {
   applyDailyReset,
   freshQuests,
@@ -76,15 +66,6 @@ function league(kleos: number): { name: string; color: string } {
   return { name: "E-Rank", color: "#aab3c8" };
 }
 
-const CREST_HUES = [2, 30, 48, 90, 140, 175, 210, 250, 290, 330];
-
-/** The discipline that defines a loadout's stage pose. */
-function primaryDiscipline(weapons: string[]): Discipline | "fists" {
-  const held = weapons.find((id) => weapon(id).discipline !== "aspis");
-  if (held) return weapon(held).discipline;
-  return weapons.length > 0 ? "aspis" : "fists";
-}
-
 /**
  * Pure-RNG fight behaviour (MyBrute style): every fight, both sides get a
  * seeded-random stance, opening and instinct for their special moves —
@@ -114,11 +95,6 @@ function heldWeaponId(weapons: string[]): string | undefined {
   return weapons.find((id) => weapon(id).discipline !== "aspis");
 }
 
-/** Shield carried, if any. */
-function shieldIdOf(weapons: string[]): string | undefined {
-  return weapons.find((id) => weapon(id).discipline === "aspis");
-}
-
 export function App() {
   const [save, setSave] = useState<SaveV1 | null>(() => load());
   const [screen, setScreen] = useState<Screen>(save ? { s: "home" } : { s: "forge" });
@@ -142,8 +118,8 @@ export function App() {
     return (
       <Shell>
         <Forge
-          onForge={(champion) => {
-            const s = newSave(champion, { stance: "measured", gambit: "close_the_gap" });
+          onForge={(champion, hero) => {
+            const s = newSave(champion, { stance: "measured", gambit: "close_the_gap" }, hero);
             update(s);
             setScreen({ s: "home" });
           }}
@@ -288,17 +264,13 @@ export function App() {
           figures={
             [
               {
-                appearance: c.appearance,
-                discipline: primaryDiscipline(c.weapons),
+                hero: save.hero ?? heroIndexFor(c.displayName),
                 weaponId: heldWeaponId(c.weapons),
-                shieldId: shieldIdOf(c.weapons),
                 beasts: c.beasts,
               },
               {
-                appearance: rivalAppearance(screen.rival.snapshot.name),
-                discipline: primaryDiscipline(screen.rival.snapshot.weapons),
+                hero: heroIndexFor(screen.rival.snapshot.name),
                 weaponId: heldWeaponId(screen.rival.snapshot.weapons),
-                shieldId: shieldIdOf(screen.rival.snapshot.weapons),
                 beasts: screen.rival.snapshot.beasts,
               },
             ] satisfies [StageFigure, StageFigure]
@@ -342,9 +314,10 @@ function Shell({ children, header }: { children: React.ReactNode; header?: React
 
 /* ================= forge (2 steps: name → style) ================= */
 
-function Forge({ onForge }: { onForge: (c: Champion) => void }) {
+function Forge({ onForge }: { onForge: (c: Champion, hero: number) => void }) {
   const [name, setName] = useState("");
   const [champ, setChamp] = useState<Champion | null>(null);
+  const [hero, setHero] = useState<number | null>(null);
   const preview = useMemo(() => {
     const trimmed = name.trim();
     if (trimmed.length < 2) return null;
@@ -363,7 +336,10 @@ function Forge({ onForge }: { onForge: (c: Champion) => void }) {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (preview) setChamp(preview);
+            if (preview) {
+              setChamp(preview);
+              setHero(heroIndexFor(preview.displayName));
+            }
           }}
         >
           <input
@@ -377,7 +353,7 @@ function Forge({ onForge }: { onForge: (c: Champion) => void }) {
           />
           {preview && (
             <div className="forge-preview card">
-              <HelmBust size={72} palette={paletteFromAppearance(preview.appearance)} helm={preview.appearance.helm} />
+              <HeroBust hero={heroIndexFor(preview.displayName)} size={72} />
               <div>
                 <div className="champ-name">
                   {preview.displayName} <span className="epithet">{preview.epithet}</span>
@@ -394,119 +370,43 @@ function Forge({ onForge }: { onForge: (c: Champion) => void }) {
             Awaken my Hunter
           </button>
         </form>
-        <p className="fineprint">Next: style their look. Stats and gear grow from your choices as you level.</p>
+        <p className="fineprint">Next: choose their form. Stats and gear grow from your choices as you level.</p>
       </div>
     );
   }
 
-  const a = champ.appearance;
-  const setA = (patch: Partial<typeof a>) =>
-    setChamp({ ...champ, appearance: { ...a, ...patch } });
+  const picked = hero ?? heroIndexFor(champ.displayName);
 
   return (
     <div className="forge">
-      <h1 className="forge-title">Make them yours.</h1>
+      <h1 className="forge-title">Choose your form.</h1>
       <p className="forge-sub">
-        {champ.displayName} <span className="epithet">{champ.epithet}</span> — style is yours to choose; strength you earn.
+        {champ.displayName} <span className="epithet">{champ.epithet}</span> — the look is yours to choose; strength you earn.
       </p>
       <div className="styler">
         <div className="styler-stage">
-          <HopliteFigure
-            height={190}
-            palette={paletteFromAppearance(a)}
-            discipline={primaryDiscipline(champ.weapons)}
-            weaponId={heldWeaponId(champ.weapons)}
-            shieldId={shieldIdOf(champ.weapons)}
-            helm={a.helm}
-            sigil={a.sigil}
-          />
+          <HeroSprite hero={picked} height={210} />
+          <div className="hero-caption">
+            <b>{HEROES[picked]!.name}</b>
+            <span className="muted small">{HEROES[picked]!.blurb}</span>
+          </div>
         </div>
 
-        <div className="card">
-          <h4>Skin</h4>
-          <div className="swatches">
-            {SKIN_TONES.map((t, i) => (
-              <button
-                key={i}
-                className={`swatch ${a.skin === i ? "picked" : ""}`}
-                style={{ background: t.base }}
-                onClick={() => setA({ skin: i })}
-                aria-label={`Skin tone ${i + 1}`}
-              />
-            ))}
-          </div>
-
-          <h4>Hair</h4>
-          <div className="opt-row">
-            {["Spiky", "Messy", "Ponytail", "Twin tails"].map((label, i) => (
-              <button key={i} className={`opt ${a.helm === i ? "picked" : ""}`} onClick={() => setA({ helm: i })}>
-                <HelmBust size={38} palette={paletteFromAppearance({ ...a, helm: i })} helm={i} ring={false} />
-                {label}
-              </button>
-            ))}
-          </div>
-
-          <h4>Hair colour</h4>
-          <div className="swatches">
-            {CREST_HUES.map((h) => (
-              <button
-                key={h}
-                className={`swatch ${a.hue2 === h ? "picked" : ""}`}
-                style={{ background: `hsl(${h} 62% 46%)` }}
-                onClick={() => setA({ hue2: h })}
-                aria-label={`Crest colour ${h}`}
-              />
-            ))}
-          </div>
-
-          <h4>Outfit</h4>
-          <div className="opt-row">
-            {ARMOUR_TINTS.map((t, i) => (
-              <button key={i} className={`opt ${a.tint === i ? "picked" : ""}`} onClick={() => setA({ tint: i })}>
-                <span className="swatch" style={{ background: t, width: 20, height: 20 }} />
-                {ARMOUR_TINT_NAMES[i]}
-              </button>
-            ))}
-          </div>
-
-          <h4>Shield colour & sigil</h4>
-          <div className="swatches">
-            {CREST_HUES.map((h) => (
-              <button
-                key={h}
-                className={`swatch ${a.hue === h ? "picked" : ""}`}
-                style={{ background: `hsl(${h} 46% 42%)` }}
-                onClick={() => setA({ hue: h })}
-                aria-label={`Shield colour ${h}`}
-              />
-            ))}
-          </div>
-          <div className="opt-row" style={{ marginTop: 8 }}>
-            {["Star", "Ring", "Bolt", "Crescent"].map((label, i) => (
-              <button key={i} className={`opt ${a.sigil === i ? "picked" : ""}`} onClick={() => setA({ sigil: i })}>
-                {label}
-              </button>
-            ))}
-          </div>
+        <div className="roster">
+          {HEROES.map((h, i) => (
+            <button key={h.name} className={`hero-card ${picked === i ? "picked" : ""}`} onClick={() => setHero(i)}>
+              <HeroSprite hero={i} height={110} />
+              <b>{h.name}</b>
+              <span className="muted small">{h.role}</span>
+            </button>
+          ))}
         </div>
 
         <div className="actions">
-          <button
-            className="btn ghost"
-            onClick={() =>
-              setA({
-                skin: Math.floor(Math.random() * 6),
-                helm: Math.floor(Math.random() * 4),
-                tint: Math.floor(Math.random() * 4),
-                hue: CREST_HUES[Math.floor(Math.random() * CREST_HUES.length)],
-                hue2: CREST_HUES[Math.floor(Math.random() * CREST_HUES.length)],
-                sigil: Math.floor(Math.random() * 4),
-              })
-            }
-          >
+          <button className="btn ghost" onClick={() => setHero(Math.floor(Math.random() * HEROES.length))}>
             Surprise me
           </button>
-          <button className="btn primary big" onClick={() => onForge(champ)}>
+          <button className="btn primary big" onClick={() => onForge(champ, picked)}>
             Start Hunting →
           </button>
         </div>
@@ -550,7 +450,7 @@ function Home(props: {
       )}
 
       <section className="card champ-card">
-        <HelmBust size={92} palette={paletteFromAppearance(c.appearance)} helm={c.appearance.helm} />
+        <HeroBust hero={save.hero ?? heroIndexFor(c.displayName)} size={92} />
         <div className="champ-meta">
           <h2 className="champ-name">
             {c.displayName} <span className="epithet">{c.epithet}</span>
@@ -566,15 +466,7 @@ function Home(props: {
           </div>
         </div>
         <div className="hero-fig">
-          <HopliteFigure
-            height={150}
-            palette={paletteFromAppearance(c.appearance)}
-            discipline={primaryDiscipline(c.weapons)}
-            weaponId={heldWeaponId(c.weapons)}
-            shieldId={shieldIdOf(c.weapons)}
-            helm={c.appearance.helm}
-            sigil={c.appearance.sigil}
-          />
+          <HeroSprite hero={save.hero ?? heroIndexFor(c.displayName)} height={150} />
         </div>
       </section>
 
@@ -701,11 +593,10 @@ function Arena(props: {
       )}
       <div className="rivals">
         {board.map((r) => {
-          const app = rivalAppearance(r.snapshot.name);
           return (
             <div className="card rival" key={r.snapshot.name}>
               <div className="rival-top">
-                <HelmBust size={52} palette={paletteFromAppearance(app)} helm={app.helm} mirror />
+                <HeroBust hero={heroIndexFor(r.snapshot.name)} size={52} mirror />
                 <span className="champ-name small">{r.snapshot.name}</span>
                 <span className="pill">Lv {r.snapshot.level}</span>
               </div>
@@ -849,7 +740,7 @@ function Codex({ champion, onBack }: { champion: Champion; onBack: () => void })
       {[
         { title: "Boons — always-on passives", list: BOONS },
         { title: "Techniques — trigger on their own", list: TECHNIQUES },
-        { title: "Trumps — you choose when they fire (Tactics)", list: TRUMPS },
+        { title: "Trumps — big moves that fire on instinct", list: TRUMPS },
       ].map((group) => (
         <section className="card" key={group.title}>
           <h3>

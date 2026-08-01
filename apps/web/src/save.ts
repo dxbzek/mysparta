@@ -5,6 +5,7 @@
  */
 
 import type { BattlePlan, Champion } from "@agoge/core";
+import { heroIndexFor } from "./heroes.js";
 
 export interface DailyQuests {
   day: string;
@@ -28,6 +29,8 @@ export interface SaveV1 {
   seenPlans: Record<string, BattlePlan>;
   boardRefresh: number;
   quests?: DailyQuests;
+  /** Roster index of the champion's awakened form (heroes.tsx). */
+  hero?: number;
 }
 
 export function freshQuests(): DailyQuests {
@@ -43,9 +46,10 @@ export function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function newSave(champion: Champion, plan: BattlePlan): SaveV1 {
+export function newSave(champion: Champion, plan: BattlePlan, hero?: number): SaveV1 {
   return {
     v: 1,
+    hero: hero ?? heroIndexFor(champion.displayName),
     champion,
     kleos: 1500,
     vigor: VIGOR_CAP, // day-one bonus: +6 on top of the daily 6
@@ -84,6 +88,8 @@ export function load(): SaveV1 | null {
     if (a.sigil == null) a.sigil = a.hue2 % 4;
     if (a.helm == null) a.helm = a.hue % 4;
     if (a.tint == null) a.tint = 0;
+    // Saves that predate the painted roster get a stable derived form.
+    if (parsed.hero == null) parsed.hero = heroIndexFor(parsed.champion.displayName);
     return applyDailyReset(parsed);
   } catch {
     return null;

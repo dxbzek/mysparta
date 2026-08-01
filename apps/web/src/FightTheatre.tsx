@@ -1,31 +1,26 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { BEASTS, FISTS, WEAPONS, type Appearance, type Discipline, type FightResult } from "@agoge/core";
-import {
-  BeastFigure,
-  CrowdStrip,
-  HopliteFigure,
-  ImpactBurst,
-  Javelin,
-  Laurel,
-  SlashArc,
-  paletteFromAppearance,
-} from "./art.js";
+import { BEASTS, FISTS, WEAPONS, type FightResult } from "@agoge/core";
+import { BeastFigure, ImpactBurst, Javelin, Laurel, SlashArc } from "./art.js";
+import { HeroSprite, arenaBgImg, heroOf } from "./heroes.js";
 import { narrate, type Line } from "./narrate.js";
 import { sound } from "./sound.js";
 
 export interface StageFigure {
-  appearance: Appearance;
-  discipline: Discipline | "fists";
+  /** Roster index of the painted sprite (heroes.tsx). */
+  hero: number;
   /** Weapon in hand at the start of the fight. */
   weaponId?: string;
-  /** Shield carried, if any. */
-  shieldId?: string;
   beasts: string[];
 }
 
 const weaponIdByName = new Map<string, string>([
   [FISTS.name, FISTS.id],
   ...WEAPONS.map((w) => [w.name, w.id] as const),
+]);
+
+const weaponNameById = new Map<string, string>([
+  [FISTS.id, FISTS.name],
+  ...WEAPONS.map((w) => [w.id, w.name] as const),
 ]);
 
 interface Props {
@@ -58,15 +53,15 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
   useLayoutEffect(() => {
     const measure = () => {
       const w = stageRef.current?.clientWidth ?? 800;
-      const h = w < 520 ? 138 : 168;
+      const h = w < 520 ? 148 : 188;
       setFigH(h);
-      const figW = (h * 200) / 230;
+      const figW = h * ((heroOf(figures[0].hero).aspect + heroOf(figures[1].hero).aspect) / 2);
       setDash(Math.max(40, Math.round(w * 0.84 - 2 * figW + 26)));
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, []);
+  }, [figures]);
 
   const finished = skipped || shown >= lines.length;
 
@@ -226,12 +221,9 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
       <div
         className={`stage ${fx?.crit && !finished ? "quake" : ""}`}
         ref={stageRef}
-        style={{ "--dash": `${dash}px` } as React.CSSProperties}
+        style={{ "--dash": `${dash}px`, backgroundImage: `url(${arenaBgImg})` } as React.CSSProperties}
       >
-        <div className="stage-floor" />
-        <div className={`crowd ${fx?.crit ? "hype" : ""}`}>
-          <CrowdStrip />
-        </div>
+        <div className="stage-shade" />
         <div className="stage-hp">
           <HpBar name={names[0]} hp={hp[0]!} max={result.hpMax[0]} mirror={false} />
           <HpBar name={names[1]} hp={hp[1]!} max={result.hpMax[1]} mirror={true} />
@@ -242,37 +234,26 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
           <div className="corner">
             <div key={`a${idx}`} className={slotClass(0)}>
               <div className={innerClass(0)}>
-                <HopliteFigure
-                  height={figH}
-                  palette={paletteFromAppearance(figures[0].appearance)}
-                  discipline={figures[0].discipline}
-                  weaponId={heldWeapon[0]}
-                  shieldId={figures[0].shieldId}
-                  helm={figures[0].appearance.helm}
-                  sigil={figures[0].appearance.sigil}
-                />
+                <HeroSprite hero={figures[0].hero} height={figH} />
                 {renderEffects(0)}
               </div>
             </div>
+            {heldWeapon[0] && (
+              <div className="held-chip">{weaponNameById.get(heldWeapon[0]) ?? "Fists"}</div>
+            )}
             {renderBeasts(0)}
           </div>
 
           <div className="corner">
             <div key={`b${idx}`} className={slotClass(1)}>
               <div className={innerClass(1)}>
-                <HopliteFigure
-                  height={figH}
-                  palette={paletteFromAppearance(figures[1].appearance)}
-                  discipline={figures[1].discipline}
-                  weaponId={heldWeapon[1]}
-                  shieldId={figures[1].shieldId}
-                  helm={figures[1].appearance.helm}
-                  sigil={figures[1].appearance.sigil}
-                  mirror
-                />
+                <HeroSprite hero={figures[1].hero} height={figH} mirror />
                 {renderEffects(1)}
               </div>
             </div>
+            {heldWeapon[1] && (
+              <div className="held-chip on-right">{weaponNameById.get(heldWeapon[1]) ?? "Fists"}</div>
+            )}
             {renderBeasts(1)}
           </div>
         </div>
