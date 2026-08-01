@@ -1,16 +1,16 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BEASTS, FISTS, WEAPONS, type FightResult } from "@agoge/core";
 import { BeastFigure, ImpactBurst, Javelin, Laurel, SlashArc } from "./art.js";
-import { HeroSprite, arenaBgImg, heroOf, type Pose } from "./heroes.js";
+import { FighterFig, fighterOf, pixelArenaImg, type FighterAnim } from "./fighters.js";
 import { narrate, type Line } from "./narrate.js";
 import { sound } from "./sound.js";
 
 export interface StageFigure {
-  /** Roster index of the painted sprite (heroes.tsx). */
-  hero: number;
-  /** Colour-grade preset (heroes.tsx STYLES). */
+  /** Roster index of the animated fighter (fighters.tsx). */
+  fighter: number;
+  /** Palette-grade preset (fighters.tsx STYLES). */
   style: number;
-  /** Aura colour (heroes.tsx AURAS). */
+  /** Aura colour (fighters.tsx AURAS). */
   aura: number;
   /** Weapon in hand at the start of the fight. */
   weaponId?: string;
@@ -57,10 +57,13 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
   useLayoutEffect(() => {
     const measure = () => {
       const w = stageRef.current?.clientWidth ?? 800;
-      const h = w < 520 ? 148 : 188;
+      const h = w < 520 ? 130 : 170;
       setFigH(h);
-      const figW = h * ((heroOf(figures[0].hero).aspect + heroOf(figures[1].hero).aspect) / 2);
-      setDash(Math.max(40, Math.round(w * 0.84 - 2 * figW + 26)));
+      const charOf = (i: 0 | 1) => {
+        const f = fighterOf(figures[i].fighter);
+        return (f.char.w / f.char.h) * h;
+      };
+      setDash(Math.max(40, Math.round(w * 0.84 - charOf(0) - charOf(1) + 10)));
     };
     measure();
     window.addEventListener("resize", measure);
@@ -171,12 +174,12 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
     return cls.join(" ");
   };
 
-  /** Which painted pose each fighter shows this beat. */
-  const poseOf = (side: 0 | 1): Pose => {
-    if (finished && side === loser && result.reason === "ko") return "hurt";
+  /** Which sheet animation each fighter plays this beat. */
+  const animOf = (side: 0 | 1): FighterAnim => {
+    if (finished && side === loser && result.reason === "ko") return "death";
     if (finished) return "idle";
-    if (anim?.reaction?.side === side && anim.reaction.kind === "hurt") return "hurt";
-    if (anim?.striker === side) return "attack";
+    if (anim?.reaction?.side === side && anim.reaction.kind === "hurt") return "hit";
+    if (anim?.striker === side && !anim.beastName) return idx % 2 === 0 ? "attack1" : "attack2";
     return "idle";
   };
 
@@ -234,7 +237,7 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
       <div
         className={`stage ${fx?.crit && !finished ? "quake" : ""}`}
         ref={stageRef}
-        style={{ "--dash": `${dash}px`, backgroundImage: `url(${arenaBgImg})` } as React.CSSProperties}
+        style={{ "--dash": `${dash}px`, backgroundImage: `url(${pixelArenaImg})` } as React.CSSProperties}
       >
         <div className="stage-shade" />
         <div className="stage-hp">
@@ -247,10 +250,10 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
           <div className="corner">
             <div key={`a${idx}`} className={slotClass(0)}>
               <div className={innerClass(0)}>
-                <HeroSprite
-                  hero={figures[0].hero}
+                <FighterFig
+                  fighter={figures[0].fighter}
                   height={figH}
-                  pose={poseOf(0)}
+                  anim={animOf(0)}
                   style={figures[0].style}
                   aura={figures[0].aura}
                 />
@@ -266,10 +269,10 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
           <div className="corner">
             <div key={`b${idx}`} className={slotClass(1)}>
               <div className={innerClass(1)}>
-                <HeroSprite
-                  hero={figures[1].hero}
+                <FighterFig
+                  fighter={figures[1].fighter}
                   height={figH}
-                  pose={poseOf(1)}
+                  anim={animOf(1)}
                   style={figures[1].style}
                   aura={figures[1].aura}
                   mirror

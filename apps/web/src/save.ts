@@ -5,7 +5,7 @@
  */
 
 import type { BattlePlan, Champion } from "@agoge/core";
-import { heroIndexFor } from "./heroes.js";
+import { fighterIndexFor } from "./fighters.js";
 
 export interface DailyQuests {
   day: string;
@@ -59,7 +59,7 @@ export function newSave(
 ): SaveV1 {
   return {
     v: 1,
-    hero: hero ?? heroIndexFor(champion.displayName),
+    hero: hero ?? fighterIndexFor(champion.displayName),
     styleFx: styleFx ?? 0,
     aura: aura ?? 0,
     champion,
@@ -101,7 +101,7 @@ export function load(): SaveV1 | null {
     if (a.helm == null) a.helm = a.hue % 4;
     if (a.tint == null) a.tint = 0;
     // Saves that predate the painted roster get a stable derived form.
-    if (parsed.hero == null) parsed.hero = heroIndexFor(parsed.champion.displayName);
+    if (parsed.hero == null) parsed.hero = fighterIndexFor(parsed.champion.displayName);
     return applyDailyReset(parsed);
   } catch {
     return null;

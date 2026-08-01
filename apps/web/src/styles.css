@@ -526,6 +526,23 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .fig-inner.felled .hero-anim, .fig-inner.felled .hero-anim::after { animation: none; }
 
+/* --- sprite-sheet fighters: real frame-by-frame animation --- */
+.sheet {
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  image-rendering: pixelated;
+}
+@keyframes sheetPlay { to { background-position-x: var(--sheet-to); } }
+.fighter-fig {
+  position: relative;
+  display: inline-block;
+}
+.fighter-frame {
+  position: absolute;
+  pointer-events: none;
+}
+.fig-inner.win .fighter-fig { animation: heroGlow 800ms ease-in-out infinite alternate; }
+
 /* floating energy motes around showcased heroes */
 .sparks { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .spark {
@@ -559,13 +576,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   z-index: 3;
 }
 
-/* knocked out */
+/* knocked out — the death sheet plays the fall; we just drain the colour */
 .fig-inner.felled {
   animation: none;
-  transform: rotate(80deg) translateY(14px);
-  transform-origin: 50% 88%;
-  filter: grayscale(0.7) brightness(0.85);
-  transition: transform 500ms ease, filter 500ms ease;
+  filter: grayscale(0.6) brightness(0.85);
+  transition: filter 700ms ease 400ms;
 }
 
 /* --- beasts at their master's side --- */
@@ -1012,8 +1027,10 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .hero-caption { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
 .hero-caption b { font-family: var(--font-display); font-size: 1.05rem; }
 
-/* roster grid of painted forms */
+/* roster grid of fighter forms */
 .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.roster-duel { grid-template-columns: repeat(2, minmax(150px, 220px)); justify-content: center; }
+.roster .fighter-fig, .styler-stage .fighter-fig { margin-bottom: 6px; }
 .hero-card {
   display: flex; flex-direction: column; align-items: center; gap: 5px;
   font-family: var(--font-body); color: var(--ink);

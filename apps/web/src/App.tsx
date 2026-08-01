@@ -34,7 +34,16 @@ import {
 } from "@agoge/core";
 import { FightTheatre, type StageFigure } from "./FightTheatre.js";
 import { BeastFigure, DisciplineGlyph } from "./art.js";
-import { AURAS, AuraSparks, HEROES, HeroBust, HeroSprite, STYLES, heroIndexFor, rivalLook } from "./heroes.js";
+import {
+  AURAS,
+  AuraSparks,
+  FIGHTERS,
+  FighterBust,
+  FighterFig,
+  STYLES,
+  fighterIndexFor,
+  rivalLook,
+} from "./fighters.js";
 import {
   applyDailyReset,
   freshQuests,
@@ -273,7 +282,7 @@ export function App() {
           figures={
             [
               {
-                hero: save.hero ?? heroIndexFor(c.displayName),
+                fighter: save.hero ?? fighterIndexFor(c.displayName),
                 style: save.styleFx ?? 0,
                 aura: save.aura ?? 0,
                 weaponId: heldWeaponId(c.weapons),
@@ -318,6 +327,8 @@ function Shell({ children, header }: { children: React.ReactNode; header?: React
       <main className="content">{children}</main>
       <footer className="foot">
         RANK ZERO prototype — deterministic sim v1 · your progress is saved in this browser
+        <br />
+        fighter animation by LuizMelo · arena by brullov (free game assets)
       </footer>
     </div>
   );
@@ -335,7 +346,7 @@ function Forge({
   const [hero, setHero] = useState<number | null>(null);
   const [styleFx, setStyleFx] = useState(0);
   const [aura, setAura] = useState(0);
-  const [previewPose, setPreviewPose] = useState<"idle" | "attack">("idle");
+  const [previewPose, setPreviewPose] = useState<"idle" | "attack1">("idle");
   const preview = useMemo(() => {
     const trimmed = name.trim();
     if (trimmed.length < 2) return null;
@@ -356,7 +367,7 @@ function Forge({
             e.preventDefault();
             if (preview) {
               setChamp(preview);
-              setHero(heroIndexFor(preview.displayName));
+              setHero(fighterIndexFor(preview.displayName));
             }
           }}
         >
@@ -371,7 +382,7 @@ function Forge({
           />
           {preview && (
             <div className="forge-preview card">
-              <HeroBust hero={heroIndexFor(preview.displayName)} size={72} />
+              <FighterBust fighter={fighterIndexFor(preview.displayName)} size={72} />
               <div>
                 <div className="champ-name">
                   {preview.displayName} <span className="epithet">{preview.epithet}</span>
@@ -393,7 +404,7 @@ function Forge({
     );
   }
 
-  const picked = hero ?? heroIndexFor(champ.displayName);
+  const picked = hero ?? fighterIndexFor(champ.displayName);
 
   return (
     <div className="forge">
@@ -404,25 +415,25 @@ function Forge({
       <div className="styler">
         <div
           className="styler-stage"
-          onPointerDown={() => setPreviewPose("attack")}
+          onPointerDown={() => setPreviewPose("attack1")}
           onPointerUp={() => setPreviewPose("idle")}
           onPointerLeave={() => setPreviewPose("idle")}
-          title="Hold to see the attack pose"
+          title="Hold to see the attack"
         >
           <AuraSparks aura={aura} />
-          <HeroSprite hero={picked} height={210} pose={previewPose} style={styleFx} aura={aura} />
+          <FighterFig fighter={picked} height={170} anim={previewPose} style={styleFx} aura={aura} />
           <div className="hero-caption">
-            <b>{HEROES[picked]!.name}</b>
-            <span className="muted small">{HEROES[picked]!.blurb} <em>(hold to preview the attack)</em></span>
+            <b>{FIGHTERS[picked]!.name}</b>
+            <span className="muted small">{FIGHTERS[picked]!.blurb} <em>(hold to preview the attack)</em></span>
           </div>
         </div>
 
-        <div className="roster">
-          {HEROES.map((h, i) => (
-            <button key={h.name} className={`hero-card ${picked === i ? "picked" : ""}`} onClick={() => setHero(i)}>
-              <HeroSprite hero={i} height={110} pose={picked === i ? "attack" : "idle"} style={styleFx} aura={aura} />
-              <b>{h.name}</b>
-              <span className="muted small">{h.role}</span>
+        <div className="roster roster-duel">
+          {FIGHTERS.map((f, i) => (
+            <button key={f.name} className={`hero-card ${picked === i ? "picked" : ""}`} onClick={() => setHero(i)}>
+              <FighterFig fighter={i} height={96} anim={picked === i ? "run" : "idle"} style={styleFx} aura={aura} />
+              <b>{f.name}</b>
+              <span className="muted small">{f.role}</span>
             </button>
           ))}
         </div>
@@ -456,7 +467,7 @@ function Forge({
           <button
             className="btn ghost"
             onClick={() => {
-              setHero(Math.floor(Math.random() * HEROES.length));
+              setHero(Math.floor(Math.random() * FIGHTERS.length));
               setStyleFx(Math.floor(Math.random() * STYLES.length));
               setAura(Math.floor(Math.random() * AURAS.length));
             }}
@@ -507,7 +518,7 @@ function Home(props: {
       )}
 
       <section className="card champ-card">
-        <HeroBust hero={save.hero ?? heroIndexFor(c.displayName)} size={92} style={save.styleFx} />
+        <FighterBust fighter={save.hero ?? fighterIndexFor(c.displayName)} size={92} style={save.styleFx} />
         <div className="champ-meta">
           <h2 className="champ-name">
             {c.displayName} <span className="epithet">{c.epithet}</span>
@@ -524,9 +535,9 @@ function Home(props: {
         </div>
         <div className="hero-fig">
           <AuraSparks aura={save.aura} />
-          <HeroSprite
-            hero={save.hero ?? heroIndexFor(c.displayName)}
-            height={150}
+          <FighterFig
+            fighter={save.hero ?? fighterIndexFor(c.displayName)}
+            height={120}
             style={save.styleFx}
             aura={save.aura}
           />
@@ -659,7 +670,7 @@ function Arena(props: {
           return (
             <div className="card rival" key={r.snapshot.name}>
               <div className="rival-top">
-                <HeroBust hero={rivalLook(r.snapshot.name).hero} size={52} style={rivalLook(r.snapshot.name).style} mirror />
+                <FighterBust fighter={rivalLook(r.snapshot.name).fighter} size={52} style={rivalLook(r.snapshot.name).style} mirror />
                 <span className="champ-name small">{r.snapshot.name}</span>
                 <span className="pill">Lv {r.snapshot.level}</span>
               </div>
