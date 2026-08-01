@@ -4,7 +4,25 @@
 
 **AGOGE** (working title) is an original browser-based auto-battler RPG inspired by the core loop and progression magic of MyBrute (2009) — and deliberately **not a clone**. You speak a name, the Fates forge you a **Champion**, and that Champion trains, brawls and builds a legend in an eternal arena-academy outside time. Fights are fully automatic 30–45-second spectacles shareable as URLs; your skill lives in *authorship*: drafting your Champion's destiny one **Thread of Fate** at a time, out-thinking rivals with a three-slot **Battle Plan**, and growing a **Lineage** of protégés who carry your sigil.
 
-This repository currently contains the complete research, game design and technical documentation set — the blueprint from which the game will be built incrementally.
+This repository contains the complete research, game design and technical documentation set — plus a **playable prototype** implementing the real deterministic combat sim from the GDD.
+
+## Play the prototype
+
+```bash
+pnpm install
+pnpm dev        # → http://localhost:5173
+pnpm test       # deterministic-sim test suite
+pnpm build      # production build
+```
+
+Speak a name → the Fates forge your Champion (name-seeded Omen, stats, kit) → set a Battle Plan (Stance / Gambit / Trump) → fight rivals in the Arena → draft your destiny through 1-of-3 Threads of Fate on every level-up. Six Vigor per day (banked to 12), Kleos rating, weapon draw-order authoring, the Tapestry build history — all running on `packages/core`, the pure deterministic sim (mulberry32 seeded PRNG, integer maths, sim v1) that will later run server-side per `docs/04-technical-architecture.md`.
+
+| Package | What it is |
+|---|---|
+| `packages/core` | Deterministic fight sim + champion generation + draft engine + XP curve. All 24 weapons, 30 skills, 4 beasts, 7 gambits, 10 trump triggers from the GDD. Zero I/O, fully seeded, covered by determinism/invariant/draft-rule tests. |
+| `apps/web` | React 19 + Vite prototype client: Forge, Champion Hall, Arena board, Battle Plan sheet, fight theatre with paced narration, Threads of Fate drafts, Tapestry. Saves to localStorage (the server replaces this in MVP). |
+
+Prototype simplifications (deliberate, documented in code): localStorage stands in for the server; rivals are generated ghosts rather than real players' snapshots; the fight theatre is DOM-animated (PixiJS arrives with real art); beasts intercept 25% of attacks so beast-hunting counterplay exists (the GDD specifies only the Nemean Cub's 30% guardian redirect).
 
 ## The design in one table
 

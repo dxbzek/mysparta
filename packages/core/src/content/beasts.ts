@@ -1,0 +1,70 @@
+import type { BeastDef } from "../types.js";
+
+/** Beasts of Legend (02-gdd-core.md §5.4), numbers verbatim. */
+export const BEASTS: BeastDef[] = [
+  {
+    id: "lykos",
+    name: "Lykos",
+    gritTax: 2,
+    hpBase: 16,
+    dmgMin: 4,
+    dmgMax: 6,
+    interval: 260,
+    evasion: 15,
+    armour: 0,
+    init: 0,
+    flavour: "Pack instinct: each additional Lykos grants all Lykoi +5% damage.",
+  },
+  {
+    id: "stymphal_shrike",
+    name: "Stymphal Shrike",
+    gritTax: 4,
+    hpBase: 22,
+    dmgMin: 5,
+    dmgMax: 8,
+    interval: 200,
+    evasion: 25,
+    armour: 0,
+    init: 0,
+    flavour: "First action at tick 40; harass: foe Accuracy −5 while it lives.",
+  },
+  {
+    id: "kalydon_boar",
+    name: "Kalydon Boar",
+    gritTax: 5,
+    hpBase: 45,
+    dmgMin: 10,
+    dmgMax: 16,
+    interval: 340,
+    evasion: 0,
+    armour: 1,
+    init: 0,
+    flavour: "Charge: its first attack deals +50% damage.",
+  },
+  {
+    id: "nemean_cub",
+    name: "Nemean Cub",
+    gritTax: 6,
+    hpBase: 70,
+    dmgMin: 8,
+    dmgMax: 12,
+    interval: 380,
+    evasion: 0,
+    armour: 3,
+    init: -100,
+    flavour: "Slow to wake. Guardian: 30% of hits aimed at you strike the Cub instead.",
+  },
+];
+
+const byId = new Map(BEASTS.map((b) => [b.id, b] as const));
+
+export function beast(id: string): BeastDef {
+  const b = byId.get(id);
+  if (!b) throw new Error(`Unknown beast: ${id}`);
+  return b;
+}
+
+/** Total Grit tax for a beast list, respecting Beast Bond (−1 each). */
+export function beastTax(ids: string[], hasBeastBond: boolean): number {
+  return ids.reduce((sum, id) => sum + Math.max(0, beast(id).gritTax - (hasBeastBond ? 1 : 0)), 0);
+}
