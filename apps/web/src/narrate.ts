@@ -32,6 +32,8 @@ export interface Line {
   };
   /** A beast on `side` was felled this beat. */
   beastDown?: { side: 0 | 1; beast: string };
+  /** `side` drew a new weapon (display name) this beat. */
+  drew?: { side: 0 | 1; weapon: string };
 }
 
 export function narrate(result: FightResult, names: [string, string]): Line[] {
@@ -48,7 +50,7 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
       text: string,
       kind: Line["kind"],
       hold = 550,
-      extra?: Partial<Pick<Line, "fx" | "anim" | "beastDown">>,
+      extra?: Partial<Pick<Line, "fx" | "anim" | "beastDown" | "drew">>,
     ) => lines.push({ t: e.t, side, text, kind, hold, hp: [hp[0], hp[1]], ...extra });
 
     switch (e.type) {
@@ -155,7 +157,9 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         });
         break;
       case "draw":
-        push(e.side, `${n(e.side)} draws ${e.weapon}.`, "info", 500);
+        push(e.side, `${n(e.side)} draws ${e.weapon}.`, "info", 500, {
+          drew: { side: e.side, weapon: e.weapon },
+        });
         break;
       case "trump":
         push(e.side, `⚡ ${n(e.side)} unleashes ${prettySkill(e.skill)}!`, "trump", 1100, {

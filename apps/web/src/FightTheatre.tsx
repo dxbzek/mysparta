@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { BEASTS, type Appearance, type Discipline, type FightResult } from "@agoge/core";
+import { BEASTS, FISTS, WEAPONS, type Appearance, type Discipline, type FightResult } from "@agoge/core";
 import {
   BeastFigure,
   CrowdStrip,
@@ -16,8 +16,17 @@ import { sound } from "./sound.js";
 export interface StageFigure {
   appearance: Appearance;
   discipline: Discipline | "fists";
+  /** Weapon in hand at the start of the fight. */
+  weaponId?: string;
+  /** Shield carried, if any. */
+  shieldId?: string;
   beasts: string[];
 }
+
+const weaponIdByName = new Map<string, string>([
+  [FISTS.name, FISTS.id],
+  ...WEAPONS.map((w) => [w.name, w.id] as const),
+]);
 
 interface Props {
   result: FightResult;
@@ -130,6 +139,18 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
     return sets;
   }, [visible]);
 
+  // Weapon currently in each champion's hand (draw events switch it live).
+  const heldWeapon: [string | undefined, string | undefined] = useMemo(() => {
+    const held: [string | undefined, string | undefined] = [
+      figures[0].weaponId,
+      figures[1].weaponId,
+    ];
+    for (const l of visible) {
+      if (l.drew) held[l.drew.side] = weaponIdByName.get(l.drew.weapon) ?? held[l.drew.side];
+    }
+    return held;
+  }, [visible, figures]);
+
   const slotClass = (side: 0 | 1): string => {
     const cls = ["fig-slot"];
     if (idx <= 1) cls.push(side === 0 ? "enter-l" : "enter-r");
@@ -225,6 +246,8 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
                   height={figH}
                   palette={paletteFromAppearance(figures[0].appearance)}
                   discipline={figures[0].discipline}
+                  weaponId={heldWeapon[0]}
+                  shieldId={figures[0].shieldId}
                   helm={figures[0].appearance.helm}
                   sigil={figures[0].appearance.sigil}
                 />
@@ -241,6 +264,8 @@ export function FightTheatre({ result, names, figures, rewards, onDone }: Props)
                   height={figH}
                   palette={paletteFromAppearance(figures[1].appearance)}
                   discipline={figures[1].discipline}
+                  weaponId={heldWeapon[1]}
+                  shieldId={figures[1].shieldId}
                   helm={figures[1].appearance.helm}
                   sigil={figures[1].appearance.sigil}
                   mirror

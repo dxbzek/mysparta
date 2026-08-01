@@ -6,7 +6,7 @@
  */
 
 import type { Appearance, Discipline } from "@agoge/core";
-import { hashString } from "@agoge/core";
+import { hashString, weapon as weaponDef } from "@agoge/core";
 
 export const INK = "#402c16";
 
@@ -212,6 +212,8 @@ export function HopliteFigure({
   height,
   palette,
   discipline,
+  weaponId,
+  shieldId,
   helm = 0,
   sigil = 0,
   mirror = false,
@@ -219,15 +221,21 @@ export function HopliteFigure({
   height: number;
   palette: Palette;
   discipline: Discipline | "fists";
+  /** Specific weapon to draw in hand (falls back to a generic per-discipline look). */
+  weaponId?: string;
+  /** Specific shield carried (Aspis / Pelte / Tower / Spiked). */
+  shieldId?: string;
   helm?: number;
   sigil?: number;
   mirror?: boolean;
 }) {
   const p = palette;
   const width = (height * 200) / 230;
-  const twoHanded = discipline === "labrys";
-  const boxer = discipline === "cestus" || discipline === "fists";
-  const thrower = discipline === "akontia";
+  const disc: Discipline | "fists" =
+    weaponId && weaponId !== "fists" ? weaponDef(weaponId).discipline : discipline;
+  const twoHanded = disc === "labrys" || weaponId === "twin_xiphoi";
+  const boxer = disc === "cestus" || disc === "fists";
+  const thrower = disc === "akontia";
   const showShield = !twoHanded && !boxer && !thrower;
 
   return (
@@ -253,7 +261,7 @@ export function HopliteFigure({
       </g>
 
       <g className="p-armW">
-        <WeaponArm discipline={discipline} p={p} />
+        <WeaponArm discipline={disc} weaponId={weaponId} p={p} />
       </g>
 
       <g className="p-body">
@@ -267,36 +275,124 @@ export function HopliteFigure({
       </g>
 
       <g className="p-armS">
-        {showShield && (
+        {showShield && <ShieldArm shieldId={shieldId} p={p} sigil={sigil} />}
+        {weaponId === "twin_xiphoi" && (
           <g>
-            <path d="M 82 118 L 60 138" {...LIMB} strokeWidth={14} stroke={p.skin} />
-            <circle cx="50" cy="146" r="36" fill={p.shield} {...OUT} />
-            <circle cx="50" cy="146" r="24" fill="none" stroke={INK} strokeWidth="3" opacity="0.4" />
-            <Sigil cx={50} cy={146} r={13} variant={sigil} fill={p.armour} />
+            <path d="M 82 118 L 58 132" {...LIMB} strokeWidth={14} stroke={p.skin} />
+            <path d="M 54 128 L 32 72" stroke="#ded3c0" strokeWidth="10" strokeLinecap="round" />
+            <path d="M 44 116 L 66 108" stroke={p.armour} strokeWidth="6" strokeLinecap="round" />
+            <circle cx="55" cy="127" r="10" fill={p.skin} {...OUT} />
           </g>
         )}
-        {boxer && (
-          <g>
-            <path d="M 118 116 L 152 102" {...LIMB} strokeWidth={14} stroke={p.skin} />
-            <path d="M 112 134 L 156 126" {...LIMB} strokeWidth={14} stroke={p.skin} />
-            <circle cx="158" cy="98" r="12" fill={p.armour} {...OUT} />
-            <circle cx="163" cy="126" r="12" fill={p.armour} {...OUT} />
-          </g>
-        )}
+        {boxer && <Fists weaponId={weaponId} p={p} />}
         {thrower && <path d="M 84 120 L 52 132" {...LIMB} strokeWidth={14} stroke={p.skin} />}
       </g>
     </svg>
   );
 }
 
-function WeaponArm({ discipline, p }: { discipline: Discipline | "fists"; p: Palette }) {
+/** Shield shapes per specific Aspis-discipline item. */
+function ShieldArm({ shieldId, p, sigil }: { shieldId?: string; p: Palette; sigil: number }) {
+  return (
+    <g>
+      <path d="M 82 118 L 60 138" {...LIMB} strokeWidth={14} stroke={p.skin} />
+      {shieldId === "pelte" && (
+        <>
+          {/* crescent skirmisher's shield */}
+          <path d="M 50 114 A 32 32 0 1 0 50 178 A 40 40 0 0 1 50 114 Z" fill={p.shield} {...OUT} />
+          <Sigil cx={40} cy={146} r={10} variant={sigil} fill={p.armour} />
+        </>
+      )}
+      {shieldId === "tower_of_dikte" && (
+        <>
+          <rect x="24" y="102" width="54" height="90" rx="18" fill={p.shield} {...OUT} />
+          <rect x="34" y="114" width="34" height="66" rx="12" fill="none" stroke={INK} strokeWidth="3" opacity="0.4" />
+          <Sigil cx={51} cy={147} r={12} variant={sigil} fill={p.armour} />
+        </>
+      )}
+      {shieldId === "spiked_aspis" && (
+        <>
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => {
+            const rad = (a * Math.PI) / 180;
+            const x1 = 50 + Math.cos(rad) * 33;
+            const y1 = 146 + Math.sin(rad) * 33;
+            const x2 = 50 + Math.cos(rad) * 46;
+            const y2 = 146 + Math.sin(rad) * 46;
+            return <path key={a} d={`M ${x1} ${y1} L ${x2} ${y2}`} stroke={INK} strokeWidth="7" strokeLinecap="round" />;
+          })}
+          <circle cx="50" cy="146" r="34" fill={p.shield} {...OUT} />
+          <Sigil cx={50} cy={146} r={12} variant={sigil} fill={p.armour} />
+        </>
+      )}
+      {(shieldId === "aspis" || !shieldId) && (
+        <>
+          <circle cx="50" cy="146" r="36" fill={p.shield} {...OUT} />
+          <circle cx="50" cy="146" r="24" fill="none" stroke={INK} strokeWidth="3" opacity="0.4" />
+          <Sigil cx={50} cy={146} r={13} variant={sigil} fill={p.armour} />
+        </>
+      )}
+    </g>
+  );
+}
+
+/** Fist gear per cestus-discipline weapon. */
+function Fists({ weaponId, p }: { weaponId?: string; p: Palette }) {
+  const glove =
+    weaponId === "iron_cestus" ? "#aab0b4" : weaponId === "himantes" ? p.skin : weaponId === "sphairai" ? "#8a6134" : "#a06c3c";
+  return (
+    <g>
+      <path d="M 118 116 L 152 102" {...LIMB} strokeWidth={14} stroke={p.skin} />
+      <path d="M 112 134 L 156 126" {...LIMB} strokeWidth={14} stroke={p.skin} />
+      <circle cx="158" cy="98" r="12" fill={glove} {...OUT} />
+      <circle cx="163" cy="126" r="12" fill={glove} {...OUT} />
+      {weaponId === "sphairai" && (
+        <>
+          <path d="M 168 90 L 175 84 M 170 100 L 179 100 M 172 120 L 181 116 M 174 130 L 182 134" stroke={INK} strokeWidth="4" strokeLinecap="round" />
+        </>
+      )}
+      {(weaponId === "cestus" || weaponId === "iron_cestus") && (
+        <path d="M 150 94 L 164 92 M 150 102 L 166 101 M 155 122 L 170 120 M 156 130 L 171 130" stroke={INK} strokeWidth="2.5" opacity="0.6" />
+      )}
+    </g>
+  );
+}
+
+function WeaponArm({
+  discipline,
+  weaponId,
+  p,
+}: {
+  discipline: Discipline | "fists";
+  weaponId?: string;
+  p: Palette;
+}) {
+  const BLADE = "#ded3c0";
+  const WOOD = "#8a5a2e";
   switch (discipline) {
     case "doru":
       return (
         <g>
           <path d="M 122 118 L 152 100" {...LIMB} strokeWidth={14} stroke={p.skin} />
-          <path d="M 162 170 L 176 18" stroke="#8a5a2e" strokeWidth="7" strokeLinecap="round" />
-          <path d="M 176 18 L 186 -2 L 182 24 Z" fill={p.armour} {...OUT} />
+          {weaponId === "sarissa" ? (
+            <path d="M 166 190 L 178 4" stroke={WOOD} strokeWidth="5.5" strokeLinecap="round" />
+          ) : (
+            <path d="M 162 170 L 176 18" stroke={WOOD} strokeWidth="7" strokeLinecap="round" />
+          )}
+          {weaponId === "trident" ? (
+            <g>
+              <path d="M 176 20 L 176 2 M 167 22 L 164 6 M 185 22 L 188 6" stroke={p.armour} strokeWidth="6" strokeLinecap="round" />
+              <path d="M 167 22 L 185 22" stroke={p.armour} strokeWidth="6" strokeLinecap="round" />
+            </g>
+          ) : weaponId === "boar_spear" ? (
+            <g>
+              <path d="M 176 18 L 190 -6 L 184 26 Z" fill={p.armour} {...OUT} />
+              <path d="M 164 38 L 190 34" stroke={INK} strokeWidth="6" strokeLinecap="round" />
+            </g>
+          ) : weaponId === "sarissa" ? (
+            <path d="M 178 4 L 186 -10 L 183 10 Z" fill={p.armour} {...OUT} />
+          ) : (
+            <path d="M 176 18 L 186 -2 L 182 24 Z" fill={p.armour} {...OUT} />
+          )}
           <circle cx="160" cy="96" r="11" fill={p.skin} {...OUT} />
         </g>
       );
@@ -304,29 +400,72 @@ function WeaponArm({ discipline, p }: { discipline: Discipline | "fists"; p: Pal
       return (
         <g>
           <path d="M 120 114 L 150 88" {...LIMB} strokeWidth={14} stroke={p.skin} />
-          <path d="M 108 52 L 196 96" stroke="#8a5a2e" strokeWidth="6" strokeLinecap="round" />
-          <path d="M 196 96 L 214 106 L 194 108 Z" fill={p.armour} {...OUT} />
+          {weaponId === "discus" ? (
+            <ellipse cx="158" cy="74" rx="18" ry="7" transform="rotate(-24 158 74)" fill="#b9b0a0" {...OUT} />
+          ) : weaponId === "peltast_blades" ? (
+            <g>
+              <path d="M 128 66 L 186 96" stroke={WOOD} strokeWidth="5" strokeLinecap="round" />
+              <path d="M 140 52 L 192 78" stroke={WOOD} strokeWidth="5" strokeLinecap="round" />
+              <path d="M 186 96 L 200 104 L 184 106 Z" fill={p.armour} stroke={INK} strokeWidth="3" />
+              <path d="M 192 78 L 206 86 L 190 88 Z" fill={p.armour} stroke={INK} strokeWidth="3" />
+            </g>
+          ) : weaponId === "kestros" ? (
+            <g>
+              <path d="M 126 60 L 188 94" stroke={WOOD} strokeWidth="5" strokeLinecap="round" />
+              <path d="M 188 94 L 204 103 L 186 105 Z" fill={p.armour} stroke={INK} strokeWidth="3" />
+              <path d="M 132 70 Q 150 88 168 78" stroke="#6a4a26" strokeWidth="3.5" fill="none" />
+            </g>
+          ) : (
+            <g>
+              <path d="M 108 52 L 196 96" stroke={WOOD} strokeWidth="6" strokeLinecap="round" />
+              <path d="M 196 96 L 214 106 L 194 108 Z" fill={p.armour} {...OUT} />
+            </g>
+          )}
           <circle cx="154" cy="82" r="11" fill={p.skin} {...OUT} />
         </g>
       );
-    case "labrys":
+    case "labrys": {
+      const scale = weaponId === "minoan_crusher" ? 1.4 : weaponId === "bipennis" ? 0.8 : 1;
       return (
         <g>
           <path d="M 118 116 L 146 84" {...LIMB} strokeWidth={14} stroke={p.skin} />
           <path d="M 116 136 L 138 116" {...LIMB} strokeWidth={14} stroke={p.skin} />
-          <path d="M 128 152 L 168 34" stroke="#8a5a2e" strokeWidth="8" strokeLinecap="round" />
-          <path d="M 168 34 Q 196 22 200 52 Q 180 46 168 56 Z" fill="#ded3c0" {...OUT} />
-          <path d="M 168 34 Q 144 16 132 42 Q 152 40 162 52 Z" fill="#ded3c0" {...OUT} />
+          {weaponId === "olive_root_club" ? (
+            <g>
+              <path d="M 132 148 L 172 56" stroke={WOOD} strokeWidth="12" strokeLinecap="round" />
+              <circle cx="176" cy="48" r="15" fill={WOOD} {...OUT} />
+              <circle cx="164" cy="40" r="7" fill={WOOD} stroke={INK} strokeWidth="3.5" />
+              <circle cx="188" cy="58" r="7" fill={WOOD} stroke={INK} strokeWidth="3.5" />
+            </g>
+          ) : (
+            <g>
+              <path d="M 128 152 L 168 34" stroke={WOOD} strokeWidth="8" strokeLinecap="round" />
+              <g transform={`translate(168 34) scale(${scale}) translate(-168 -34)`}>
+                <path d="M 168 34 Q 196 22 200 52 Q 180 46 168 56 Z" fill={BLADE} {...OUT} />
+                <path d="M 168 34 Q 144 16 132 42 Q 152 40 162 52 Z" fill={BLADE} {...OUT} />
+              </g>
+            </g>
+          )}
           <circle cx="150" cy="80" r="11" fill={p.skin} {...OUT} />
           <circle cx="140" cy="112" r="11" fill={p.skin} {...OUT} />
         </g>
       );
+    }
     case "xiphos":
     case "aspis":
       return (
         <g>
           <path d="M 122 118 L 154 96" {...LIMB} strokeWidth={14} stroke={p.skin} />
-          <path d="M 158 92 L 184 30" stroke="#ded3c0" strokeWidth="11" strokeLinecap="round" />
+          {weaponId === "kopis" ? (
+            <path d="M 158 92 Q 188 68 176 24" stroke={BLADE} strokeWidth="11" strokeLinecap="round" fill="none" />
+          ) : weaponId === "makhaira" ? (
+            <g>
+              <path d="M 158 92 L 186 34" stroke={BLADE} strokeWidth="14" strokeLinecap="round" />
+              <path d="M 162 84 L 186 36" stroke={INK} strokeWidth="2.5" opacity="0.5" />
+            </g>
+          ) : (
+            <path d="M 158 92 L 184 30" stroke={BLADE} strokeWidth="11" strokeLinecap="round" />
+          )}
           <path d="M 146 84 L 174 74" stroke={p.armour} strokeWidth="7" strokeLinecap="round" />
           <circle cx="158" cy="94" r="11" fill={p.skin} {...OUT} />
         </g>

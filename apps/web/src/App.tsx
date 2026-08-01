@@ -16,6 +16,7 @@ import {
   fightXp,
   generateDraft,
   kleosDelta,
+  makeRng,
   maxHp,
   omen,
   simulateFight,
@@ -74,35 +75,6 @@ function league(kleos: number): { name: string; color: string } {
   return { name: "Bronze", color: "#d09054" };
 }
 
-const STANCE_OPTS: { id: Stance; name: string; blurb: string }[] = [
-  { id: "aggressive", name: "Aggressive", blurb: "+15% damage, faster — thinner guard" },
-  { id: "measured", name: "Measured", blurb: "+6 accuracy, chips through blocks" },
-  { id: "guarded", name: "Guarded", blurb: "+12 block, counters bite harder" },
-];
-
-const GAMBIT_OPTS: { id: GambitId; name: string }[] = [
-  { id: "close_the_gap", name: "Close the Gap — fast start, deny their counter" },
-  { id: "hold_ground", name: "Hold Ground — slow start, first counter +30%" },
-  { id: "hurl_first", name: "Hurl First — open with a throw" },
-  { id: "feint", name: "Feint — fake a blow, drop their guard" },
-  { id: "test_the_shield", name: "Test the Shield — double disarm early" },
-  { id: "war_cry", name: "War Cry — start late, blunt their aim" },
-  { id: "loose_the_beast", name: "Loose the Beast — beasts strike sooner" },
-];
-
-const TRIGGER_OPTS: { id: TrumpTrigger; name: string }[] = [
-  { id: "first_clash", name: "at the first clash" },
-  { id: "first_blood_taken", name: "when you first take damage" },
-  { id: "first_blood_drawn", name: "when you first deal damage" },
-  { id: "when_bloodied", name: "when you drop below half HP" },
-  { id: "deaths_door", name: "when you drop below 20% HP" },
-  { id: "foe_bloodied", name: "when the foe drops below half" },
-  { id: "when_disarmed", name: "when you are disarmed" },
-  { id: "beast_falls", name: "when one of your beasts falls" },
-  { id: "first_crit", name: "on your first critical hit" },
-  { id: "tenth_exchange", name: "after the tenth exchange" },
-];
-
 const CREST_HUES = [2, 30, 48, 90, 140, 175, 210, 250, 290, 330];
 
 /** The discipline that defines a loadout's stage pose. */
@@ -112,19 +84,38 @@ function primaryDiscipline(weapons: string[]): Discipline | "fists" {
   return weapons.length > 0 ? "aspis" : "fists";
 }
 
-/** Saved tactics, auto-arming a Trump when one is owned but unset. */
-function effectivePlan(c: Champion, saved: BattlePlan): BattlePlan {
+/**
+ * Pure-RNG fight behaviour (MyBrute style): every fight, both sides get a
+ * seeded-random stance, opening and instinct for their special moves —
+ * no player input, but deterministic per fight seed so replays hold.
+ */
+function randomPlan(c: Champion, seed: number): BattlePlan {
+  const rng = makeRng(seed);
+  const stances: Stance[] = ["aggressive", "measured", "guarded"];
+  const gambits: GambitId[] = ["close_the_gap", "hold_ground", "feint", "test_the_shield", "war_cry"];
+  if (c.weapons.some((w) => weapon(w).discipline === "akontia")) gambits.push("hurl_first");
+  if (c.beasts.length > 0) gambits.push("loose_the_beast");
+  const plan: BattlePlan = { stance: rng.pick(stances), gambit: rng.pick(gambits) };
   const trumps = c.skills.filter((s) => skill(s).kind === "trump");
-  const plan: BattlePlan = { ...saved };
-  if (plan.gambit === "loose_the_beast" && c.beasts.length === 0) plan.gambit = "close_the_gap";
-  if (trumps.length === 0) {
-    delete plan.trumpSkill;
-    delete plan.trumpTrigger;
-  } else if (!plan.trumpSkill || !trumps.includes(plan.trumpSkill)) {
-    plan.trumpSkill = trumps[0];
-    plan.trumpTrigger = plan.trumpTrigger ?? "when_bloodied";
+  if (trumps.length > 0) {
+    const triggers: TrumpTrigger[] = [
+      "first_clash", "first_blood_taken", "when_bloodied", "deaths_door",
+      "foe_bloodied", "first_crit", "tenth_exchange",
+    ];
+    plan.trumpSkill = rng.pick(trumps);
+    plan.trumpTrigger = rng.pick(triggers);
   }
   return plan;
+}
+
+/** Weapon in hand at the bell (first non-shield in draw order). */
+function heldWeaponId(weapons: string[]): string | undefined {
+  return weapons.find((id) => weapon(id).discipline !== "aspis");
+}
+
+/** Shield carried, if any. */
+function shieldIdOf(weapons: string[]): string | undefined {
+  return weapons.find((id) => weapon(id).discipline === "aspis");
 }
 
 export function App() {
@@ -166,8 +157,8 @@ export function App() {
     const fresh = applyDailyReset(save);
     if (fresh.vigor <= 0) return;
     const champion = structuredClone(fresh.champion);
-    const plan = effectivePlan(champion, fresh.plan);
     const seed = combineSeed(champion.seed, fresh.totalFights, rival.snapshot.name, todayKey());
+    const plan = randomPlan(champion, combineSeed(seed, "plan"));
     const result = simulateFight({
       seed,
       attacker: snapshot(champion, plan),
@@ -261,7 +252,6 @@ export function App() {
           onArena={() => setScreen({ s: "arena" })}
           onHistory={() => setScreen({ s: "history" })}
           onCodex={() => setScreen({ s: "codex" })}
-          onPlan={(plan) => update({ ...save, plan })}
           onReorder={(from, to) => {
             const champion = structuredClone(c);
             const [moved] = champion.weapons.splice(from, 1);
@@ -270,12 +260,12 @@ export function App() {
           }}
           onRefill={() => update({ ...save, vigor: Math.min(VIGOR_CAP, save.vigor + 6) })}
           onDelete={() => {
-            if (window.confirm("Delete this Champion forever? This cannot be undone.")) {
-              wipe();
-              setSave(null);
-              setDraft(null);
-              setScreen({ s: "forge" });
-            }
+            // Confirmation happens in-app (two taps) — window.confirm is
+            // silently blocked in sandboxed embeds.
+            wipe();
+            setSave(null);
+            setDraft(null);
+            setScreen({ s: "forge" });
           }}
         />
       )}
@@ -299,11 +289,15 @@ export function App() {
               {
                 appearance: c.appearance,
                 discipline: primaryDiscipline(c.weapons),
+                weaponId: heldWeaponId(c.weapons),
+                shieldId: shieldIdOf(c.weapons),
                 beasts: c.beasts,
               },
               {
                 appearance: rivalAppearance(screen.rival.snapshot.name),
                 discipline: primaryDiscipline(screen.rival.snapshot.weapons),
+                weaponId: heldWeaponId(screen.rival.snapshot.weapons),
+                shieldId: shieldIdOf(screen.rival.snapshot.weapons),
                 beasts: screen.rival.snapshot.beasts,
               },
             ] satisfies [StageFigure, StageFigure]
@@ -420,6 +414,8 @@ function Forge({ onForge }: { onForge: (c: Champion) => void }) {
             height={190}
             palette={paletteFromAppearance(a)}
             discipline={primaryDiscipline(champ.weapons)}
+            weaponId={heldWeaponId(champ.weapons)}
+            shieldId={shieldIdOf(champ.weapons)}
             helm={a.helm}
             sigil={a.sigil}
           />
@@ -525,7 +521,6 @@ function Home(props: {
   onArena: () => void;
   onHistory: () => void;
   onCodex: () => void;
-  onPlan: (p: BattlePlan) => void;
   onReorder: (from: number, to: number) => void;
   onRefill: () => void;
   onDelete: () => void;
@@ -534,8 +529,12 @@ function Home(props: {
   const c = save.champion;
   const need = costToNext(c.level);
   const hpNow = maxHp(c.level, c.stats.grit, c.beasts, c.skills.includes("beast_bond"));
-  const plan = effectivePlan(c, save.plan);
-  const trumps = c.skills.filter((s) => skill(s).kind === "trump");
+  const [armDelete, setArmDelete] = useState(false);
+  useEffect(() => {
+    if (!armDelete) return;
+    const t = window.setTimeout(() => setArmDelete(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [armDelete]);
 
   return (
     <div className="home">
@@ -570,6 +569,8 @@ function Home(props: {
             height={150}
             palette={paletteFromAppearance(c.appearance)}
             discipline={primaryDiscipline(c.weapons)}
+            weaponId={heldWeaponId(c.weapons)}
+            shieldId={shieldIdOf(c.weapons)}
             helm={c.appearance.helm}
             sigil={c.appearance.sigil}
           />
@@ -593,6 +594,11 @@ function Home(props: {
               <li key={id}>
                 <span className="wname">
                   <DisciplineGlyph d={weapon(id).discipline} /> {weapon(id).name}
+                  <span className="muted small">
+                    {weapon(id).discipline === "aspis"
+                      ? "shield"
+                      : `dmg ${weapon(id).dmg} · ${weapon(id).interval <= 240 ? "fast" : weapon(id).interval <= 320 ? "steady" : "heavy"}`}
+                  </span>
                 </span>
                 <span className="reorder">
                   <button aria-label="draw earlier" disabled={i === 0} onClick={() => props.onReorder(i, i - 1)}>▲</button>
@@ -639,61 +645,6 @@ function Home(props: {
         </section>
       )}
 
-      <section className="card tactics">
-        <details>
-          <summary>Tactics — optional, applies to every fight</summary>
-          <div className="seg">
-            {STANCE_OPTS.map((s) => (
-              <button
-                key={s.id}
-                className={`opt ${plan.stance === s.id ? "picked" : ""}`}
-                title={s.blurb}
-                onClick={() => props.onPlan({ ...plan, stance: s.id })}
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
-          <div className="seg">
-            <select
-              value={plan.gambit}
-              aria-label="Opening gambit"
-              onChange={(e) => props.onPlan({ ...plan, gambit: e.target.value as GambitId })}
-            >
-              {GAMBIT_OPTS.filter((g) => g.id !== "loose_the_beast" || c.beasts.length > 0).map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
-          </div>
-          {trumps.length > 0 && (
-            <div className="seg">
-              <select
-                value={plan.trumpSkill}
-                aria-label="Trump skill"
-                onChange={(e) => props.onPlan({ ...plan, trumpSkill: e.target.value })}
-              >
-                {trumps.map((t) => (
-                  <option key={t} value={t}>{skill(t).name}</option>
-                ))}
-              </select>
-              <select
-                value={plan.trumpTrigger}
-                aria-label="Trump trigger"
-                onChange={(e) => props.onPlan({ ...plan, trumpTrigger: e.target.value as TrumpTrigger })}
-              >
-                {TRIGGER_OPTS.map((t) => (
-                  <option key={t.id} value={t.id}>unleash {t.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-          <p className="hintline">
-            Stances play rock-paper-scissors: Aggressive beats Measured beats Guarded beats Aggressive.
-            Rivals remember the last plan they saw you use — not the one you saved.
-          </p>
-        </details>
-      </section>
-
       <div className="actions">
         <button className="btn primary big" onClick={props.onArena}>
           ⚔ Fight in the Arena
@@ -710,8 +661,11 @@ function Home(props: {
         <button className="btn tiny ghost" onClick={props.onRefill} title="Testing only — fights are never sold in the real game">
           Dev: +6 fights
         </button>
-        <button className="btn tiny danger" onClick={props.onDelete}>
-          Delete Champion
+        <button
+          className={`btn tiny danger ${armDelete ? "armed" : ""}`}
+          onClick={() => (armDelete ? props.onDelete() : setArmDelete(true))}
+        >
+          {armDelete ? "Tap again — deletes forever!" : "Delete Champion"}
         </button>
       </div>
     </div>
@@ -746,7 +700,6 @@ function Arena(props: {
       )}
       <div className="rivals">
         {board.map((r) => {
-          const seen = save.seenPlans[r.snapshot.name];
           const app = rivalAppearance(r.snapshot.name);
           return (
             <div className="card rival" key={r.snapshot.name}>
@@ -764,11 +717,6 @@ function Arena(props: {
                   : "No known skills"}
                 {r.snapshot.beasts.length > 0 &&
                   ` · ${r.snapshot.beasts.map((b) => beast(b).name).join(", ")}`}
-              </div>
-              <div className="lastseen small">
-                {seen
-                  ? `Last seen fighting: ${seen.stance}, ${seen.gambit.replace(/_/g, " ")}`
-                  : "You haven't fought them yet"}
               </div>
               <button className="btn primary" disabled={save.vigor <= 0} onClick={() => props.onFight(r)}>
                 Fight (1 ⚡)

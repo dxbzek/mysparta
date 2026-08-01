@@ -153,6 +153,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .btn.ghost { background: transparent; box-shadow: none; }
 .btn.danger { color: var(--red); }
+.btn.danger.armed {
+  background: var(--red);
+  color: #fdf6dd;
+  animation: pop 200ms ease;
+}
 .btn.big { font-size: 1.15rem; padding: 12px 28px; }
 .btn.tiny { font-size: 0.8rem; min-height: 34px; padding: 4px 12px; border-bottom-width: 4px; }
 
