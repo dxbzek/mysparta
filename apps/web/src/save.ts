@@ -71,9 +71,17 @@ export function load(): SaveV1 | null {
 }
 
 export function persist(save: SaveV1): void {
-  localStorage.setItem(KEY, JSON.stringify(save));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(save));
+  } catch {
+    // Sandboxed embeds may deny storage — the session still plays, unsaved.
+  }
 }
 
 export function wipe(): void {
-  localStorage.removeItem(KEY);
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    // ignore
+  }
 }
