@@ -64,6 +64,12 @@ export function load(): SaveV1 | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as SaveV1;
     if (parsed.v !== 1) return null;
+    // Older prototype saves predate Forge customisation.
+    const a = parsed.champion.appearance;
+    if (a.skin == null) a.skin = a.hue % 6;
+    if (a.sigil == null) a.sigil = a.hue2 % 4;
+    if (a.helm == null) a.helm = a.hue % 3;
+    if (a.tint == null) a.tint = 0;
     return applyDailyReset(parsed);
   } catch {
     return null;

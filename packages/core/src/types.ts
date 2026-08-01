@@ -228,5 +228,22 @@ export interface Champion {
   /** Pity counters (§6.3): drafts since a weapon/skill offer appeared. */
   sinceWeaponOffer: number;
   sinceSkillOffer: number;
-  appearance: { hue: number; hue2: number; pose: number };
+  appearance: Appearance;
+}
+
+/** Seeded defaults, player-tweakable at the Forge (02-gdd §3.2). */
+export interface Appearance {
+  /** Shield colour hue. */
+  hue: number;
+  /** Crest colour hue. */
+  hue2: number;
+  pose: number;
+  /** Skin tone index (0-5). */
+  skin: number;
+  /** Shield sigil variant (0-3). */
+  sigil: number;
+  /** Helmet style (0 Corinthian, 1 open cap, 2 bare + laurel band). */
+  helm: number;
+  /** Armour tint (0 bronze, 1 iron, 2 gold, 3 nightbronze). */
+  tint: number;
 }

@@ -379,34 +379,173 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   left: 0; right: 0; bottom: 34px;
   display: flex;
   justify-content: space-between;
-  padding: 0 6%;
+  padding: 0 8%;
   align-items: flex-end;
 }
-@media (min-width: 700px) { .stage-figs { padding: 0 14%; } }
 
-.fig { position: relative; transition: transform 150ms ease; }
-.fig.lunge-r { animation: lungeR 320ms ease; }
-.fig.lunge-l { animation: lungeL 320ms ease; }
-.fig.hurt { animation: shake 340ms ease; }
-.fig.felled { filter: grayscale(0.7) brightness(0.85); transform: rotate(78deg) translateY(16px); transition: transform 600ms ease, filter 600ms ease; }
+.corner { position: relative; }
+.fig-slot { position: relative; will-change: transform; }
+.fig-inner { position: relative; }
 
-@keyframes lungeR { 30% { transform: translateX(34px); } 100% { transform: none; } }
-@keyframes lungeL { 30% { transform: translateX(-34px); } 100% { transform: none; } }
-@keyframes shake {
-  20% { transform: translateX(-7px) rotate(-3deg); }
-  45% { transform: translateX(6px) rotate(2deg); }
-  70% { transform: translateX(-4px); }
+/* --- always-alive idle breathing --- */
+.fig-inner.idle { animation: idle 1.5s ease-in-out infinite alternate; }
+@keyframes idle { to { transform: translateY(-4px); } }
+
+.fig-inner.win { animation: winhop 700ms ease-in-out infinite; }
+@keyframes winhop { 40% { transform: translateY(-14px); } }
+
+/* --- entrance: run in from offstage --- */
+.enter-l { animation: enterL 900ms cubic-bezier(0.2, 0.8, 0.3, 1) backwards; }
+.enter-r { animation: enterR 900ms cubic-bezier(0.2, 0.8, 0.3, 1) backwards; }
+@keyframes enterL {
+  0% { transform: translateX(-300px) rotate(-3deg); }
+  60% { transform: translateX(14px) rotate(3deg); }
   100% { transform: none; }
+}
+@keyframes enterR {
+  0% { transform: translateX(300px) rotate(3deg); }
+  60% { transform: translateX(-14px) rotate(-3deg); }
+  100% { transform: none; }
+}
+
+/* --- the run-in strike: sprint, wind up, SWING, run back --- */
+.strike-r { animation: strikeR 760ms ease-in-out; z-index: 4; }
+.strike-l { animation: strikeL 760ms ease-in-out; z-index: 4; }
+@keyframes strikeR {
+  0%   { transform: translateX(0); }
+  11%  { transform: translateX(calc(var(--dash) * 0.25)) translateY(-7px) rotate(-4deg); }
+  23%  { transform: translateX(calc(var(--dash) * 0.6)) rotate(4deg); }
+  34%  { transform: translateX(calc(var(--dash) * 0.92)) translateY(-7px) rotate(-4deg); }
+  42%  { transform: translateX(var(--dash)) rotate(-16deg); }
+  52%  { transform: translateX(calc(var(--dash) + 18px)) rotate(13deg); }
+  64%  { transform: translateX(var(--dash)) rotate(0deg); }
+  82%  { transform: translateX(calc(var(--dash) * 0.4)) translateY(-6px); }
+  100% { transform: translateX(0); }
+}
+@keyframes strikeL {
+  0%   { transform: translateX(0); }
+  11%  { transform: translateX(calc(var(--dash) * -0.25)) translateY(-7px) rotate(4deg); }
+  23%  { transform: translateX(calc(var(--dash) * -0.6)) rotate(-4deg); }
+  34%  { transform: translateX(calc(var(--dash) * -0.92)) translateY(-7px) rotate(4deg); }
+  42%  { transform: translateX(calc(var(--dash) * -1)) rotate(16deg); }
+  52%  { transform: translateX(calc(var(--dash) * -1 - 18px)) rotate(-13deg); }
+  64%  { transform: translateX(calc(var(--dash) * -1)) rotate(0deg); }
+  82%  { transform: translateX(calc(var(--dash) * -0.4)) translateY(-6px); }
+  100% { transform: translateX(0); }
+}
+
+/* --- thrown attack: plant, wind, hurl --- */
+.throw-r { animation: throwR 620ms ease; }
+.throw-l { animation: throwL 620ms ease; }
+@keyframes throwR {
+  30% { transform: rotate(-13deg) translateX(-10px); }
+  55% { transform: rotate(13deg) translateX(12px); }
+  100% { transform: none; }
+}
+@keyframes throwL {
+  30% { transform: rotate(13deg) translateX(10px); }
+  55% { transform: rotate(-13deg) translateX(-12px); }
+  100% { transform: none; }
+}
+
+/* --- reactions, delayed to land at the moment of contact --- */
+.hurt-l { animation: hurtL 460ms ease 280ms; }
+.hurt-r { animation: hurtR 460ms ease 280ms; }
+@keyframes hurtL {
+  25% { transform: translateX(-24px) rotate(-7deg); }
+  55% { transform: translateX(8px); }
+  100% { transform: none; }
+}
+@keyframes hurtR {
+  25% { transform: translateX(24px) rotate(7deg); }
+  55% { transform: translateX(-8px); }
+  100% { transform: none; }
+}
+
+.dodge-l { animation: dodgeL 540ms ease 230ms; }
+.dodge-r { animation: dodgeR 540ms ease 230ms; }
+@keyframes dodgeL {
+  30% { transform: translateX(-44px) translateY(-16px) rotate(6deg); }
+  70% { transform: translateX(-32px); }
+  100% { transform: none; }
+}
+@keyframes dodgeR {
+  30% { transform: translateX(44px) translateY(-16px) rotate(-6deg); }
+  70% { transform: translateX(32px); }
+  100% { transform: none; }
+}
+
+.block-l { animation: blockL 460ms ease 230ms; }
+.block-r { animation: blockR 460ms ease 230ms; }
+@keyframes blockL { 35% { transform: translateX(-8px) rotate(7deg); } 100% { transform: none; } }
+@keyframes blockR { 35% { transform: translateX(8px) rotate(-7deg); } 100% { transform: none; } }
+
+/* white-hot flash on the struck body */
+.fig-inner.flash > svg { animation: flash 420ms ease 300ms; }
+@keyframes flash { 30% { filter: brightness(1.9) saturate(0.5); } }
+
+/* knocked out */
+.fig-inner.felled {
+  animation: none;
+  transform: rotate(80deg) translateY(14px);
+  transform-origin: 50% 88%;
+  filter: grayscale(0.7) brightness(0.85);
+  transition: transform 500ms ease, filter 500ms ease;
+}
+
+/* --- beasts at their master's side --- */
+.fig-beasts { position: absolute; bottom: -6px; display: flex; gap: 2px; z-index: 1; }
+.beasts-l { right: calc(100% - 30px); }
+.beasts-r { left: calc(100% - 30px); flex-direction: row-reverse; }
+.beast-idle { display: inline-block; animation: idle 1.2s ease-in-out infinite alternate; }
+.beast-dash-r { display: inline-block; animation: beastR 720ms ease-in-out; z-index: 4; position: relative; }
+.beast-dash-l { display: inline-block; animation: beastL 720ms ease-in-out; z-index: 4; position: relative; }
+@keyframes beastR {
+  35% { transform: translateX(calc(var(--dash) * 1.15)) translateY(-8px); }
+  60% { transform: translateX(calc(var(--dash) * 1.15)); }
+  100% { transform: none; }
+}
+@keyframes beastL {
+  35% { transform: translateX(calc(var(--dash) * -1.15)) translateY(-8px); }
+  60% { transform: translateX(calc(var(--dash) * -1.15)); }
+  100% { transform: none; }
+}
+
+/* --- javelin projectile --- */
+.missile { position: absolute; bottom: 44%; z-index: 5; opacity: 0; pointer-events: none; }
+.missile-r { left: calc(8% + 104px); animation: missileR 320ms linear 210ms forwards; }
+.missile-l { right: calc(8% + 104px); animation: missileL 320ms linear 210ms forwards; }
+@keyframes missileR {
+  0% { opacity: 1; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(calc(var(--dash) * 0.5)) translateY(-14px); }
+  100% { opacity: 1; transform: translateX(var(--dash)); }
+}
+@keyframes missileL {
+  0% { opacity: 1; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(calc(var(--dash) * -0.5)) translateY(-14px); }
+  100% { opacity: 1; transform: translateX(calc(var(--dash) * -1)); }
+}
+
+/* --- contact effects --- */
+.slash { position: absolute; top: 24%; z-index: 6; opacity: 0; animation: slashPop 300ms ease 260ms forwards; pointer-events: none; }
+.slash.on-left { left: -20px; }
+.slash.on-right { right: -20px; }
+@keyframes slashPop {
+  0% { opacity: 0; transform: scale(0.5) rotate(-25deg); }
+  40% { opacity: 1; transform: scale(1.1) rotate(0deg); }
+  100% { opacity: 0; transform: scale(1); }
 }
 
 .burst {
   position: absolute;
-  top: 18%;
-  animation: burst 420ms ease forwards;
+  top: 16%;
+  opacity: 0;
+  animation: burst 420ms ease 280ms forwards;
   pointer-events: none;
+  z-index: 6;
 }
-.burst.on-left { left: -6px; }
-.burst.on-right { right: -6px; }
+.burst.on-left { left: -10px; }
+.burst.on-right { right: -10px; }
 @keyframes burst {
   0% { opacity: 0; transform: scale(0.4) rotate(-15deg); }
   35% { opacity: 1; transform: scale(1.15) rotate(6deg); }
@@ -415,24 +554,27 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 .floater {
   position: absolute;
-  top: 6%;
+  top: 4%;
   left: 50%;
+  z-index: 7;
   font-family: var(--font-display);
   font-weight: 800;
   font-size: 1.6rem;
   color: #fff;
   -webkit-text-stroke: 1.5px var(--line);
   text-shadow: 0 3px 0 rgb(64 44 22 / 45%);
-  animation: floatUp 950ms ease forwards;
+  opacity: 0;
+  animation: floatUp 950ms ease 300ms forwards;
   pointer-events: none;
   white-space: nowrap;
 }
 .floater.crit { color: var(--gold-bright); font-size: 2.2rem; }
-.floater.heal { color: #a8e08a; }
+.floater.heal { color: #a8e08a; animation-delay: 0ms; }
+.floater.word { font-size: 1.1rem; color: #fdf6dd; }
 @keyframes floatUp {
   0% { opacity: 0; transform: translate(-50%, 14px) scale(0.6); }
   25% { opacity: 1; transform: translate(-50%, -6px) scale(1.1); }
-  100% { opacity: 0; transform: translate(-50%, -54px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -58px) scale(1); }
 }
 
 /* HP plaques on the stage */
@@ -542,8 +684,13 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .line, .fig, .burst, .floater, .verdict-wrap, .forge-preview { animation: none !important; }
-  .btn, .pick, .fig { transition: none; }
+  .line, .fig-slot, .fig-inner, .fig-inner > svg, .beast-idle, .beast-dash-r, .beast-dash-l,
+  .burst, .slash, .missile, .floater, .verdict-wrap, .forge-preview {
+    animation: none !important;
+  }
+  .missile, .burst, .slash { opacity: 0 !important; }
+  .floater { opacity: 1 !important; }
+  .btn, .pick, .fig-slot { transition: none; }
   .hpbar-fill { transition: none; }
 }
 
@@ -605,6 +752,83 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   background: linear-gradient(180deg, var(--gold-bright), var(--gold));
   box-shadow: 0 2px 0 rgb(64 44 22 / 25%);
 }
+
+/* ---------- forge customiser ---------- */
+
+.styler { display: flex; flex-direction: column; gap: 14px; max-width: 560px; margin: 0 auto; text-align: left; }
+.styler-stage {
+  display: flex; justify-content: center; align-items: flex-end;
+  background: linear-gradient(180deg, #e9d492, #d3b264);
+  border: var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 0 8px;
+}
+.styler h4 { margin: 8px 0 6px; font-family: var(--font-display); font-weight: 800; font-size: 0.95rem; }
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.swatch {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid var(--line);
+  cursor: pointer; padding: 0;
+  box-shadow: 0 2px 0 rgb(64 44 22 / 25%);
+}
+.swatch.picked { outline: 3px solid var(--terracotta); outline-offset: 2px; }
+.opt-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt {
+  font-family: var(--font-body); font-weight: 700; font-size: 0.85rem;
+  display: flex; align-items: center; gap: 6px;
+  background: var(--panel); color: var(--ink);
+  border: 2.5px solid var(--line); border-radius: 10px;
+  padding: 5px 10px; cursor: pointer; min-height: 40px;
+}
+.opt.picked { background: linear-gradient(180deg, var(--gold-bright), var(--gold)); }
+
+/* ---------- tactics (optional) ---------- */
+
+.tactics summary {
+  cursor: pointer; font-family: var(--font-display); font-weight: 800;
+  font-size: 1.05rem; padding: 2px 0;
+}
+.tactics .seg { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.tactics select {
+  font-family: var(--font-body); font-weight: 700; font-size: 0.92rem;
+  background: #fdf6dd; color: var(--ink);
+  border: 2.5px solid var(--line); border-radius: 10px;
+  padding: 8px 10px; min-height: 42px; max-width: 100%;
+}
+.tactics .hintline { color: var(--ink-soft); font-size: 0.85rem; font-weight: 600; margin: 6px 0 0; }
+
+/* ---------- codex ---------- */
+
+.codex { display: flex; flex-direction: column; gap: 14px; }
+.codex-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 0; border-bottom: 2px dashed #4a341822;
+}
+.codex-row:last-child { border-bottom: none; }
+.codex-row .cname { font-weight: 800; font-family: var(--font-display); }
+.codex-row .cmeta { color: var(--ink-soft); font-size: 0.84rem; font-weight: 600; }
+.codex-row .grow { flex: 1; min-width: 0; }
+.owned-badge {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em;
+  background: var(--olive); color: #fdf6dd;
+  border: 2px solid var(--line); border-radius: 999px;
+  padding: 2px 9px; white-space: nowrap;
+}
+.locked-badge {
+  font-size: 0.72rem; font-weight: 700;
+  color: var(--ink-soft);
+  border: 2px dashed #4a341855; border-radius: 999px;
+  padding: 2px 9px; white-space: nowrap;
+}
+
+/* ---------- first-steps hint ---------- */
+
+.hint {
+  border-left: 8px solid var(--lapis);
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.hint p { margin: 0; font-weight: 600; }
+.hint .muted { font-weight: 600; }
 
 /* ---------- footer ---------- */
 

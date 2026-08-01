@@ -45,7 +45,15 @@ export function createChampion(rawName: string): Champion {
     declined: [],
     sinceWeaponOffer: 0,
     sinceSkillOffer: 0,
-    appearance: { hue: rng.int(360), hue2: rng.int(360), pose: rng.int(4) },
+    appearance: {
+      hue: rng.int(360),
+      hue2: rng.int(360),
+      pose: rng.int(4),
+      skin: rng.int(6),
+      sigil: rng.int(4),
+      helm: rng.int(3),
+      tint: rng.int(4),
+    },
   };
 }
 

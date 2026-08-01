@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
 import {
+  BEASTS,
+  BOONS,
+  TECHNIQUES,
+  TRUMPS,
+  WEAPONS,
   applyDraft,
   arenaBoard,
+  beast,
   combineSeed,
   costToNext,
   createChampion,
@@ -17,6 +23,7 @@ import {
   weapon,
   type BattlePlan,
   type Champion,
+  type Discipline,
   type FateOffer,
   type FightResult,
   type GambitId,
@@ -24,9 +31,18 @@ import {
   type Stance,
   type TrumpTrigger,
 } from "@agoge/core";
-import { hashString, type Discipline } from "@agoge/core";
 import { FightTheatre, type StageFigure } from "./FightTheatre.js";
-import { DisciplineGlyph, HelmBust, HopliteFigure, paletteFromHues } from "./art.js";
+import {
+  ARMOUR_TINTS,
+  ARMOUR_TINT_NAMES,
+  BeastFigure,
+  DisciplineGlyph,
+  HelmBust,
+  HopliteFigure,
+  SKIN_TONES,
+  paletteFromAppearance,
+  rivalAppearance,
+} from "./art.js";
 import {
   applyDailyReset,
   load,
@@ -42,38 +58,62 @@ type Screen =
   | { s: "forge" }
   | { s: "home" }
   | { s: "arena" }
-  | { s: "plan"; rival: Rival }
   | { s: "fight"; result: FightResult; rival: Rival }
-  | { s: "tapestry" };
+  | { s: "history" }
+  | { s: "codex" };
 
-const STANCES: { id: Stance; name: string; blurb: string }[] = [
-  { id: "aggressive", name: "Aggressive", blurb: "+15% damage, faster swings — thinner guard" },
-  { id: "measured", name: "Measured", blurb: "+6 Accuracy, chip damage through blocks" },
-  { id: "guarded", name: "Guarded", blurb: "+12 Block, counters and ripostes bite harder" },
+const STANCE_OPTS: { id: Stance; name: string; blurb: string }[] = [
+  { id: "aggressive", name: "Aggressive", blurb: "+15% damage, faster — thinner guard" },
+  { id: "measured", name: "Measured", blurb: "+6 accuracy, chips through blocks" },
+  { id: "guarded", name: "Guarded", blurb: "+12 block, counters bite harder" },
 ];
 
-const GAMBITS: { id: GambitId; name: string; blurb: string }[] = [
-  { id: "close_the_gap", name: "Close the Gap", blurb: "+20 Initiative; foe's first counter denied" },
-  { id: "hold_ground", name: "Hold Ground", blurb: "Slower start; first counter/riposte +30%" },
-  { id: "hurl_first", name: "Hurl First", blurb: "Open with a throw (spends the weapon if melee)" },
-  { id: "feint", name: "Feint", blurb: "First blow feigned; foe's guard −15 for 300 ticks" },
-  { id: "test_the_shield", name: "Test the Shield", blurb: "Disarm doubled on first 3 landed hits" },
-  { id: "war_cry", name: "War Cry", blurb: "Delayed start; foe Accuracy −8 for 500 ticks" },
-  { id: "loose_the_beast", name: "Loose the Beast", blurb: "Beasts strike 100 ticks earlier; you −30 Initiative" },
+const GAMBIT_OPTS: { id: GambitId; name: string }[] = [
+  { id: "close_the_gap", name: "Close the Gap — fast start, deny their counter" },
+  { id: "hold_ground", name: "Hold Ground — slow start, first counter +30%" },
+  { id: "hurl_first", name: "Hurl First — open with a throw" },
+  { id: "feint", name: "Feint — fake a blow, drop their guard" },
+  { id: "test_the_shield", name: "Test the Shield — double disarm early" },
+  { id: "war_cry", name: "War Cry — start late, blunt their aim" },
+  { id: "loose_the_beast", name: "Loose the Beast — beasts strike sooner" },
 ];
 
-const TRIGGERS: { id: TrumpTrigger; name: string }[] = [
-  { id: "first_clash", name: "At the First Clash" },
-  { id: "first_blood_taken", name: "First Blood Taken" },
-  { id: "first_blood_drawn", name: "First Blood Drawn" },
-  { id: "when_bloodied", name: "When Bloodied (<50%)" },
-  { id: "deaths_door", name: "At Death's Door (<20%)" },
-  { id: "foe_bloodied", name: "When the Foe is Bloodied" },
-  { id: "when_disarmed", name: "When Disarmed" },
-  { id: "beast_falls", name: "When Your Beast Falls" },
-  { id: "first_crit", name: "On Your First Crit" },
-  { id: "tenth_exchange", name: "After the Tenth Exchange" },
+const TRIGGER_OPTS: { id: TrumpTrigger; name: string }[] = [
+  { id: "first_clash", name: "at the first clash" },
+  { id: "first_blood_taken", name: "when you first take damage" },
+  { id: "first_blood_drawn", name: "when you first deal damage" },
+  { id: "when_bloodied", name: "when you drop below half HP" },
+  { id: "deaths_door", name: "when you drop below 20% HP" },
+  { id: "foe_bloodied", name: "when the foe drops below half" },
+  { id: "when_disarmed", name: "when you are disarmed" },
+  { id: "beast_falls", name: "when one of your beasts falls" },
+  { id: "first_crit", name: "on your first critical hit" },
+  { id: "tenth_exchange", name: "after the tenth exchange" },
 ];
+
+const CREST_HUES = [2, 30, 48, 90, 140, 175, 210, 250, 290, 330];
+
+/** The discipline that defines a loadout's stage pose. */
+function primaryDiscipline(weapons: string[]): Discipline | "fists" {
+  const held = weapons.find((id) => weapon(id).discipline !== "aspis");
+  if (held) return weapon(held).discipline;
+  return weapons.length > 0 ? "aspis" : "fists";
+}
+
+/** Saved tactics, auto-arming a Trump when one is owned but unset. */
+function effectivePlan(c: Champion, saved: BattlePlan): BattlePlan {
+  const trumps = c.skills.filter((s) => skill(s).kind === "trump");
+  const plan: BattlePlan = { ...saved };
+  if (plan.gambit === "loose_the_beast" && c.beasts.length === 0) plan.gambit = "close_the_gap";
+  if (trumps.length === 0) {
+    delete plan.trumpSkill;
+    delete plan.trumpTrigger;
+  } else if (!plan.trumpSkill || !trumps.includes(plan.trumpSkill)) {
+    plan.trumpSkill = trumps[0];
+    plan.trumpTrigger = plan.trumpTrigger ?? "when_bloodied";
+  }
+  return plan;
+}
 
 export function App() {
   const [save, setSave] = useState<SaveV1 | null>(() => load());
@@ -94,19 +134,12 @@ export function App() {
     }
   };
 
-  /* ---------------- forge ---------------- */
-
   if (!save || screen.s === "forge") {
     return (
       <Shell>
         <Forge
-          onForge={(name) => {
-            const champion = createChampion(name);
-            champion.xp = 0;
-            const s = newSave(champion, {
-              stance: "measured",
-              gambit: "close_the_gap",
-            });
+          onForge={(champion) => {
+            const s = newSave(champion, { stance: "measured", gambit: "close_the_gap" });
             update(s);
             setScreen({ s: "home" });
           }}
@@ -116,15 +149,12 @@ export function App() {
   }
 
   const c = save.champion;
-  const o = omen(c.omen);
-  const hpNow = maxHp(c.level, c.stats.grit, c.beasts, c.skills.includes("beast_bond"));
 
-  /* ---------------- fight orchestration ---------------- */
-
-  const startFight = (rival: Rival, plan: BattlePlan) => {
+  const startFight = (rival: Rival) => {
     const fresh = applyDailyReset(save);
     if (fresh.vigor <= 0) return;
     const champion = structuredClone(fresh.champion);
+    const plan = effectivePlan(champion, fresh.plan);
     const seed = combineSeed(champion.seed, fresh.totalFights, rival.snapshot.name, todayKey());
     const result = simulateFight({
       seed,
@@ -148,8 +178,6 @@ export function App() {
     setScreen({ s: "fight", result, rival });
   };
 
-  /* ---------------- draft handling ---------------- */
-
   const pickDraft = (index: number) => {
     if (!draft) return;
     const champion = structuredClone(save.champion);
@@ -169,8 +197,6 @@ export function App() {
     setDraft({ offers: generateDraft(champion, champion.level + 1, nonce), nonce });
   };
 
-  /* ---------------- screens ---------------- */
-
   return (
     <Shell
       header={
@@ -179,10 +205,10 @@ export function App() {
             AGOGE
           </button>
           <div className="topbar-right">
-            <span className="pill" title="Kleos rating">
-              ✦ {save.kleos}
+            <span className="pill" title="Kleos — your arena rating">✦ {save.kleos}</span>
+            <span className="pill" title={`Fights refill daily (+6, up to ${VIGOR_CAP})`}>
+              ⚡ {save.vigor} fights
             </span>
-            <VigorPips vigor={save.vigor} />
           </div>
         </header>
       }
@@ -190,19 +216,19 @@ export function App() {
       {screen.s === "home" && (
         <Home
           save={save}
-          hpNow={hpNow}
-          omenName={o.name}
           onArena={() => setScreen({ s: "arena" })}
-          onTapestry={() => setScreen({ s: "tapestry" })}
+          onHistory={() => setScreen({ s: "history" })}
+          onCodex={() => setScreen({ s: "codex" })}
+          onPlan={(plan) => update({ ...save, plan })}
           onReorder={(from, to) => {
             const champion = structuredClone(c);
             const [moved] = champion.weapons.splice(from, 1);
             champion.weapons.splice(to, 0, moved!);
             update({ ...save, champion });
           }}
-          onOffering={() => update({ ...save, vigor: Math.min(VIGOR_CAP, save.vigor + 6) })}
-          onReset={() => {
-            if (window.confirm("Return this Champion's thread to the Fates? This cannot be undone.")) {
+          onRefill={() => update({ ...save, vigor: Math.min(VIGOR_CAP, save.vigor + 6) })}
+          onDelete={() => {
+            if (window.confirm("Delete this Champion forever? This cannot be undone.")) {
               wipe();
               setSave(null);
               setDraft(null);
@@ -217,19 +243,7 @@ export function App() {
           save={save}
           onBack={() => setScreen({ s: "home" })}
           onRefresh={() => update({ ...save, boardRefresh: save.boardRefresh + 1 })}
-          onChallenge={(rival) => setScreen({ s: "plan", rival })}
-        />
-      )}
-
-      {screen.s === "plan" && (
-        <PlanSheet
-          champion={c}
-          rival={screen.rival}
-          lastSeen={save.seenPlans[screen.rival.snapshot.name]}
-          initial={save.plan}
-          disabled={save.vigor <= 0}
-          onCancel={() => setScreen({ s: "arena" })}
-          onFight={(plan) => startFight(screen.rival, plan)}
+          onFight={startFight}
         />
       )}
 
@@ -240,12 +254,14 @@ export function App() {
           figures={
             [
               {
-                palette: paletteFromHues(c.appearance.hue, c.appearance.hue2),
+                appearance: c.appearance,
                 discipline: primaryDiscipline(c.weapons),
+                beasts: c.beasts,
               },
               {
-                palette: rivalPalette(screen.rival.snapshot.name),
+                appearance: rivalAppearance(screen.rival.snapshot.name),
                 discipline: primaryDiscipline(screen.rival.snapshot.weapons),
+                beasts: screen.rival.snapshot.beasts,
               },
             ] satisfies [StageFigure, StageFigure]
           }
@@ -256,7 +272,8 @@ export function App() {
         />
       )}
 
-      {screen.s === "tapestry" && <Tapestry champion={c} onBack={() => setScreen({ s: "home" })} />}
+      {screen.s === "history" && <History champion={c} onBack={() => setScreen({ s: "home" })} />}
+      {screen.s === "codex" && <Codex champion={c} onBack={() => setScreen({ s: "home" })} />}
 
       {draft && (
         <DraftModal
@@ -271,7 +288,7 @@ export function App() {
   );
 }
 
-/* ================= components ================= */
+/* ================= shell ================= */
 
 function Shell({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
   return (
@@ -279,15 +296,17 @@ function Shell({ children, header }: { children: React.ReactNode; header?: React
       {header}
       <main className="content">{children}</main>
       <footer className="foot">
-        AGOGE prototype — deterministic sim v1 · your legend is saved in this browser
+        AGOGE prototype — deterministic sim v1 · your progress is saved in this browser
       </footer>
     </div>
   );
 }
 
-function Forge({ onForge }: { onForge: (name: string) => void }) {
+/* ================= forge (2 steps: name → style) ================= */
+
+function Forge({ onForge }: { onForge: (c: Champion) => void }) {
   const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [champ, setChamp] = useState<Champion | null>(null);
   const preview = useMemo(() => {
     const trimmed = name.trim();
     if (trimmed.length < 2) return null;
@@ -298,123 +317,217 @@ function Forge({ onForge }: { onForge: (name: string) => void }) {
     }
   }, [name]);
 
-  return (
-    <div className="forge">
-      <h1 className="forge-title">Speak a name.</h1>
-      <p className="forge-sub">The Fates will do the rest.</p>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          const trimmed = name.trim();
-          if (trimmed.length < 2 || trimmed.length > 24) {
-            setError("A name needs 2–24 characters.");
-            return;
-          }
-          onForge(trimmed);
-        }}
-      >
-        <input
-          className="forge-input"
-          value={name}
-          maxLength={24}
-          placeholder="e.g. Kassia"
-          autoFocus
-          onChange={(e) => {
-            setName(e.target.value);
-            setError(null);
+  if (!champ) {
+    return (
+      <div className="forge">
+        <h1 className="forge-title">Speak a name.</h1>
+        <p className="forge-sub">Every name forges a different fighter — same name, same fighter, always.</p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (preview) setChamp(preview);
           }}
-          aria-label="Champion name"
-        />
-        {error && <p className="error">{error}</p>}
-        {preview && (
-          <div className="forge-preview card">
-            <Medallion champion={preview} size={72} />
-            <div>
-              <div className="champ-name">
-                {preview.displayName} <span className="epithet">{preview.epithet}</span>
-              </div>
-              <div className="muted">{omen(preview.omen).name}</div>
-              <div className="statline">
-                M {preview.stats.might} · G {preview.stats.grace} · T {preview.stats.tempo} · Gr{" "}
-                {preview.stats.grit}
+        >
+          <input
+            className="forge-input"
+            value={name}
+            maxLength={24}
+            placeholder="e.g. Kassia"
+            autoFocus
+            onChange={(e) => setName(e.target.value)}
+            aria-label="Champion name"
+          />
+          {preview && (
+            <div className="forge-preview card">
+              <HelmBust size={72} palette={paletteFromAppearance(preview.appearance)} helm={preview.appearance.helm} />
+              <div>
+                <div className="champ-name">
+                  {preview.displayName} <span className="epithet">{preview.epithet}</span>
+                </div>
+                <div className="muted">{omen(preview.omen).name}</div>
+                <div className="statline">
+                  Might {preview.stats.might} · Grace {preview.stats.grace} · Tempo {preview.stats.tempo} · Grit {preview.stats.grit}
+                </div>
               </div>
             </div>
-          </div>
-        )}
-        <button className="btn primary big" type="submit" disabled={name.trim().length < 2}>
-          Forge my Champion
-        </button>
-      </form>
-      <p className="fineprint">
-        Same name, same Champion — the seed decides flavour, your drafts decide fate.
+          )}
+          <button className="btn primary big" type="submit" disabled={!preview}>
+            Forge my Champion
+          </button>
+        </form>
+        <p className="fineprint">Next: style their look. Stats and gear grow from your choices as you level.</p>
+      </div>
+    );
+  }
+
+  const a = champ.appearance;
+  const setA = (patch: Partial<typeof a>) =>
+    setChamp({ ...champ, appearance: { ...a, ...patch } });
+
+  return (
+    <div className="forge">
+      <h1 className="forge-title">Make them yours.</h1>
+      <p className="forge-sub">
+        {champ.displayName} <span className="epithet">{champ.epithet}</span> — style is yours to choose; strength you earn.
       </p>
+      <div className="styler">
+        <div className="styler-stage">
+          <HopliteFigure
+            height={190}
+            palette={paletteFromAppearance(a)}
+            discipline={primaryDiscipline(champ.weapons)}
+            helm={a.helm}
+            sigil={a.sigil}
+          />
+        </div>
+
+        <div className="card">
+          <h4>Skin</h4>
+          <div className="swatches">
+            {SKIN_TONES.map((t, i) => (
+              <button
+                key={i}
+                className={`swatch ${a.skin === i ? "picked" : ""}`}
+                style={{ background: t.base }}
+                onClick={() => setA({ skin: i })}
+                aria-label={`Skin tone ${i + 1}`}
+              />
+            ))}
+          </div>
+
+          <h4>Helmet</h4>
+          <div className="opt-row">
+            {["Corinthian", "Pilos cap", "Bare + laurel"].map((label, i) => (
+              <button key={i} className={`opt ${a.helm === i ? "picked" : ""}`} onClick={() => setA({ helm: i })}>
+                <HelmBust size={38} palette={paletteFromAppearance({ ...a, helm: i })} helm={i} ring={false} />
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <h4>Crest / hair colour</h4>
+          <div className="swatches">
+            {CREST_HUES.map((h) => (
+              <button
+                key={h}
+                className={`swatch ${a.hue2 === h ? "picked" : ""}`}
+                style={{ background: `hsl(${h} 62% 46%)` }}
+                onClick={() => setA({ hue2: h })}
+                aria-label={`Crest colour ${h}`}
+              />
+            ))}
+          </div>
+
+          <h4>Armour</h4>
+          <div className="opt-row">
+            {ARMOUR_TINTS.map((t, i) => (
+              <button key={i} className={`opt ${a.tint === i ? "picked" : ""}`} onClick={() => setA({ tint: i })}>
+                <span className="swatch" style={{ background: t, width: 20, height: 20 }} />
+                {ARMOUR_TINT_NAMES[i]}
+              </button>
+            ))}
+          </div>
+
+          <h4>Shield colour & sigil</h4>
+          <div className="swatches">
+            {CREST_HUES.map((h) => (
+              <button
+                key={h}
+                className={`swatch ${a.hue === h ? "picked" : ""}`}
+                style={{ background: `hsl(${h} 46% 42%)` }}
+                onClick={() => setA({ hue: h })}
+                aria-label={`Shield colour ${h}`}
+              />
+            ))}
+          </div>
+          <div className="opt-row" style={{ marginTop: 8 }}>
+            {["Star", "Ring", "Bolt", "Crescent"].map((label, i) => (
+              <button key={i} className={`opt ${a.sigil === i ? "picked" : ""}`} onClick={() => setA({ sigil: i })}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="actions">
+          <button
+            className="btn ghost"
+            onClick={() =>
+              setA({
+                skin: Math.floor(Math.random() * 6),
+                helm: Math.floor(Math.random() * 3),
+                tint: Math.floor(Math.random() * 4),
+                hue: CREST_HUES[Math.floor(Math.random() * CREST_HUES.length)],
+                hue2: CREST_HUES[Math.floor(Math.random() * CREST_HUES.length)],
+                sigil: Math.floor(Math.random() * 4),
+              })
+            }
+          >
+            Surprise me
+          </button>
+          <button className="btn primary big" onClick={() => onForge(champ)}>
+            Enter the Agoge →
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Medallion({ champion, size }: { champion: Champion; size: number }) {
-  const { hue, hue2 } = champion.appearance;
-  return <HelmBust size={size} palette={paletteFromHues(hue, hue2)} />;
-}
-
-/** The discipline that defines a loadout's stage pose. */
-function primaryDiscipline(weapons: string[]): Discipline | "fists" {
-  const held = weapons.find((id) => weapon(id).discipline !== "aspis");
-  if (held) return weapon(held).discipline;
-  return weapons.length > 0 ? "aspis" : "fists";
-}
-
-function rivalPalette(name: string) {
-  const h = hashString(name.toLowerCase());
-  return paletteFromHues(h % 360, (h * 7) % 360);
-}
-
-function VigorPips({ vigor }: { vigor: number }) {
-  return (
-    <span className="pips" title={`Vigor ${vigor}/${VIGOR_CAP}`} aria-label={`Vigor ${vigor} of ${VIGOR_CAP}`}>
-      {Array.from({ length: VIGOR_CAP }, (_, i) => (
-        <i key={i} className={i < vigor ? "pip on" : "pip"} />
-      ))}
-    </span>
-  );
-}
+/* ================= home ================= */
 
 function Home(props: {
   save: SaveV1;
-  hpNow: number;
-  omenName: string;
   onArena: () => void;
-  onTapestry: () => void;
+  onHistory: () => void;
+  onCodex: () => void;
+  onPlan: (p: BattlePlan) => void;
   onReorder: (from: number, to: number) => void;
-  onOffering: () => void;
-  onReset: () => void;
+  onRefill: () => void;
+  onDelete: () => void;
 }) {
-  const { save, hpNow, omenName } = props;
+  const { save } = props;
   const c = save.champion;
   const need = costToNext(c.level);
+  const hpNow = maxHp(c.level, c.stats.grit, c.beasts, c.skills.includes("beast_bond"));
+  const plan = effectivePlan(c, save.plan);
+  const trumps = c.skills.filter((s) => skill(s).kind === "trump");
+
   return (
     <div className="home">
+      {save.totalFights < 3 && (
+        <section className="card hint">
+          <p>
+            <b>How it plays:</b> fight rivals → earn XP → level up → pick 1 of 3 upgrades
+            (stats, weapons, skills or beasts). You get <b>6 fights a day</b> (they bank up to 12).{" "}
+            <span className="muted">Your name forged the starting kit — your choices forge the rest.</span>
+          </p>
+        </section>
+      )}
+
       <section className="card champ-card">
-        <Medallion champion={c} size={96} />
+        <HelmBust size={92} palette={paletteFromAppearance(c.appearance)} helm={c.appearance.helm} />
         <div className="champ-meta">
           <h2 className="champ-name">
             {c.displayName} <span className="epithet">{c.epithet}</span>
           </h2>
           <div className="muted">
-            {omenName} · Level {c.level}
+            {omen(c.omen).name} · Level {c.level}
           </div>
-          <div className="xpbar" title={`${c.xp}/${need} XP to level ${c.level + 1}`}>
+          <div className="xpbar" title={`XP toward level ${c.level + 1}`}>
             <div className="xpbar-fill" style={{ width: `${Math.min(100, (c.xp / need) * 100)}%` }} />
           </div>
           <div className="statline">
-            {save.wins}W – {save.losses}L · HP {hpNow} · Favour {c.favour}
+            XP {c.xp}/{need} · {save.wins}W – {save.losses}L · HP {hpNow} · Rerolls (Favour): {c.favour}
           </div>
         </div>
         <div className="hero-fig">
           <HopliteFigure
             height={150}
-            palette={paletteFromHues(c.appearance.hue, c.appearance.hue2)}
+            palette={paletteFromAppearance(c.appearance)}
             discipline={primaryDiscipline(c.weapons)}
+            helm={c.appearance.helm}
+            sigil={c.appearance.sigil}
           />
         </div>
       </section>
@@ -430,7 +543,7 @@ function Home(props: {
           </ul>
         </div>
         <div className="card">
-          <h3>Arsenal <span className="muted small">(draw order)</span></h3>
+          <h3>Weapons <span className="muted small">(drawn in this order)</span></h3>
           <ul className="arsenal">
             {c.weapons.map((id, i) => (
               <li key={id}>
@@ -438,12 +551,12 @@ function Home(props: {
                   <DisciplineGlyph d={weapon(id).discipline} /> {weapon(id).name}
                 </span>
                 <span className="reorder">
-                  <button aria-label="earlier" disabled={i === 0} onClick={() => props.onReorder(i, i - 1)}>▲</button>
-                  <button aria-label="later" disabled={i === c.weapons.length - 1} onClick={() => props.onReorder(i, i + 1)}>▼</button>
+                  <button aria-label="draw earlier" disabled={i === 0} onClick={() => props.onReorder(i, i - 1)}>▲</button>
+                  <button aria-label="draw later" disabled={i === c.weapons.length - 1} onClick={() => props.onReorder(i, i + 1)}>▼</button>
                 </span>
               </li>
             ))}
-            <li className="muted"><span>Fists</span><span className="small">always last</span></li>
+            <li className="muted"><span className="wname"><DisciplineGlyph d="fists" /> Fists</span><span className="small">always last</span></li>
           </ul>
         </div>
       </section>
@@ -458,38 +571,100 @@ function Home(props: {
               </span>
             ))}
             {c.beasts.map((b, i) => (
-              <span key={`${b}${i}`} className="chip chip-beast">{b.replace(/_/g, " ")}</span>
+              <span key={`${b}${i}`} className="chip chip-beast" title={beast(b).flavour}>
+                {beast(b).name}
+              </span>
             ))}
           </div>
         </section>
       )}
 
+      <section className="card tactics">
+        <details>
+          <summary>Tactics — optional, applies to every fight</summary>
+          <div className="seg">
+            {STANCE_OPTS.map((s) => (
+              <button
+                key={s.id}
+                className={`opt ${plan.stance === s.id ? "picked" : ""}`}
+                title={s.blurb}
+                onClick={() => props.onPlan({ ...plan, stance: s.id })}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+          <div className="seg">
+            <select
+              value={plan.gambit}
+              aria-label="Opening gambit"
+              onChange={(e) => props.onPlan({ ...plan, gambit: e.target.value as GambitId })}
+            >
+              {GAMBIT_OPTS.filter((g) => g.id !== "loose_the_beast" || c.beasts.length > 0).map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
+          {trumps.length > 0 && (
+            <div className="seg">
+              <select
+                value={plan.trumpSkill}
+                aria-label="Trump skill"
+                onChange={(e) => props.onPlan({ ...plan, trumpSkill: e.target.value })}
+              >
+                {trumps.map((t) => (
+                  <option key={t} value={t}>{skill(t).name}</option>
+                ))}
+              </select>
+              <select
+                value={plan.trumpTrigger}
+                aria-label="Trump trigger"
+                onChange={(e) => props.onPlan({ ...plan, trumpTrigger: e.target.value as TrumpTrigger })}
+              >
+                {TRIGGER_OPTS.map((t) => (
+                  <option key={t.id} value={t.id}>unleash {t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <p className="hintline">
+            Stances play rock-paper-scissors: Aggressive beats Measured beats Guarded beats Aggressive.
+            Rivals remember the last plan they saw you use — not the one you saved.
+          </p>
+        </details>
+      </section>
+
       <div className="actions">
         <button className="btn primary big" onClick={props.onArena}>
-          To the Arena
+          ⚔ Fight in the Arena
         </button>
-        <button className="btn ghost" onClick={props.onTapestry}>
-          Tapestry ({c.tapestry.length})
+        <button className="btn ghost" onClick={props.onHistory}>
+          Level-Up History ({c.tapestry.length})
+        </button>
+        <button className="btn ghost" onClick={props.onCodex}>
+          Codex
         </button>
       </div>
 
       <div className="devrow">
-        <button className="btn tiny ghost" onClick={props.onOffering} title="Prototype only — Vigor is never sold">
-          ⚱ Offer to the Fates (+6 Vigor · prototype)
+        <button className="btn tiny ghost" onClick={props.onRefill} title="Testing only — fights are never sold in the real game">
+          Dev: +6 fights
         </button>
-        <button className="btn tiny danger" onClick={props.onReset}>
-          Return the thread
+        <button className="btn tiny danger" onClick={props.onDelete}>
+          Delete Champion
         </button>
       </div>
     </div>
   );
 }
 
+/* ================= arena ================= */
+
 function Arena(props: {
   save: SaveV1;
   onBack: () => void;
   onRefresh: () => void;
-  onChallenge: (r: Rival) => void;
+  onFight: (r: Rival) => void;
 }) {
   const { save } = props;
   const board = useMemo(
@@ -501,18 +676,22 @@ function Arena(props: {
       <div className="arena-head">
         <button className="btn ghost" onClick={props.onBack}>← Hall</button>
         <h2>The Arena</h2>
-        <button className="btn ghost" onClick={props.onRefresh}>Seek new rivals</button>
+        <button className="btn ghost" onClick={props.onRefresh}>New rivals</button>
       </div>
       {save.vigor <= 0 && (
-        <p className="notice">Your Vigor is spent. The Fates refill it at dawn (UTC) — or make a prototype offering from your Hall.</p>
+        <p className="notice">
+          You're out of fights for today — 6 more arrive at the daily reset (midnight UTC).
+          For testing, use "Dev: +6 fights" in your Hall.
+        </p>
       )}
       <div className="rivals">
         {board.map((r) => {
           const seen = save.seenPlans[r.snapshot.name];
+          const app = rivalAppearance(r.snapshot.name);
           return (
             <div className="card rival" key={r.snapshot.name}>
               <div className="rival-top">
-                <HelmBust size={52} palette={rivalPalette(r.snapshot.name)} mirror />
+                <HelmBust size={52} palette={paletteFromAppearance(app)} helm={app.helm} mirror />
                 <span className="champ-name small">{r.snapshot.name}</span>
                 <span className="pill">Lv {r.snapshot.level}</span>
               </div>
@@ -523,19 +702,16 @@ function Arena(props: {
                 {r.snapshot.skills.length > 0
                   ? r.snapshot.skills.map((s) => skill(s).name).join(", ")
                   : "No known skills"}
-                {r.snapshot.beasts.length > 0 && ` · beasts: ${r.snapshot.beasts.length}`}
+                {r.snapshot.beasts.length > 0 &&
+                  ` · ${r.snapshot.beasts.map((b) => beast(b).name).join(", ")}`}
               </div>
               <div className="lastseen small">
                 {seen
-                  ? `Last seen: ${seen.stance} / ${seen.gambit.replace(/_/g, " ")}`
-                  : "Battle Plan unknown — never fought"}
+                  ? `Last seen fighting: ${seen.stance}, ${seen.gambit.replace(/_/g, " ")}`
+                  : "You haven't fought them yet"}
               </div>
-              <button
-                className="btn primary"
-                disabled={save.vigor <= 0}
-                onClick={() => props.onChallenge(r)}
-              >
-                Challenge (1 ⚡)
+              <button className="btn primary" disabled={save.vigor <= 0} onClick={() => props.onFight(r)}>
+                Fight (1 ⚡)
               </button>
             </div>
           );
@@ -545,113 +721,7 @@ function Arena(props: {
   );
 }
 
-function PlanSheet(props: {
-  champion: Champion;
-  rival: Rival;
-  lastSeen?: BattlePlan;
-  initial: BattlePlan;
-  disabled: boolean;
-  onCancel: () => void;
-  onFight: (plan: BattlePlan) => void;
-}) {
-  const { champion, rival } = props;
-  const trumps = champion.skills.filter((s) => skill(s).kind === "trump");
-  const [stance, setStance] = useState<Stance>(props.initial.stance);
-  const [gambit, setGambit] = useState<GambitId>(props.initial.gambit);
-  const [trumpSkill, setTrumpSkill] = useState<string | undefined>(
-    props.initial.trumpSkill && trumps.includes(props.initial.trumpSkill)
-      ? props.initial.trumpSkill
-      : trumps[0],
-  );
-  const [trumpTrigger, setTrumpTrigger] = useState<TrumpTrigger>(
-    props.initial.trumpTrigger ?? "when_bloodied",
-  );
-
-  const gambits = GAMBITS.filter(
-    (g) => g.id !== "loose_the_beast" || champion.beasts.length > 0,
-  );
-
-  return (
-    <div className="plansheet">
-      <h2>Battle Plan</h2>
-      <p className="muted">
-        vs <b>{rival.snapshot.name}</b> (Lv {rival.snapshot.level}) —{" "}
-        {props.lastSeen
-          ? `last seen fighting ${props.lastSeen.stance} / ${props.lastSeen.gambit.replace(/_/g, " ")}`
-          : "you have never seen their plan"}
-      </p>
-
-      <h3>Stance</h3>
-      <div className="pick-row">
-        {STANCES.map((s) => (
-          <button
-            key={s.id}
-            className={`pick ${stance === s.id ? "picked" : ""}`}
-            onClick={() => setStance(s.id)}
-          >
-            <b>{s.name}</b>
-            <span>{s.blurb}</span>
-          </button>
-        ))}
-      </div>
-
-      <h3>Gambit</h3>
-      <div className="pick-row wrap">
-        {gambits.map((g) => (
-          <button
-            key={g.id}
-            className={`pick ${gambit === g.id ? "picked" : ""}`}
-            onClick={() => setGambit(g.id)}
-          >
-            <b>{g.name}</b>
-            <span>{g.blurb}</span>
-          </button>
-        ))}
-      </div>
-
-      <h3>Trump</h3>
-      {trumps.length === 0 ? (
-        <p className="muted small">No Trump known yet — the Fates may offer one in a draft.</p>
-      ) : (
-        <div className="trump-row">
-          <select value={trumpSkill} onChange={(e) => setTrumpSkill(e.target.value)} aria-label="Trump skill">
-            {trumps.map((t) => (
-              <option key={t} value={t}>{skill(t).name}</option>
-            ))}
-          </select>
-          <span className="muted">when</span>
-          <select
-            value={trumpTrigger}
-            onChange={(e) => setTrumpTrigger(e.target.value as TrumpTrigger)}
-            aria-label="Trump trigger"
-          >
-            {TRIGGERS.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      <div className="actions">
-        <button className="btn ghost" onClick={props.onCancel}>Back</button>
-        <button
-          className="btn primary big"
-          disabled={props.disabled}
-          onClick={() =>
-            props.onFight({
-              stance,
-              gambit,
-              trumpSkill: trumps.length > 0 ? trumpSkill : undefined,
-              trumpTrigger: trumps.length > 0 ? trumpTrigger : undefined,
-            })
-          }
-        >
-          FIGHT
-        </button>
-      </div>
-    </div>
-  );
-}
+/* ================= level-up draft ================= */
 
 function DraftModal(props: {
   champion: Champion;
@@ -662,23 +732,25 @@ function DraftModal(props: {
 }) {
   const { champion, offers } = props;
   return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-label="Threads of Fate">
+    <div className="overlay" role="dialog" aria-modal="true" aria-label="Level up">
       <div className="draft card">
-        <h2>Threads of Fate</h2>
+        <h2>Level up!</h2>
         <p className="muted">
-          Lachesis offers three threads for level {champion.level + 1}. Keep one.
+          Choose one of three for level {champion.level + 1} — the choice is permanent.
         </p>
         <div className="fate-row">
           {offers.map((o, i) => (
             <button key={i} className="fate-card" onClick={() => props.onPick(i)}>
-              <span className="fate-kind">{o.kind.startsWith("stat") ? "Vigour of the body" : o.kind === "weapon" ? "Bronze for the hand" : o.kind === "skill" ? "A gift of craft" : "A companion's oath"}</span>
+              <span className="fate-kind">
+                {o.kind.startsWith("stat") ? "Stats" : o.kind === "weapon" ? "New weapon" : o.kind === "skill" ? "New skill" : "New beast"}
+              </span>
               <b>{describeOffer(o)}</b>
               <span className="fate-detail">{offerDetail(o)}</span>
             </button>
           ))}
         </div>
         <button className="btn ghost" disabled={!props.canReroll} onClick={props.onReroll}>
-          Reroll — spend 1 Favour ({champion.favour} held)
+          Reroll all three — costs 1 Favour ({champion.favour} held)
         </button>
       </div>
     </div>
@@ -688,22 +760,24 @@ function DraftModal(props: {
 function offerDetail(o: FateOffer): string {
   if (o.kind === "weapon") return weapon(o.weapon).flavour;
   if (o.kind === "skill") return skill(o.skill).text;
-  if (o.kind === "beast") return "Takes a Grit tax while it fights beside you.";
+  if (o.kind === "beast") return `${beast(o.beast).flavour} Costs ${beast(o.beast).gritTax} Grit while equipped.`;
   return "Reliable. Permanent. Yours.";
 }
 
-function Tapestry({ champion, onBack }: { champion: Champion; onBack: () => void }) {
+/* ================= history (the Tapestry) ================= */
+
+function History({ champion, onBack }: { champion: Champion; onBack: () => void }) {
   return (
     <div className="tapestry">
       <div className="arena-head">
         <button className="btn ghost" onClick={onBack}>← Hall</button>
-        <h2>The Tapestry</h2>
+        <h2>Level-Up History</h2>
         <span />
       </div>
       <p className="muted">
-        Every draft, woven in order. This is {champion.displayName}'s public build history.
+        Every level-up choice {champion.displayName} has made — kept picks highlighted, declined ones struck through.
       </p>
-      {champion.tapestry.length === 0 && <p className="muted">Nothing woven yet — win fights, level up.</p>}
+      {champion.tapestry.length === 0 && <p className="muted">Nothing yet — win fights to level up.</p>}
       <ol className="bands">
         {[...champion.tapestry].reverse().map((band, i) => (
           <li key={i} className="card band">
@@ -717,6 +791,93 @@ function Tapestry({ champion, onBack }: { champion: Champion; onBack: () => void
           </li>
         ))}
       </ol>
+    </div>
+  );
+}
+
+/* ================= codex ================= */
+
+function Codex({ champion, onBack }: { champion: Champion; onBack: () => void }) {
+  const speedLabel = (interval: number) =>
+    interval <= 240 ? "Fast" : interval <= 320 ? "Steady" : "Heavy";
+  return (
+    <div className="codex">
+      <div className="arena-head">
+        <button className="btn ghost" onClick={onBack}>← Hall</button>
+        <h2>Codex</h2>
+        <span />
+      </div>
+      <p className="muted">
+        Everything that exists in the arena. New weapons, skills and beasts arrive through level-up choices — nothing is ever sold.
+      </p>
+
+      <section className="card">
+        <h3>Weapons — {WEAPONS.length} ({champion.weapons.length} owned)</h3>
+        {WEAPONS.map((w) => (
+          <div className="codex-row" key={w.id}>
+            <DisciplineGlyph d={w.discipline} size={26} />
+            <div className="grow">
+              <div className="cname">{w.name}</div>
+              <div className="cmeta">
+                {w.discipline === "aspis"
+                  ? "Shield"
+                  : `Damage ${w.dmg} · ${speedLabel(w.interval)}${w.ammo ? ` · ${w.ammo} throws` : ""}${w.twoHanded ? " · two-handed" : ""}`}{" "}
+                — {w.flavour}
+              </div>
+            </div>
+            {champion.weapons.includes(w.id) ? (
+              <span className="owned-badge">OWNED</span>
+            ) : (
+              <span className="locked-badge">level up to find</span>
+            )}
+          </div>
+        ))}
+      </section>
+
+      {[
+        { title: "Boons — always-on passives", list: BOONS },
+        { title: "Techniques — trigger on their own", list: TECHNIQUES },
+        { title: "Trumps — you choose when they fire (Tactics)", list: TRUMPS },
+      ].map((group) => (
+        <section className="card" key={group.title}>
+          <h3>
+            {group.title} ({group.list.filter((s) => champion.skills.includes(s.id)).length}/{group.list.length})
+          </h3>
+          {group.list.map((s) => (
+            <div className="codex-row" key={s.id}>
+              <div className="grow">
+                <div className="cname">{s.name}</div>
+                <div className="cmeta">{s.text}</div>
+              </div>
+              {champion.skills.includes(s.id) ? (
+                <span className="owned-badge">OWNED</span>
+              ) : (
+                <span className="locked-badge">level up to find</span>
+              )}
+            </div>
+          ))}
+        </section>
+      ))}
+
+      <section className="card">
+        <h3>Beasts — {BEASTS.length} ({champion.beasts.length} at your side)</h3>
+        {BEASTS.map((b) => (
+          <div className="codex-row" key={b.id}>
+            <BeastFigure beastId={b.id} size={52} />
+            <div className="grow">
+              <div className="cname">{b.name}</div>
+              <div className="cmeta">
+                HP {b.hpBase}+level · hits {b.dmgMin}–{b.dmgMax} · costs {b.gritTax} Grit — {b.flavour}
+              </div>
+            </div>
+            {champion.beasts.includes(b.id) ? (
+              <span className="owned-badge">WITH YOU</span>
+            ) : (
+              <span className="locked-badge">level up to find</span>
+            )}
+          </div>
+        ))}
+      </section>
     </div>
   );
 }
