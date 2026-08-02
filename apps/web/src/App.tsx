@@ -35,6 +35,7 @@ import {
 import { FightTheatre, type StageFigure } from "./FightTheatre.js";
 import { PetSprite } from "./pixelPets.js";
 import { WeaponIcon } from "./weaponIcons.js";
+import { SkillIcon, type SkillKind } from "./skillIcons.js";
 import { PixIcon } from "./pixelIcons.js";
 import { AURAS, AuraSparks, FighterBust, FighterFig, lookFor, rivalLook, type FighterAnim } from "./fighters.js";
 import { ARENAS, arenaForFight, type Arena as ArenaDef } from "./arenas.js";
@@ -1050,10 +1051,12 @@ function Home(props: {
         </div>
         <div className="card">
           <h3>Weapons <span className="muted small">(drawn in this order)</span></h3>
-          <ul className="arsenal">
+          <ul className="arsenal rack">
             {c.weapons.map((id, i) => (
               <li key={id}>
-                <WeaponIcon d={weapon(id).discipline} size={16} className="wicon" />
+                <span className="rack-tile">
+                  <WeaponIcon d={weapon(id).discipline} size={32} />
+                </span>
                 <div className="wbody">
                   <div className="wtop">
                     <b>{weapon(id).name}</b>
@@ -1068,7 +1071,9 @@ function Home(props: {
               </li>
             ))}
             <li className="muted">
-              <WeaponIcon d="fists" size={16} className="wicon" />
+              <span className="rack-tile">
+                <WeaponIcon d="fists" size={32} />
+              </span>
               <div className="wbody">
                 <div className="wtop"><b>Fists</b><span className="wtag">always last</span></div>
                 <div className="muted small">What is left when the steel is gone.</div>
@@ -1097,16 +1102,19 @@ function Home(props: {
       {(c.skills.length > 0 || c.beasts.length > 0) && (
         <section className="card">
           <h3>Skills & Pets</h3>
-          <div className="chips">
+          <div className="plaques">
             {c.skills.map((s) => (
-              <span key={s} className={`chip chip-${skill(s).kind}`} title={skill(s).text}>
-                {skill(s).name}
+              <span key={s} className="plaque" title={skill(s).text}>
+                <SkillIcon id={s} kind={skill(s).kind as SkillKind} size={40} />
+                <em>{skill(s).name}</em>
               </span>
             ))}
             {c.beasts.map((b, i) => (
-              <span key={`${b}${i}`} className="chip chip-beast pet-chip" title={beast(b).flavour}>
-                <PetSprite beastId={b} size={26} />
-                {beast(b).name}
+              <span key={`${b}${i}`} className="plaque" title={beast(b).flavour}>
+                <span className="pet-tile">
+                  <PetSprite beastId={b} size={34} />
+                </span>
+                <em>{beast(b).name}</em>
               </span>
             ))}
           </div>
@@ -1254,7 +1262,7 @@ function Arena(props: {
                 )}
                 {r.snapshot.skills.map((s) => (
                   <span className="kit-chip skill" key={s} title={skill(s).text}>
-                    {skill(s).name}
+                    <SkillIcon id={s} kind={skill(s).kind as SkillKind} size={17} /> {skill(s).name}
                   </span>
                 ))}
                 {r.snapshot.beasts.map((b, bi) => (
@@ -1309,6 +1317,7 @@ function RewardModal(props: {
             <span className="fate-kind">
               {offer.kind.startsWith("stat") ? "Stats" : offer.kind === "weapon" ? "New weapon" : offer.kind === "skill" ? "New skill" : "New pet"}
             </span>
+            <OfferArt offer={offer} />
             <b>{describeOffer(offer)}</b>
             <span className="fate-detail">{offerDetail(offer)}</span>
           </div>
@@ -1329,6 +1338,29 @@ function RewardModal(props: {
         </button>
       </div>
     </div>
+  );
+}
+
+/** A level-up reward should be a thing you can see, not just a line of text. */
+function OfferArt({ offer }: { offer: FateOffer }) {
+  if (offer.kind === "skill")
+    return <SkillIcon id={offer.skill} kind={skill(offer.skill).kind as SkillKind} size={62} />;
+  if (offer.kind === "weapon")
+    return (
+      <span className="offer-art rack-tile">
+        <WeaponIcon d={weapon(offer.weapon).discipline} size={48} />
+      </span>
+    );
+  if (offer.kind === "beast")
+    return (
+      <span className="offer-art pet-tile">
+        <PetSprite beastId={offer.beast} size={56} />
+      </span>
+    );
+  return (
+    <span className="offer-art stat-tile">
+      <PixIcon name="star" size={34} />
+    </span>
   );
 }
 
@@ -1390,7 +1422,9 @@ function Codex({ champion, onBack }: { champion: Champion; onBack: () => void })
         <h3>Weapons — {WEAPONS.length} ({champion.weapons.length} owned)</h3>
         {WEAPONS.map((w) => (
           <div className="codex-row" key={w.id}>
-            <WeaponIcon d={w.discipline} size={22} />
+            <span className="rack-tile">
+              <WeaponIcon d={w.discipline} size={34} />
+            </span>
             <div className="grow">
               <div className="wtop">
                 <span className="cname">{w.name}</span>
@@ -1423,6 +1457,7 @@ function Codex({ champion, onBack }: { champion: Champion; onBack: () => void })
           </h3>
           {group.list.map((s) => (
             <div className="codex-row" key={s.id}>
+              <SkillIcon id={s.id} kind={s.kind as SkillKind} size={38} />
               <div className="grow">
                 <div className="cname">{s.name}</div>
                 <div className="cmeta">{s.text}</div>
@@ -1441,7 +1476,9 @@ function Codex({ champion, onBack }: { champion: Champion; onBack: () => void })
         <h3>Pets — {BEASTS.length} ({champion.beasts.length} at your side)</h3>
         {BEASTS.map((b) => (
           <div className="codex-row" key={b.id}>
-            <PetSprite beastId={b.id} size={52} />
+            <span className="pet-tile">
+              <PetSprite beastId={b.id} size={48} />
+            </span>
             <div className="grow">
               <div className="cname">{b.name}</div>
               <div className="cmeta">
