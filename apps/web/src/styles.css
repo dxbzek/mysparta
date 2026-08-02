@@ -1435,3 +1435,104 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 /* a pet chip carries its sprite, not just its name */
 .pet-chip { display: inline-flex; align-items: center; gap: 7px; padding-left: 7px; }
 .pet-sprite { display: block; }
+
+/* ---------- character creator: tabs + steppers ---------- */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -2px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 2.5px solid rgb(67 56 42 / 30%);
+}
+.tab {
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  letter-spacing: 0.03em;
+  padding: 7px 11px;
+  min-height: 34px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 2.5px solid transparent;
+  border-radius: var(--radius);
+}
+.tab:hover { color: var(--ink); }
+.tab.on {
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
+/* one feature to a row: arrows to browse, a list to jump */
+.picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 7px 0;
+  border-bottom: 2px dashed rgb(67 56 42 / 18%);
+}
+.picker:last-child { border-bottom: none; }
+.picker-label {
+  flex: 0 0 108px;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+.picker-label em {
+  font-family: var(--font-body);
+  font-style: normal;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.picker-ctl { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 210px; }
+.picker-ctl select {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: #fffaef;
+  border: 2.5px solid var(--line);
+  border-radius: var(--radius);
+  padding: 7px 9px;
+  min-height: 38px;
+  cursor: pointer;
+  box-shadow: inset 0 2px 0 rgb(255 255 255 / 60%);
+}
+.nudge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-height: 38px;
+  cursor: pointer;
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--panel), var(--panel-deep));
+  border: 2.5px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.nudge:active { transform: translate(1px, 1px); box-shadow: none; }
+.nudge.flip .pix-icon { transform: scaleX(-1); }
+.picker-count {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  color: var(--ink-soft);
+  min-width: 34px;
+  text-align: right;
+}
+.swatch-picker .swatches { flex: 1; }
+.swatch-picker .picker-label { flex: 0 0 108px; }
+
+@media (max-width: 520px) {
+  .picker-label { flex: 1 0 100%; }
+  .picker-ctl { min-width: 0; }
+}

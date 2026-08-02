@@ -394,6 +394,7 @@ function Forge({
   const [look, setLook] = useState<Look | null>(null);
   const [aura, setAura] = useState(0);
   const [previewPose, setPreviewPose] = useState<"idle" | "attack1">("idle");
+  const [tab, setTab] = useState<CreatorTab>("body");
   const preview = useMemo(() => {
     const trimmed = name.trim();
     if (trimmed.length < 2) return null;
@@ -455,39 +456,12 @@ function Forge({
   const c2 = champ;
   const set = (patch: Partial<Look>) => setLook(normaliseLook({ ...me, ...patch }));
 
-  const partRow = (
-    label: string,
-    parts: Part[],
-    value: number,
-    key: keyof Look,
-    allowed?: number[],
-  ) => {
-    const list = allowed ?? parts.map((_, i) => i);
-    return (
-      <div className="pick-row">
-        <h4>
-          {label} <span className="muted small">{parts[value]!.name}</span>
-        </h4>
-        <div className="opt-row wrap">
-          {list.map((i) => (
-            <button
-              key={parts[i]!.name}
-              className={`opt ${value === i ? "picked" : ""}`}
-              onClick={() => set({ [key]: i } as Partial<Look>)}
-            >
-              {parts[i]!.name}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const toneRow = (label: string, tones: Tone[], value: number, key: keyof Look) => (
-    <div className="pick-row">
-      <h4>
-        {label} <span className="muted small">{tones[value]!.name}</span>
-      </h4>
+  const tone = (label: string, tones: Tone[], value: number, key: keyof Look) => (
+    <div className="picker swatch-picker">
+      <span className="picker-label">
+        {label}
+        <em>{tones[value]!.name}</em>
+      </span>
       <div className="swatches">
         {tones.map((t, i) => (
           <button
@@ -501,6 +475,22 @@ function Forge({
         ))}
       </div>
     </div>
+  );
+
+  const part = (
+    label: string,
+    parts: Array<{ name: string }>,
+    value: number,
+    key: keyof Look,
+    allowed?: number[],
+  ) => (
+    <PartPicker
+      label={label}
+      parts={parts}
+      value={value}
+      allowed={allowed}
+      onPick={(i) => set({ [key]: i } as Partial<Look>)}
+    />
   );
 
   return (
@@ -529,60 +519,70 @@ function Forge({
         </div>
 
         <div className="card creator">
-          <h3>Body</h3>
-          <div className="pick-row">
-            <h4>
-              Build <span className="muted small">{BUILDS[me.build]!.name}</span>
-            </h4>
-            <div className="opt-row">
-              {BUILDS.map((b, i) => (
-                <button
-                  key={b.name}
-                  className={`opt ${me.build === i ? "picked" : ""}`}
-                  onClick={() => set({ build: i })}
-                >
-                  {b.name}
-                </button>
-              ))}
-            </div>
+          {/* One category at a time, the way a console creator does it — the
+              whole sheet used to be on screen at once and read as a wall. */}
+          <div className="tabs" role="tablist">
+            {CREATOR_TABS.map(([id, name]) => (
+              <button
+                key={id}
+                role="tab"
+                aria-selected={tab === id}
+                className={`tab ${tab === id ? "on" : ""}`}
+                onClick={() => setTab(id)}
+              >
+                {name}
+              </button>
+            ))}
           </div>
-          {toneRow("Skin", SKINS, me.skin, "skin")}
 
-          <h3>Face</h3>
-          {partRow("Shape", HEADS, me.head, "head")}
-          {toneRow("Eyes", EYE_COLORS, me.eyes, "eyes")}
-          {partRow("Facial hair", BEARDS, me.beard, "beard")}
-
-          <h3>Hair</h3>
-          {partRow("Style", HAIRS, me.hair, "hair")}
-          {toneRow("Colour", HAIR_COLORS, me.hairColor, "hairColor")}
-
-          <h3>Clothes</h3>
-          {partRow("Top", TORSOS, me.torso, "torso", torsosFor(me.build))}
-          {toneRow("Top colour", CLOTH_COLORS, me.torsoColor, "torsoColor")}
-          {partRow("Legs", LEGS, me.legs, "legs")}
-          {toneRow("Leg colour", CLOTH_COLORS, me.legsColor, "legsColor")}
-          {partRow("Feet", FEET, me.feet, "feet")}
-          {toneRow("Feet colour", CLOTH_COLORS, me.feetColor, "feetColor")}
-
-          <h3>Aura</h3>
-          <div className="pick-row">
-            <h4>
-              Glow <span className="muted small">{AURAS[aura]!.name}</span>
-            </h4>
-            <div className="swatches">
-              {AURAS.map((a, i) => (
-                <button
-                  key={a.name}
-                  className={`swatch ${aura === i ? "picked" : ""}`}
-                  style={{ background: a.color, boxShadow: `0 0 10px ${a.color}88` }}
-                  onClick={() => setAura(i)}
-                  aria-label={`${a.name} aura`}
-                  title={a.name}
-                />
-              ))}
+          {tab === "body" && (
+            <>
+              {part("Build", BUILDS, me.build, "build")}
+              {tone("Skin", SKINS, me.skin, "skin")}
+            </>
+          )}
+          {tab === "face" && (
+            <>
+              {part("Shape", HEADS, me.head, "head")}
+              {part("Facial hair", BEARDS, me.beard, "beard")}
+              {tone("Eyes", EYE_COLORS, me.eyes, "eyes")}
+            </>
+          )}
+          {tab === "hair" && (
+            <>
+              {part("Style", HAIRS, me.hair, "hair")}
+              {tone("Colour", HAIR_COLORS, me.hairColor, "hairColor")}
+            </>
+          )}
+          {tab === "clothes" && (
+            <>
+              {part("Top", TORSOS, me.torso, "torso", torsosFor(me.build))}
+              {tone("Top colour", CLOTH_COLORS, me.torsoColor, "torsoColor")}
+              {part("Legs", LEGS, me.legs, "legs")}
+              {tone("Leg colour", CLOTH_COLORS, me.legsColor, "legsColor")}
+              {part("Feet", FEET, me.feet, "feet")}
+              {tone("Feet colour", CLOTH_COLORS, me.feetColor, "feetColor")}
+            </>
+          )}
+          {tab === "aura" && (
+            <div className="picker swatch-picker">
+              <span className="picker-label">
+                Glow<em>{AURAS[aura]!.name}</em>
+              </span>
+              <div className="swatches">
+                {AURAS.map((a, i) => (
+                  <button
+                    key={a.name}
+                    className={`swatch ${aura === i ? "picked" : ""}`}
+                    style={{ background: a.color, boxShadow: `0 0 10px ${a.color}88` }}
+                    onClick={() => setAura(i)}
+                    aria-label={`${a.name} aura`}
+                    title={a.name}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="actions">
@@ -599,6 +599,69 @@ function Forge({
             Start Hunting
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+const CREATOR_TABS = [
+  ["body", "Body"],
+  ["face", "Face"],
+  ["hair", "Hair"],
+  ["clothes", "Clothes"],
+  ["aura", "Aura"],
+] as const;
+
+type CreatorTab = (typeof CREATOR_TABS)[number][0];
+
+/**
+ * A long list of parts, browsed the way console creators do it: arrows to
+ * step one at a time, a list to jump straight to one. Two dozen options fit
+ * on a single row instead of filling the screen with chips.
+ */
+function PartPicker({
+  label,
+  parts,
+  value,
+  allowed,
+  onPick,
+}: {
+  label: string;
+  parts: Array<{ name: string }>;
+  value: number;
+  allowed?: number[];
+  onPick: (i: number) => void;
+}) {
+  const list = allowed ?? parts.map((_, i) => i);
+  const at = Math.max(0, list.indexOf(value));
+  const step = (d: number) => onPick(list[(at + d + list.length) % list.length]!);
+  return (
+    <div className="picker">
+      <span className="picker-label">
+        {label}
+        <em>{parts[value]!.name}</em>
+      </span>
+      <div className="picker-ctl">
+        <button className="nudge" onClick={() => step(-1)} aria-label={`Previous ${label}`}>
+          <PixIcon name="arrowLeft" size={9} />
+        </button>
+        <select
+          value={value}
+          onChange={(e) => onPick(Number(e.target.value))}
+          aria-label={label}
+        >
+          {list.map((i) => (
+            <option key={parts[i]!.name} value={i}>
+              {parts[i]!.name}
+            </option>
+          ))}
+        </select>
+        <button className="nudge flip" onClick={() => step(1)} aria-label={`Next ${label}`}>
+          <PixIcon name="arrowLeft" size={9} />
+        </button>
+        <span className="picker-count">
+          {at + 1}/{list.length}
+        </span>
       </div>
     </div>
   );
