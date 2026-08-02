@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BEASTS, FISTS, WEAPONS, type FightResult } from "@agoge/core";
 import { BeastFigure, ImpactBurst, Javelin, Laurel, SlashArc } from "./art.js";
-import { FighterFig, WeatherFx, pixelArenaImg, type FighterAnim } from "./fighters.js";
+import { FighterFig, WeatherFx, type FighterAnim } from "./fighters.js";
+import { arenaScene } from "./arenaArt.js";
 import type { Arena } from "./arenas.js";
 import { CHAR, type Look } from "./paperdoll.js";
 import { narrate, type Line } from "./narrate.js";
@@ -42,6 +43,9 @@ interface Props {
 
 const beastIdByName = new Map(BEASTS.map((b) => [b.name, b.id]));
 
+/** Scene height in native pixels — 3x this is the stage height on desktop. */
+const NATIVE_H = 148;
+
 /**
  * The arena stage: champions run in, dash across to strike, swing, dodge,
  * block and fall — all directed by the deterministic event log.
@@ -54,17 +58,22 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   const feedRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const [dash, setDash] = useState(220);
-  const [figH, setFigH] = useState(168);
+  // The stage runs on one pixel grid: the scene is painted at native
+  // resolution and everything (backdrop and fighters alike) is blown up by
+  // the same integer factor, so no pixel is ever resampled.
+  const [px, setPx] = useState({ scale: 3, w: 280, h: NATIVE_H });
+  const figH = CHAR.h * px.scale;
   const speedRef = useRef<1 | 2>(1);
   speedRef.current = speed;
 
   useLayoutEffect(() => {
     const measure = () => {
       const w = stageRef.current?.clientWidth ?? 800;
-      const h = w < 520 ? 104 : 140;
-      setFigH(h);
-      const charW = (CHAR.w / CHAR.h) * h;
-      setDash(Math.max(40, Math.round(w * 0.84 - charW * 2 + 10)));
+      const scale = w < 560 ? 2 : 3;
+      const nativeW = Math.ceil(w / scale);
+      setPx({ scale, w: nativeW, h: NATIVE_H });
+      const charW = (CHAR.w / CHAR.h) * (CHAR.h * scale);
+      setDash(Math.max(40, Math.round(w * 0.82 - charW * 2)));
     };
     measure();
     window.addEventListener("resize", measure);
@@ -242,11 +251,10 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       >
         <div
           className="stage-bg"
-          style={{ backgroundImage: `url(${pixelArenaImg})`, filter: arena.filter || undefined }}
+          style={{ backgroundImage: `url(${arenaScene(arena, px.w, px.h)})` }}
         />
-        <div className="stage-wash" style={{ background: arena.overlay }} />
+        {arena.overlay && <div className="stage-wash" style={{ background: arena.overlay }} />}
         {arena.weather && <WeatherFx kind={arena.weather} count={14} />}
-        <div className="stage-shade" />
         <div className="arena-chip">{arena.name}</div>
         <div className="stage-hp">
           <HpBar name={names[0]} hp={hp[0]!} max={result.hpMax[0]} mirror={false} />
@@ -254,10 +262,14 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
         </div>
         <div className="vs-badge">VS</div>
 
-        <div className="stage-figs">
+        <div
+          className="stage-figs"
+          style={{ bottom: Math.round(px.h * (1 - arena.horizon) * px.scale) - px.scale }}
+        >
           <div className="corner">
             <div key={`a${idx}`} className={slotClass(0)}>
               <div className={innerClass(0)}>
+                <span className="fig-shadow" style={{ width: figH * 0.42 }} />
                 <FighterFig
                   look={figures[0].look}
                   height={figH}
@@ -277,6 +289,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
           <div className="corner">
             <div key={`b${idx}`} className={slotClass(1)}>
               <div className={innerClass(1)}>
+                <span className="fig-shadow" style={{ width: figH * 0.42 }} />
                 <FighterFig
                   look={figures[1].look}
                   height={figH}

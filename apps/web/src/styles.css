@@ -358,18 +358,23 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   overflow: hidden;
-  /* painted arena backdrop set inline; gradient is the loading fallback */
+  /* painted arena scene set inline; gradient is the loading fallback */
   background: linear-gradient(180deg, #252d4a 0%, #1b2136 58%, #151a29 72%);
-  background-size: cover;
-  background-position: center bottom;
-  min-height: 300px;
+  height: 444px;
 }
-/* the arena painting, graded per-location (filter must not touch fighters) */
+@media (max-width: 560px) {
+  .stage { height: 296px; }
+}
+/*
+ * The arena painting. It is generated at exactly the stage's native pixel
+ * size and scaled by a whole number, so `100% 100%` never resamples it —
+ * the backdrop lands on the same pixel grid as the fighters.
+ */
 .stage-bg {
   position: absolute;
   inset: 0;
-  background-size: cover;
-  background-position: center bottom;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
   image-rendering: pixelated;
 }
 /* per-arena light wash over the painting */
@@ -452,20 +457,25 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 @keyframes wFlash { 0%, 92%, 100% { opacity: 0; } 93% { opacity: 0.22; } 95% { opacity: 0.05; } 96.5% { opacity: 0.16; } }
 
 /* darken the top of the painting so the HP bars stay readable */
-.stage-shade {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(8, 10, 18, 0.62) 0%, rgba(8, 10, 18, 0.18) 34%, transparent 55%);
-}
-
 .stage-figs {
   position: absolute;
-  left: 0; right: 0; bottom: 34px;
+  left: 0; right: 0;
   display: flex;
   justify-content: space-between;
-  padding: 0 8%;
+  padding: 0 7%;
   align-items: flex-end;
+}
+
+/* contact shadow — without it the fighters look pasted onto the scene */
+.fig-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  height: 7px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.5), transparent);
+  pointer-events: none;
 }
 
 .corner { position: relative; }

@@ -7,7 +7,6 @@
  * there is no per-frame JavaScript.
  */
 
-import pixelArenaImg from "./assets/fighters/pixel-arena.webp";
 import { useEffect, useState } from "react";
 import {
   ANIMS,
@@ -23,7 +22,6 @@ import {
   type Look,
 } from "./paperdoll.js";
 
-export { pixelArenaImg };
 export type FighterAnim = Anim;
 
 /** Aura colours — the glow around the fighter, flares on victory. */

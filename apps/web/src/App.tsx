@@ -373,7 +373,7 @@ function Shell({ children, header }: { children: React.ReactNode; header?: React
       <footer className="foot">
         RANK ZERO prototype — deterministic sim v1 · your progress is saved in this browser
         <br />
-        characters from the LPC universal sprite set (CC BY-SA 3.0 / GPL 3.0) · arena by brullov ·
+        characters from the LPC universal sprite set (CC BY-SA 3.0 / GPL 3.0) · arenas painted in-engine ·
         weapon icons by game-icons.net (CC BY 3.0)
       </footer>
     </div>
