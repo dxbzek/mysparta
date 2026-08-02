@@ -1792,3 +1792,25 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .wager-side.win { background: #cfe0b6; color: #2f3d20; }
 .wager-side.lose { background: #eab4a4; color: #4a1d14; }
+
+/* the drop tells you what it is worth, not only what it is called */
+.fate-stats {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+  color: #6d5a20;
+  background: rgb(227 154 46 / 22%);
+  border: 2px solid rgb(67 56 42 / 35%);
+  border-radius: var(--radius);
+  padding: 3px 8px;
+  margin: 2px 0 4px;
+}
+.fate-kind { display: inline-flex; align-items: center; gap: 6px; }
+
+/* on your own gold row the gold star vanished */
+.ladder-row.you .lrating { color: #3a2a10; }
+.ladder-row.you .icon-gold { color: #6b4a12; }
+.ladder-row.you .lname { color: #3a2a10; }
+
+/* an empty panel is just whitespace — hide the pets card until it has pets */
+.card:empty { display: none; }

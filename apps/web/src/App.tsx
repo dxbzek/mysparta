@@ -1226,8 +1226,12 @@ function RewardModal(props: {
           </div>
           {drop && (
             <div className="fate-card rolled gear-card">
-              <span className="fate-kind">Gear drop — {drop.slot}</span>
+              <span className="fate-kind">
+                <PixIcon name="loot" size={11} /> Gear drop — {drop.slot}
+              </span>
               <b>{drop.name}</b>
+              {/* what it is worth, not just what it is called */}
+              {gearStatLine(drop) && <span className="fate-stats">{gearStatLine(drop)}</span>}
               <span className="fate-detail">{drop.flavour}</span>
             </div>
           )}
