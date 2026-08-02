@@ -23,9 +23,11 @@ import {
   skill,
   snapshot,
   weapon,
+  OMENS,
   type BattlePlan,
   type Champion,
   type FateOffer,
+  type StatName,
   type FightResult,
   type GambitId,
   type Rival,
@@ -33,7 +35,8 @@ import {
   type TrumpTrigger,
 } from "@agoge/core";
 import { FightTheatre, type StageFigure } from "./FightTheatre.js";
-import { BeastFigure, DisciplineGlyph } from "./art.js";
+import { BeastFigure } from "./art.js";
+import { WeaponIcon } from "./weaponIcons.js";
 import {
   AURAS,
   AuraSparks,
@@ -371,7 +374,7 @@ function Shell({ children, header }: { children: React.ReactNode; header?: React
       <footer className="foot">
         RANK ZERO prototype — deterministic sim v1 · your progress is saved in this browser
         <br />
-        fighter animation by LuizMelo · arena by brullov (free game assets)
+        fighter animation by LuizMelo · arena by brullov · weapon icons by game-icons.net (CC BY 3.0)
       </footer>
     </div>
   );
@@ -389,6 +392,8 @@ function Forge({
   const [hero, setHero] = useState<number | null>(null);
   const [styleFx, setStyleFx] = useState(0);
   const [aura, setAura] = useState(0);
+  const [omenSel, setOmenSel] = useState<string | null>(null);
+  const [focus, setFocus] = useState<StatName | null>(null);
   const [previewPose, setPreviewPose] = useState<"idle" | "attack1">("idle");
   const preview = useMemo(() => {
     const trimmed = name.trim();
@@ -399,6 +404,19 @@ function Forge({
       return null;
     }
   }, [name]);
+
+  // The champion, rebuilt live from the player's creation choices.
+  const final = useMemo(() => {
+    if (!champ) return null;
+    try {
+      return createChampion(champ.displayName, {
+        omen: omenSel ?? undefined,
+        focus: focus ?? undefined,
+      });
+    } catch {
+      return champ;
+    }
+  }, [champ, omenSel, focus]);
 
   if (!champ) {
     return (
@@ -448,12 +466,13 @@ function Forge({
   }
 
   const picked = hero ?? fighterIndexFor(champ.displayName);
+  const c2 = final ?? champ;
 
   return (
     <div className="forge">
-      <h1 className="forge-title">Choose your form.</h1>
+      <h1 className="forge-title">Shape your hunter.</h1>
       <p className="forge-sub">
-        {champ.displayName} <span className="epithet">{champ.epithet}</span> — the look is yours to choose; strength you earn.
+        {c2.displayName} <span className="epithet">{c2.epithet}</span> — pick your form, your weapon path and your training.
       </p>
       <div className="styler">
         <div
@@ -479,6 +498,45 @@ function Forge({
               <span className="muted small">{f.role}</span>
             </button>
           ))}
+        </div>
+
+        <div className="card" style={{ textAlign: "left" }}>
+          <h4>Awakening — decides your starting weapon</h4>
+          <div className="awaken-grid">
+            {OMENS.map((o) => (
+              <button
+                key={o.id}
+                className={`opt awaken ${c2.omen === o.id ? "picked" : ""}`}
+                onClick={() => setOmenSel(o.id)}
+              >
+                <WeaponIcon d={o.id as Parameters<typeof WeaponIcon>[0]["d"]} size={28} color="currentColor" />
+                <span className="awaken-text">
+                  <b>{o.name}</b>
+                  <span className="small">
+                    {o.startingWeapons.map((w) => weapon(w).name).join(" + ")} · {o.epithet}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <h4>Focus — train one stat (+2)</h4>
+          <div className="opt-row">
+            {(["might", "grace", "tempo", "grit"] as StatName[]).map((s) => (
+              <button
+                key={s}
+                className={`opt ${focus === s ? "picked" : ""}`}
+                onClick={() => setFocus(focus === s ? null : s)}
+              >
+                {STAT_LABEL[s]}
+              </button>
+            ))}
+          </div>
+          <div className="statline">
+            {STAT_LABEL.might} {c2.stats.might} · {STAT_LABEL.grace} {c2.stats.grace} ·{" "}
+            {STAT_LABEL.tempo} {c2.stats.tempo} · {STAT_LABEL.grit} {c2.stats.grit} · starts with{" "}
+            {c2.weapons.map((w) => weapon(w).name).join(" + ")}
+          </div>
         </div>
 
         <div className="card">
@@ -517,7 +575,7 @@ function Forge({
           >
             Surprise me
           </button>
-          <button className="btn primary big" onClick={() => onForge(champ, picked, styleFx, aura)}>
+          <button className="btn primary big" onClick={() => onForge(c2, picked, styleFx, aura)}>
             Start Hunting →
           </button>
         </div>
@@ -608,7 +666,7 @@ function Home(props: {
             {c.weapons.map((id, i) => (
               <li key={id}>
                 <span className="wname">
-                  <DisciplineGlyph d={weapon(id).discipline} /> {weapon(id).name}
+                  <WeaponIcon d={weapon(id).discipline} /> {weapon(id).name}
                   <span className="muted small">
                     {weapon(id).discipline === "aspis"
                       ? "shield"
@@ -621,7 +679,7 @@ function Home(props: {
                 </span>
               </li>
             ))}
-            <li className="muted"><span className="wname"><DisciplineGlyph d="fists" /> Fists</span><span className="small">always last</span></li>
+            <li className="muted"><span className="wname"><WeaponIcon d="fists" /> Fists</span><span className="small">always last</span></li>
           </ul>
         </div>
       </section>
@@ -887,7 +945,7 @@ function Codex({ champion, onBack }: { champion: Champion; onBack: () => void })
         <h3>Weapons — {WEAPONS.length} ({champion.weapons.length} owned)</h3>
         {WEAPONS.map((w) => (
           <div className="codex-row" key={w.id}>
-            <DisciplineGlyph d={w.discipline} size={26} />
+            <WeaponIcon d={w.discipline} size={26} />
             <div className="grow">
               <div className="cname">{w.name}</div>
               <div className="cmeta">

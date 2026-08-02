@@ -1115,6 +1115,25 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .styler-stage .muted { color: #cfc4ac; }
 .hero-caption b { font-family: var(--font-display); font-size: 1.05rem; }
 
+/* awakening picker — weapon path cards */
+.awaken-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.opt.awaken {
+  justify-content: flex-start;
+  text-align: left;
+  gap: 10px;
+  padding: 8px 12px;
+  color: #8a5a2e;
+}
+.opt.awaken.picked { color: #fff; }
+.awaken-text { display: flex; flex-direction: column; line-height: 1.25; color: var(--ink); }
+.opt.awaken.picked .awaken-text { color: #fff; }
+.awaken-text .small { font-weight: 600; opacity: 0.85; }
+
 /* roster grid of fighter forms */
 .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .roster-duel { grid-template-columns: repeat(2, minmax(150px, 220px)); justify-content: center; }
