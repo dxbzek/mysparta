@@ -468,3 +468,38 @@ export function lookStrip(look: Look): Promise<string> {
 export function cachedStrip(look: Look): string | undefined {
   return stripCache.get(lookKey(normaliseLook(look)));
 }
+
+/* ================= weapons in hand ================= */
+
+/** Weapon art keyed by discipline family (see extract-weapons.mjs). */
+export type WeaponArt = "sword" | "spear" | "mace" | "dagger" | "shield";
+
+const WEAPON_SHEETS: Record<WeaponArt, string> = {
+  sword: "wpn-sword",
+  spear: "wpn-spear",
+  mace: "wpn-mace",
+  dagger: "wpn-dagger",
+  shield: "wpn-shield",
+};
+
+/** Strip URL for a weapon, drawn over the fighter on the same 32-frame grid. */
+export function weaponStrip(art: WeaponArt): string {
+  return sheet(WEAPON_SHEETS[art]);
+}
+
+/** Which art a weapon discipline is drawn with. */
+export function weaponArtFor(discipline: string): WeaponArt | undefined {
+  switch (discipline) {
+    case "xiphos":
+      return "sword";
+    case "doru":
+    case "akontia":
+      return "spear";
+    case "labrys":
+      return "mace";
+    case "aspis":
+      return "shield";
+    default:
+      return undefined; // cestus fights bare-handed
+  }
+}

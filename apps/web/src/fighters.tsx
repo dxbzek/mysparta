@@ -16,10 +16,12 @@ import {
   STRIP_FRAMES,
   lookStrip,
   cachedStrip,
+  weaponStrip,
   normaliseLook,
   randomLook,
   type Anim,
   type Look,
+  type WeaponArt,
 } from "./paperdoll.js";
 
 export type FighterAnim = Anim;
@@ -106,6 +108,7 @@ export function FighterFig({
   mirror,
   aura,
   particles,
+  weapon,
   className,
 }: {
   look?: Look;
@@ -116,6 +119,8 @@ export function FighterFig({
   aura?: number;
   /** equipped trinket effect swirling around the fighter */
   particles?: string;
+  /** weapon drawn in hand, animated on the same frames as the body */
+  weapon?: WeaponArt;
   className?: string;
 }) {
   const src = useLookStrip(look);
@@ -165,6 +170,25 @@ export function FighterFig({
             } as React.CSSProperties
           }
         />
+        {weapon && (
+          <span
+            className="strip weapon-strip"
+            style={
+              {
+                width: w,
+                height: w,
+                backgroundImage: `url(${weaponStrip(weapon)})`,
+                backgroundSize: `${w * STRIP_FRAMES}px ${w}px`,
+                transform: mirror ? "scaleX(-1)" : undefined,
+                animation: `stripPlay ${a.dur}s steps(${steps}) ${
+                  a.loop ? "infinite" : "1 forwards"
+                }`,
+                "--strip-from": `${-a.from * w}px`,
+                "--strip-to": `${-lastFrame * w}px`,
+              } as React.CSSProperties
+            }
+          />
+        )}
       </span>
       {particles && <WeatherFx kind={particles} count={5} />}
     </span>

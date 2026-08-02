@@ -56,7 +56,7 @@ body::before {
 #root { min-height: 100vh; position: relative; }
 
 .shell {
-  max-width: 880px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 0 14px calc(24px + env(safe-area-inset-bottom));
   display: flex;
@@ -233,7 +233,19 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* ---------- home ---------- */
 
-.home { display: flex; flex-direction: column; gap: 14px; }
+/*
+ * The Hall used to be one tall stack, which wastes a laptop and forces
+ * endless scrolling. It is a grid now: one column on a phone, two on a
+ * tablet, three once there is room, with the wide panels spanning.
+ */
+.home { display: grid; grid-template-columns: 1fr; gap: 14px; align-content: start; }
+.home > .span-all { grid-column: 1 / -1; }
+@media (min-width: 700px) {
+  .home { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 1100px) {
+  .home { grid-template-columns: repeat(3, 1fr); }
+}
 .champ-card { display: flex; gap: 18px; align-items: center; }
 .champ-meta { flex: 1; }
 .hero-fig { display: none; }
@@ -268,8 +280,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   pointer-events: none;
 }
 
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 620px) { .grid-2 { grid-template-columns: 1fr; } }
+.grid-2 { display: contents; }
 
 .card h3 .muted,
 .card h3 .small,
@@ -317,7 +328,26 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   background: repeating-linear-gradient(90deg, transparent 0 5px, rgb(47 42 34 / 32%) 5px 6px);
 }
 
-.arsenal { list-style: none; margin: 0; padding: 0; }
+.arsenal { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.arsenal li {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 9px;
+  border: 2.5px solid rgb(67 56 42 / 45%);
+  border-radius: var(--radius);
+  background: rgb(255 255 255 / 35%);
+}
+.wicon { margin-top: 2px; color: var(--ink); }
+.wbody { flex: 1; min-width: 0; }
+.wtop { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.wtop b { font-family: var(--font-display); font-size: 0.76rem; font-weight: 700; }
+.wtag {
+  font-size: 0.66rem; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-soft); font-weight: 700;
+}
+.wbars { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; }
+.wbar-row { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; font-weight: 700; color: var(--ink-soft); }
+.wbar-row > span:first-child { flex: 0 0 52px; }
+.wbar-row .statbar { height: 9px; }
 .arsenal li {
   display: flex; justify-content: space-between; align-items: center; gap: 8px;
   padding: 5px 0; font-size: 0.98rem; font-weight: 600;
@@ -1169,7 +1199,17 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* ---------- forge customiser ---------- */
 
-.styler { display: flex; flex-direction: column; gap: 14px; max-width: 880px; margin: 0 auto; text-align: left; }
+/*
+ * Character creation reads as a workbench: the hunter stands on the left and
+ * every choice sits beside them, so you see the change without scrolling.
+ * On a phone it falls back to preview-then-choices.
+ */
+.styler { display: grid; grid-template-columns: 1fr; gap: 14px; max-width: 1180px; margin: 0 auto; text-align: left; }
+@media (min-width: 860px) {
+  .styler { grid-template-columns: minmax(240px, 320px) 1fr; align-items: start; }
+  .styler-stage { position: sticky; top: 12px; }
+  .styler > .actions { grid-column: 1 / -1; }
+}
 .styler-stage {
   position: relative;
   display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 8px;
@@ -1275,6 +1315,9 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .swatch.picked { outline: 3px solid var(--terracotta); outline-offset: 2px; }
 .opt-row { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (min-width: 1100px) {
+  .styler .part-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; }
+}
 .opt {
   font-family: var(--font-body); font-weight: 700; font-size: 0.85rem;
   display: flex; align-items: center; gap: 6px;
@@ -1385,3 +1428,10 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* keeps a label with an inline icon from being split by the button's gap */
 .btn-label { display: inline-flex; align-items: center; gap: 3px; }
+
+/* weapon layer sits over the body on the same frame grid */
+.weapon-strip { position: absolute; inset: 0; }
+
+/* a pet chip carries its sprite, not just its name */
+.pet-chip { display: inline-flex; align-items: center; gap: 7px; padding-left: 7px; }
+.pet-sprite { display: block; }

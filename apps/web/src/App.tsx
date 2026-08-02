@@ -33,7 +33,7 @@ import {
   type TrumpTrigger,
 } from "@agoge/core";
 import { FightTheatre, type StageFigure } from "./FightTheatre.js";
-import { BeastFigure } from "./art.js";
+import { PetSprite } from "./pixelPets.js";
 import { WeaponIcon } from "./weaponIcons.js";
 import { PixIcon } from "./pixelIcons.js";
 import { AURAS, AuraSparks, FighterBust, FighterFig, lookFor, rivalLook } from "./fighters.js";
@@ -375,8 +375,8 @@ function Shell({ children, header }: { children: React.ReactNode; header?: React
       <footer className="foot">
         RANK ZERO prototype — deterministic sim v1 · your progress is saved in this browser
         <br />
-        characters from the LPC universal sprite set (CC BY-SA 3.0 / GPL 3.0) · arenas painted in-engine ·
-        weapon icons by game-icons.net (CC BY 3.0)
+        characters and weapons from the LPC universal sprite set (CC BY-SA 3.0 / GPL 3.0) ·
+        arenas, icons and pets drawn in-engine
       </footer>
     </div>
   );
@@ -626,6 +626,44 @@ function Quest({ done, children }: { done: boolean; children: React.ReactNode })
   );
 }
 
+/** Plain names for the disciplines, so a tag reads instead of decodes. */
+const DISCIPLINE_NAME: Record<string, string> = {
+  xiphos: "Blade",
+  doru: "Spear",
+  labrys: "Axe",
+  cestus: "Fist",
+  akontia: "Thrown",
+  aspis: "Shield",
+};
+
+/**
+ * A weapon's character at a glance: how hard it hits, how often, how far it
+ * reaches. Bars beat "dmg 10 · steady" because two weapons can be compared
+ * without doing arithmetic.
+ */
+function WeaponBars({ w }: { w: ReturnType<typeof weapon> }) {
+  if (w.discipline === "aspis") {
+    return <div className="muted small">Raised to turn blows aside — never swung.</div>;
+  }
+  // 900ms is about the slowest swing in the game; invert so faster reads fuller
+  const speed = Math.max(6, Math.min(100, ((450 - w.interval) / 270) * 100));
+  const rows: Array<[string, number]> = [
+    ["Damage", Math.min(100, (w.dmg / 22) * 100)],
+    ["Speed", speed],
+    ["Reach", Math.min(100, ((w.reach + 1) / 4) * 100)],
+  ];
+  return (
+    <div className="wbars">
+      {rows.map(([label, pct]) => (
+        <div className="wbar-row" key={label}>
+          <span>{label}</span>
+          <span className="statbar"><i style={{ width: `${pct}%` }} /></span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /* ================= home ================= */
 
 function Home(props: {
@@ -656,7 +694,7 @@ function Home(props: {
   return (
     <div className="home">
       {save.totalFights < 3 && (
-        <section className="card hint">
+        <section className="card hint span-all">
           <p>
             <b>How it plays:</b> fight rivals → earn XP → level up → the Rift rolls your reward
             (stats, weapons, skills, pets or gear — always a surprise). You get <b>6 fights a day</b>{" "}
@@ -665,7 +703,7 @@ function Home(props: {
         </section>
       )}
 
-      <section className="card champ-card">
+      <section className="card champ-card span-all">
         <FighterBust look={worn} size={92} />
         <div className="champ-meta">
           <h2 className="champ-name">
@@ -702,21 +740,27 @@ function Home(props: {
           <ul className="arsenal">
             {c.weapons.map((id, i) => (
               <li key={id}>
-                <span className="wname">
-                  <WeaponIcon d={weapon(id).discipline} /> {weapon(id).name}
-                  <span className="muted small">
-                    {weapon(id).discipline === "aspis"
-                      ? "shield"
-                      : `dmg ${weapon(id).dmg} · ${weapon(id).interval <= 240 ? "fast" : weapon(id).interval <= 320 ? "steady" : "heavy"}`}
-                  </span>
-                </span>
+                <WeaponIcon d={weapon(id).discipline} size={16} className="wicon" />
+                <div className="wbody">
+                  <div className="wtop">
+                    <b>{weapon(id).name}</b>
+                    <span className="wtag">{DISCIPLINE_NAME[weapon(id).discipline] ?? weapon(id).discipline}</span>
+                  </div>
+                  <WeaponBars w={weapon(id)} />
+                </div>
                 <span className="reorder">
                   <button aria-label="draw earlier" disabled={i === 0} onClick={() => props.onReorder(i, i - 1)}><PixIcon name="chevronUp" size={7} /></button>
                   <button aria-label="draw later" disabled={i === c.weapons.length - 1} onClick={() => props.onReorder(i, i + 1)}><PixIcon name="chevronDown" size={7} /></button>
                 </span>
               </li>
             ))}
-            <li className="muted"><span className="wname"><WeaponIcon d="fists" /> Fists</span><span className="small">always last</span></li>
+            <li className="muted">
+              <WeaponIcon d="fists" size={16} className="wicon" />
+              <div className="wbody">
+                <div className="wtop"><b>Fists</b><span className="wtag">always last</span></div>
+                <div className="muted small">What is left when the steel is gone.</div>
+              </div>
+            </li>
           </ul>
         </div>
       </section>
@@ -747,7 +791,8 @@ function Home(props: {
               </span>
             ))}
             {c.beasts.map((b, i) => (
-              <span key={`${b}${i}`} className="chip chip-beast" title={beast(b).flavour}>
+              <span key={`${b}${i}`} className="chip chip-beast pet-chip" title={beast(b).flavour}>
+                <PetSprite beastId={b} size={26} />
                 {beast(b).name}
               </span>
             ))}
@@ -1030,7 +1075,7 @@ function Codex({ champion, onBack }: { champion: Champion; onBack: () => void })
         <h3>Pets — {BEASTS.length} ({champion.beasts.length} at your side)</h3>
         {BEASTS.map((b) => (
           <div className="codex-row" key={b.id}>
-            <BeastFigure beastId={b.id} size={52} />
+            <PetSprite beastId={b.id} size={52} />
             <div className="grow">
               <div className="cname">{b.name}</div>
               <div className="cmeta">

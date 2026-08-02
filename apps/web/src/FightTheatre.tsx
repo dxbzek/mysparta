@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BEASTS, FISTS, WEAPONS, type FightResult } from "@agoge/core";
-import { BeastFigure, ImpactBurst, Javelin, Laurel, SlashArc } from "./art.js";
+import { ImpactBurst, Javelin, Laurel, SlashArc } from "./art.js";
+import { PetSprite } from "./pixelPets.js";
 import { FighterFig, WeatherFx, type FighterAnim } from "./fighters.js";
 import { arenaScene } from "./arenaArt.js";
 import { PixIcon } from "./pixelIcons.js";
 import type { Arena } from "./arenas.js";
-import { CHAR, type Look } from "./paperdoll.js";
+import { CHAR, weaponArtFor, type Look } from "./paperdoll.js";
 import { narrate, type Line } from "./narrate.js";
 import { sound, type StrikeKind } from "./sound.js";
 
@@ -295,7 +296,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
               key={`${id}${i}${striking ? idx : ""}`}
               className={striking ? (side === 0 ? "beast-dash-r" : "beast-dash-l") : "beast-idle"}
             >
-              <BeastFigure beastId={id} size={54} mirror={side === 1} down={downed[side].has(id)} />
+              <PetSprite beastId={id} size={54} mirror={side === 1} down={downed[side].has(id)} />
             </span>
           );
         })}
@@ -336,6 +337,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
                   height={figH}
                   anim={animOf(0)}
                   aura={figures[0].aura}
+                  weapon={weaponArtFor(disciplineById.get(heldWeapon[0] ?? "") ?? "")}
                   particles={figures[0].particles}
                 />
                 {renderEffects(0)}
@@ -356,6 +358,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
                   height={figH}
                   anim={animOf(1)}
                   aura={figures[1].aura}
+                  weapon={weaponArtFor(disciplineById.get(heldWeapon[1] ?? "") ?? "")}
                   particles={figures[1].particles}
                   mirror
                 />
