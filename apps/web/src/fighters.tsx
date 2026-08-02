@@ -46,6 +46,8 @@ export interface Fighter {
   box: number;
   /** character bounds inside the frame (from the idle pose) */
   char: { cx: number; w: number; h: number; groundOff: number };
+  /** true when the artist drew the sheets facing LEFT (mirror logic inverts) */
+  facesLeft?: boolean;
 }
 
 export const FIGHTERS: Fighter[] = [
@@ -70,6 +72,7 @@ export const FIGHTERS: Fighter[] = [
     blurb: "Strikes twice before the first cut is felt.",
     box: 200,
     char: { cx: 102, w: 34, h: 54, groundOff: 73 },
+    facesLeft: true,
     sheets: {
       idle: { src: kenjiIdle, frames: 4, dur: 0.75, loop: true },
       run: { src: kenjiRun, frames: 8, dur: 0.5, loop: true },
@@ -200,7 +203,9 @@ export function FighterFig({
   const f = fighterOf(fighter);
   const scale = height / f.char.h;
   const sheet = f.sheets[anim];
-  const cx = mirror ? f.box - f.char.cx : f.char.cx;
+  // `mirror` means "face left on screen"; sheets drawn facing left invert it.
+  const flip = f.facesLeft ? !mirror : !!mirror;
+  const cx = flip ? f.box - f.char.cx : f.char.cx;
   return (
     <span
       className={`fighter-fig ${className ?? ""}`}
@@ -221,7 +226,7 @@ export function FighterFig({
           bottom: -Math.round(f.char.groundOff * scale),
         }}
       >
-        <SheetAnim sheet={sheet} box={f.box} scale={scale} mirror={mirror} holdEnd={anim === "death"} />
+        <SheetAnim sheet={sheet} box={f.box} scale={scale} mirror={flip} holdEnd={anim === "death"} />
       </span>
       {particles && <WeatherFx kind={particles} count={5} />}
     </span>

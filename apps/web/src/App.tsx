@@ -557,9 +557,9 @@ function Home(props: {
       {save.totalFights < 3 && (
         <section className="card hint">
           <p>
-            <b>How it plays:</b> fight rivals → earn XP → level up → pick 1 of 3 upgrades
-            (stats, weapons, skills or beasts). You get <b>6 fights a day</b> (they bank up to 12).{" "}
-            <span className="muted">Your name set your awakening — your choices decide the rest.</span>
+            <b>How it plays:</b> fight rivals → earn XP → level up → the Rift rolls your reward
+            (stats, weapons, skills, pets or gear — always a surprise). You get <b>6 fights a day</b>{" "}
+            (they bank up to 12). <span className="muted">Your name set your awakening — the Rift decides the rest.</span>
           </p>
         </section>
       )}
