@@ -1873,3 +1873,49 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* the remaining cards share the row evenly instead of leaving a hole */
 .home { grid-auto-flow: row dense; }
+
+/* slot groups sit side by side, so a short wardrobe still fills its card */
+.wardrobe {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(236px, 1fr));
+  gap: 4px 18px;
+  align-content: start;
+}
+.wardrobe > h3 { grid-column: 1 / -1; }
+.wardrobe .chips { grid-template-columns: 1fr; }
+.wardrobe .wardrobe-row { margin-bottom: 4px; }
+
+/* the Hall's standings panel is a column card like the rest */
+.home > .standings { margin-bottom: 0; }
+
+/* ---------- the champion, big enough to look at ---------- */
+
+.champ-card { gap: 22px; }
+.hero-fig { display: none; }
+@media (min-width: 720px) {
+  /* the whole point of a paper doll is seeing it */
+  .hero-fig {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+    min-width: 150px;
+    /* sits on the card's floor and grows upward inside it, never clipped */
+    margin: 0 6px -14px 0;
+  }
+  .champ-card { align-items: flex-end; min-height: 216px; }
+  .champ-meta { align-self: center; }
+}
+
+/* ---------- tasks as a strip, not a column ---------- */
+
+.quests-strip { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 10px 16px; }
+.quests-strip h3 { margin: 0; border: none; padding: 0; white-space: nowrap; }
+.quests-strip .qlist { display: flex; gap: 16px; flex-wrap: wrap; flex: 1; }
+.quests-strip .qlist li { padding: 2px 0 2px 24px; font-size: 0.9rem; }
+.quests-strip .qbox { top: 1px; }
+.quests-strip .note { margin: 0; white-space: nowrap; }
+@media (max-width: 620px) {
+  .quests-strip { gap: 8px; }
+  .quests-strip .qlist { gap: 6px 14px; }
+}

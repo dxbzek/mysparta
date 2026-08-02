@@ -952,7 +952,7 @@ function Home(props: {
         </div>
         <div className="hero-fig">
           <AuraSparks aura={extras.aura} />
-          <FighterFig look={worn} height={120} aura={extras.aura} particles={extras.particles} />
+          <FighterFig look={worn} height={210} aura={extras.aura} particles={extras.particles} />
         </div>
       </section>
 
@@ -996,7 +996,7 @@ function Home(props: {
         </div>
       </section>
 
-      <section className="card quests">
+      <section className="card quests quests-strip span-all">
         <h3>Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — gear dropped!</span>}</h3>
         <ul className="qlist">
           <Quest done={(save.quests?.fights ?? 0) >= 3}>
@@ -1009,7 +1009,7 @@ function Home(props: {
             Land a critical hit ({Math.min(1, save.quests?.crits ?? 0)}/1)
           </Quest>
         </ul>
-        <p className="muted small">Complete all three for a bonus gear drop. Resets daily.</p>
+        <p className="muted small note">Complete all three for a bonus gear drop. Resets daily.</p>
       </section>
 
       {(c.skills.length > 0 || c.beasts.length > 0) && (
@@ -1030,6 +1030,8 @@ function Home(props: {
           </div>
         </section>
       )}
+
+      <StandingsStrip save={save} />
 
       <section className="card wardrobe span-all">
         <h3>
