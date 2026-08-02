@@ -49,7 +49,10 @@ export function createChampion(rawName: string, choices?: CreationChoices): Cham
       tempo: 6 + omen.bonus.tempo + (focus === "tempo" ? 2 : 0),
       grit: 6 + omen.bonus.grit + (focus === "grit" ? 2 : 0),
     },
-    weapons: [...omen.startingWeapons],
+    // Everyone awakens bare-handed (MyBrute rule): weapons only ever
+    // arrive as random level-up finds. The Awakening keeps its stat
+    // spread and epithet as rolled flavour.
+    weapons: [],
     skills: [],
     beasts: [],
     favour: 0,

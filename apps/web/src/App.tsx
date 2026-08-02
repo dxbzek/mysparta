@@ -23,7 +23,6 @@ import {
   skill,
   snapshot,
   weapon,
-  OMENS,
   type BattlePlan,
   type Champion,
   type FateOffer,
@@ -43,7 +42,6 @@ import {
   FIGHTERS,
   FighterBust,
   FighterFig,
-  STYLES,
   fighterIndexFor,
   rivalLook,
 } from "./fighters.js";
@@ -390,9 +388,7 @@ function Forge({
   const [name, setName] = useState("");
   const [champ, setChamp] = useState<Champion | null>(null);
   const [hero, setHero] = useState<number | null>(null);
-  const [styleFx, setStyleFx] = useState(0);
   const [aura, setAura] = useState(0);
-  const [omenSel, setOmenSel] = useState<string | null>(null);
   const [focus, setFocus] = useState<StatName | null>(null);
   const [previewPose, setPreviewPose] = useState<"idle" | "attack1">("idle");
   const preview = useMemo(() => {
@@ -410,13 +406,12 @@ function Forge({
     if (!champ) return null;
     try {
       return createChampion(champ.displayName, {
-        omen: omenSel ?? undefined,
         focus: focus ?? undefined,
       });
     } catch {
       return champ;
     }
-  }, [champ, omenSel, focus]);
+  }, [champ, focus]);
 
   if (!champ) {
     return (
@@ -483,7 +478,7 @@ function Forge({
           title="Hold to see the attack"
         >
           <AuraSparks aura={aura} />
-          <FighterFig fighter={picked} height={170} anim={previewPose} style={styleFx} aura={aura} />
+          <FighterFig fighter={picked} height={170} anim={previewPose} aura={aura} />
           <div className="hero-caption">
             <b>{FIGHTERS[picked]!.name}</b>
             <span className="muted small">{FIGHTERS[picked]!.blurb} <em>(hold to preview the attack)</em></span>
@@ -493,7 +488,7 @@ function Forge({
         <div className="roster roster-duel">
           {FIGHTERS.map((f, i) => (
             <button key={f.name} className={`hero-card ${picked === i ? "picked" : ""}`} onClick={() => setHero(i)}>
-              <FighterFig fighter={i} height={96} anim={picked === i ? "run" : "idle"} style={styleFx} aura={aura} />
+              <FighterFig fighter={i} height={96} anim={picked === i ? "run" : "idle"} aura={aura} />
               <b>{f.name}</b>
               <span className="muted small">{f.role}</span>
             </button>
@@ -501,22 +496,17 @@ function Forge({
         </div>
 
         <div className="card" style={{ textAlign: "left" }}>
-          <h4>Awakening — decides your starting weapon</h4>
-          <div className="awaken-grid">
-            {OMENS.map((o) => (
+          <h4>Aura</h4>
+          <div className="swatches">
+            {AURAS.map((a, i) => (
               <button
-                key={o.id}
-                className={`opt awaken ${c2.omen === o.id ? "picked" : ""}`}
-                onClick={() => setOmenSel(o.id)}
-              >
-                <WeaponIcon d={o.id as Parameters<typeof WeaponIcon>[0]["d"]} size={28} color="currentColor" />
-                <span className="awaken-text">
-                  <b>{o.name}</b>
-                  <span className="small">
-                    {o.startingWeapons.map((w) => weapon(w).name).join(" + ")} · {o.epithet}
-                  </span>
-                </span>
-              </button>
+                key={a.name}
+                className={`swatch ${aura === i ? "picked" : ""}`}
+                style={{ background: a.color, boxShadow: `0 0 10px ${a.color}88` }}
+                onClick={() => setAura(i)}
+                aria-label={`${a.name} aura`}
+                title={a.name}
+              />
             ))}
           </div>
 
@@ -534,48 +524,24 @@ function Forge({
           </div>
           <div className="statline">
             {STAT_LABEL.might} {c2.stats.might} · {STAT_LABEL.grace} {c2.stats.grace} ·{" "}
-            {STAT_LABEL.tempo} {c2.stats.tempo} · {STAT_LABEL.grit} {c2.stats.grit} · starts with{" "}
-            {c2.weapons.map((w) => weapon(w).name).join(" + ")}
-          </div>
-        </div>
-
-        <div className="card">
-          <h4>Style</h4>
-          <div className="opt-row">
-            {STYLES.map((s, i) => (
-              <button key={s.name} className={`opt ${styleFx === i ? "picked" : ""}`} onClick={() => setStyleFx(i)}>
-                {s.name}
-              </button>
-            ))}
-          </div>
-
-          <h4>Aura</h4>
-          <div className="swatches">
-            {AURAS.map((a, i) => (
-              <button
-                key={a.name}
-                className={`swatch ${aura === i ? "picked" : ""}`}
-                style={{ background: a.color, boxShadow: `0 0 10px ${a.color}88` }}
-                onClick={() => setAura(i)}
-                aria-label={`${a.name} aura`}
-                title={a.name}
-              />
-            ))}
+            {STAT_LABEL.tempo} {c2.stats.tempo} · {STAT_LABEL.grit} {c2.stats.grit} · you awaken
+            bare-handed — weapons are found as you level
           </div>
         </div>
 
         <div className="actions">
           <button
-            className="btn ghost"
+            className="btn big"
             onClick={() => {
               setHero(Math.floor(Math.random() * FIGHTERS.length));
-              setStyleFx(Math.floor(Math.random() * STYLES.length));
               setAura(Math.floor(Math.random() * AURAS.length));
+              const focuses: (StatName | null)[] = [null, "might", "grace", "tempo", "grit"];
+              setFocus(focuses[Math.floor(Math.random() * focuses.length)]!);
             }}
           >
-            Surprise me
+            🎲 Randomize
           </button>
-          <button className="btn primary big" onClick={() => onForge(c2, picked, styleFx, aura)}>
+          <button className="btn primary big" onClick={() => onForge(c2, picked, 0, aura)}>
             Start Hunting →
           </button>
         </div>
