@@ -935,7 +935,11 @@ function Home(props: {
       )}
 
       <section className="card champ-card span-all">
-        <FighterBust look={worn} size={92} />
+        {/* the champion leads the card — big, on the left, where the eye lands */}
+        <div className="hero-fig">
+          <AuraSparks aura={extras.aura} />
+          <FighterFig look={worn} height={210} aura={extras.aura} particles={extras.particles} />
+        </div>
         <div className="champ-meta">
           <h2 className="champ-name">
             {c.displayName} <span className="epithet">{extras.title ?? c.epithet}</span>
@@ -949,10 +953,6 @@ function Home(props: {
           <div className="statline">
             XP {c.xp}/{need} · {save.wins}W – {save.losses}L · HP {hpNow} · Gear {ownedGear.length}/{gearPool().length}
           </div>
-        </div>
-        <div className="hero-fig">
-          <AuraSparks aura={extras.aura} />
-          <FighterFig look={worn} height={210} aura={extras.aura} particles={extras.particles} />
         </div>
       </section>
 

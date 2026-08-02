@@ -248,7 +248,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .champ-card { display: flex; gap: 18px; align-items: center; }
 .champ-meta { flex: 1; }
-.hero-fig { display: none; }
+.hero-fig { display: flex; align-items: flex-end; justify-content: center; position: relative; margin: 0 0 -10px; }
+.hero-fig .fighter-fig { transform-origin: bottom center; transform: scale(0.62); }
+@media (min-width: 720px) {
+  .hero-fig .fighter-fig { transform: none; }
+}
 @media (min-width: 640px) {
   .hero-fig { display: block; position: relative; margin: -10px -4px -14px 0; }
 }
@@ -1901,7 +1905,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
     position: relative;
     min-width: 150px;
     /* sits on the card's floor and grows upward inside it, never clipped */
-    margin: 0 6px -14px 0;
+    margin: 0 0 -14px 6px;
   }
   .champ-card { align-items: flex-end; min-height: 216px; }
   .champ-meta { align-self: center; }
