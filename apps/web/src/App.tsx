@@ -1031,7 +1031,7 @@ function Home(props: {
         </section>
       )}
 
-      <section className="card">
+      <section className="card wardrobe span-all">
         <h3>
           Wardrobe{" "}
           <span className="muted small">

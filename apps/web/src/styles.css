@@ -1855,3 +1855,21 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   margin-top: 6px;
 }
 .home > .devrow .btn { min-height: 32px; }
+
+/* ---------- wardrobe fills the row it sits in ---------- */
+
+/*
+ * It used to be one narrow card alone on a three-column row, which left two
+ * empty cells staring back. It spans the row now and its pieces flow across
+ * the full width.
+ */
+.wardrobe .chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+  gap: 8px;
+}
+.wardrobe .gear-chip { width: 100%; }
+.wardrobe .wardrobe-row { margin-bottom: 12px; }
+
+/* the remaining cards share the row evenly instead of leaving a hole */
+.home { grid-auto-flow: row dense; }
