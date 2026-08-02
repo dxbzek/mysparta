@@ -56,7 +56,12 @@ function blob(p) {
  * is why a fg-only extract goes blank mid-swing. Both are merged here so the
  * weapon is always visible; it rides over the fighter rather than through it.
  */
-async function strip(srcPaths, outName) {
+/**
+ * Some weapons keep their swing in a separate attack sheet rather than in the
+ * classic rows — the axe is one. `slash` names that sheet and the east-facing
+ * row inside it, which is grafted over frames 12-17 after the base pack.
+ */
+async function strip(srcPaths, outName, slash) {
   const bufs = srcPaths
     .map((p) => {
       try {
@@ -107,18 +112,68 @@ async function strip(srcPaths, outName) {
     run: ["stance", "idle", "thrust"],
     hurt: ["stance", "idle", "run"],
   };
-  const raw = await sharp(sheetBuf).ensureAlpha().raw().toBuffer();
-  const filled = (a, b) => {
-    for (let f = a; f < b; f++) {
-      for (let y = 0; y < F; y++)
-        for (let x = 0; x < F; x++)
-          if (raw[((y * TOTAL * F) + (f * F + x)) * 4 + 3] > 40) return true;
+  // The swing is grafted before anything is measured, so the donor pass
+  // below sees the finished sheet instead of the gap it is about to fill.
+  if (slash) {
+    const graftParts = [];
+    const sbufs = slash.paths
+      .map((p) => {
+        try {
+          return blob(p);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+    // Oversize sheets store 192px frames, so the cell that lines up with the
+    // character is every third column — 1, 4, 7 and so on.
+    const cols = slash.cols ?? [0, 1, 2, 3, 4, 5];
+    for (let i = 0; i < cols.length; i++) {
+      for (const b of sbufs) {
+        graftParts.push({
+          input: await sharp(b)
+            .extract({ left: cols[i] * F, top: slash.row * F, width: F, height: F })
+            .toBuffer(),
+          left: (12 + i) * F,
+          top: 0,
+        });
+      }
     }
+    sheetBuf = await sharp(sheetBuf).composite(graftParts).png().toBuffer();
+    console.log(`  ${outName}: slash grafted from ${slash.paths[0]} row ${slash.row}`);
+  }
+
+  const raw = await sharp(sheetBuf).ensureAlpha().raw().toBuffer();
+  // One stray frame is not an animation: a range only counts as drawn when
+  // most of its frames carry art, otherwise the weapon flickers through it.
+  const drawn = (f) => {
+    for (let y = 0; y < F; y++)
+      for (let x = 0; x < F; x++)
+        if (raw[((y * TOTAL * F) + (f * F + x)) * 4 + 3] > 40) return true;
+    return false;
+  };
+  const filled = (a, b) => {
+    for (let f = a; f < b; f++) if (drawn(f)) return true;
     return false;
   };
   const fixes = [];
   for (const [name, [a, b]] of Object.entries(RANGES)) {
-    if (filled(a, b)) continue;
+    if (filled(a, b)) {
+      // Partly drawn: hold the nearest drawn frame over the gaps so the
+      // weapon never blinks out for a frame or two mid-action.
+      let last = -1;
+      for (let f = a; f < b; f++) if (drawn(f)) { last = f; break; }
+      if (last < 0) continue;
+      for (let f = a; f < b; f++) {
+        if (drawn(f)) { last = f; continue; }
+        fixes.push({
+          input: await sharp(sheetBuf).extract({ left: last * F, top: 0, width: F, height: F }).toBuffer(),
+          left: f * F,
+          top: 0,
+        });
+      }
+      continue;
+    }
     const pick = (DONORS[name] || []).find((d) => RANGES[d] && filled(RANGES[d][0], RANGES[d][1]));
     if (!pick) continue;
     const donor = RANGES[pick];
@@ -130,6 +185,7 @@ async function strip(srcPaths, outName) {
     }
     console.log(`  ${outName}: ${name} borrowed from ${pick}`);
   }
+
   if (fixes.length) sheetBuf = await sharp(sheetBuf).composite(fixes).png().toBuffer();
 
   const out = path.join(OUT, `${outName}.webp`);
@@ -141,10 +197,18 @@ async function strip(srcPaths, outName) {
 const JOBS = [
   [["weapon/sword/dagger/behind/dagger.png", "weapon/sword/dagger/dagger.png"], "wpn-sword"],
   [["weapon/polearm/spear/background.png", "weapon/polearm/spear/foreground.png"], "wpn-spear"],
-  [["weapon/blunt/waraxe/behind/waraxe.png", "weapon/blunt/waraxe/waraxe.png"], "wpn-mace"],
+  [
+    ["weapon/blunt/mace/behind/mace.png", "weapon/blunt/mace/mace.png"],
+    "wpn-mace",
+    {
+      paths: ["weapon/blunt/mace/attack_slash/behind/mace.png", "weapon/blunt/mace/attack_slash/mace.png"],
+      row: 10,
+      cols: [1, 4, 7, 10, 13, 16],
+    },
+  ],
   [["weapon/sword/dagger/behind/dagger.png", "weapon/sword/dagger/dagger.png"], "wpn-dagger"],
   [["shield/male/spartan.png"], "wpn-shield"],
 ];
 
-for (const [srcs, name] of JOBS) await strip(srcs, name);
+for (const [srcs, name, slash] of JOBS) await strip(srcs, name, slash);
 console.log("done");

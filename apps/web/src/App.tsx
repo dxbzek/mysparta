@@ -875,11 +875,12 @@ function Home(props: {
             Nothing yet — every level up (and some victories) drops a random piece of gear.
           </p>
         ) : (
-          (["body", "cloak", "trinket", "title"] as GearSlot[]).map((slot) => {
+          (["body", "helm", "cloak", "trinket", "title"] as GearSlot[]).map((slot) => {
             const items = ownedGear.filter((g) => g.slot === slot);
             if (items.length === 0) return null;
             const labels: Record<GearSlot, string> = {
               body: "Armor",
+              helm: "Helm",
               cloak: "Cloak",
               trinket: "Trinket",
               title: "Title",
@@ -1090,13 +1091,16 @@ function Codex({ champion, onBack }: { champion: Champion; onBack: () => void })
         <h3>Weapons — {WEAPONS.length} ({champion.weapons.length} owned)</h3>
         {WEAPONS.map((w) => (
           <div className="codex-row" key={w.id}>
-            <WeaponIcon d={w.discipline} size={26} />
+            <WeaponIcon d={w.discipline} size={22} />
             <div className="grow">
-              <div className="cname">{w.name}</div>
+              <div className="wtop">
+                <span className="cname">{w.name}</span>
+                <span className="wtag">{DISCIPLINE_NAME[w.discipline] ?? w.discipline}</span>
+              </div>
+              <WeaponBars w={w} />
               <div className="cmeta">
-                {w.discipline === "aspis"
-                  ? "Shield"
-                  : `Damage ${w.dmg} · ${speedLabel(w.interval)}${w.ammo ? ` · ${w.ammo} throws` : ""}${w.twoHanded ? " · two-handed" : ""}`}{" "}
+                {w.ammo ? `${w.ammo} throws · ` : ""}
+                {w.twoHanded ? "two-handed · " : ""}
                 — {w.flavour}
               </div>
             </div>

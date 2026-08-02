@@ -12,7 +12,7 @@
 import { makeRng } from "@agoge/core";
 import { CLOTH_COLORS, TORSOS, torsosFor, type Look } from "./paperdoll.js";
 
-export type GearSlot = "body" | "cloak" | "trinket" | "title";
+export type GearSlot = "body" | "helm" | "cloak" | "trinket" | "title";
 export type ParticleKind = "embers" | "petals" | "snow" | "fireflies" | "storm";
 
 export interface GearItem {
@@ -23,6 +23,11 @@ export interface GearItem {
   /** armour: the outfit it puts on (index into paperdoll TORSOS + colours) */
   torso?: number;
   torsoColor?: number;
+  /** helm: which helmet is worn (paperdoll HELMS) */
+  helm?: number;
+  /** cloak: the cape actually hung on the fighter, plus the glow it casts */
+  cape?: number;
+  capeColor?: number;
   aura?: number;
   particles?: ParticleKind;
 }
@@ -55,14 +60,27 @@ const ARMOUR: GearItem[] = [
 ];
 
 const CLOAKS: GearItem[] = [
-  { id: "g_cloak_violet", name: "Mantle of Violet Dusk", slot: "cloak", aura: 0, flavour: "Woven at twilight." },
-  { id: "g_cloak_gold", name: "Golden Mantle", slot: "cloak", aura: 1, flavour: "A champion's colours." },
-  { id: "g_cloak_blood", name: "Bloodsilk Mantle", slot: "cloak", aura: 2, flavour: "The last thing seen. Briefly." },
-  { id: "g_cloak_tide", name: "Tidewater Mantle", slot: "cloak", aura: 3, flavour: "Calm before every storm." },
-  { id: "g_cloak_verdant", name: "Verdant Mantle", slot: "cloak", aura: 4, flavour: "The grove approves." },
-  { id: "g_cloak_rose", name: "Rosewind Mantle", slot: "cloak", aura: 5, flavour: "Petals follow it home." },
-  { id: "g_cloak_ivory", name: "Ivory Mantle", slot: "cloak", aura: 6, flavour: "Worn once, at the last duel." },
-  { id: "g_cloak_storm", name: "Stormcall Mantle", slot: "cloak", aura: 7, flavour: "Thunder answers it." },
+  { id: "g_cloak_violet", name: "Mantle of Violet Dusk", slot: "cloak", aura: 0, cape: 0, capeColor: 14, flavour: "Woven at twilight." },
+  { id: "g_cloak_gold", name: "Golden Mantle", slot: "cloak", aura: 1, cape: 0, capeColor: 7, flavour: "A champion's colours." },
+  { id: "g_cloak_blood", name: "Bloodsilk Mantle", slot: "cloak", aura: 2, cape: 0, capeColor: 4, flavour: "The last thing seen. Briefly." },
+  { id: "g_cloak_tide", name: "Tidewater Mantle", slot: "cloak", aura: 3, cape: 0, capeColor: 11, flavour: "Calm before every storm." },
+  { id: "g_cloak_verdant", name: "Verdant Mantle", slot: "cloak", aura: 4, cape: 0, capeColor: 9, flavour: "The grove approves." },
+  { id: "g_cloak_rose", name: "Rosewind Mantle", slot: "cloak", aura: 5, cape: 0, capeColor: 15, flavour: "Petals follow it home." },
+  { id: "g_cloak_ivory", name: "Ivory Mantle", slot: "cloak", aura: 6, cape: 0, capeColor: 0, flavour: "Worn once, at the last duel." },
+  { id: "g_cloak_storm", name: "Stormcall Mantle", slot: "cloak", aura: 7, cape: 0, capeColor: 12, flavour: "Thunder answers it." },
+];
+
+/* Helms cover the head; hair reappears the moment one comes off. */
+const helm = (id: string, name: string, idx: number, flavour: string): GearItem => ({
+  id, name, slot: "helm", helm: idx, flavour,
+});
+
+const HELMETS: GearItem[] = [
+  helm("g_helm_barbute", "Barbute", 0, "Narrow slit, narrower mercy."),
+  helm("g_helm_armet", "Sealed Armet", 1, "Nobody has seen the face under it."),
+  helm("g_helm_horned", "Horned Helm", 2, "Taken from something that stopped needing it."),
+  helm("g_helm_spangen", "Spangenhelm", 3, "Banded iron, older than the arena."),
+  helm("g_helm_kettle", "Kettle Helm", 4, "Practical. Unglamorous. Still breathing."),
 ];
 
 const TRINKETS: GearItem[] = [
@@ -86,7 +104,7 @@ const TITLES: GearItem[] = [
   { id: "g_t_night", name: "Night's Edge", slot: "title", flavour: "Where the dark gets sharp." },
 ];
 
-export const GEAR: GearItem[] = [...ARMOUR, ...CLOAKS, ...TRINKETS, ...TITLES];
+export const GEAR: GearItem[] = [...ARMOUR, ...HELMETS, ...CLOAKS, ...TRINKETS, ...TITLES];
 
 const byId = new Map(GEAR.map((g) => [g.id, g] as const));
 
@@ -113,6 +131,7 @@ export function rollGearDrop(owned: string[], seed: number): GearItem | undefine
 
 export interface Equipped {
   body?: string;
+  helm?: string;
   cloak?: string;
   trinket?: string;
   title?: string;
@@ -123,7 +142,8 @@ export function gearDetail(g: GearItem): string {
   if (g.slot === "body" && g.torso != null) {
     return `${TORSOS[g.torso]?.name ?? "Outfit"} · ${CLOTH_COLORS[g.torsoColor ?? 0]?.name ?? ""}`;
   }
-  if (g.slot === "cloak") return "Aura";
+  if (g.slot === "helm") return "Helmet";
+  if (g.slot === "cloak") return "Cape · aura";
   if (g.slot === "trinket") return "Combat effect";
   return "Title";
 }
@@ -131,10 +151,16 @@ export function gearDetail(g: GearItem): string {
 /** The look actually rendered: the hunter's own, with worn armour over it. */
 export function lookWithGear(look: Look, equipped: Equipped | undefined): Look {
   const body = equipped?.body ? gearItem(equipped.body) : undefined;
-  if (!body || body.torso == null) return look;
+  const helmet = equipped?.helm ? gearItem(equipped.helm) : undefined;
+  const cloak = equipped?.cloak ? gearItem(equipped.cloak) : undefined;
+  let out = look;
   // Armour is cut for both builds, but stay safe if a piece ever isn't.
-  if (!torsosFor(look.build).includes(body.torso)) return look;
-  return { ...look, torso: body.torso, torsoColor: body.torsoColor ?? look.torsoColor };
+  if (body?.torso != null && torsosFor(look.build).includes(body.torso)) {
+    out = { ...out, torso: body.torso, torsoColor: body.torsoColor ?? out.torsoColor };
+  }
+  if (helmet?.helm != null) out = { ...out, helm: helmet.helm };
+  if (cloak?.cape != null) out = { ...out, cape: cloak.cape, capeColor: cloak.capeColor ?? 0 };
+  return out;
 }
 
 /** Aura, particles and title once equipped gear overrides the base picks. */

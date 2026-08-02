@@ -1536,3 +1536,27 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   .picker-label { flex: 1 0 100%; }
   .picker-ctl { min-width: 0; }
 }
+
+/* ---------- pets: idle breath and a lunge on the attack ---------- */
+
+.pet-sprite { animation: petBreath 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes petBreath {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-1px) scaleY(1.045); }
+}
+/* a felled pet holds still */
+.beast-idle .pet-sprite[style*="rotate"] { animation: none; }
+.beast-dash-r .pet-sprite, .beast-dash-l .pet-sprite { animation: petLunge 480ms ease-out; }
+@keyframes petLunge {
+  0% { transform: translateY(0) scaleX(1); }
+  30% { transform: translateY(-3px) scaleX(1.08); }
+  60% { transform: translateY(0) scaleX(0.96); }
+  100% { transform: translateY(0) scaleX(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pet-sprite { animation: none; }
+}
+
+/* codex bars stay a readable width instead of spanning the whole row */
+.codex-row .wbars { max-width: 380px; }
+.codex-row .wtop { margin-bottom: 2px; }

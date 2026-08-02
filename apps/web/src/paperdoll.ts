@@ -242,6 +242,18 @@ export function torsosFor(build: number): number[] {
   return TORSOS.map((_, i) => i).filter((i) => build === 1 || !TORSOS[i]!.file.endsWith("-f"));
 }
 
+/** Helmets — full 46-row LPC sheets, so they track the body exactly. */
+export const HELMS: Part[] = [
+  { name: "Barbute", file: "helm-barbuta" },
+  { name: "Armet", file: "helm-armet" },
+  { name: "Horned Helm", file: "helm-horned" },
+  { name: "Spangenhelm", file: "helm-spangen" },
+  { name: "Kettle Helm", file: "helm-kettle" },
+];
+
+/** Capes hang from the shoulders; the sheet is cut per build. */
+export const CAPES: Part[] = [{ name: "Mantle", file: "cape-%" }];
+
 export interface Look {
   build: number;
   skin: number;
@@ -256,6 +268,10 @@ export interface Look {
   legsColor: number;
   feet: number;
   feetColor: number;
+  /** Worn gear, painted on top of the outfit. -1 is bare. */
+  helm?: number;
+  cape?: number;
+  capeColor?: number;
 }
 
 export const DEFAULT_LOOK: Look = {
@@ -297,6 +313,10 @@ export function normaliseLook(l: Look): Look {
     legsColor: wrap(l.legsColor, CLOTH_COLORS.length),
     feet: wrap(l.feet, FEET.length),
     feetColor: wrap(l.feetColor, CLOTH_COLORS.length),
+    // gear slots pass through untouched — -1/undefined simply means bare
+    helm: l.helm != null && l.helm >= 0 ? wrap(l.helm, HELMS.length) : undefined,
+    cape: l.cape != null && l.cape >= 0 ? wrap(l.cape, CAPES.length) : undefined,
+    capeColor: l.capeColor != null ? wrap(l.capeColor, CLOTH_COLORS.length) : undefined,
   };
 }
 
@@ -358,6 +378,17 @@ function layersOf(l: Look): LayerJob[] {
   push("eyes", EYE_COLORS[l.eyes]!, [170, 265]);
   push(BEARDS[l.beard]!.file, hair);
   push(HAIRS[l.hair]!.file, hair);
+  // worn gear sits above what it covers: a cape over the outfit, a helm
+  // over the hair it would flatten
+  if (l.cape != null && CAPES[l.cape]) {
+    jobs.splice(4, 0, {
+      file: partFile(CAPES[l.cape]!, l.build),
+      tone: CLOTH_COLORS[l.capeColor ?? 0]!,
+    });
+  }
+  if (l.helm != null && HELMS[l.helm]) {
+    jobs.push({ file: HELMS[l.helm]!.file, tone: CLOTH_COLORS[1]! });
+  }
   return jobs;
 }
 
