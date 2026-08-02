@@ -187,6 +187,9 @@ function chime(freq: number, dur: number, gain: number, when: number) {
   tone({ from: freq, dur: dur * 0.8, type: "triangle", gain: gain * 0.28, when: when + 0.15, attack: 0.01 });
 }
 
+/** What a blow is made of — chosen from the weapon actually in hand. */
+export type StrikeKind = "fist" | "kick" | "sword" | "spear" | "axe" | "pierce";
+
 export const sound = {
   isMuted: () => muted,
   setMuted(m: boolean) {
@@ -205,37 +208,149 @@ export const sound = {
     tone({ from: 900, to: 660, dur: 0.05, type: "triangle", gain: 0.06, attack: 0.001 });
   },
 
-  hit(crit: boolean) {
+  /**
+   * Impact. Every strike is built from the material that makes it: knuckle
+   * and flesh for a punch, steel and slice for a sword, wood and pierce for a
+   * spear. The crit layer stacks on top rather than replacing the weapon.
+   */
+  strike(kind: StrikeKind, crit = false) {
     if (muted) return;
-    // crack transient + snap + body knock + tight sub
-    click(0.32);
-    noise({ dur: 0.07, type: "bandpass", from: 2600, to: 900, q: 1.2, gain: 0.3, attack: 0.001 });
-    tone({ from: 210, to: 75, dur: 0.09, type: "triangle", gain: 0.3, attack: 0.001 });
-    tone({ from: 120, to: 42, dur: 0.12, type: "sine", gain: 0.48, attack: 0.001 });
+    switch (kind) {
+      case "fist":
+        // knuckle snap, then the soft give of a body. No metal anywhere.
+        click(0.24);
+        noise({ dur: 0.045, type: "bandpass", from: 1900, to: 700, q: 1.1, gain: 0.22, attack: 0.0008 });
+        tone({ from: 170, to: 62, dur: 0.07, type: "triangle", gain: 0.28, attack: 0.001 });
+        tone({ from: 95, to: 38, dur: 0.11, type: "sine", gain: 0.36, attack: 0.001 });
+        break;
+      case "kick":
+        // more mass behind it: cloth snap, deeper thud, longer tail
+        click(0.2);
+        noise({ dur: 0.06, type: "lowpass", from: 1100, to: 380, gain: 0.26, attack: 0.001 });
+        tone({ from: 130, to: 46, dur: 0.14, type: "triangle", gain: 0.32, attack: 0.001 });
+        tone({ from: 78, to: 30, dur: 0.2, type: "sine", gain: 0.5, attack: 0.001 });
+        break;
+      case "sword":
+        // edge rings as it bites, then meets the body
+        click(0.28);
+        noise({ dur: 0.06, type: "bandpass", from: 4400, to: 1500, q: 2.4, gain: 0.24, attack: 0.0006 });
+        metal(2050, 0.11, 0.12, 0.004);
+        tone({ from: 190, to: 70, dur: 0.08, type: "triangle", gain: 0.24, attack: 0.001 });
+        tone({ from: 112, to: 44, dur: 0.11, type: "sine", gain: 0.32, attack: 0.001 });
+        break;
+      case "spear":
+        // shaft knocks, point punches through — tight and dry
+        click(0.26);
+        tone({ from: 430, to: 180, dur: 0.05, type: "square", gain: 0.13, attack: 0.001, filter: { type: "lowpass", from: 2300, to: 700 } });
+        noise({ dur: 0.035, type: "highpass", from: 5200, gain: 0.2, attack: 0.0005 });
+        tone({ from: 145, to: 55, dur: 0.1, type: "sine", gain: 0.34, attack: 0.001 });
+        break;
+      case "axe":
+        // slow mass arriving: chop, crunch, and a sub that outlives both
+        click(0.3);
+        noise({ dur: 0.1, type: "lowpass", from: 1300, to: 300, gain: 0.3, attack: 0.001 });
+        noise({ dur: 0.13, type: "bandpass", from: 950, to: 260, q: 1.4, gain: 0.2, when: 0.012 });
+        tone({ from: 150, to: 48, dur: 0.16, type: "triangle", gain: 0.3, attack: 0.001 });
+        tone({ from: 82, to: 28, dur: 0.26, type: "sine", gain: 0.52, attack: 0.001 });
+        break;
+      case "pierce":
+        // a thrown point landing: the air stops before the body answers
+        click(0.22);
+        noise({ dur: 0.045, type: "bandpass", from: 3200, to: 850, q: 1.8, gain: 0.22, attack: 0.0006 });
+        tone({ from: 138, to: 52, dur: 0.1, type: "sine", gain: 0.32, attack: 0.001 });
+        break;
+    }
     if (crit) {
-      // metallic shing + zap + boom, then a tight slapback
-      metal(1150, 0.14, 0.16, 0.008);
-      tone({ from: 340, to: 55, dur: 0.2, type: "square", gain: 0.15, when: 0.012, filter: { type: "lowpass", from: 3200, to: 350 } });
-      tone({ from: 72, to: 30, dur: 0.26, type: "sine", gain: 0.5, when: 0.016 });
+      // the extra weight of a clean hit — shing, low boom, and a room slap
+      metal(1150, 0.14, 0.15, 0.008);
+      tone({ from: 340, to: 55, dur: 0.2, type: "square", gain: 0.14, when: 0.012, filter: { type: "lowpass", from: 3200, to: 350 } });
+      tone({ from: 72, to: 30, dur: 0.28, type: "sine", gain: 0.5, when: 0.016 });
       click(0.12, 0.11);
       noise({ dur: 0.06, type: "bandpass", from: 1600, to: 700, gain: 0.1, when: 0.11 });
     }
   },
-  block() {
+
+  /** The swing before contact — mass and edge decide how the air moves. */
+  swing(kind: StrikeKind) {
     if (muted) return;
-    click(0.22);
-    metal(640, 0.18, 0.26);
-    tone({ from: 150, to: 80, dur: 0.07, type: "sine", gain: 0.26, attack: 0.001 });
+    switch (kind) {
+      case "fist":
+        noise({ dur: 0.11, type: "bandpass", from: 800, to: 2700, q: 2.2, gain: 0.11, attack: 0.035 });
+        break;
+      case "kick":
+        noise({ dur: 0.17, type: "bandpass", from: 420, to: 1500, q: 1.6, gain: 0.13, attack: 0.06 });
+        break;
+      case "sword":
+        noise({ dur: 0.17, type: "bandpass", from: 950, to: 4400, q: 2.6, gain: 0.15, attack: 0.05 });
+        noise({ dur: 0.08, type: "highpass", from: 5200, gain: 0.05, when: 0.09, attack: 0.02 });
+        break;
+      case "spear":
+        // two beats: the shaft drawn back, then the thrust
+        noise({ dur: 0.07, type: "bandpass", from: 500, to: 1400, q: 2, gain: 0.07, attack: 0.03 });
+        noise({ dur: 0.1, type: "bandpass", from: 1300, to: 3800, q: 3, gain: 0.13, when: 0.07, attack: 0.02 });
+        break;
+      case "axe":
+        noise({ dur: 0.25, type: "bandpass", from: 300, to: 1300, q: 1.4, gain: 0.17, attack: 0.1 });
+        break;
+      case "pierce":
+        noise({ dur: 0.12, type: "bandpass", from: 1200, to: 3600, q: 2.6, gain: 0.12, attack: 0.03 });
+        break;
+    }
   },
-  whoosh() {
+
+  /** Nothing connects: cloth, a shifted foot, air closing where a body was. */
+  dodge() {
     if (muted) return;
-    noise({ dur: 0.2, type: "bandpass", from: 600, to: 3400, q: 2, gain: 0.17, attack: 0.06 });
-    noise({ dur: 0.1, type: "highpass", from: 4500, gain: 0.05, when: 0.08, attack: 0.02 });
+    noise({ dur: 0.13, type: "bandpass", from: 1300, to: 2700, q: 1.2, gain: 0.1, attack: 0.045 });
+    noise({ dur: 0.05, type: "lowpass", from: 700, gain: 0.12, when: 0.07, attack: 0.002 });
+    tone({ from: 95, to: 55, dur: 0.06, type: "sine", gain: 0.13, when: 0.07, attack: 0.002 });
   },
+
+  /** Caught on a shield (dull wood, ringing rim) or turned on a blade. */
+  block(onShield = true) {
+    if (muted) return;
+    click(0.24);
+    if (onShield) {
+      tone({ from: 240, to: 95, dur: 0.09, type: "square", gain: 0.26, attack: 0.001, filter: { type: "lowpass", from: 1900, to: 500 } });
+      metal(880, 0.22, 0.17, 0.006);
+      tone({ from: 130, to: 62, dur: 0.08, type: "sine", gain: 0.24, attack: 0.001 });
+    } else {
+      metal(1520, 0.3, 0.22);
+      metal(2280, 0.2, 0.1, 0.006);
+      tone({ from: 180, to: 90, dur: 0.06, type: "sine", gain: 0.18, attack: 0.001 });
+    }
+  },
+
+  /** Release and flight — the whistle falls away as it crosses the arena. */
   throwSpear() {
     if (muted) return;
-    noise({ dur: 0.26, type: "bandpass", from: 1100, to: 4200, q: 2.4, gain: 0.16, attack: 0.04, pan: -0.4 });
-    tone({ from: 2100, to: 900, dur: 0.24, type: "sine", gain: 0.05, attack: 0.03, pan: 0.3 });
+    click(0.16);
+    noise({ dur: 0.09, type: "bandpass", from: 900, to: 2200, q: 2, gain: 0.12, attack: 0.02, pan: -0.5 });
+    noise({ dur: 0.26, type: "bandpass", from: 2600, to: 1000, q: 3.2, gain: 0.13, when: 0.06, attack: 0.03, pan: 0.35 });
+    tone({ from: 2300, to: 780, dur: 0.28, type: "sine", gain: 0.05, when: 0.05, attack: 0.03, pan: 0.4 });
+  },
+
+  /** Boots crossing the sand as a champion closes the distance. */
+  dash() {
+    if (muted) return;
+    const step = (when: number, g: number) => {
+      noise({ dur: 0.05, type: "lowpass", from: 900, to: 300, gain: g, when, attack: 0.001 });
+      tone({ from: 110, to: 55, dur: 0.07, type: "sine", gain: g * 0.8, when, attack: 0.001 });
+    };
+    step(0, 0.16);
+    step(0.09, 0.13);
+    step(0.17, 0.15);
+  },
+
+  /** A piece of gear hitting the ground. */
+  drop() {
+    if (muted) return;
+    click(0.14);
+    metal(1750, 0.26, 0.12);
+    tone({ from: 160, to: 70, dur: 0.08, type: "sine", gain: 0.16, attack: 0.001 });
+    [1568, 2093].forEach((f, i) =>
+      tone({ from: f, dur: 0.22, type: "sine", gain: 0.05, when: 0.1 + i * 0.06, attack: 0.006 }),
+    );
   },
   beast() {
     if (muted) return;
@@ -280,19 +395,25 @@ export const sound = {
   fanfare(won: boolean) {
     if (muted) return;
     if (won) {
-      // rising brass-ish stabs into a held chord + crowd swell + sparkle
+      // Triumph: a fanfare that actually goes somewhere — G, C, E stabs
+      // climbing to a held major chord over a crowd swell and a struck bell.
       [392, 523, 659].forEach((f, i) => {
-        click(0.1, i * 0.14);
-        tone({ from: f, dur: 0.2, type: "square", gain: 0.08, when: i * 0.14, attack: 0.006, filter: { type: "lowpass", from: 3000 } });
-        tone({ from: f, dur: 0.2, type: "triangle", gain: 0.14, when: i * 0.14, attack: 0.006 });
+        click(0.1, i * 0.13);
+        tone({ from: f, dur: 0.19, type: "square", gain: 0.08, when: i * 0.13, attack: 0.005, filter: { type: "lowpass", from: 3000 } });
+        tone({ from: f, dur: 0.19, type: "triangle", gain: 0.14, when: i * 0.13, attack: 0.005 });
+        tone({ from: f / 2, dur: 0.2, type: "triangle", gain: 0.09, when: i * 0.13, attack: 0.005 });
       });
+      // the arrival — root doubled low so it lands with weight
       [784, 988, 1175].forEach((f) => {
-        tone({ from: f, dur: 0.9, type: "triangle", gain: 0.1, when: 0.44, attack: 0.015 });
-        tone({ from: f, dur: 0.9, type: "sine", gain: 0.06, when: 0.44, attack: 0.015, detune: 8 });
+        tone({ from: f, dur: 1, type: "triangle", gain: 0.1, when: 0.42, attack: 0.012 });
+        tone({ from: f, dur: 1, type: "sine", gain: 0.06, when: 0.42, attack: 0.012, detune: 8 });
       });
-      tone({ from: 2349, dur: 0.5, type: "sine", gain: 0.04, when: 0.5, attack: 0.01 });
-      noise({ dur: 1.3, type: "bandpass", from: 900, to: 1800, q: 0.5, gain: 0.09, when: 0.3, attack: 0.45 });
-      noise({ dur: 0.7, type: "highpass", from: 7000, gain: 0.03, when: 0.5, attack: 0.2 });
+      tone({ from: 196, dur: 1.05, type: "triangle", gain: 0.16, when: 0.42, attack: 0.012 });
+      tone({ from: 130, to: 128, dur: 1.1, type: "sine", gain: 0.2, when: 0.42, attack: 0.02 });
+      chime(1568, 0.9, 0.09, 0.46);
+      // crowd: broad noise swelling in behind the chord, never over it
+      noise({ dur: 1.5, type: "bandpass", from: 800, to: 1900, q: 0.5, gain: 0.1, when: 0.28, attack: 0.5 });
+      noise({ dur: 0.8, type: "highpass", from: 7000, gain: 0.03, when: 0.5, attack: 0.22 });
     } else {
       [330, 294, 247, 196].forEach((f, i) =>
         tone({ from: f, to: f * 0.985, dur: 0.34, type: "triangle", gain: 0.14, when: i * 0.22, attack: 0.012 }),

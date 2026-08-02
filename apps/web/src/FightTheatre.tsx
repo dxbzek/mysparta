@@ -7,7 +7,7 @@ import { PixIcon } from "./pixelIcons.js";
 import type { Arena } from "./arenas.js";
 import { CHAR, type Look } from "./paperdoll.js";
 import { narrate, type Line } from "./narrate.js";
-import { sound } from "./sound.js";
+import { sound, type StrikeKind } from "./sound.js";
 
 export interface StageFigure {
   /** The fighter's full appearance (paperdoll.ts). */
@@ -43,6 +43,30 @@ interface Props {
 }
 
 const beastIdByName = new Map(BEASTS.map((b) => [b.name, b.id]));
+
+const disciplineById = new Map<string, string>([
+  [FISTS.id, FISTS.discipline],
+  ...WEAPONS.map((w) => [w.id, w.discipline] as const),
+]);
+
+/**
+ * The material of a blow. Bare-handed fighters alternate punch and kick in
+ * step with the two attack animations, so the sound matches the picture.
+ */
+function strikeKind(weaponId: string | undefined, beat: number): StrikeKind {
+  switch (weaponId ? disciplineById.get(weaponId) : "cestus") {
+    case "xiphos":
+      return "sword";
+    case "doru":
+      return "spear";
+    case "labrys":
+      return "axe";
+    case "akontia":
+      return "pierce";
+    default:
+      return beat % 2 === 0 ? "fist" : "kick";
+  }
+}
 
 /** Scene height in native pixels — 3x this is the stage height on desktop. */
 const NATIVE_H = 148;
@@ -95,37 +119,6 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
   }, [shown, skipped]);
 
-  // SFX per beat, timed to land at contact.
-  useEffect(() => {
-    if (skipped) return;
-    const l = lines[shown - 1];
-    if (!l) return;
-    if (l.kind === "end") {
-      sound.fanfare(l.text.includes(names[0]));
-      return;
-    }
-    if (l.anim?.beastName) sound.beast();
-    switch (l.kind) {
-      case "info":
-        if (l.text.includes("enter the arena")) sound.drum();
-        break;
-      case "hit":
-        sound.hit(false);
-        break;
-      case "crit":
-        sound.hit(true);
-        break;
-      case "defend":
-        if (l.fx?.heal) sound.heal();
-        else if (l.anim?.reaction?.kind === "block" || l.fx) sound.block();
-        else if (l.anim?.thrown) sound.throwSpear();
-        else sound.whoosh();
-        break;
-      case "trump":
-        sound.power();
-        break;
-    }
-  }, [shown, skipped, lines, names]);
 
   useEffect(() => {
     if (skipped) sound.fanfare(result.winner === 0);
@@ -163,6 +156,73 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     }
     return held;
   }, [visible, figures]);
+
+  // shields change how a parry sounds — wood thunk versus steel ring
+  const hasShield: [boolean, boolean] = useMemo(
+    () => [
+      heldWeapon[0] ? disciplineById.get(heldWeapon[0]) === "aspis" : false,
+      heldWeapon[1] ? disciplineById.get(heldWeapon[1]) === "aspis" : false,
+    ],
+    [heldWeapon],
+  );
+
+  const idxRef = useRef(0);
+  idxRef.current = idx;
+
+  // SFX per beat, timed to land at contact.
+  useEffect(() => {
+    if (skipped) return;
+    const l = lines[shown - 1];
+    if (!l) return;
+    if (l.kind === "end") {
+      sound.fanfare(l.text.includes(names[0]));
+      return;
+    }
+    if (l.anim?.beastName) sound.beast();
+    // Impacts land a beat after the swing; if the beat is cut short (skip,
+    // unmount) the pending blow is cancelled rather than firing into silence.
+    const pending: number[] = [];
+    const land = (fn: () => void, ms: number) => pending.push(window.setTimeout(fn, ms));
+    // What you hear is what is actually swinging: the striker's weapon this
+    // beat, and the defender's real answer to it.
+    const striker = l.anim?.striker;
+    const kind = strikeKind(striker === undefined ? undefined : heldWeapon[striker], idxRef.current);
+    switch (l.kind) {
+      case "info":
+        if (l.text.includes("enter the arena")) {
+          sound.drum();
+          sound.dash();
+        }
+        break;
+      case "hit":
+      case "crit": {
+        const crit = l.kind === "crit";
+        // swing first, impact landing a beat later — the gap sells the blow
+        if (l.anim?.thrown) sound.strike("pierce", crit);
+        else {
+          sound.swing(kind);
+          land(() => sound.strike(kind, crit), kind === "axe" ? 150 : 95);
+        }
+        break;
+      }
+      case "defend":
+        if (l.fx?.heal) sound.heal();
+        else if (l.anim?.reaction?.kind === "block") {
+          sound.swing(kind);
+          const guard = l.anim.reaction.side;
+          land(() => sound.block(hasShield[guard]), 95);
+        } else if (l.anim?.reaction?.kind === "dodge") {
+          sound.swing(kind);
+          land(() => sound.dodge(), 90);
+        } else if (l.anim?.thrown) sound.throwSpear();
+        else sound.swing(kind);
+        break;
+      case "trump":
+        sound.power();
+        break;
+    }
+    return () => pending.forEach((id) => window.clearTimeout(id));
+  }, [shown, skipped, lines, names, heldWeapon, hasShield]);
 
   const slotClass = (side: 0 | 1): string => {
     const cls = ["fig-slot"];
