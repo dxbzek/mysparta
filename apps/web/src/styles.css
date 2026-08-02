@@ -1923,3 +1923,31 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   .quests-strip { gap: 8px; }
   .quests-strip .qlist { gap: 6px 14px; }
 }
+
+/* ---------- Hall portrait ---------- */
+
+.portrait-wrap { display: flex; flex-direction: column; gap: 8px; align-items: center; flex-shrink: 0; }
+.portrait {
+  position: relative;
+  border: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm), inset 0 0 0 2px rgb(255 255 255 / 25%);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  overflow: hidden;
+}
+.portrait-figure { position: absolute; left: 50%; transform: translateX(-50%); }
+.portrait-controls { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.portrait-controls .nudge { width: 26px; min-height: 28px; }
+.portrait-label {
+  font-family: var(--font-display);
+  font-size: 0.56rem;
+  color: var(--ink-soft);
+  min-width: 54px;
+  text-align: center;
+}
+.portrait-label.wide { min-width: 96px; }
+
+/* the XP gauge is a gauge, not a ruler across the whole card */
+.xpbar.short { max-width: 340px; }

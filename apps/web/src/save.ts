@@ -35,6 +35,8 @@ export interface SaveV1 {
   look?: Look;
   /** Aura colour index (fighters.tsx AURAS). */
   aura?: number;
+  /** How the champion is posed and framed in the Hall portrait. */
+  portrait?: { arena: number; pose: string };
   /** Gear item ids collected from random level-up drops (gear.ts). */
   gear?: string[];
   /** Which owned pieces are currently worn. */

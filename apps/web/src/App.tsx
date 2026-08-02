@@ -36,8 +36,9 @@ import { FightTheatre, type StageFigure } from "./FightTheatre.js";
 import { PetSprite } from "./pixelPets.js";
 import { WeaponIcon } from "./weaponIcons.js";
 import { PixIcon } from "./pixelIcons.js";
-import { AURAS, AuraSparks, FighterBust, FighterFig, lookFor, rivalLook } from "./fighters.js";
-import { arenaForFight, type Arena as ArenaDef } from "./arenas.js";
+import { AURAS, AuraSparks, FighterBust, FighterFig, lookFor, rivalLook, type FighterAnim } from "./fighters.js";
+import { ARENAS, arenaForFight, type Arena as ArenaDef } from "./arenas.js";
+import { arenaScene } from "./arenaArt.js";
 import {
   BEARDS,
   BUILDS,
@@ -358,6 +359,7 @@ export function App() {
             champion.weapons.splice(to, 0, moved!);
             update({ ...save, champion });
           }}
+          onPortrait={(portrait) => update({ ...save, portrait })}
           onEquip={(slot, id) => update({ ...save, equipped: { ...save.equipped, [slot]: id } })}
           onRefill={() => update({ ...save, vigor: Math.min(VIGOR_CAP, save.vigor + 6) })}
           onDelete={() => {
@@ -751,6 +753,82 @@ function PartPicker({
 }
 
 
+/** Poses the champion can hold for their portrait. */
+const PORTRAIT_POSES: Array<{ id: FighterAnim; name: string }> = [
+  { id: "stance", name: "Guard" },
+  { id: "idle", name: "At ease" },
+  { id: "attack1", name: "Strike" },
+  { id: "attack2", name: "Thrust" },
+  { id: "run", name: "Charge" },
+];
+
+/**
+ * The Hall portrait: a framed plate with a painted arena behind the champion,
+ * who stands on its ground line. Both the pose and the backdrop are the
+ * player's to choose — this is the picture of their hunter.
+ */
+function ChampionPortrait({
+  look,
+  aura,
+  particles,
+  portrait,
+  onChange,
+}: {
+  look: Look;
+  aura: number;
+  particles?: string;
+  portrait: { arena: number; pose: string };
+  onChange: (p: { arena: number; pose: string }) => void;
+}) {
+  const SCALE = 3;
+  const NW = 78;
+  const NH = 82;
+  const arena = ARENAS[portrait.arena % ARENAS.length]!;
+  const pose = (PORTRAIT_POSES.find((p) => p.id === portrait.pose) ?? PORTRAIT_POSES[0]!).id;
+  const poseAt = PORTRAIT_POSES.findIndex((p) => p.id === pose);
+  const step = (d: number) =>
+    onChange({ ...portrait, pose: PORTRAIT_POSES[(poseAt + d + PORTRAIT_POSES.length) % PORTRAIT_POSES.length]!.id });
+  const shift = (d: number) =>
+    onChange({ ...portrait, arena: (portrait.arena + d + ARENAS.length) % ARENAS.length });
+
+  return (
+    <div className="portrait-wrap">
+      <div
+        className="portrait"
+        style={{
+          width: NW * SCALE,
+          height: NH * SCALE,
+          backgroundImage: `url(${arenaScene(arena, NW, NH)})`,
+        }}
+      >
+        <AuraSparks aura={aura} />
+        <span
+          className="portrait-figure"
+          style={{ bottom: Math.round(NH * (1 - arena.horizon) * SCALE) - SCALE }}
+        >
+          <FighterFig look={look} height={48 * SCALE} anim={pose} aura={aura} particles={particles} />
+        </span>
+      </div>
+      <div className="portrait-controls">
+        <button className="nudge" onClick={() => step(-1)} aria-label="Previous pose">
+          <PixIcon name="arrowLeft" size={9} />
+        </button>
+        <span className="portrait-label">{PORTRAIT_POSES[poseAt]!.name}</span>
+        <button className="nudge flip" onClick={() => step(1)} aria-label="Next pose">
+          <PixIcon name="arrowLeft" size={9} />
+        </button>
+        <button className="nudge" onClick={() => shift(-1)} aria-label="Previous backdrop">
+          <PixIcon name="arrowLeft" size={9} />
+        </button>
+        <span className="portrait-label wide">{arena.name}</span>
+        <button className="nudge flip" onClick={() => shift(1)} aria-label="Next backdrop">
+          <PixIcon name="arrowLeft" size={9} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /** A compact standings line so the Arena page shows where you stand. */
 function StandingsStrip({ save }: { save: SaveV1 }) {
   const rows = useMemo(
@@ -906,6 +984,7 @@ function Home(props: {
   onRefill: () => void;
   onDelete: () => void;
   onEquip: (slot: GearSlot, id: string | undefined) => void;
+  onPortrait: (p: { arena: number; pose: string }) => void;
 }) {
   const { save } = props;
   const c = save.champion;
@@ -935,11 +1014,14 @@ function Home(props: {
       )}
 
       <section className="card champ-card span-all">
-        {/* the champion leads the card — big, on the left, where the eye lands */}
-        <div className="hero-fig">
-          <AuraSparks aura={extras.aura} />
-          <FighterFig look={worn} height={210} aura={extras.aura} particles={extras.particles} />
-        </div>
+        {/* a framed portrait: the champion standing in an arena of their choosing */}
+        <ChampionPortrait
+          look={worn}
+          aura={extras.aura}
+          particles={extras.particles}
+          portrait={save.portrait ?? { arena: 0, pose: "stance" }}
+          onChange={(p) => props.onPortrait(p)}
+        />
         <div className="champ-meta">
           <h2 className="champ-name">
             {c.displayName} <span className="epithet">{extras.title ?? c.epithet}</span>
@@ -947,7 +1029,7 @@ function Home(props: {
           <div className="muted">
             {omen(c.omen).name} · Level {c.level}
           </div>
-          <div className="xpbar" title={`XP toward level ${c.level + 1}`}>
+          <div className="xpbar short" title={`XP toward level ${c.level + 1}`}>
             <div className="xpbar-fill" style={{ width: `${Math.min(100, (c.xp / need) * 100)}%` }} />
           </div>
           <div className="statline">
