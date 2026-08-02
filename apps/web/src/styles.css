@@ -1814,3 +1814,44 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* an empty panel is just whitespace — hide the pets card until it has pets */
 .card:empty { display: none; }
+
+/* ---------- wardrobe: see it before you wear it ---------- */
+
+.gear-chip {
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px 6px 6px;
+  text-align: left;
+}
+.gear-chip .hero-bust {
+  border-width: 2px;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+.gear-text { display: flex; flex-direction: column; gap: 1px; }
+.chips { align-items: stretch; }
+
+/* ---------- action rows sit in the grid without being stretched ---------- */
+
+.home > .actions,
+.home > .devrow {
+  grid-column: 1 / -1;
+  align-self: start;
+}
+.home > .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: stretch;
+  margin-top: 4px;
+}
+.home > .actions .btn { flex: 0 1 auto; min-height: 52px; }
+.home > .actions .btn.primary.big { flex: 0 0 auto; }
+.home > .devrow {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+.home > .devrow .btn { min-height: 32px; }

@@ -198,13 +198,13 @@ const JOBS = [
   [["weapon/sword/dagger/behind/dagger.png", "weapon/sword/dagger/dagger.png"], "wpn-sword"],
   [["weapon/polearm/spear/background.png", "weapon/polearm/spear/foreground.png"], "wpn-spear"],
   [
-    ["weapon/blunt/mace/behind/mace.png", "weapon/blunt/mace/mace.png"],
+    // A labrys is an axe: the waraxe silhouette reads correctly at 3x, where
+    // the mace head just looked like a rock in the fighter's hand.
+    ["weapon/blunt/waraxe/behind/waraxe.png", "weapon/blunt/waraxe/waraxe.png"],
     "wpn-mace",
-    {
-      paths: ["weapon/blunt/mace/attack_slash/behind/mace.png", "weapon/blunt/mace/attack_slash/mace.png"],
-      row: 10,
-      cols: [1, 4, 7, 10, 13, 16],
-    },
+    // No mace graft: borrowing the mace's swing put a different weapon in the
+    // hand mid-attack, so an axe visibly became a mace. The axe now stays an
+    // axe for every frame — the body supplies the swing, the weapon rides it.
   ],
   [["weapon/sword/dagger/behind/dagger.png", "weapon/sword/dagger/dagger.png"], "wpn-dagger"],
   [["shield/male/spartan.png"], "wpn-shield"],

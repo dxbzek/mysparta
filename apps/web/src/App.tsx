@@ -1066,8 +1066,12 @@ function Home(props: {
                         title={g.flavour}
                         onClick={() => props.onEquip(slot, worn ? undefined : g.id)}
                       >
-                        <b>{g.name}</b>
-                        <span className="gear-stat">{gearStatLine(g) || gearDetail(g)}</span>
+                        {/* worn by your own hunter, so you see it before choosing */}
+                        <FighterBust look={lookWithGear(baseLook, { [slot]: g.id })} size={46} />
+                        <span className="gear-text">
+                          <b>{g.name}</b>
+                          <span className="gear-stat">{gearStatLine(g) || gearDetail(g)}</span>
+                        </span>
                       </button>
                     );
                   })}
