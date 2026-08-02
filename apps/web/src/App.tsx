@@ -35,6 +35,7 @@ import {
 import { FightTheatre, type StageFigure } from "./FightTheatre.js";
 import { BeastFigure } from "./art.js";
 import { WeaponIcon } from "./weaponIcons.js";
+import { PixIcon } from "./pixelIcons.js";
 import { AURAS, AuraSparks, FighterBust, FighterFig, lookFor, rivalLook } from "./fighters.js";
 import { arenaForFight, type Arena as ArenaDef } from "./arenas.js";
 import {
@@ -86,12 +87,13 @@ type Screen =
 
 /** League tiers give the rating number meaning (03-gdd-systems.md §1.4). */
 function league(kleos: number): { name: string; color: string } {
-  if (kleos >= 1950) return { name: "S-Rank", color: "#f4c94e" };
-  if (kleos >= 1850) return { name: "A-Rank", color: "#f47c8e" };
-  if (kleos >= 1750) return { name: "B-Rank", color: "#a78bfa" };
-  if (kleos >= 1650) return { name: "C-Rank", color: "#5fc9f5" };
-  if (kleos >= 1550) return { name: "D-Rank", color: "#4ed4a7" };
-  return { name: "E-Rank", color: "#aab3c8" };
+  // Tiers sit in the parchment palette — imported neon reads as a different app.
+  if (kleos >= 1950) return { name: "S-Rank", color: "#e39a2e" };
+  if (kleos >= 1850) return { name: "A-Rank", color: "#d95f43" };
+  if (kleos >= 1750) return { name: "B-Rank", color: "#8a6bb5" };
+  if (kleos >= 1650) return { name: "C-Rank", color: "#3f83c6" };
+  if (kleos >= 1550) return { name: "D-Rank", color: "#6f9a3e" };
+  return { name: "E-Rank", color: "#9a8c74" };
 }
 
 /**
@@ -268,7 +270,7 @@ export function App() {
               {league(save.kleos).name} {save.kleos}
             </span>
             <span className="pill" title={`Fights refill daily (+6, up to ${VIGOR_CAP})`}>
-              ⚡ {save.vigor} fights
+              <PixIcon name="bolt" size={13} className="icon-gold" /> {save.vigor} fights
             </span>
             <button
               className="pill sound-toggle"
@@ -278,7 +280,7 @@ export function App() {
               }}
               title={sound.isMuted() ? "Sound is off" : "Sound is on"}
             >
-              {sound.isMuted() ? "🔇" : "🔊"}
+              <PixIcon name={sound.isMuted() ? "speakerOff" : "speaker"} size={13} />
             </button>
           </div>
         </header>
@@ -591,14 +593,36 @@ function Forge({
               setAura(Math.floor(Math.random() * AURAS.length));
             }}
           >
-            🎲 Randomize
+            <PixIcon name="dice" size={14} /> Randomize
           </button>
           <button className="btn primary big" onClick={() => onForge(c2, me, aura)}>
-            Start Hunting →
+            Start Hunting
           </button>
         </div>
       </div>
     </div>
+  );
+}
+
+/** One stat, shown as a gauge rather than a number on a dotted line. */
+function StatRow({ label, value }: { label: string; value: number }) {
+  // 24 is comfortably past a maxed early-game stat, so the bar keeps meaning
+  const pct = Math.max(4, Math.min(100, (value / 24) * 100));
+  return (
+    <li>
+      <b>{label}</b>
+      <span className="statbar"><i style={{ width: `${pct}%` }} /></span>
+      <span className="num">{value}</span>
+    </li>
+  );
+}
+
+function Quest({ done, children }: { done: boolean; children: React.ReactNode }) {
+  return (
+    <li className={done ? "qdone" : ""}>
+      <span className="qbox">{done && <PixIcon name="check" size={9} />}</span>
+      {children}
+    </li>
   );
 }
 
@@ -667,10 +691,10 @@ function Home(props: {
         <div className="card">
           <h3>Stats</h3>
           <ul className="stats">
-            <li><b>{STAT_LABEL.might}</b><span>{c.stats.might}</span></li>
-            <li><b>{STAT_LABEL.grace}</b><span>{c.stats.grace}</span></li>
-            <li><b>{STAT_LABEL.tempo}</b><span>{c.stats.tempo}</span></li>
-            <li><b>{STAT_LABEL.grit}</b><span>{c.stats.grit}</span></li>
+            <StatRow label={STAT_LABEL.might} value={c.stats.might} />
+            <StatRow label={STAT_LABEL.grace} value={c.stats.grace} />
+            <StatRow label={STAT_LABEL.tempo} value={c.stats.tempo} />
+            <StatRow label={STAT_LABEL.grit} value={c.stats.grit} />
           </ul>
         </div>
         <div className="card">
@@ -687,8 +711,8 @@ function Home(props: {
                   </span>
                 </span>
                 <span className="reorder">
-                  <button aria-label="draw earlier" disabled={i === 0} onClick={() => props.onReorder(i, i - 1)}>▲</button>
-                  <button aria-label="draw later" disabled={i === c.weapons.length - 1} onClick={() => props.onReorder(i, i + 1)}>▼</button>
+                  <button aria-label="draw earlier" disabled={i === 0} onClick={() => props.onReorder(i, i - 1)}><PixIcon name="chevronUp" size={7} /></button>
+                  <button aria-label="draw later" disabled={i === c.weapons.length - 1} onClick={() => props.onReorder(i, i + 1)}><PixIcon name="chevronDown" size={7} /></button>
                 </span>
               </li>
             ))}
@@ -700,15 +724,15 @@ function Home(props: {
       <section className="card quests">
         <h3>Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — gear dropped!</span>}</h3>
         <ul className="qlist">
-          <li className={(save.quests?.fights ?? 0) >= 3 ? "qdone" : ""}>
+          <Quest done={(save.quests?.fights ?? 0) >= 3}>
             Fight 3 times ({Math.min(3, save.quests?.fights ?? 0)}/3)
-          </li>
-          <li className={(save.quests?.wins ?? 0) >= 2 ? "qdone" : ""}>
+          </Quest>
+          <Quest done={(save.quests?.wins ?? 0) >= 2}>
             Win 2 fights ({Math.min(2, save.quests?.wins ?? 0)}/2)
-          </li>
-          <li className={(save.quests?.crits ?? 0) >= 1 ? "qdone" : ""}>
+          </Quest>
+          <Quest done={(save.quests?.crits ?? 0) >= 1}>
             Land a critical hit ({Math.min(1, save.quests?.crits ?? 0)}/1)
-          </li>
+          </Quest>
         </ul>
         <p className="muted small">Complete all three for a bonus gear drop. Resets daily.</p>
       </section>
@@ -778,7 +802,7 @@ function Home(props: {
 
       <div className="actions">
         <button className="btn primary big" onClick={props.onArena}>
-          ⚔ Fight in the Arena
+          <PixIcon name="swords" size={15} /> Fight in the Arena
         </button>
         <button className="btn ghost" onClick={props.onHistory}>
           Level-Up History ({c.tapestry.length})
@@ -819,7 +843,7 @@ function Arena(props: {
   return (
     <div className="arena">
       <div className="arena-head">
-        <button className="btn ghost" onClick={props.onBack}>← Hall</button>
+        <button className="btn ghost" onClick={props.onBack}><PixIcon name="arrowLeft" size={11} /> Hall</button>
         <h2>The Arena</h2>
         <button className="btn ghost" onClick={props.onRefresh}>New rivals</button>
       </div>
@@ -839,7 +863,7 @@ function Arena(props: {
                 <span className="pill">Lv {r.snapshot.level}</span>
               </div>
               <div className="muted small">
-                ✦ {r.kleos} · {r.snapshot.weapons.map((w) => weapon(w).name).join(", ") || "Fists"}
+                <PixIcon name="star" size={10} className="icon-gold" /> {r.kleos} · {r.snapshot.weapons.map((w) => weapon(w).name).join(", ") || "Fists"}
               </div>
               <div className="muted small">
                 {r.snapshot.skills.length > 0
@@ -849,7 +873,7 @@ function Arena(props: {
                   ` · ${r.snapshot.beasts.map((b) => beast(b).name).join(", ")}`}
               </div>
               <button className="btn primary" disabled={save.vigor <= 0} onClick={() => props.onFight(r)}>
-                Fight (1 ⚡)
+                <span className="btn-label">Fight (1 <PixIcon name="bolt" size={11} />)</span>
               </button>
             </div>
           );
@@ -913,7 +937,7 @@ function History({ champion, onBack }: { champion: Champion; onBack: () => void 
   return (
     <div className="tapestry">
       <div className="arena-head">
-        <button className="btn ghost" onClick={onBack}>← Hall</button>
+        <button className="btn ghost" onClick={onBack}><PixIcon name="arrowLeft" size={11} /> Hall</button>
         <h2>Level-Up History</h2>
         <span />
       </div>
@@ -946,7 +970,7 @@ function Codex({ champion, onBack }: { champion: Champion; onBack: () => void })
   return (
     <div className="codex">
       <div className="arena-head">
-        <button className="btn ghost" onClick={onBack}>← Hall</button>
+        <button className="btn ghost" onClick={onBack}><PixIcon name="arrowLeft" size={11} /> Hall</button>
         <h2>Codex</h2>
         <span />
       </div>

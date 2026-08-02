@@ -3,6 +3,7 @@ import { BEASTS, FISTS, WEAPONS, type FightResult } from "@agoge/core";
 import { BeastFigure, ImpactBurst, Javelin, Laurel, SlashArc } from "./art.js";
 import { FighterFig, WeatherFx, type FighterAnim } from "./fighters.js";
 import { arenaScene } from "./arenaArt.js";
+import { PixIcon } from "./pixelIcons.js";
 import type { Arena } from "./arenas.js";
 import { CHAR, type Look } from "./paperdoll.js";
 import { narrate, type Line } from "./narrate.js";
@@ -338,7 +339,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
                 {rewards.kleos >= 0 ? "+" : ""}{rewards.kleos} Rating
               </span>
               {rewards.drops?.map((d) => (
-                <span key={d} className="pill drop">✦ {d}</span>
+                <span key={d} className="pill drop"><PixIcon name="loot" size={10} /> {d}</span>
               ))}
             </div>
             <div className="verdict-sub">
