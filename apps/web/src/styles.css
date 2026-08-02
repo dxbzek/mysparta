@@ -2061,3 +2061,80 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 @media (min-width: 1300px) {
   .codex > .card { grid-template-columns: 1fr 1fr 1fr; }
 }
+
+/* ================= profile, tasks and wardrobe ==========================
+   All three were the same failure: a wide card with one thin thing in it
+   and the rest left blank. Each now carries structure across its width. */
+
+.xp-row { display: flex; align-items: center; gap: 9px; margin: 4px 0 2px; }
+.xp-row .xp-cap {
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.08em;
+  color: var(--ink-soft); flex: none;
+}
+.xp-row .xpbar { flex: 1; min-width: 0; max-width: 260px; margin: 0; }
+.xp-row .xp-num { font-size: 0.76rem; font-weight: 800; color: var(--ink-soft); flex: none; }
+
+/* Four labelled facts instead of one dot-separated run. */
+.facts {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 14px; margin: 10px 0 0; padding: 0;
+}
+.facts > div { min-width: 0; }
+.facts dt {
+  font-size: 0.62rem; font-weight: 800; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--ink-soft);
+}
+.facts dd {
+  margin: 1px 0 0; font-family: var(--font-display);
+  font-size: 0.9rem; font-weight: 700; white-space: nowrap;
+}
+@media (max-width: 620px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Tasks read as three tracked jobs, each with its own progress. */
+.quests-strip .qlist {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 18px; list-style: none; margin: 0; padding: 0;
+}
+.quests-strip .qlist li { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.quests-strip .qbody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.quests-strip .qtext { font-size: 0.82rem; font-weight: 700; }
+.qbar {
+  height: 7px; border: 2px solid rgb(67 56 42 / 45%); border-radius: 2px;
+  background: rgb(255 255 255 / 45%); overflow: hidden;
+}
+.qbar-fill { display: block; height: 100%; background: var(--gold); transition: width 260ms ease; }
+.qdone .qbar-fill { background: var(--olive); }
+.quests-strip .qcount {
+  font-size: 0.72rem; font-weight: 800; color: var(--ink-soft); flex: none;
+}
+@media (max-width: 760px) { .quests-strip .qlist { grid-template-columns: 1fr; } }
+
+/* An empty wardrobe shows the shape of what is missing. */
+.wardrobe-empty { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px; }
+.slot-empty { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 62px; }
+.slot-frame {
+  width: 46px; height: 46px; border-radius: 2px;
+  border: 2px dashed rgb(67 56 42 / 40%);
+  background: rgb(255 255 255 / 22%);
+}
+.slot-empty em {
+  font-style: normal; font-size: 0.64rem; font-weight: 800;
+  letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-soft);
+}
+.wardrobe-empty p { flex: 1; min-width: 180px; align-self: center; margin: 0; }
+
+/* The wardrobe card is itself a grid of slot columns, so its empty state has
+   to claim the full row or the five frames wrap into one narrow column. */
+.wardrobe > .wardrobe-empty { grid-column: 1 / -1; flex-wrap: nowrap; }
+.wardrobe-empty p { flex: 1 1 200px; min-width: 0; }
+@media (max-width: 700px) {
+  .wardrobe > .wardrobe-empty { flex-wrap: wrap; }
+}
+
+/* Each stat says what it buys — the Stats panel was four bars and a void. */
+.stats li { flex-wrap: wrap; }
+.stat-does {
+  flex: 1 0 100%; order: 3;
+  font-style: normal; font-size: 0.7rem; font-weight: 600;
+  color: var(--ink-soft); margin: 1px 0 5px;
+}

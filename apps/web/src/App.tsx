@@ -914,6 +914,15 @@ function threatOf(mine: number, theirs: number): "easy" | "even" | "hard" {
 const THREAT_LABEL: Record<string, string> = { easy: "Weaker", even: "Even", hard: "Stronger" };
 
 /** One stat, shown as a gauge rather than a number on a dotted line. */
+/** What each stat actually buys, so the Stats card teaches instead of
+ *  listing four numbers and leaving the rest of the panel empty. */
+const STAT_DOES: Record<string, string> = {
+  Strength: "damage on every hit",
+  Agility: "evasion, blocks and ripostes",
+  Speed: "how often you act",
+  Endurance: "health, and how many pets you can keep",
+};
+
 function StatRow({ label, value }: { label: string; value: number }) {
   // 24 is comfortably past a maxed early-game stat, so the bar keeps meaning
   const pct = Math.max(4, Math.min(100, (value / 24) * 100));
@@ -922,15 +931,23 @@ function StatRow({ label, value }: { label: string; value: number }) {
       <b>{label}</b>
       <span className="statbar"><i style={{ width: `${pct}%` }} /></span>
       <span className="num">{value}</span>
+      <em className="stat-does">{STAT_DOES[label]}</em>
     </li>
   );
 }
 
-function Quest({ done, children }: { done: boolean; children: React.ReactNode }) {
+function Quest({ at, of, children }: { at: number; of: number; children: React.ReactNode }) {
+  const done = at >= of;
   return (
     <li className={done ? "qdone" : ""}>
       <span className="qbox">{done && <PixIcon name="check" size={9} />}</span>
-      {children}
+      <span className="qbody">
+        <span className="qtext">{children}</span>
+        <span className="qbar">
+          <span className="qbar-fill" style={{ width: `${Math.min(100, (at / of) * 100)}%` }} />
+        </span>
+      </span>
+      <span className="qcount">{Math.min(at, of)}/{of}</span>
     </li>
   );
 }
@@ -1030,12 +1047,35 @@ function Home(props: {
           <div className="muted">
             {omen(c.omen).name} · Level {c.level}
           </div>
-          <div className="xpbar short" title={`XP toward level ${c.level + 1}`}>
-            <div className="xpbar-fill" style={{ width: `${Math.min(100, (c.xp / need) * 100)}%` }} />
+          {/* XP is a labelled meter with its number on it, not a rule drawn
+              across the card with the reading stranded on the line below. */}
+          <div className="xp-row">
+            <span className="xp-cap">XP</span>
+            <div className="xpbar" title={`XP toward level ${c.level + 1}`}>
+              <div className="xpbar-fill" style={{ width: `${Math.min(100, (c.xp / need) * 100)}%` }} />
+            </div>
+            <span className="xp-num">{c.xp}/{need}</span>
           </div>
-          <div className="statline">
-            XP {c.xp}/{need} · {save.wins}W – {save.losses}L · HP {hpNow} · Gear {ownedGear.length}/{gearPool().length}
-          </div>
+          {/* The facts that were a dot-separated run now have labels, which is
+              what was actually filling the empty half of this card. */}
+          <dl className="facts">
+            <div>
+              <dt>Record</dt>
+              <dd>{save.wins}W – {save.losses}L</dd>
+            </div>
+            <div>
+              <dt>Health</dt>
+              <dd>{hpNow}</dd>
+            </div>
+            <div>
+              <dt>Gear</dt>
+              <dd>{ownedGear.length}/{gearPool().length}</dd>
+            </div>
+            <div>
+              <dt>Fights left</dt>
+              <dd>{save.vigor}</dd>
+            </div>
+          </dl>
         </div>
       </section>
 
@@ -1055,7 +1095,7 @@ function Home(props: {
             {c.weapons.map((id, i) => (
               <li key={id}>
                 <span className="rack-tile">
-                  <WeaponIcon d={weapon(id).discipline} size={32} />
+                  <WeaponIcon d={id} size={32} />
                 </span>
                 <div className="wbody">
                   <div className="wtop">
@@ -1086,15 +1126,9 @@ function Home(props: {
       <section className="card quests quests-strip span-all">
         <h3>Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — gear dropped!</span>}</h3>
         <ul className="qlist">
-          <Quest done={(save.quests?.fights ?? 0) >= 3}>
-            Fight 3 times ({Math.min(3, save.quests?.fights ?? 0)}/3)
-          </Quest>
-          <Quest done={(save.quests?.wins ?? 0) >= 2}>
-            Win 2 fights ({Math.min(2, save.quests?.wins ?? 0)}/2)
-          </Quest>
-          <Quest done={(save.quests?.crits ?? 0) >= 1}>
-            Land a critical hit ({Math.min(1, save.quests?.crits ?? 0)}/1)
-          </Quest>
+          <Quest at={save.quests?.fights ?? 0} of={3}>Fight three times</Quest>
+          <Quest at={save.quests?.wins ?? 0} of={2}>Win two fights</Quest>
+          <Quest at={save.quests?.crits ?? 0} of={1}>Land a critical hit</Quest>
         </ul>
         <p className="muted small note">Complete all three for a bonus gear drop. Resets daily.</p>
       </section>
@@ -1112,7 +1146,7 @@ function Home(props: {
             {c.beasts.map((b, i) => (
               <span key={`${b}${i}`} className="plaque" title={beast(b).flavour}>
                 <span className="pet-tile">
-                  <PetSprite beastId={b} size={34} />
+                  <PetSprite beastId={b} size={44} />
                 </span>
                 <em>{beast(b).name}</em>
               </span>
@@ -1131,9 +1165,17 @@ function Home(props: {
           </span>
         </h3>
         {ownedGear.length === 0 ? (
-          <p className="muted small">
-            Nothing yet — every level up (and some victories) drops a random piece of gear.
-          </p>
+          <div className="wardrobe-empty">
+            {(["Armor", "Helm", "Cloak", "Trinket", "Title"] as const).map((label) => (
+              <span className="slot-empty" key={label}>
+                <span className="slot-frame" />
+                <em>{label}</em>
+              </span>
+            ))}
+            <p className="muted small">
+              Nothing yet — every level up (and some victories) drops a random piece of gear.
+            </p>
+          </div>
         ) : (
           (["body", "helm", "cloak", "trinket", "title"] as GearSlot[]).map((slot) => {
             const items = ownedGear.filter((g) => g.slot === slot);
@@ -1252,7 +1294,7 @@ function Arena(props: {
                 {r.snapshot.weapons.length > 0 ? (
                   r.snapshot.weapons.map((w) => (
                     <span className="kit-chip" key={w} title={weapon(w).flavour}>
-                      <WeaponIcon d={weapon(w).discipline} size={15} /> {weapon(w).name}
+                      <WeaponIcon d={w} size={15} /> {weapon(w).name}
                     </span>
                   ))
                 ) : (
@@ -1348,7 +1390,7 @@ function OfferArt({ offer }: { offer: FateOffer }) {
   if (offer.kind === "weapon")
     return (
       <span className="offer-art rack-tile">
-        <WeaponIcon d={weapon(offer.weapon).discipline} size={48} />
+        <WeaponIcon d={offer.weapon} size={48} />
       </span>
     );
   if (offer.kind === "beast")
@@ -1423,7 +1465,7 @@ function Codex({ champion, onBack }: { champion: Champion; onBack: () => void })
         {WEAPONS.map((w) => (
           <div className="codex-row" key={w.id}>
             <span className="rack-tile">
-              <WeaponIcon d={w.discipline} size={34} />
+              <WeaponIcon d={w.id} size={34} />
             </span>
             <div className="grow">
               <div className="wtop">
