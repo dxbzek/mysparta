@@ -24,8 +24,29 @@ import kenjiAttack2 from "./assets/fighters/kenji-attack2.webp";
 import kenjiHit from "./assets/fighters/kenji-hit.webp";
 import kenjiDeath from "./assets/fighters/kenji-death.webp";
 import pixelArenaImg from "./assets/fighters/pixel-arena.webp";
+import { useEffect, useState } from "react";
+import { CLOTH_TINTS, FACE_TINTS, HAIR_TINTS, tintedSheet, type TintChoice } from "./recolor.js";
 
 export { pixelArenaImg };
+
+export const DEFAULT_TINT: TintChoice = { hair: 0, face: 0, clothes: 0 };
+
+/** Resolve a sheet's (possibly recoloured) source; default art until ready. */
+function useTintedSrc(src: string, fighter: number, tint: TintChoice | undefined): string {
+  const t = tint ?? DEFAULT_TINT;
+  const [url, setUrl] = useState(src);
+  useEffect(() => {
+    let live = true;
+    setUrl(src);
+    tintedSheet(src, fighter, t).then((u) => {
+      if (live) setUrl(u);
+    });
+    return () => {
+      live = false;
+    };
+  }, [src, fighter, t.hair, t.face, t.clothes]);
+  return url;
+}
 
 export type FighterAnim = "idle" | "run" | "attack1" | "attack2" | "hit" | "death";
 
@@ -40,6 +61,8 @@ interface Sheet {
 export interface Fighter {
   name: string;
   role: string;
+  /** Body descriptor for the appearance-only creation screen. */
+  build: string;
   blurb: string;
   sheets: Record<FighterAnim, Sheet>;
   /** frame box (px) */
@@ -54,6 +77,7 @@ export const FIGHTERS: Fighter[] = [
   {
     name: "Ronin",
     role: "Greatsword duelist",
+    build: "Broad & grounded",
     blurb: "Patient stance, brutal follow-through. Every swing is a sentence.",
     box: 200,
     char: { cx: 94, w: 38, h: 52, groundOff: 79 },
@@ -69,6 +93,7 @@ export const FIGHTERS: Fighter[] = [
   {
     name: "Shinobi",
     role: "Twin-blade assassin",
+    build: "Slight & swift",
     blurb: "Strikes twice before the first cut is felt.",
     box: 200,
     char: { cx: 102, w: 34, h: 54, groundOff: 73 },
@@ -119,12 +144,22 @@ export function fighterIndexFor(name: string): number {
 }
 
 /** A rival's full look — fighter, palette style and aura, all from the name. */
-export function rivalLook(name: string): { fighter: number; style: number; aura: number } {
+export function rivalLook(name: string): {
+  fighter: number;
+  style: number;
+  aura: number;
+  tint: TintChoice;
+} {
   const h = hash(name);
   return {
     fighter: h % FIGHTERS.length,
     style: (h >>> 3) % STYLES.length,
     aura: (h >>> 7) % AURAS.length,
+    tint: {
+      hair: (h >>> 10) % HAIR_TINTS.length,
+      face: (h >>> 14) % FACE_TINTS.length,
+      clothes: (h >>> 18) % CLOTH_TINTS.length,
+    },
   };
 }
 
@@ -145,13 +180,18 @@ function SheetAnim({
   scale,
   mirror,
   holdEnd,
+  fighter,
+  tint,
 }: {
   sheet: Sheet;
   box: number;
   scale: number;
   mirror?: boolean;
   holdEnd?: boolean;
+  fighter: number;
+  tint?: TintChoice;
 }) {
+  const src = useTintedSrc(sheet.src, fighter, tint);
   const w = box * scale;
   const anim = `stripPlay ${sheet.dur}s steps(${sheet.frames}) ${
     sheet.loop ? "infinite" : `1 ${holdEnd ? "forwards" : ""}`
@@ -163,7 +203,7 @@ function SheetAnim({
         {
           width: w,
           height: w,
-          backgroundImage: `url(${sheet.src})`,
+          backgroundImage: `url(${src})`,
           backgroundSize: `${w * sheet.frames}px ${w}px`,
           transform: mirror ? "scaleX(-1)" : undefined,
           animation: anim,
@@ -187,6 +227,7 @@ export function FighterFig({
   style: styleFx,
   aura,
   particles,
+  tint,
   className,
 }: {
   fighter: number;
@@ -198,6 +239,8 @@ export function FighterFig({
   aura?: number;
   /** equipped trinket effect swirling around the fighter */
   particles?: string;
+  /** hair / face / clothes recolour (recolor.ts) */
+  tint?: TintChoice;
   className?: string;
 }) {
   const f = fighterOf(fighter);
@@ -226,7 +269,7 @@ export function FighterFig({
           bottom: -Math.round(f.char.groundOff * scale),
         }}
       >
-        <SheetAnim sheet={sheet} box={f.box} scale={scale} mirror={flip} holdEnd={anim === "death"} />
+        <SheetAnim sheet={sheet} box={f.box} scale={scale} mirror={flip} holdEnd={anim === "death"} fighter={fighter} tint={tint} />
       </span>
       {particles && <WeatherFx kind={particles} count={5} />}
     </span>
@@ -258,18 +301,20 @@ export function FighterBust({
   size,
   mirror,
   style: styleFx,
+  tint,
 }: {
   fighter: number;
   size: number;
   mirror?: boolean;
   style?: number;
+  tint?: TintChoice;
 }) {
   const f = fighterOf(fighter);
   const height = size * 0.82;
   return (
     <span className="hero-bust fighter-bust" style={{ width: size, height: size }} aria-hidden>
       <span style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: size * 0.06 }}>
-        <FighterFig fighter={fighter} height={height} mirror={mirror} style={styleFx} />
+        <FighterFig fighter={fighter} height={height} mirror={mirror} style={styleFx} tint={tint} />
       </span>
     </span>
   );

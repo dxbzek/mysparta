@@ -7,6 +7,7 @@
 import type { BattlePlan, Champion } from "@agoge/core";
 import { fighterIndexFor } from "./fighters.js";
 import type { Equipped } from "./gear.js";
+import type { TintChoice } from "./recolor.js";
 
 export interface DailyQuests {
   day: string;
@@ -36,6 +37,8 @@ export interface SaveV1 {
   styleFx?: number;
   /** Aura colour index (fighters.tsx AURAS). */
   aura?: number;
+  /** Hair / face / clothes recolour picks (recolor.ts). */
+  tint?: TintChoice;
   /** Gear item ids collected from random level-up drops (gear.ts). */
   gear?: string[];
   /** Which owned pieces are currently worn. */
@@ -61,12 +64,14 @@ export function newSave(
   hero?: number,
   styleFx?: number,
   aura?: number,
+  tint?: TintChoice,
 ): SaveV1 {
   return {
     v: 1,
     hero: hero ?? fighterIndexFor(champion.displayName),
     styleFx: styleFx ?? 0,
     aura: aura ?? 0,
+    tint: tint ?? { hair: 0, face: 0, clothes: 0 },
     gear: [],
     equipped: {},
     champion,
@@ -111,6 +116,7 @@ export function load(): SaveV1 | null {
     if (parsed.hero == null) parsed.hero = fighterIndexFor(parsed.champion.displayName);
     if (parsed.gear == null) parsed.gear = [];
     if (parsed.equipped == null) parsed.equipped = {};
+    if (parsed.tint == null) parsed.tint = { hair: 0, face: 0, clothes: 0 };
     return applyDailyReset(parsed);
   } catch {
     return null;

@@ -3,6 +3,7 @@ import { BEASTS, FISTS, WEAPONS, type FightResult } from "@agoge/core";
 import { BeastFigure, ImpactBurst, Javelin, Laurel, SlashArc } from "./art.js";
 import { FighterFig, WeatherFx, fighterOf, pixelArenaImg, type FighterAnim } from "./fighters.js";
 import type { Arena } from "./arenas.js";
+import type { TintChoice } from "./recolor.js";
 import { narrate, type Line } from "./narrate.js";
 import { sound } from "./sound.js";
 
@@ -13,6 +14,8 @@ export interface StageFigure {
   style: number;
   /** Aura colour (fighters.tsx AURAS). */
   aura: number;
+  /** Hair / face / clothes recolour picks (recolor.ts). */
+  tint?: TintChoice;
   /** Equipped trinket particle effect, if any. */
   particles?: string;
   /** Weapon in hand at the start of the fight. */
@@ -268,6 +271,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
                   anim={animOf(0)}
                   style={figures[0].style}
                   aura={figures[0].aura}
+                  tint={figures[0].tint}
                   particles={figures[0].particles}
                 />
                 {renderEffects(0)}
@@ -288,6 +292,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
                   anim={animOf(1)}
                   style={figures[1].style}
                   aura={figures[1].aura}
+                  tint={figures[1].tint}
                   particles={figures[1].particles}
                   mirror
                 />

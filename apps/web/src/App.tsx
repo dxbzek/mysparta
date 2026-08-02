@@ -26,7 +26,6 @@ import {
   type BattlePlan,
   type Champion,
   type FateOffer,
-  type StatName,
   type FightResult,
   type GambitId,
   type Rival,
@@ -46,6 +45,7 @@ import {
   rivalLook,
 } from "./fighters.js";
 import { arenaForFight, type Arena as ArenaDef } from "./arenas.js";
+import { CLOTH_TINTS, FACE_TINTS, HAIR_TINTS, type TintChoice, type TintOption } from "./recolor.js";
 import { gearItem, gearPoolFor, resolveLook, rollGearDrop, type Equipped, type GearItem, type GearSlot } from "./gear.js";
 import {
   applyDailyReset,
@@ -157,8 +157,8 @@ export function App() {
     return (
       <Shell>
         <Forge
-          onForge={(champion, hero, styleFx, aura) => {
-            const s = newSave(champion, { stance: "measured", gambit: "close_the_gap" }, hero, styleFx, aura);
+          onForge={(champion, hero, aura, tint) => {
+            const s = newSave(champion, { stance: "measured", gambit: "close_the_gap" }, hero, 0, aura, tint);
             update(s);
             setScreen({ s: "home" });
           }}
@@ -329,6 +329,7 @@ export function App() {
                 fighter: save.hero ?? fighterIndexFor(c.displayName),
                 style: look.style,
                 aura: look.aura,
+                tint: save.tint,
                 particles: look.particles,
                 weaponId: heldWeaponId(c.weapons),
                 beasts: c.beasts,
@@ -378,18 +379,18 @@ function Shell({ children, header }: { children: React.ReactNode; header?: React
   );
 }
 
-/* ================= forge (2 steps: name → style) ================= */
+/* ================= forge (2 steps: name → appearance) ================= */
 
 function Forge({
   onForge,
 }: {
-  onForge: (c: Champion, hero: number, styleFx: number, aura: number) => void;
+  onForge: (c: Champion, hero: number, aura: number, tint: TintChoice) => void;
 }) {
   const [name, setName] = useState("");
   const [champ, setChamp] = useState<Champion | null>(null);
   const [hero, setHero] = useState<number | null>(null);
   const [aura, setAura] = useState(0);
-  const [focus, setFocus] = useState<StatName | null>(null);
+  const [tint, setTint] = useState<TintChoice>({ hair: 0, face: 0, clothes: 0 });
   const [previewPose, setPreviewPose] = useState<"idle" | "attack1">("idle");
   const preview = useMemo(() => {
     const trimmed = name.trim();
@@ -400,18 +401,6 @@ function Forge({
       return null;
     }
   }, [name]);
-
-  // The champion, rebuilt live from the player's creation choices.
-  const final = useMemo(() => {
-    if (!champ) return null;
-    try {
-      return createChampion(champ.displayName, {
-        focus: focus ?? undefined,
-      });
-    } catch {
-      return champ;
-    }
-  }, [champ, focus]);
 
   if (!champ) {
     return (
@@ -455,19 +444,45 @@ function Forge({
             Awaken my Hunter
           </button>
         </form>
-        <p className="fineprint">Next: choose their form. Stats and gear grow from your choices as you level.</p>
+        <p className="fineprint">Next: make them look like you want. Weapons, stats and skills are all found as you level.</p>
       </div>
     );
   }
 
   const picked = hero ?? fighterIndexFor(champ.displayName);
-  const c2 = final ?? champ;
+  const c2 = champ;
+
+  const tintRow = (
+    label: string,
+    options: TintOption[],
+    value: number,
+    set: (i: number) => void,
+  ) => (
+    <>
+      <h4>
+        {label} <span className="muted small">{options[value]!.name}</span>
+      </h4>
+      <div className="swatches">
+        {options.map((o, i) => (
+          <button
+            key={o.name}
+            className={`swatch ${value === i ? "picked" : ""}`}
+            style={{ background: o.css }}
+            onClick={() => set(i)}
+            aria-label={`${o.name} ${label.toLowerCase()}`}
+            title={o.name}
+          />
+        ))}
+      </div>
+    </>
+  );
 
   return (
     <div className="forge">
-      <h1 className="forge-title">Shape your hunter.</h1>
+      <h1 className="forge-title">Make them yours.</h1>
       <p className="forge-sub">
-        {c2.displayName} <span className="epithet">{c2.epithet}</span> — pick your form, your weapon path and your training.
+        {c2.displayName} <span className="epithet">{c2.epithet}</span> — this is just how you look.
+        Weapons, stats and skills are found in the Rift as you level.
       </p>
       <div className="styler">
         <div
@@ -478,25 +493,32 @@ function Forge({
           title="Hold to see the attack"
         >
           <AuraSparks aura={aura} />
-          <FighterFig fighter={picked} height={170} anim={previewPose} aura={aura} />
+          <FighterFig fighter={picked} height={170} anim={previewPose} aura={aura} tint={tint} />
           <div className="hero-caption">
             <b>{FIGHTERS[picked]!.name}</b>
-            <span className="muted small">{FIGHTERS[picked]!.blurb} <em>(hold to preview the attack)</em></span>
+            <span className="muted small">{FIGHTERS[picked]!.build} <em>(hold to preview the attack)</em></span>
           </div>
         </div>
 
-        <div className="roster roster-duel">
-          {FIGHTERS.map((f, i) => (
-            <button key={f.name} className={`hero-card ${picked === i ? "picked" : ""}`} onClick={() => setHero(i)}>
-              <FighterFig fighter={i} height={96} anim={picked === i ? "run" : "idle"} aura={aura} />
-              <b>{f.name}</b>
-              <span className="muted small">{f.role}</span>
-            </button>
-          ))}
-        </div>
-
         <div className="card" style={{ textAlign: "left" }}>
-          <h4>Aura</h4>
+          <h4>Body</h4>
+          <div className="roster roster-duel">
+            {FIGHTERS.map((f, i) => (
+              <button key={f.name} className={`hero-card ${picked === i ? "picked" : ""}`} onClick={() => setHero(i)}>
+                <FighterFig fighter={i} height={96} anim={picked === i ? "run" : "idle"} aura={aura} tint={tint} />
+                <b>{f.name}</b>
+                <span className="muted small">{f.build}</span>
+              </button>
+            ))}
+          </div>
+
+          {tintRow("Hair", HAIR_TINTS, tint.hair, (i) => setTint({ ...tint, hair: i }))}
+          {tintRow("Face", FACE_TINTS, tint.face, (i) => setTint({ ...tint, face: i }))}
+          {tintRow("Clothes", CLOTH_TINTS, tint.clothes, (i) => setTint({ ...tint, clothes: i }))}
+
+          <h4>
+            Aura <span className="muted small">{AURAS[aura]!.name}</span>
+          </h4>
           <div className="swatches">
             {AURAS.map((a, i) => (
               <button
@@ -509,24 +531,6 @@ function Forge({
               />
             ))}
           </div>
-
-          <h4>Focus — train one stat (+2)</h4>
-          <div className="opt-row">
-            {(["might", "grace", "tempo", "grit"] as StatName[]).map((s) => (
-              <button
-                key={s}
-                className={`opt ${focus === s ? "picked" : ""}`}
-                onClick={() => setFocus(focus === s ? null : s)}
-              >
-                {STAT_LABEL[s]}
-              </button>
-            ))}
-          </div>
-          <div className="statline">
-            {STAT_LABEL.might} {c2.stats.might} · {STAT_LABEL.grace} {c2.stats.grace} ·{" "}
-            {STAT_LABEL.tempo} {c2.stats.tempo} · {STAT_LABEL.grit} {c2.stats.grit} · you awaken
-            bare-handed — weapons are found as you level
-          </div>
         </div>
 
         <div className="actions">
@@ -535,13 +539,16 @@ function Forge({
             onClick={() => {
               setHero(Math.floor(Math.random() * FIGHTERS.length));
               setAura(Math.floor(Math.random() * AURAS.length));
-              const focuses: (StatName | null)[] = [null, "might", "grace", "tempo", "grit"];
-              setFocus(focuses[Math.floor(Math.random() * focuses.length)]!);
+              setTint({
+                hair: Math.floor(Math.random() * HAIR_TINTS.length),
+                face: Math.floor(Math.random() * FACE_TINTS.length),
+                clothes: Math.floor(Math.random() * CLOTH_TINTS.length),
+              });
             }}
           >
             🎲 Randomize
           </button>
-          <button className="btn primary big" onClick={() => onForge(c2, picked, 0, aura)}>
+          <button className="btn primary big" onClick={() => onForge(c2, picked, aura, tint)}>
             Start Hunting →
           </button>
         </div>
@@ -589,7 +596,7 @@ function Home(props: {
       )}
 
       <section className="card champ-card">
-        <FighterBust fighter={fighter} size={92} style={look.style} />
+        <FighterBust fighter={fighter} size={92} style={look.style} tint={save.tint} />
         <div className="champ-meta">
           <h2 className="champ-name">
             {c.displayName} <span className="epithet">{look.title ?? c.epithet}</span>
@@ -611,6 +618,7 @@ function Home(props: {
             height={120}
             style={look.style}
             aura={look.aura}
+            tint={save.tint}
             particles={look.particles}
           />
         </div>
@@ -787,7 +795,13 @@ function Arena(props: {
           return (
             <div className="card rival" key={r.snapshot.name}>
               <div className="rival-top">
-                <FighterBust fighter={rivalLook(r.snapshot.name).fighter} size={52} style={rivalLook(r.snapshot.name).style} mirror />
+                <FighterBust
+                  fighter={rivalLook(r.snapshot.name).fighter}
+                  size={52}
+                  style={rivalLook(r.snapshot.name).style}
+                  tint={rivalLook(r.snapshot.name).tint}
+                  mirror
+                />
                 <span className="champ-name small">{r.snapshot.name}</span>
                 <span className="pill">Lv {r.snapshot.level}</span>
               </div>
