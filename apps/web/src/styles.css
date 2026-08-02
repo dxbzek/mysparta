@@ -1951,3 +1951,17 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* the XP gauge is a gauge, not a ruler across the whole card */
 .xpbar.short { max-width: 340px; }
+
+/*
+ * The champion card spanned the whole row from when the figure was large and
+ * loose. The portrait is a compact frame now, so it takes two columns and
+ * leaves the third for real content instead of empty parchment.
+ */
+@media (min-width: 700px) {
+  .home > .champ-card { grid-column: span 2; }
+}
+@media (min-width: 1100px) {
+  .home > .champ-card { grid-column: span 2; }
+}
+.champ-card { align-items: center; min-height: 0; }
+.champ-meta { flex: 1; min-width: 0; }

@@ -1013,7 +1013,7 @@ function Home(props: {
         </section>
       )}
 
-      <section className="card champ-card span-all">
+      <section className="card champ-card">
         {/* a framed portrait: the champion standing in an arena of their choosing */}
         <ChampionPortrait
           look={worn}
