@@ -1158,8 +1158,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 .reward-chips { display: flex; gap: 10px; margin-top: 10px; z-index: 2; }
 .reward-chips .pill { font-size: 1rem; }
-.reward-chips .pill.gain { background: rgba(52, 211, 153, 0.25); }
-.reward-chips .pill.loss { background: rgba(244, 86, 78, 0.25); }
+/* these sit over a night arena, so they carry their own light background */
+.reward-chips .pill { background: var(--panel); color: var(--ink); }
+.reward-chips .pill.gain { background: #cfe0b6; color: #2f3d20; }
+.reward-chips .pill.loss { background: #eab4a4; color: #4a1d14; }
+.reward-chips .pill.drop { background: linear-gradient(180deg, var(--gold-bright), var(--gold)); color: #3a2a10; }
 
 /* ---------- level-up ceremony ---------- */
 
@@ -1560,3 +1563,232 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 /* codex bars stay a readable width instead of spanning the whole row */
 .codex-row .wbars { max-width: 380px; }
 .codex-row .wtop { margin-bottom: 2px; }
+
+/* ---------- a skill firing ---------- */
+
+.invoke {
+  position: absolute;
+  left: 0; right: 0; top: 34%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+  z-index: 5;
+}
+.invoke-name {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  color: #fff6dc;
+  text-shadow: 0 2px 0 #000, 0 0 12px var(--gold-bright);
+  background: rgb(20 14 8 / 72%);
+  border: 2.5px solid var(--gold-bright);
+  border-radius: var(--radius);
+  padding: 6px 14px;
+  animation: invokeName 900ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+/* a shock ring pushing out from the caster */
+.invoke-ring {
+  position: absolute;
+  top: 30%;
+  width: 34px; height: 34px;
+  border: 3px solid var(--gold-bright);
+  border-radius: 50%;
+  animation: invokeRing 700ms ease-out both;
+}
+.invoke-l .invoke-ring { left: 14%; }
+.invoke-r .invoke-ring { right: 14%; }
+@keyframes invokeName {
+  0% { opacity: 0; transform: scale(0.6) translateY(8px); }
+  55% { opacity: 1; transform: scale(1.06) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes invokeRing {
+  0% { opacity: 0.95; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(3.6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .invoke-name, .invoke-ring { animation-duration: 1ms; }
+}
+
+/* ---------- arena board: threat, kit, stakes ---------- */
+
+.rival { animation: cardRise 420ms cubic-bezier(0.2, 0.9, 0.3, 1.1) backwards; }
+@keyframes cardRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rival-id { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.threat {
+  font-family: var(--font-display);
+  font-size: 0.56rem;
+  letter-spacing: 0.05em;
+  padding: 4px 7px;
+  border: 2.5px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+}
+.threat-easy { background: #cfe0b6; }
+.threat-even { background: #ecd9a8; }
+.threat-hard { background: #eab4a4; }
+
+.rival-kit { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0 4px; }
+.kit-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.74rem; font-weight: 700;
+  padding: 3px 7px;
+  border: 2px solid rgb(67 56 42 / 45%);
+  border-radius: var(--radius);
+  background: rgb(255 255 255 / 40%);
+}
+.kit-chip.skill { background: rgba(217, 95, 67, 0.16); }
+.kit-chip.pet { background: rgba(199, 154, 93, 0.28); text-transform: capitalize; }
+
+.wager {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 5px 8px;
+  border: 2px dashed rgb(67 56 42 / 30%);
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 0.64rem;
+}
+.wager .win { color: var(--olive); }
+.wager .lose { color: var(--red); }
+.wager .muted { font-family: var(--font-body); font-size: 0.72rem; }
+
+/* ---------- motion ---------- */
+
+/* panels deal themselves in rather than appearing all at once */
+.home > section { animation: cardRise 420ms cubic-bezier(0.2, 0.9, 0.3, 1.1) backwards; }
+.home > section:nth-child(2) { animation-delay: 40ms; }
+.home > section:nth-child(3) { animation-delay: 80ms; }
+.home > section:nth-child(4) { animation-delay: 120ms; }
+.home > section:nth-child(5) { animation-delay: 160ms; }
+.home > section:nth-child(6) { animation-delay: 200ms; }
+
+.forge, .arena, .theatre { animation: screenIn 320ms ease both; }
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* gauges fill instead of snapping */
+.xpbar-fill, .statbar i, .hpbar-fill { transition: width 420ms cubic-bezier(0.3, 0.9, 0.3, 1); }
+
+/* the arena name slides in as the stage opens */
+.arena-chip { animation: chipDrop 520ms cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+@keyframes chipDrop {
+  from { opacity: 0; transform: translate(-50%, -14px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* reward chips pop in one after another */
+.reward-chips .pill { animation: chipPop 380ms cubic-bezier(0.2, 1.5, 0.4, 1) backwards; }
+.reward-chips .pill:nth-child(2) { animation-delay: 110ms; }
+.reward-chips .pill:nth-child(3) { animation-delay: 220ms; }
+@keyframes chipPop {
+  from { opacity: 0; transform: scale(0.5) translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* found gear catches the light */
+.gear-chip.worn { animation: wornGlow 2.6s ease-in-out infinite; }
+@keyframes wornGlow {
+  0%, 100% { box-shadow: var(--shadow-sm); }
+  50% { box-shadow: var(--shadow-sm), 0 0 10px rgb(227 154 46 / 55%); }
+}
+
+/* the tab you press acknowledges it */
+.tab.on { animation: tabPop 240ms cubic-bezier(0.2, 1.5, 0.4, 1); }
+@keyframes tabPop {
+  from { transform: translateY(2px) scale(0.96); }
+  to { transform: none; }
+}
+
+/* verdict lands with weight */
+.verdict { animation: verdictSlam 460ms cubic-bezier(0.15, 1.5, 0.35, 1) both; }
+@keyframes verdictSlam {
+  0% { opacity: 0; transform: scale(1.8); letter-spacing: 0.4em; }
+  60% { opacity: 1; transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home > section, .rival, .forge, .arena, .theatre,
+  .arena-chip, .reward-chips .pill, .verdict, .tab.on, .gear-chip.worn {
+    animation: none;
+  }
+  .xpbar-fill, .statbar i, .hpbar-fill { transition: none; }
+}
+
+/* gear chips carry their numbers */
+.gear-chip { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; }
+.gear-stat {
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.03em;
+}
+.gear-chip.worn .gear-stat { color: #4c3f28; }
+
+/* ---------- breadcrumbs ---------- */
+
+.crumbs {
+  display: flex; align-items: center; gap: 7px;
+  margin: -8px 4px 14px;
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+}
+.crumb { color: var(--ink-soft); }
+.crumb.on { color: var(--ink); }
+.crumb-sep { color: var(--ink-soft); opacity: 0.6; margin-right: 7px; }
+
+/* ---------- ladder ---------- */
+
+.ladder { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ladder-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px;
+  border: 2.5px solid rgb(67 56 42 / 35%);
+  border-radius: var(--radius);
+  background: rgb(255 255 255 / 35%);
+  animation: cardRise 320ms ease backwards;
+}
+.ladder-row.you {
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+.lrank { font-family: var(--font-display); font-size: 0.68rem; min-width: 28px; color: var(--ink-soft); }
+.ladder-row.you .lrank { color: #3a2a10; }
+.lname { flex: 1; font-weight: 700; }
+.llevel { flex: 0 0 auto; }
+.lrating { font-family: var(--font-display); font-size: 0.66rem; display: inline-flex; align-items: center; gap: 5px; }
+.standings { margin-bottom: 14px; }
+.ladder.tight .ladder-row { padding: 5px 9px; }
+
+/* ---------- the wager, as a scoreline ---------- */
+
+.wager { justify-content: stretch; padding: 0; border: none; gap: 6px; }
+.wager-side {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 5px 4px;
+  border: 2.5px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+.wager-side b { font-family: var(--font-display); font-size: 0.76rem; }
+.wager-side em {
+  font-style: normal;
+  font-family: var(--font-display);
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.wager-side.win { background: #cfe0b6; color: #2f3d20; }
+.wager-side.lose { background: #eab4a4; color: #4a1d14; }

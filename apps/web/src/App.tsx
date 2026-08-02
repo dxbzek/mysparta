@@ -57,7 +57,7 @@ import {
   type Part,
   type Tone,
 } from "./paperdoll.js";
-import { gearDetail, gearItem, gearPool, lookWithGear, resolveExtras, rollGearDrop, type Equipped, type GearItem, type GearSlot } from "./gear.js";
+import { gearDetail, gearItem, gearPool, gearStatLine, gearStats, lookWithGear, resolveExtras, rollGearDrop, type Equipped, type GearItem, type GearSlot } from "./gear.js";
 import {
   applyDailyReset,
   freshQuests,
@@ -70,6 +70,7 @@ import {
   VIGOR_CAP,
 } from "./save.js";
 import { sound } from "./sound.js";
+import { ladder, standing } from "./ladder.js";
 
 type Screen =
   | { s: "forge" }
@@ -83,7 +84,33 @@ type Screen =
       rewards: { xp: number; kleos: number; drops: string[] };
     }
   | { s: "history" }
+  | { s: "ladder" }
   | { s: "codex" };
+
+/** Screens that live at their own URL, so back/forward and refresh work. */
+const ROUTES: Record<string, string> = {
+  home: "hall",
+  arena: "arena",
+  history: "history",
+  ladder: "ladder",
+  codex: "codex",
+  forge: "new",
+};
+const BREADCRUMB: Record<string, string> = {
+  home: "Hall",
+  arena: "Hall / Arena",
+  history: "Hall / Level-Up History",
+  ladder: "Hall / Ladder",
+  codex: "Hall / Codex",
+  forge: "New Hunter",
+  fight: "Hall / Arena / Fight",
+};
+
+function routeOf(hash: string): Screen["s"] | null {
+  const want = hash.replace(/^#\/?/, "");
+  const hit = Object.entries(ROUTES).find(([, path]) => path === want);
+  return (hit?.[0] as Screen["s"]) ?? null;
+}
 
 /** League tiers give the rating number meaning (03-gdd-systems.md §1.4). */
 function league(kleos: number): { name: string; color: string } {
@@ -127,8 +154,34 @@ function heldWeaponId(weapons: string[]): string | undefined {
 
 export function App() {
   const [save, setSave] = useState<SaveV1 | null>(() => load());
-  const [screen, setScreen] = useState<Screen>(save ? { s: "home" } : { s: "forge" });
+  const [screen, setScreen] = useState<Screen>(() => {
+    const wanted = routeOf(location.hash);
+    if (!save) return { s: "forge" };
+    return wanted && wanted !== "fight" ? ({ s: wanted } as Screen) : { s: "home" };
+  });
   const [draft, setDraft] = useState<{ offers: FateOffer[]; pick: number; drop?: GearItem } | null>(null);
+
+  // The address bar follows the screen, so refresh and the back button land
+  // where the player expects instead of dumping them at the Hall.
+  useEffect(() => {
+    const path = ROUTES[screen.s];
+    if (path && location.hash !== `#/${path}`) {
+      history.pushState(null, "", `#/${path}`);
+    }
+  }, [screen.s]);
+
+  useEffect(() => {
+    const onNav = () => {
+      const s = routeOf(location.hash);
+      if (s && s !== "fight") setScreen({ s } as Screen);
+    };
+    window.addEventListener("popstate", onNav);
+    window.addEventListener("hashchange", onNav);
+    return () => {
+      window.removeEventListener("popstate", onNav);
+      window.removeEventListener("hashchange", onNav);
+    };
+  }, []);
 
   // One crisp tick for every button in the game.
   useEffect(() => {
@@ -181,6 +234,11 @@ export function App() {
     const fresh = applyDailyReset(save);
     if (fresh.vigor <= 0) return;
     const champion = structuredClone(fresh.champion);
+    // Worn gear is not decoration: its bonuses go in with the fighter.
+    const kit = gearStats(fresh.equipped);
+    for (const [k, v] of Object.entries(kit)) {
+      champion.stats[k as keyof typeof champion.stats] += v as number;
+    }
     const seed = combineSeed(champion.seed, fresh.totalFights, rival.snapshot.name, todayKey());
     const plan = randomPlan(champion, combineSeed(seed, "plan"));
     const result = simulateFight({
@@ -256,6 +314,7 @@ export function App() {
 
   return (
     <Shell
+      crumb={BREADCRUMB[screen.s]}
       header={
         <header className="topbar">
           <button className="wordmark" onClick={() => setScreen({ s: "home" })}>
@@ -292,6 +351,7 @@ export function App() {
           onArena={() => setScreen({ s: "arena" })}
           onHistory={() => setScreen({ s: "history" })}
           onCodex={() => setScreen({ s: "codex" })}
+          onLadder={() => setScreen({ s: "ladder" })}
           onReorder={(from, to) => {
             const champion = structuredClone(c);
             const [moved] = champion.weapons.splice(from, 1);
@@ -350,6 +410,10 @@ export function App() {
         />
       )}
 
+      {screen.s === "ladder" && (
+        <Ladder save={save} onBack={() => setScreen({ s: "home" })} />
+      )}
+
       {screen.s === "history" && <History champion={c} onBack={() => setScreen({ s: "home" })} />}
       {screen.s === "codex" && <Codex champion={c} onBack={() => setScreen({ s: "home" })} />}
 
@@ -367,10 +431,29 @@ export function App() {
 
 /* ================= shell ================= */
 
-function Shell({ children, header }: { children: React.ReactNode; header?: React.ReactNode }) {
+function Shell({
+  children,
+  header,
+  crumb,
+}: {
+  children: React.ReactNode;
+  header?: React.ReactNode;
+  /** where you are, e.g. "Hall / Arena" */
+  crumb?: string;
+}) {
   return (
     <div className="shell">
       {header}
+      {crumb && (
+        <nav className="crumbs" aria-label="Breadcrumb">
+          {crumb.split(" / ").map((part, i, all) => (
+            <span key={part}>
+              {i > 0 && <span className="crumb-sep">/</span>}
+              <span className={i === all.length - 1 ? "crumb on" : "crumb"}>{part}</span>
+            </span>
+          ))}
+        </nav>
+      )}
       <main className="content">{children}</main>
       <footer className="foot">
         RANK ZERO prototype — deterministic sim v1 · your progress is saved in this browser
@@ -667,6 +750,90 @@ function PartPicker({
   );
 }
 
+
+/** A compact standings line so the Arena page shows where you stand. */
+function StandingsStrip({ save }: { save: SaveV1 }) {
+  const rows = useMemo(
+    () => ladder(save.champion.displayName, save.champion.level, save.kleos),
+    [save.champion.displayName, save.champion.level, save.kleos],
+  );
+  const me = standing(rows);
+  const near = rows.slice(Math.max(0, me.rank - 3), me.rank + 2);
+  return (
+    <section className="card standings">
+      <h3>
+        Standings <span className="muted small">you are #{me.rank} of {me.of}</span>
+      </h3>
+      <ol className="ladder tight">
+        {near.map((r) => (
+          <li key={r.name} className={`ladder-row ${r.you ? "you" : ""}`}>
+            <span className="lrank">{r.rank}</span>
+            <span className="lname">{r.name}</span>
+            <span className="lrating">
+              <PixIcon name="star" size={9} className="icon-gold" /> {r.rating}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/* ================= ladder ================= */
+
+/**
+ * Standings for the realm. Every other name is generated from the realm seed,
+ * so the table is stable — passing someone means you climbed, not that the
+ * board reshuffled.
+ */
+function Ladder({ save, onBack }: { save: SaveV1; onBack: () => void }) {
+  const rows = useMemo(
+    () => ladder(save.champion.displayName, save.champion.level, save.kleos),
+    [save.champion.displayName, save.champion.level, save.kleos],
+  );
+  const me = standing(rows);
+  return (
+    <div className="arena">
+      <div className="arena-head">
+        <button className="btn ghost" onClick={onBack}>
+          <PixIcon name="arrowLeft" size={11} /> Hall
+        </button>
+        <h2>The Ladder</h2>
+        <span className="pill">
+          #{me.rank} of {me.of}
+        </span>
+      </div>
+      {me.ahead && (
+        <p className="notice">
+          <b>{me.ahead.name}</b> is {me.ahead.rating - save.kleos} rating ahead of you at #{me.rank - 1}.
+          Beat someone stronger to take the place.
+        </p>
+      )}
+      <ol className="ladder">
+        {rows.map((r) => (
+          <li key={r.name} className={`ladder-row ${r.you ? "you" : ""}`}>
+            <span className="lrank">{r.rank}</span>
+            <span className="lname">{r.name}</span>
+            <span className="llevel muted small">Lv {r.level}</span>
+            <span className="lrating">
+              <PixIcon name="star" size={9} className="icon-gold" /> {r.rating}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/** How dangerous a rival looks next to your own rating. */
+function threatOf(mine: number, theirs: number): "easy" | "even" | "hard" {
+  if (theirs < mine - 40) return "easy";
+  if (theirs > mine + 40) return "hard";
+  return "even";
+}
+
+const THREAT_LABEL: Record<string, string> = { easy: "Weaker", even: "Even", hard: "Stronger" };
+
 /** One stat, shown as a gauge rather than a number on a dotted line. */
 function StatRow({ label, value }: { label: string; value: number }) {
   // 24 is comfortably past a maxed early-game stat, so the bar keeps meaning
@@ -734,6 +901,7 @@ function Home(props: {
   onArena: () => void;
   onHistory: () => void;
   onCodex: () => void;
+  onLadder: () => void;
   onReorder: (from: number, to: number) => void;
   onRefill: () => void;
   onDelete: () => void;
@@ -895,10 +1063,11 @@ function Home(props: {
                       <button
                         key={g.id}
                         className={`chip gear-chip ${worn ? "worn" : ""}`}
-                        title={`${g.flavour} — ${gearDetail(g)}`}
+                        title={g.flavour}
                         onClick={() => props.onEquip(slot, worn ? undefined : g.id)}
                       >
-                        {g.name}
+                        <b>{g.name}</b>
+                        <span className="gear-stat">{gearStatLine(g) || gearDetail(g)}</span>
                       </button>
                     );
                   })}
@@ -916,15 +1085,15 @@ function Home(props: {
         <button className="btn ghost" onClick={props.onHistory}>
           Level-Up History ({c.tapestry.length})
         </button>
+        <button className="btn ghost" onClick={props.onLadder}>
+          Ladder
+        </button>
         <button className="btn ghost" onClick={props.onCodex}>
           Codex
         </button>
       </div>
 
       <div className="devrow">
-        <button className="btn tiny ghost" onClick={props.onRefill} title="Testing only — fights are never sold in the real game">
-          Dev: +6 fights
-        </button>
         <button
           className={`btn tiny danger ${armDelete ? "armed" : ""}`}
           onClick={() => (armDelete ? props.onDelete() : setArmDelete(true))}
@@ -962,25 +1131,63 @@ function Arena(props: {
           For testing, use "Dev: +6 fights" in your Hall.
         </p>
       )}
+      <StandingsStrip save={save} />
+
       <div className="rivals">
-        {board.map((r) => {
+        {board.map((r, i) => {
           return (
-            <div className="card rival" key={r.snapshot.name}>
+            <div className="card rival" key={r.snapshot.name} style={{ animationDelay: `${i * 55}ms` }}>
               <div className="rival-top">
-                <FighterBust look={rivalLook(r.snapshot.name).look} size={52} mirror />
-                <span className="champ-name small">{r.snapshot.name}</span>
-                <span className="pill">Lv {r.snapshot.level}</span>
+                <FighterBust look={rivalLook(r.snapshot.name).look} size={64} mirror />
+                <div className="rival-id">
+                  <span className="champ-name small">{r.snapshot.name}</span>
+                  <span className="muted small">
+                    Lv {r.snapshot.level} ·{" "}
+                    <PixIcon name="star" size={9} className="icon-gold" /> {r.kleos}
+                  </span>
+                </div>
+                <span className={`threat threat-${threatOf(save.kleos, r.kleos)}`}>
+                  {THREAT_LABEL[threatOf(save.kleos, r.kleos)]}
+                </span>
               </div>
-              <div className="muted small">
-                <PixIcon name="star" size={10} className="icon-gold" /> {r.kleos} · {r.snapshot.weapons.map((w) => weapon(w).name).join(", ") || "Fists"}
+
+              {/* what they carry, at a glance */}
+              <div className="rival-kit">
+                {r.snapshot.weapons.length > 0 ? (
+                  r.snapshot.weapons.map((w) => (
+                    <span className="kit-chip" key={w} title={weapon(w).flavour}>
+                      <WeaponIcon d={weapon(w).discipline} size={15} /> {weapon(w).name}
+                    </span>
+                  ))
+                ) : (
+                  <span className="kit-chip">
+                    <WeaponIcon d="fists" size={15} /> Bare-handed
+                  </span>
+                )}
+                {r.snapshot.skills.map((s) => (
+                  <span className="kit-chip skill" key={s} title={skill(s).text}>
+                    {skill(s).name}
+                  </span>
+                ))}
+                {r.snapshot.beasts.map((b, bi) => (
+                  <span className="kit-chip pet" key={`${b}${bi}`}>
+                    <PetSprite beastId={b} size={16} /> {beast(b).name}
+                  </span>
+                ))}
               </div>
-              <div className="muted small">
-                {r.snapshot.skills.length > 0
-                  ? r.snapshot.skills.map((s) => skill(s).name).join(", ")
-                  : "No known skills"}
-                {r.snapshot.beasts.length > 0 &&
-                  ` · ${r.snapshot.beasts.map((b) => beast(b).name).join(", ")}`}
+
+              {/* the wager, so picking an opponent is a decision */}
+              <div className="wager">
+                <span className="wager-side win">
+                  <b>+{kleosDelta(true, save.kleos, r.kleos)}</b>
+                  <em>win</em>
+                </span>
+                <span className="wager-side lose">
+                  <b>{kleosDelta(false, save.kleos, r.kleos)}</b>
+                  <em>lose</em>
+                </span>
               </div>
+
               <button className="btn primary" disabled={save.vigor <= 0} onClick={() => props.onFight(r)}>
                 <span className="btn-label">Fight (1 <PixIcon name="bolt" size={11} />)</span>
               </button>

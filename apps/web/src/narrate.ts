@@ -21,10 +21,14 @@ export interface Line {
   anim?: {
     /** Which champion runs in / attacks this beat. */
     striker?: 0 | 1;
+    /** A chained hit: swing again, but stay in close instead of running in. */
+    chain?: boolean;
     /** Projectile beat instead of a run (thrown weapons). */
     thrown?: boolean;
     /** Defender's response animation. */
     reaction?: { side: 0 | 1; kind: "hurt" | "dodge" | "block" };
+    /** A skill going off: the stage announces it and flares the caster. */
+    invoke?: { side: 0 | 1; name: string };
     /** A word floater when no number applies ("Miss!", "Blocked!"). */
     label?: { side: 0 | 1; text: string };
     /** Acting beast's display name (beast attack beats). */
@@ -124,7 +128,10 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
             {
               fx: { target: foe(e.side), amount: e.amount, crit: e.crit },
               anim: {
-                striker: e.combo > 0 ? undefined : e.side, // chained hits stay in close
+                // A chained hit still swings — it just doesn't cross the
+                // arena again, because the fighters are already in close.
+                striker: e.side,
+                chain: e.combo > 0,
                 thrown: p?.thrown,
                 reaction: { side: foe(e.side), kind: "hurt" },
               },
@@ -162,8 +169,11 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         });
         break;
       case "trump":
-        push(e.side, `⚡ ${n(e.side)} unleashes ${prettySkill(e.skill)}!`, "trump", 1100, {
-          anim: { label: { side: e.side, text: prettySkill(e.skill) } },
+        push(e.side, `${n(e.side)} unleashes ${prettySkill(e.skill)}!`, "trump", 1300, {
+          anim: {
+            label: { side: e.side, text: prettySkill(e.skill) },
+            invoke: { side: e.side, name: prettySkill(e.skill) },
+          },
         });
         break;
       case "technique":

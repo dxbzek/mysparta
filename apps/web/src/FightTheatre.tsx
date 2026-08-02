@@ -228,7 +228,8 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   const slotClass = (side: 0 | 1): string => {
     const cls = ["fig-slot"];
     if (idx <= 1) cls.push(side === 0 ? "enter-l" : "enter-r");
-    if (anim?.striker === side && !anim.beastName) {
+    // A chain hit keeps the swing but skips the run-in: they are already close.
+    if (anim?.striker === side && !anim.beastName && !anim.chain) {
       cls.push(anim.thrown ? (side === 0 ? "throw-r" : "throw-l") : side === 0 ? "strike-r" : "strike-l");
     }
     if (anim?.reaction?.side === side) {
@@ -371,6 +372,13 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
             {renderBeasts(1)}
           </div>
         </div>
+
+        {anim?.invoke && (
+          <div key={`inv${idx}`} className={`invoke invoke-${anim.invoke.side === 0 ? "l" : "r"}`}>
+            <span className="invoke-ring" />
+            <span className="invoke-name">{anim.invoke.name}</span>
+          </div>
+        )}
 
         {anim?.thrown && anim.striker !== undefined && (
           <span key={`m${idx}`} className={anim.striker === 0 ? "missile missile-r" : "missile missile-l"}>
