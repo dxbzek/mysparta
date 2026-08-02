@@ -1,16 +1,16 @@
 /**
- * Gear — cosmetic equipment earned from RANDOM level-up drops (never chosen,
- * MyBrute style). Every item is themed to its fighter: the Ronin collects
- * samurai lacquer and haori, the Shinobi collects shozoku and kage mantles.
+ * Gear — equipment earned from RANDOM level-up drops (never chosen, MyBrute
+ * style). Armour is real: an equipped piece swaps the outfit layer on the
+ * paper-doll, so a hunter who finds plate is visibly wearing plate.
  *
- * Visuals ride the systems the animated sprites support cleanly:
- *   body    → palette grade (STYLES index)  — "armor" recolours the outfit
- *   cloak   → aura colour (AURAS index)     — the glow around the fighter
+ *   armour  → torso layer + colour (paperdoll TORSOS / CLOTH_COLORS)
+ *   cloak   → aura colour (AURAS index) — the glow around the fighter
  *   trinket → particle effect in combat
  *   title   → epithet shown on the champion card
  */
 
 import { makeRng } from "@agoge/core";
+import { CLOTH_COLORS, TORSOS, torsosFor, type Look } from "./paperdoll.js";
 
 export type GearSlot = "body" | "cloak" | "trinket" | "title";
 export type ParticleKind = "embers" | "petals" | "snow" | "fireflies" | "storm";
@@ -19,74 +19,74 @@ export interface GearItem {
   id: string;
   name: string;
   slot: GearSlot;
-  /** fighter index this piece belongs to (0 Ronin, 1 Shinobi) */
-  fighter: number;
   flavour: string;
-  /** exactly one of these is set, per slot */
-  style?: number;
+  /** armour: the outfit it puts on (index into paperdoll TORSOS + colours) */
+  torso?: number;
+  torsoColor?: number;
   aura?: number;
   particles?: ParticleKind;
 }
 
-const ronin: GearItem[] = [
-  // body — lacquered dō (STYLES 1-4)
-  { id: "r_do_ember", name: "Ember-Lacquered Dō", slot: "body", fighter: 0, style: 1, flavour: "Armor quenched in rift-fire." },
-  { id: "r_do_frost", name: "Frost-Tempered Dō", slot: "body", fighter: 0, style: 2, flavour: "Cooled in the Frozen Grove." },
-  { id: "r_do_void", name: "Void-Iron Dō", slot: "body", fighter: 0, style: 3, flavour: "Drinks the light around it." },
-  { id: "r_do_sun", name: "Sun-Polished Dō", slot: "body", fighter: 0, style: 4, flavour: "Blinds before the blade does." },
-  // cloak — haori (AURAS 0-7)
-  { id: "r_haori_violet", name: "Haori of Violet Dusk", slot: "cloak", fighter: 0, aura: 0, flavour: "Woven at twilight." },
-  { id: "r_haori_gold", name: "Golden Haori", slot: "cloak", fighter: 0, aura: 1, flavour: "A champion's colours." },
-  { id: "r_haori_blood", name: "Bloodsilk Haori", slot: "cloak", fighter: 0, aura: 2, flavour: "Never washes out. Never needs to." },
-  { id: "r_haori_tide", name: "Tidewater Haori", slot: "cloak", fighter: 0, aura: 3, flavour: "Calm before every storm." },
-  { id: "r_haori_verdant", name: "Verdant Haori", slot: "cloak", fighter: 0, aura: 4, flavour: "The grove approves." },
-  { id: "r_haori_rose", name: "Rosewind Haori", slot: "cloak", fighter: 0, aura: 5, flavour: "Petals follow it home." },
-  { id: "r_haori_ivory", name: "Ivory Haori", slot: "cloak", fighter: 0, aura: 6, flavour: "Worn once, at the last duel." },
-  { id: "r_haori_storm", name: "Stormcall Haori", slot: "cloak", fighter: 0, aura: 7, flavour: "Thunder answers it." },
-  // trinket — charms
-  { id: "r_charm_ember", name: "Ember Charm", slot: "trinket", fighter: 0, particles: "embers", flavour: "Sparks rise where the Ronin stands." },
-  { id: "r_charm_petal", name: "Petalfall Charm", slot: "trinket", fighter: 0, particles: "petals", flavour: "Every duel is a spring festival." },
-  { id: "r_charm_snow", name: "Snowveil Charm", slot: "trinket", fighter: 0, particles: "snow", flavour: "Winter keeps its own counsel." },
-  { id: "r_charm_firefly", name: "Firefly Lantern", slot: "trinket", fighter: 0, particles: "fireflies", flavour: "Small lights, long roads." },
-  { id: "r_charm_storm", name: "Storm Bell", slot: "trinket", fighter: 0, particles: "storm", flavour: "Rings once before the lightning." },
-  // titles
-  { id: "r_title_patient", name: "the Patient Blade", slot: "title", fighter: 0, flavour: "Waits. Wins." },
-  { id: "r_title_oni", name: "Oni-Slayer", slot: "title", fighter: 0, flavour: "The hounds remember." },
-  { id: "r_title_dawn", name: "First Light of Dawn", slot: "title", fighter: 0, flavour: "The arena wakes with them." },
-  { id: "r_title_unbroken", name: "the Unbroken", slot: "title", fighter: 0, flavour: "Knocked down nine times. Stood up ten." },
-  { id: "r_title_rift", name: "Rift-Tested", slot: "title", fighter: 0, flavour: "Went in. Came back. Says nothing." },
+const armour = (id: string, name: string, torso: number, torsoColor: number, flavour: string): GearItem => ({
+  id, name, slot: "body", torso, torsoColor, flavour,
+});
+
+/* Torso indices: 1 plate · 2 legion · 3 overalls · 4 suspenders — the pieces
+   cut for both builds, so any drop fits any hunter. */
+const ARMOUR: GearItem[] = [
+  armour("g_plate_iron", "Iron Plate", 1, 2, "Dented in places you don't ask about."),
+  armour("g_plate_ember", "Ember-Forged Plate", 1, 5, "Quenched in rift-fire."),
+  armour("g_plate_gilded", "Gilded Plate", 1, 7, "Blinds before the blade does."),
+  armour("g_plate_tide", "Tidewrought Plate", 1, 11, "Cooled in the deep channels."),
+  armour("g_plate_void", "Voidiron Plate", 1, 3, "Drinks the light around it."),
+  armour("g_plate_verdant", "Verdant Plate", 1, 9, "The grove approves."),
+  armour("g_legion_steel", "Legion Harness", 2, 1, "Standard issue, non-standard survivor."),
+  armour("g_legion_crimson", "Crimson Legion Harness", 2, 4, "Never washes out. Never needs to."),
+  armour("g_legion_storm", "Stormguard Harness", 2, 12, "Thunder answers it."),
+  armour("g_legion_bone", "Bonewhite Harness", 2, 0, "Worn once, at the last duel."),
+  armour("g_legion_plum", "Duskward Harness", 2, 14, "Cut for the hour between dog and wolf."),
+  armour("g_over_leather", "Rift-Runner's Rig", 3, 17, "Pockets full of things that shouldn't be."),
+  armour("g_over_moss", "Mosswalker's Rig", 3, 8, "The forest keeps its secrets."),
+  armour("g_over_ash", "Ashfall Rig", 3, 1, "Smells faintly of the last arena."),
+  armour("g_over_rose", "Festival Rig", 3, 15, "Won at a spring tournament. Barely."),
+  armour("g_susp_sand", "Duelist's Straps", 4, 16, "Nothing to slow the arms down."),
+  armour("g_susp_ink", "Nightwork Straps", 4, 3, "For fights that don't get reported."),
+  armour("g_susp_amber", "Sunward Straps", 4, 6, "Catches the light on the turn."),
 ];
 
-const shinobi: GearItem[] = [
-  // body — shozoku
-  { id: "s_shz_ember", name: "Emberweave Shozoku", slot: "body", fighter: 1, style: 1, flavour: "Smoke that chose a shape." },
-  { id: "s_shz_frost", name: "Frostrun Shozoku", slot: "body", fighter: 1, style: 2, flavour: "Leaves no prints in snow." },
-  { id: "s_shz_void", name: "Voidcloth Shozoku", slot: "body", fighter: 1, style: 3, flavour: "Darker than the night around it." },
-  { id: "s_shz_sun", name: "Dawnsilk Shozoku", slot: "body", fighter: 1, style: 4, flavour: "Vanishes into morning light." },
-  // cloak — kage mantles
-  { id: "s_kage_violet", name: "Kage Mantle of Dusk", slot: "cloak", fighter: 1, aura: 0, flavour: "Cut from the hour between dog and wolf." },
-  { id: "s_kage_gold", name: "Gilded Kage Mantle", slot: "cloak", fighter: 1, aura: 1, flavour: "Stolen from a shogun's vault." },
-  { id: "s_kage_blood", name: "Crimson Kage Mantle", slot: "cloak", fighter: 1, aura: 2, flavour: "The last thing seen. Briefly." },
-  { id: "s_kage_tide", name: "Rivermist Kage Mantle", slot: "cloak", fighter: 1, aura: 3, flavour: "Flows around every guard." },
-  { id: "s_kage_verdant", name: "Mosswalk Kage Mantle", slot: "cloak", fighter: 1, aura: 4, flavour: "The forest keeps its secrets." },
-  { id: "s_kage_rose", name: "Petalshade Kage Mantle", slot: "cloak", fighter: 1, aura: 5, flavour: "Beauty is excellent cover." },
-  { id: "s_kage_ivory", name: "Ghostweave Kage Mantle", slot: "cloak", fighter: 1, aura: 6, flavour: "Seen only by the defeated." },
-  { id: "s_kage_storm", name: "Thunderhide Kage Mantle", slot: "cloak", fighter: 1, aura: 7, flavour: "Moves between the lightning." },
-  // trinket — vials & tags
-  { id: "s_vial_ember", name: "Ashfire Vial", slot: "trinket", fighter: 1, particles: "embers", flavour: "Breaks into burning sparks." },
-  { id: "s_vial_petal", name: "Sakura Smoke Vial", slot: "trinket", fighter: 1, particles: "petals", flavour: "A distraction with style." },
-  { id: "s_vial_snow", name: "Hoarfrost Vial", slot: "trinket", fighter: 1, particles: "snow", flavour: "The cold travels with you." },
-  { id: "s_vial_firefly", name: "Spirit-Moth Cage", slot: "trinket", fighter: 1, particles: "fireflies", flavour: "They only follow the quiet ones." },
-  { id: "s_vial_storm", name: "Raijin Tag", slot: "trinket", fighter: 1, particles: "storm", flavour: "Borrowed thunder, never returned." },
-  // titles
-  { id: "s_title_silent", name: "the Silent", slot: "title", fighter: 1, flavour: "The crowd hushes on instinct." },
-  { id: "s_title_fangs", name: "Twin Fangs", slot: "title", fighter: 1, flavour: "One blade lies. The other tells the truth." },
-  { id: "s_title_shadow", name: "Shadow of the Grove", slot: "title", fighter: 1, flavour: "The trees tell no one." },
-  { id: "s_title_untraced", name: "the Untraceable", slot: "title", fighter: 1, flavour: "Officially, was never here." },
-  { id: "s_title_night", name: "Night's Edge", slot: "title", fighter: 1, flavour: "Where the dark gets sharp." },
+const CLOAKS: GearItem[] = [
+  { id: "g_cloak_violet", name: "Mantle of Violet Dusk", slot: "cloak", aura: 0, flavour: "Woven at twilight." },
+  { id: "g_cloak_gold", name: "Golden Mantle", slot: "cloak", aura: 1, flavour: "A champion's colours." },
+  { id: "g_cloak_blood", name: "Bloodsilk Mantle", slot: "cloak", aura: 2, flavour: "The last thing seen. Briefly." },
+  { id: "g_cloak_tide", name: "Tidewater Mantle", slot: "cloak", aura: 3, flavour: "Calm before every storm." },
+  { id: "g_cloak_verdant", name: "Verdant Mantle", slot: "cloak", aura: 4, flavour: "The grove approves." },
+  { id: "g_cloak_rose", name: "Rosewind Mantle", slot: "cloak", aura: 5, flavour: "Petals follow it home." },
+  { id: "g_cloak_ivory", name: "Ivory Mantle", slot: "cloak", aura: 6, flavour: "Worn once, at the last duel." },
+  { id: "g_cloak_storm", name: "Stormcall Mantle", slot: "cloak", aura: 7, flavour: "Thunder answers it." },
 ];
 
-export const GEAR: GearItem[] = [...ronin, ...shinobi];
+const TRINKETS: GearItem[] = [
+  { id: "g_char_ember", name: "Ember Charm", slot: "trinket", particles: "embers", flavour: "Sparks rise where you stand." },
+  { id: "g_char_petal", name: "Petalfall Charm", slot: "trinket", particles: "petals", flavour: "Every duel is a spring festival." },
+  { id: "g_char_snow", name: "Snowveil Charm", slot: "trinket", particles: "snow", flavour: "Winter keeps its own counsel." },
+  { id: "g_char_firefly", name: "Firefly Lantern", slot: "trinket", particles: "fireflies", flavour: "Small lights, long roads." },
+  { id: "g_char_storm", name: "Storm Bell", slot: "trinket", particles: "storm", flavour: "Rings once before the lightning." },
+];
+
+const TITLES: GearItem[] = [
+  { id: "g_t_patient", name: "the Patient Blade", slot: "title", flavour: "Waits. Wins." },
+  { id: "g_t_oni", name: "Oni-Slayer", slot: "title", flavour: "The hounds remember." },
+  { id: "g_t_dawn", name: "First Light of Dawn", slot: "title", flavour: "The arena wakes with them." },
+  { id: "g_t_unbroken", name: "the Unbroken", slot: "title", flavour: "Knocked down nine times. Stood up ten." },
+  { id: "g_t_rift", name: "Rift-Tested", slot: "title", flavour: "Went in. Came back. Says nothing." },
+  { id: "g_t_silent", name: "the Silent", slot: "title", flavour: "The crowd hushes on instinct." },
+  { id: "g_t_fangs", name: "Twin Fangs", slot: "title", flavour: "One blade lies. The other tells the truth." },
+  { id: "g_t_shadow", name: "Shadow of the Grove", slot: "title", flavour: "The trees tell no one." },
+  { id: "g_t_untraced", name: "the Untraceable", slot: "title", flavour: "Officially, was never here." },
+  { id: "g_t_night", name: "Night's Edge", slot: "title", flavour: "Where the dark gets sharp." },
+];
+
+export const GEAR: GearItem[] = [...ARMOUR, ...CLOAKS, ...TRINKETS, ...TITLES];
 
 const byId = new Map(GEAR.map((g) => [g.id, g] as const));
 
@@ -94,9 +94,9 @@ export function gearItem(id: string): GearItem | undefined {
   return byId.get(id);
 }
 
-/** All items a given fighter can ever drop. */
-export function gearPoolFor(fighter: number): GearItem[] {
-  return GEAR.filter((g) => g.fighter === fighter % 2);
+/** Everything a hunter can ever find. */
+export function gearPool(): GearItem[] {
+  return GEAR;
 }
 
 /**
@@ -104,8 +104,8 @@ export function gearPoolFor(fighter: number): GearItem[] {
  * (seeded, so the same champion at the same moment always rolls the same).
  * Returns undefined when the wardrobe is complete.
  */
-export function rollGearDrop(fighter: number, owned: string[], seed: number): GearItem | undefined {
-  const pool = gearPoolFor(fighter).filter((g) => !owned.includes(g.id));
+export function rollGearDrop(owned: string[], seed: number): GearItem | undefined {
+  const pool = GEAR.filter((g) => !owned.includes(g.id));
   if (pool.length === 0) return undefined;
   const rng = makeRng(seed);
   return pool[rng.int(pool.length)];
@@ -118,18 +118,35 @@ export interface Equipped {
   title?: string;
 }
 
-/** The final look once equipped gear overrides the forge picks. */
-export function resolveLook(
-  base: { style: number; aura: number },
-  equipped: Equipped | undefined,
-): { style: number; aura: number; particles?: ParticleKind; title?: string } {
+/** Describe a piece in one short line for the wardrobe chips. */
+export function gearDetail(g: GearItem): string {
+  if (g.slot === "body" && g.torso != null) {
+    return `${TORSOS[g.torso]?.name ?? "Outfit"} · ${CLOTH_COLORS[g.torsoColor ?? 0]?.name ?? ""}`;
+  }
+  if (g.slot === "cloak") return "Aura";
+  if (g.slot === "trinket") return "Combat effect";
+  return "Title";
+}
+
+/** The look actually rendered: the hunter's own, with worn armour over it. */
+export function lookWithGear(look: Look, equipped: Equipped | undefined): Look {
   const body = equipped?.body ? gearItem(equipped.body) : undefined;
+  if (!body || body.torso == null) return look;
+  // Armour is cut for both builds, but stay safe if a piece ever isn't.
+  if (!torsosFor(look.build).includes(body.torso)) return look;
+  return { ...look, torso: body.torso, torsoColor: body.torsoColor ?? look.torsoColor };
+}
+
+/** Aura, particles and title once equipped gear overrides the base picks. */
+export function resolveExtras(
+  baseAura: number,
+  equipped: Equipped | undefined,
+): { aura: number; particles?: ParticleKind; title?: string } {
   const cloak = equipped?.cloak ? gearItem(equipped.cloak) : undefined;
   const trinket = equipped?.trinket ? gearItem(equipped.trinket) : undefined;
   const title = equipped?.title ? gearItem(equipped.title) : undefined;
   return {
-    style: body?.style ?? base.style,
-    aura: cloak?.aura ?? base.aura,
+    aura: cloak?.aura ?? baseAura,
     particles: trinket?.particles,
     title: title?.name,
   };

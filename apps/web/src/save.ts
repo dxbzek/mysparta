@@ -5,9 +5,9 @@
  */
 
 import type { BattlePlan, Champion } from "@agoge/core";
-import { fighterIndexFor } from "./fighters.js";
+import { lookFor } from "./fighters.js";
 import type { Equipped } from "./gear.js";
-import type { TintChoice } from "./recolor.js";
+import { normaliseLook, type Look } from "./paperdoll.js";
 
 export interface DailyQuests {
   day: string;
@@ -31,14 +31,10 @@ export interface SaveV1 {
   seenPlans: Record<string, BattlePlan>;
   boardRefresh: number;
   quests?: DailyQuests;
-  /** Roster index of the champion's awakened form (heroes.tsx). */
-  hero?: number;
-  /** Colour-grade preset index (fighters.tsx STYLES). */
-  styleFx?: number;
+  /** The champion's appearance — every paper-doll part (paperdoll.ts). */
+  look?: Look;
   /** Aura colour index (fighters.tsx AURAS). */
   aura?: number;
-  /** Hair / face / clothes recolour picks (recolor.ts). */
-  tint?: TintChoice;
   /** Gear item ids collected from random level-up drops (gear.ts). */
   gear?: string[];
   /** Which owned pieces are currently worn. */
@@ -61,17 +57,13 @@ export function todayKey(): string {
 export function newSave(
   champion: Champion,
   plan: BattlePlan,
-  hero?: number,
-  styleFx?: number,
+  look?: Look,
   aura?: number,
-  tint?: TintChoice,
 ): SaveV1 {
   return {
     v: 1,
-    hero: hero ?? fighterIndexFor(champion.displayName),
-    styleFx: styleFx ?? 0,
+    look: normaliseLook(look ?? lookFor(champion.displayName)),
     aura: aura ?? 0,
-    tint: tint ?? { hair: 0, face: 0, clothes: 0 },
     gear: [],
     equipped: {},
     champion,
@@ -112,11 +104,16 @@ export function load(): SaveV1 | null {
     if (a.sigil == null) a.sigil = a.hue2 % 4;
     if (a.helm == null) a.helm = a.hue % 4;
     if (a.tint == null) a.tint = 0;
-    // Saves that predate the painted roster get a stable derived form.
-    if (parsed.hero == null) parsed.hero = fighterIndexFor(parsed.champion.displayName);
+    // Saves that predate the paper-doll hunters get a stable derived look,
+    // and their old gear ids no longer exist.
+    if (parsed.look == null) {
+      parsed.look = lookFor(parsed.champion.displayName);
+      parsed.gear = [];
+      parsed.equipped = {};
+    }
+    parsed.look = normaliseLook(parsed.look);
     if (parsed.gear == null) parsed.gear = [];
     if (parsed.equipped == null) parsed.equipped = {};
-    if (parsed.tint == null) parsed.tint = { hair: 0, face: 0, clothes: 0 };
     return applyDailyReset(parsed);
   } catch {
     return null;

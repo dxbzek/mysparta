@@ -1,21 +1,17 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BEASTS, FISTS, WEAPONS, type FightResult } from "@agoge/core";
 import { BeastFigure, ImpactBurst, Javelin, Laurel, SlashArc } from "./art.js";
-import { FighterFig, WeatherFx, fighterOf, pixelArenaImg, type FighterAnim } from "./fighters.js";
+import { FighterFig, WeatherFx, pixelArenaImg, type FighterAnim } from "./fighters.js";
 import type { Arena } from "./arenas.js";
-import type { TintChoice } from "./recolor.js";
+import { CHAR, type Look } from "./paperdoll.js";
 import { narrate, type Line } from "./narrate.js";
 import { sound } from "./sound.js";
 
 export interface StageFigure {
-  /** Roster index of the animated fighter (fighters.tsx). */
-  fighter: number;
-  /** Palette-grade preset (fighters.tsx STYLES). */
-  style: number;
+  /** The fighter's full appearance (paperdoll.ts). */
+  look: Look;
   /** Aura colour (fighters.tsx AURAS). */
   aura: number;
-  /** Hair / face / clothes recolour picks (recolor.ts). */
-  tint?: TintChoice;
   /** Equipped trinket particle effect, if any. */
   particles?: string;
   /** Weapon in hand at the start of the fight. */
@@ -65,13 +61,10 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   useLayoutEffect(() => {
     const measure = () => {
       const w = stageRef.current?.clientWidth ?? 800;
-      const h = w < 520 ? 130 : 170;
+      const h = w < 520 ? 104 : 140;
       setFigH(h);
-      const charOf = (i: 0 | 1) => {
-        const f = fighterOf(figures[i].fighter);
-        return (f.char.w / f.char.h) * h;
-      };
-      setDash(Math.max(40, Math.round(w * 0.84 - charOf(0) - charOf(1) + 10)));
+      const charW = (CHAR.w / CHAR.h) * h;
+      setDash(Math.max(40, Math.round(w * 0.84 - charW * 2 + 10)));
     };
     measure();
     window.addEventListener("resize", measure);
@@ -185,10 +178,10 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   /** Which sheet animation each fighter plays this beat. */
   const animOf = (side: 0 | 1): FighterAnim => {
     if (finished && side === loser && result.reason === "ko") return "death";
-    if (finished) return "idle";
+    if (finished) return "stance";
     if (anim?.reaction?.side === side && anim.reaction.kind === "hurt") return "hit";
     if (anim?.striker === side && !anim.beastName) return idx % 2 === 0 ? "attack1" : "attack2";
-    return "idle";
+    return "stance";
   };
 
   const renderEffects = (side: 0 | 1) => {
@@ -266,12 +259,10 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
             <div key={`a${idx}`} className={slotClass(0)}>
               <div className={innerClass(0)}>
                 <FighterFig
-                  fighter={figures[0].fighter}
+                  look={figures[0].look}
                   height={figH}
                   anim={animOf(0)}
-                  style={figures[0].style}
                   aura={figures[0].aura}
-                  tint={figures[0].tint}
                   particles={figures[0].particles}
                 />
                 {renderEffects(0)}
@@ -287,12 +278,10 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
             <div key={`b${idx}`} className={slotClass(1)}>
               <div className={innerClass(1)}>
                 <FighterFig
-                  fighter={figures[1].fighter}
+                  look={figures[1].look}
                   height={figH}
                   anim={animOf(1)}
-                  style={figures[1].style}
                   aura={figures[1].aura}
-                  tint={figures[1].tint}
                   particles={figures[1].particles}
                   mirror
                 />

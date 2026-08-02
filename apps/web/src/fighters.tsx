@@ -1,122 +1,30 @@
 /**
- * Hand-animated fighters — real frame-by-frame sprite-sheet animation.
+ * Fighter rendering — modular paper-doll characters on real sprite sheets.
  *
- * Art: "Martial Hero" & "Martial Hero 2" by LuizMelo (free for commercial
- * use) and the "Oak Woods" arena backdrop bundled with them. Each animation
- * is a horizontal strip of 200×200 frames drawn by hand: 8-frame idles that
- * genuinely breathe, run cycles, sword swings with anticipation and
- * follow-through, hit reactions and deaths.
- *
- * Playback is pure CSS: background-position stepped through the strip with
- * steps(N) — no per-frame JS, no canvas.
+ * The look itself (which head, hair, outfit, colours) lives in paperdoll.ts;
+ * this file turns a Look into something on screen. Playback stays pure CSS:
+ * background-position stepped across the composited strip with steps(N), so
+ * there is no per-frame JavaScript.
  */
 
-import mackIdle from "./assets/fighters/mack-idle.webp";
-import mackRun from "./assets/fighters/mack-run.webp";
-import mackAttack1 from "./assets/fighters/mack-attack1.webp";
-import mackAttack2 from "./assets/fighters/mack-attack2.webp";
-import mackHit from "./assets/fighters/mack-hit.webp";
-import mackDeath from "./assets/fighters/mack-death.webp";
-import kenjiIdle from "./assets/fighters/kenji-idle.webp";
-import kenjiRun from "./assets/fighters/kenji-run.webp";
-import kenjiAttack1 from "./assets/fighters/kenji-attack1.webp";
-import kenjiAttack2 from "./assets/fighters/kenji-attack2.webp";
-import kenjiHit from "./assets/fighters/kenji-hit.webp";
-import kenjiDeath from "./assets/fighters/kenji-death.webp";
 import pixelArenaImg from "./assets/fighters/pixel-arena.webp";
 import { useEffect, useState } from "react";
-import { CLOTH_TINTS, FACE_TINTS, HAIR_TINTS, tintedSheet, type TintChoice } from "./recolor.js";
+import {
+  ANIMS,
+  CHAR,
+  DEFAULT_LOOK,
+  FRAME,
+  STRIP_FRAMES,
+  lookStrip,
+  cachedStrip,
+  normaliseLook,
+  randomLook,
+  type Anim,
+  type Look,
+} from "./paperdoll.js";
 
 export { pixelArenaImg };
-
-export const DEFAULT_TINT: TintChoice = { hair: 0, face: 0, clothes: 0 };
-
-/** Resolve a sheet's (possibly recoloured) source; default art until ready. */
-function useTintedSrc(src: string, fighter: number, tint: TintChoice | undefined): string {
-  const t = tint ?? DEFAULT_TINT;
-  const [url, setUrl] = useState(src);
-  useEffect(() => {
-    let live = true;
-    setUrl(src);
-    tintedSheet(src, fighter, t).then((u) => {
-      if (live) setUrl(u);
-    });
-    return () => {
-      live = false;
-    };
-  }, [src, fighter, t.hair, t.face, t.clothes]);
-  return url;
-}
-
-export type FighterAnim = "idle" | "run" | "attack1" | "attack2" | "hit" | "death";
-
-interface Sheet {
-  src: string;
-  frames: number;
-  /** seconds for one full pass */
-  dur: number;
-  loop: boolean;
-}
-
-export interface Fighter {
-  name: string;
-  role: string;
-  /** Body descriptor for the appearance-only creation screen. */
-  build: string;
-  blurb: string;
-  sheets: Record<FighterAnim, Sheet>;
-  /** frame box (px) */
-  box: number;
-  /** character bounds inside the frame (from the idle pose) */
-  char: { cx: number; w: number; h: number; groundOff: number };
-  /** true when the artist drew the sheets facing LEFT (mirror logic inverts) */
-  facesLeft?: boolean;
-}
-
-export const FIGHTERS: Fighter[] = [
-  {
-    name: "Ronin",
-    role: "Greatsword duelist",
-    build: "Broad & grounded",
-    blurb: "Patient stance, brutal follow-through. Every swing is a sentence.",
-    box: 200,
-    char: { cx: 94, w: 38, h: 52, groundOff: 79 },
-    sheets: {
-      idle: { src: mackIdle, frames: 8, dur: 0.9, loop: true },
-      run: { src: mackRun, frames: 8, dur: 0.55, loop: true },
-      attack1: { src: mackAttack1, frames: 6, dur: 0.45, loop: false },
-      attack2: { src: mackAttack2, frames: 6, dur: 0.45, loop: false },
-      hit: { src: mackHit, frames: 4, dur: 0.35, loop: false },
-      death: { src: mackDeath, frames: 6, dur: 0.65, loop: false },
-    },
-  },
-  {
-    name: "Shinobi",
-    role: "Twin-blade assassin",
-    build: "Slight & swift",
-    blurb: "Strikes twice before the first cut is felt.",
-    box: 200,
-    char: { cx: 102, w: 34, h: 54, groundOff: 73 },
-    facesLeft: true,
-    sheets: {
-      idle: { src: kenjiIdle, frames: 4, dur: 0.75, loop: true },
-      run: { src: kenjiRun, frames: 8, dur: 0.5, loop: true },
-      attack1: { src: kenjiAttack1, frames: 4, dur: 0.35, loop: false },
-      attack2: { src: kenjiAttack2, frames: 4, dur: 0.35, loop: false },
-      hit: { src: kenjiHit, frames: 3, dur: 0.3, loop: false },
-      death: { src: kenjiDeath, frames: 7, dur: 0.75, loop: false },
-    },
-  },
-];
-
-/** Colour-grade presets — palette-swap variants, the classic fighter trick. */
-export const STYLES = [
-  { name: "Default", filter: "" },
-  { name: "Ember", filter: "sepia(0.35) saturate(1.6) hue-rotate(-12deg) contrast(1.06)" },
-  { name: "Frost", filter: "saturate(0.85) hue-rotate(150deg) brightness(1.08)" },
-  { name: "Void", filter: "saturate(1.2) contrast(1.22) brightness(0.8) hue-rotate(45deg)" },
-  { name: "Radiant", filter: "saturate(1.35) brightness(1.15) hue-rotate(-100deg)" },
-];
+export type FighterAnim = Anim;
 
 /** Aura colours — the glow around the fighter, flares on victory. */
 export const AURAS = [
@@ -139,125 +47,98 @@ function hash(name: string): number {
   return h >>> 0;
 }
 
-export function fighterIndexFor(name: string): number {
-  return hash(name) % FIGHTERS.length;
-}
-
-/** A rival's full look — fighter, palette style and aura, all from the name. */
-export function rivalLook(name: string): {
-  fighter: number;
-  style: number;
-  aura: number;
-  tint: TintChoice;
-} {
-  const h = hash(name);
-  return {
-    fighter: h % FIGHTERS.length,
-    style: (h >>> 3) % STYLES.length,
-    aura: (h >>> 7) % AURAS.length,
-    tint: {
-      hair: (h >>> 10) % HAIR_TINTS.length,
-      face: (h >>> 14) % FACE_TINTS.length,
-      clothes: (h >>> 18) % CLOTH_TINTS.length,
-    },
+/** Deterministic PRNG so a given name always produces the same hunter. */
+function seeded(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
 
-export function fighterOf(index: number): Fighter {
-  return FIGHTERS[((index % FIGHTERS.length) + FIGHTERS.length) % FIGHTERS.length]!;
+/** The hunter a name awakens as, before the player customises anything. */
+export function lookFor(name: string): Look {
+  return randomLook(seeded(hash(name)));
 }
 
-function gradeFilter(style?: number, aura?: number): string {
-  const grade = STYLES[(style ?? 0) % STYLES.length]!.filter;
-  const glow = AURAS[(aura ?? 0) % AURAS.length]!.color;
-  return `${grade} drop-shadow(0 0 6px ${glow}44)`.trim();
+/** A rival's full look and aura, all derived from their name. */
+export function rivalLook(name: string): { look: Look; aura: number } {
+  const h = hash(name);
+  return { look: lookFor(name), aura: (h >>> 7) % AURAS.length };
 }
 
-/** One playing sprite-sheet strip. Re-mounts (via key) to restart. */
-function SheetAnim({
-  sheet,
-  box,
-  scale,
-  mirror,
-  holdEnd,
-  fighter,
-  tint,
-}: {
-  sheet: Sheet;
-  box: number;
-  scale: number;
-  mirror?: boolean;
-  holdEnd?: boolean;
-  fighter: number;
-  tint?: TintChoice;
-}) {
-  const src = useTintedSrc(sheet.src, fighter, tint);
-  const w = box * scale;
-  const anim = `stripPlay ${sheet.dur}s steps(${sheet.frames}) ${
-    sheet.loop ? "infinite" : `1 ${holdEnd ? "forwards" : ""}`
-  }`;
-  return (
-    <div
-      className="strip"
-      style={
-        {
-          width: w,
-          height: w,
-          backgroundImage: `url(${src})`,
-          backgroundSize: `${w * sheet.frames}px ${w}px`,
-          transform: mirror ? "scaleX(-1)" : undefined,
-          animation: anim,
-          "--sheet-to": `${-w * sheet.frames}px`,
-        } as React.CSSProperties
-      }
-    />
-  );
+/** Resolve a look's composited strip, rendering the default until it's ready. */
+function useLookStrip(look: Look | undefined): string | undefined {
+  const l = look ?? DEFAULT_LOOK;
+  const [url, setUrl] = useState<string | undefined>(() => cachedStrip(l));
+  useEffect(() => {
+    let live = true;
+    const cached = cachedStrip(l);
+    if (cached) {
+      setUrl(cached);
+      return;
+    }
+    lookStrip(l).then(
+      (u) => {
+        if (live) setUrl(u);
+      },
+      () => {
+        /* canvas unavailable — the figure simply stays blank */
+      },
+    );
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(normaliseLook(l))]);
+  return url;
 }
 
 /**
- * A fighter on stage. The wrapper's layout box is the CHARACTER's size
- * (feet at the wrapper bottom); the 200×200 frame box overflows invisibly
- * around it, so stage layout and choreography stay exact.
+ * A fighter on stage. The wrapper's layout box is the CHARACTER's size (feet
+ * at the wrapper bottom); the 64px frame box overflows invisibly around it,
+ * so stage layout and choreography stay exact.
  */
 export function FighterFig({
-  fighter,
+  look,
   height,
   anim = "idle",
   mirror,
-  style: styleFx,
   aura,
   particles,
-  tint,
   className,
 }: {
-  fighter: number;
+  look?: Look;
   /** desired on-screen character height in px */
   height: number;
-  anim?: FighterAnim;
+  anim?: Anim;
   mirror?: boolean;
-  style?: number;
   aura?: number;
   /** equipped trinket effect swirling around the fighter */
   particles?: string;
-  /** hair / face / clothes recolour (recolor.ts) */
-  tint?: TintChoice;
   className?: string;
 }) {
-  const f = fighterOf(fighter);
-  const scale = height / f.char.h;
-  const sheet = f.sheets[anim];
-  // `mirror` means "face left on screen"; sheets drawn facing left invert it.
-  const flip = f.facesLeft ? !mirror : !!mirror;
-  const cx = flip ? f.box - f.char.cx : f.char.cx;
+  const src = useLookStrip(look);
+  const scale = height / CHAR.h;
+  const a = ANIMS[anim];
+  const w = FRAME * scale;
+  const glow = AURAS[(aura ?? 0) % AURAS.length]!.color;
+  // A looping strip may step onto the frame past its last one — it wraps
+  // straight back to the start. A one-shot must stop ON its last frame and
+  // hold there, so it steps one fewer time and ends a frame earlier.
+  const steps = a.loop ? a.count : Math.max(1, a.count - 1);
+  const lastFrame = a.from + (a.loop ? a.count : a.count - 1);
   return (
     <span
       className={`fighter-fig ${className ?? ""}`}
       style={
         {
-          width: Math.round(f.char.w * scale),
-          height: Math.round(f.char.h * scale),
-          filter: gradeFilter(styleFx, aura),
-          "--aura": AURAS[(aura ?? 0) % AURAS.length]!.color,
+          width: Math.round(CHAR.w * scale),
+          height: Math.round(CHAR.h * scale),
+          filter: `drop-shadow(0 0 6px ${glow}44)`,
+          "--aura": glow,
         } as React.CSSProperties
       }
     >
@@ -265,11 +146,27 @@ export function FighterFig({
         className="fighter-frame"
         key={anim}
         style={{
-          left: `calc(50% - ${Math.round(cx * scale)}px)`,
-          bottom: -Math.round(f.char.groundOff * scale),
+          left: `calc(50% - ${Math.round(CHAR.cx * scale)}px)`,
+          bottom: -Math.round(CHAR.groundOff * scale),
         }}
       >
-        <SheetAnim sheet={sheet} box={f.box} scale={scale} mirror={flip} holdEnd={anim === "death"} fighter={fighter} tint={tint} />
+        <span
+          className="strip"
+          style={
+            {
+              width: w,
+              height: w,
+              backgroundImage: src ? `url(${src})` : undefined,
+              backgroundSize: `${w * STRIP_FRAMES}px ${w}px`,
+              transform: mirror ? "scaleX(-1)" : undefined,
+              animation: `stripPlay ${a.dur}s steps(${steps}) ${
+                a.loop ? "infinite" : "1 forwards"
+              }`,
+              "--strip-from": `${-a.from * w}px`,
+              "--strip-to": `${-lastFrame * w}px`,
+            } as React.CSSProperties
+          }
+        />
       </span>
       {particles && <WeatherFx kind={particles} count={5} />}
     </span>
@@ -297,24 +194,18 @@ export function WeatherFx({ kind, count }: { kind: string; count: number }) {
 
 /** Circular bust: a live mini idle loop framed in a ring. */
 export function FighterBust({
-  fighter,
+  look,
   size,
   mirror,
-  style: styleFx,
-  tint,
 }: {
-  fighter: number;
+  look?: Look;
   size: number;
   mirror?: boolean;
-  style?: number;
-  tint?: TintChoice;
 }) {
-  const f = fighterOf(fighter);
-  const height = size * 0.82;
   return (
     <span className="hero-bust fighter-bust" style={{ width: size, height: size }} aria-hidden>
       <span style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: size * 0.06 }}>
-        <FighterFig fighter={fighter} height={height} mirror={mirror} style={styleFx} tint={tint} />
+        <FighterFig look={look} height={size * 0.82} mirror={mirror} />
       </span>
     </span>
   );

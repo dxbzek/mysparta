@@ -615,11 +615,15 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* --- sprite-sheet fighters: real frame-by-frame animation --- */
 .strip {
+  display: block;
   background-repeat: no-repeat;
   background-position: 0 0;
   image-rendering: pixelated;
 }
-@keyframes stripPlay { to { background-position-x: var(--sheet-to); } }
+@keyframes stripPlay {
+  from { background-position-x: var(--strip-from, 0px); }
+  to { background-position-x: var(--strip-to); }
+}
 .fighter-fig {
   position: relative;
   display: inline-block;
@@ -1099,7 +1103,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* ---------- forge customiser ---------- */
 
-.styler { display: flex; flex-direction: column; gap: 14px; max-width: 640px; margin: 0 auto; text-align: left; }
+.styler { display: flex; flex-direction: column; gap: 14px; max-width: 880px; margin: 0 auto; text-align: left; }
 .styler-stage {
   position: relative;
   display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 8px;
@@ -1211,6 +1215,31 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   padding: 5px 10px; cursor: pointer; min-height: 40px;
 }
 .opt.picked { background: linear-gradient(180deg, var(--gold-bright), var(--gold)); }
+
+/* ---------- character creator ---------- */
+
+.creator { text-align: left; }
+.creator h3 {
+  margin: 18px 0 2px;
+  padding-top: 12px;
+  border-top: 2px dashed var(--wood);
+  font-size: 1.02rem;
+}
+.creator h3:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.pick-row { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 10px; }
+.pick-row h4 {
+  flex: none; width: 108px; margin: 7px 0 0;
+  font-family: var(--font-display); font-weight: 800; font-size: 0.88rem;
+  display: flex; flex-direction: column; line-height: 1.25;
+}
+.pick-row h4 .muted { font-weight: 700; font-size: 0.78rem; }
+.pick-row .opt-row, .pick-row .swatches { flex: 1; min-width: 0; }
+.opt-row.wrap .opt { font-size: 0.8rem; padding: 4px 9px; min-height: 34px; }
+.creator .swatch { width: 28px; height: 28px; border-width: 2.5px; }
+@media (max-width: 560px) {
+  .pick-row { flex-direction: column; gap: 4px; }
+  .pick-row h4 { width: auto; flex-direction: row; gap: 6px; align-items: baseline; }
+}
 
 /* ---------- tactics (optional) ---------- */
 
