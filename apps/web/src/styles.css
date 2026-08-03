@@ -2109,11 +2109,43 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .xp-row .xp-num { font-size: 0.76rem; font-weight: 800; color: var(--ink-soft); flex: none; }
 
 /* Four labelled facts instead of one dot-separated run. */
+/* Two facts sit at their natural width instead of stretching across four
+   columns of mostly air. The card's empty right half is the Fight button now. */
 .facts {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px 14px; margin: 10px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: 8px 34px; margin: 10px 0 0; padding: 0;
 }
 .facts > div { min-width: 0; }
+
+/* The Hall's one action, on the champion it belongs to. */
+.card-cta { margin-top: 16px; }
+@media (max-width: 560px) { .card-cta { width: 100%; } }
+/*
+ * Out of fights, this is not the hero of the card any more. Half-opacity white
+ * on gold is neither readable nor honest about being inactive, so the button
+ * drops to cut-panel ink: legible, plainly disabled, no longer shouting.
+ */
+.card-cta:disabled {
+  opacity: 1;
+  background: var(--panel-deep);
+  color: var(--ink-soft);
+  text-shadow: none;
+  border-bottom-width: 3px;
+}
+
+/*
+ * Stats sits in the champion's row, so the grid stretches it to the taller
+ * card. Four rows of numbers then clustered at the top over a half-card of
+ * nothing. Rather than pad the card with explanatory text nobody reads twice,
+ * let the rows share the height they are given.
+ */
+.stats-card { display: flex; flex-direction: column; }
+.stats-card .stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
 .facts dt {
   font-size: 0.62rem; font-weight: 800; letter-spacing: 0.07em;
   text-transform: uppercase; color: var(--ink-soft);
