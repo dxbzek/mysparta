@@ -2051,16 +2051,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   .plaque em { font-size: 0.62rem; }
 }
 
-/* The Codex is a catalogue of 62 things. In one column that is five screens
-   of scrolling, so the lists flow into columns once there is room for them. */
-@media (min-width: 800px) {
-  .codex > .card { display: grid; grid-template-columns: 1fr 1fr; column-gap: 22px; }
-  .codex > .card > h3 { grid-column: 1 / -1; }
-  .codex > .card > .codex-row { min-width: 0; }
-}
-@media (min-width: 1300px) {
-  .codex > .card { grid-template-columns: 1fr 1fr 1fr; }
-}
+
 
 /* ================= profile, tasks and wardrobe ==========================
    All three were the same failure: a wide card with one thin thing in it
@@ -2137,4 +2128,47 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   flex: 1 0 100%; order: 3;
   font-style: normal; font-size: 0.7rem; font-weight: 600;
   color: var(--ink-soft); margin: 1px 0 5px;
+}
+
+/* ================= codex: a case of things, found and not ================
+   The catalogue is browsed, not read. Every entry is its own art at the same
+   size, and the ones you have not found yet are the same picture with the
+   colour drained out — so the shelf shows you what is still missing. */
+
+.codex-case { display: block; }
+.codex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 14px 10px;
+  margin-top: 4px;
+}
+.codex-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  text-align: center; min-width: 0; cursor: help;
+}
+.codex-tile em {
+  font-style: normal; font-size: 0.66rem; font-weight: 800; line-height: 1.15;
+  color: var(--ink); letter-spacing: 0.01em;
+}
+/* Drained, not erased: a locked entry still has to show you its shape, or
+   the case stops telling you what is left to find. */
+.codex-tile.locked .rack-tile,
+.codex-tile.locked .pet-tile,
+.codex-tile.locked .skill-tile {
+  filter: grayscale(1) contrast(1.08) brightness(0.86);
+  opacity: 0.72;
+}
+.codex-tile.locked em { color: var(--ink-soft); opacity: 0.75; }
+
+/* Pets are drawn wider than they are tall and each at its own scale, so the
+   mounts get a fixed box or the row of names comes out ragged. */
+.codex-tile > .pet-tile { width: 78px; height: 60px; }
+.codex-tile > .pet-tile .pet-sprite { max-width: 100%; max-height: 100%; }
+
+/* The pet tiles are wider than they are tall, so they need their own track. */
+.codex-case:last-of-type .codex-grid { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
+
+@media (max-width: 560px) {
+  .codex-grid { grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); }
+  .codex-tile em { font-size: 0.6rem; }
 }

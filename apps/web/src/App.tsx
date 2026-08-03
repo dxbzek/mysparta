@@ -1447,8 +1447,7 @@ function History({ champion, onBack }: { champion: Champion; onBack: () => void 
 /* ================= codex ================= */
 
 function Codex({ champion, onBack }: { champion: Champion; onBack: () => void }) {
-  const speedLabel = (interval: number) =>
-    interval <= 240 ? "Fast" : interval <= 320 ? "Steady" : "Heavy";
+  const found = WEAPONS.filter((w) => champion.weapons.includes(w.id)).length;
   return (
     <div className="codex">
       <div className="arena-head">
@@ -1457,84 +1456,106 @@ function Codex({ champion, onBack }: { champion: Champion; onBack: () => void })
         <span />
       </div>
       <p className="muted">
-        Relic weapons and skills recovered from the Rifts, and the beasts tamed there. New ones arrive through level-up choices — nothing is ever sold.
+        Everything the Rift can give you, laid out in full. What you have found is in colour;
+        the rest is greyed until it drops. Hover any of them for what it does.
       </p>
 
-      <section className="card">
-        <h3>Weapons — {WEAPONS.length} ({champion.weapons.length} owned)</h3>
+      <CodexCase title="Weapons" have={found} all={WEAPONS.length}>
         {WEAPONS.map((w) => (
-          <div className="codex-row" key={w.id}>
+          <CodexTile
+            key={w.id}
+            name={w.name}
+            owned={champion.weapons.includes(w.id)}
+            detail={`${DISCIPLINE_NAME[w.discipline] ?? w.discipline}${w.ammo ? ` · ${w.ammo} throws` : ""}${w.twoHanded ? " · two-handed" : ""} — ${w.flavour}`}
+          >
             <span className="rack-tile">
-              <WeaponIcon d={w.id} size={34} />
+              <WeaponIcon d={w.id} size={40} />
             </span>
-            <div className="grow">
-              <div className="wtop">
-                <span className="cname">{w.name}</span>
-                <span className="wtag">{DISCIPLINE_NAME[w.discipline] ?? w.discipline}</span>
-              </div>
-              <WeaponBars w={w} />
-              <div className="cmeta">
-                {w.ammo ? `${w.ammo} throws · ` : ""}
-                {w.twoHanded ? "two-handed · " : ""}
-                — {w.flavour}
-              </div>
-            </div>
-            {champion.weapons.includes(w.id) ? (
-              <span className="owned-badge">OWNED</span>
-            ) : (
-              <span className="locked-badge">level up to find</span>
-            )}
-          </div>
+          </CodexTile>
         ))}
-      </section>
+      </CodexCase>
 
       {[
-        { title: "Boons — always-on passives", list: BOONS },
-        { title: "Techniques — trigger on their own", list: TECHNIQUES },
-        { title: "Trumps — big moves that fire on instinct", list: TRUMPS },
+        { title: "Boons", note: "always-on passives", list: BOONS },
+        { title: "Techniques", note: "trigger on their own", list: TECHNIQUES },
+        { title: "Trumps", note: "big moves that fire on instinct", list: TRUMPS },
       ].map((group) => (
-        <section className="card" key={group.title}>
-          <h3>
-            {group.title} ({group.list.filter((s) => champion.skills.includes(s.id)).length}/{group.list.length})
-          </h3>
+        <CodexCase
+          key={group.title}
+          title={group.title}
+          note={group.note}
+          have={group.list.filter((s) => champion.skills.includes(s.id)).length}
+          all={group.list.length}
+        >
           {group.list.map((s) => (
-            <div className="codex-row" key={s.id}>
-              <SkillIcon id={s.id} kind={s.kind as SkillKind} size={38} />
-              <div className="grow">
-                <div className="cname">{s.name}</div>
-                <div className="cmeta">{s.text}</div>
-              </div>
-              {champion.skills.includes(s.id) ? (
-                <span className="owned-badge">OWNED</span>
-              ) : (
-                <span className="locked-badge">level up to find</span>
-              )}
-            </div>
+            <CodexTile key={s.id} name={s.name} owned={champion.skills.includes(s.id)} detail={s.text}>
+              <SkillIcon id={s.id} kind={s.kind as SkillKind} size={46} />
+            </CodexTile>
           ))}
-        </section>
+        </CodexCase>
       ))}
 
-      <section className="card">
-        <h3>Pets — {BEASTS.length} ({champion.beasts.length} at your side)</h3>
+      <CodexCase title="Pets" have={champion.beasts.length} all={BEASTS.length}>
         {BEASTS.map((b) => (
-          <div className="codex-row" key={b.id}>
+          <CodexTile
+            key={b.id}
+            name={b.name}
+            owned={champion.beasts.includes(b.id)}
+            detail={`HP ${b.hpBase}+level · hits ${b.dmgMin}–${b.dmgMax} · costs ${b.gritTax} Endurance — ${b.flavour}`}
+          >
             <span className="pet-tile">
-              <PetSprite beastId={b.id} size={48} />
+              <PetSprite beastId={b.id} size={56} />
             </span>
-            <div className="grow">
-              <div className="cname">{b.name}</div>
-              <div className="cmeta">
-                HP {b.hpBase}+level · hits {b.dmgMin}–{b.dmgMax} · costs {b.gritTax} Endurance — {b.flavour}
-              </div>
-            </div>
-            {champion.beasts.includes(b.id) ? (
-              <span className="owned-badge">WITH YOU</span>
-            ) : (
-              <span className="locked-badge">level up to find</span>
-            )}
-          </div>
+          </CodexTile>
         ))}
-      </section>
+      </CodexCase>
     </div>
+  );
+}
+
+/** One shelf of the Codex, with how much of it you have found. */
+function CodexCase({
+  title,
+  note,
+  have,
+  all,
+  children,
+}: {
+  title: string;
+  note?: string;
+  have: number;
+  all: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="card codex-case">
+      <h3>
+        {title}{" "}
+        <span className="muted small">
+          {note ? `${note} — ` : ""}{have}/{all} found
+        </span>
+      </h3>
+      <div className="codex-grid">{children}</div>
+    </section>
+  );
+}
+
+/** A found thing is in colour. An unfound one is the same art, drained. */
+function CodexTile({
+  name,
+  owned,
+  detail,
+  children,
+}: {
+  name: string;
+  owned: boolean;
+  detail: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className={`codex-tile ${owned ? "" : "locked"}`} title={`${name} — ${detail}`}>
+      {children}
+      <em>{name}</em>
+    </span>
   );
 }
