@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BEASTS,
   BOONS,
@@ -165,11 +165,16 @@ export function App() {
 
   // The address bar follows the screen, so refresh and the back button land
   // where the player expects instead of dumping them at the Hall.
+  const routed = useRef(false);
   useEffect(() => {
     const path = ROUTES[screen.s];
-    if (path && location.hash !== `#/${path}`) {
-      history.pushState(null, "", `#/${path}`);
-    }
+    if (!path || location.hash === `#/${path}`) return;
+    // The first sync only names the entry the player already stands on.
+    // Pushing there left a bare-URL entry behind it, so the first Back press
+    // appeared to do nothing and the second one left the game.
+    if (routed.current) history.pushState(null, "", `#/${path}`);
+    else history.replaceState(null, "", `#/${path}`);
+    routed.current = true;
   }, [screen.s]);
 
   useEffect(() => {
@@ -362,7 +367,6 @@ export function App() {
           }}
           onPortrait={(portrait) => update({ ...save, portrait })}
           onEquip={(slot, id) => update({ ...save, equipped: { ...save.equipped, [slot]: id } })}
-          onRefill={() => update({ ...save, vigor: Math.min(VIGOR_CAP, save.vigor + 6) })}
           onDelete={() => {
             // Confirmation happens in-app (two taps) — window.confirm is
             // silently blocked in sandboxed embeds.
@@ -999,7 +1003,6 @@ function Home(props: {
   onCodex: () => void;
   onLadder: () => void;
   onReorder: (from: number, to: number) => void;
-  onRefill: () => void;
   onDelete: () => void;
   onEquip: (slot: GearSlot, id: string | undefined) => void;
   onPortrait: (p: { arena: number; pose: string }) => void;
@@ -1265,8 +1268,9 @@ function Arena(props: {
       </div>
       {save.vigor <= 0 && (
         <p className="notice">
-          You're out of fights for today — 6 more arrive at the daily reset (midnight UTC).
-          For testing, use "Dev: +6 fights" in your Hall.
+          You're out of fights for today — 6 more arrive at the daily reset (midnight UTC),
+          and they bank up to {VIGOR_CAP}. Your Hall is still yours to tinker with: reorder your
+          draw, change what you wear, study the Codex.
         </p>
       )}
       <StandingsStrip save={save} />
@@ -1346,8 +1350,12 @@ function RewardModal(props: {
   onClaim: () => void;
 }) {
   const { offer, drop } = props;
+  const claimRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     sound.levelUp();
+    // A modal that announces itself as one should also take the focus, or a
+    // keyboard player is left tabbing the Hall behind it looking for Claim.
+    claimRef.current?.focus();
   }, []);
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label="Level up">
@@ -1375,7 +1383,7 @@ function RewardModal(props: {
             </div>
           )}
         </div>
-        <button className="btn primary big" onClick={props.onClaim}>
+        <button className="btn primary big" ref={claimRef} onClick={props.onClaim}>
           Claim
         </button>
       </div>

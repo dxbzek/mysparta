@@ -77,7 +77,10 @@ const NATIVE_H = 148;
  * block and fall — all directed by the deterministic event log.
  */
 export function FightTheatre({ result, names, figures, arena, rewards, onDone }: Props) {
-  const lines = useMemo(() => narrate(result, names), [result, names]);
+  // Depend on the two names, not the array: callers build `names` and
+  // `figures` inline, so a fresh array arrives on every parent render and
+  // re-narrating the whole fight each time would be pure waste.
+  const lines = useMemo(() => narrate(result, names), [result, names[0], names[1]]);
   const [shown, setShown] = useState(1);
   const [speed, setSpeed] = useState<1 | 2>(1);
   const [skipped, setSkipped] = useState(false);
@@ -125,7 +128,13 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     if (skipped) sound.fanfare(result.winner === 0);
   }, [skipped, result.winner]);
 
-  const visible: Line[] = skipped ? lines : lines.slice(0, shown);
+  // Stable per beat. It used to be a fresh slice every render, which made the
+  // memos below recompute and — worse — re-ran the sound effect, so toggling
+  // 2× speed replayed the current blow.
+  const visible: Line[] = useMemo(
+    () => (skipped ? lines : lines.slice(0, shown)),
+    [lines, shown, skipped],
+  );
   const idx = visible.length;
   const current = visible[visible.length - 1];
   const hp = current?.hp ?? [result.hpMax[0], result.hpMax[1]];
@@ -156,7 +165,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       if (l.drew) held[l.drew.side] = weaponIdByName.get(l.drew.weapon) ?? held[l.drew.side];
     }
     return held;
-  }, [visible, figures]);
+  }, [visible, figures[0].weaponId, figures[1].weaponId]);
 
   // shields change how a parry sounds — wood thunk versus steel ring
   const hasShield: [boolean, boolean] = useMemo(
