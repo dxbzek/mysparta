@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BEASTS,
   BOONS,
@@ -165,11 +165,16 @@ export function App() {
 
   // The address bar follows the screen, so refresh and the back button land
   // where the player expects instead of dumping them at the Hall.
+  const routed = useRef(false);
   useEffect(() => {
     const path = ROUTES[screen.s];
-    if (path && location.hash !== `#/${path}`) {
-      history.pushState(null, "", `#/${path}`);
-    }
+    if (!path || location.hash === `#/${path}`) return;
+    // The first sync only names the entry the player already stands on.
+    // Pushing there left a bare-URL entry behind it, so the first Back press
+    // appeared to do nothing and the second one left the game.
+    if (routed.current) history.pushState(null, "", `#/${path}`);
+    else history.replaceState(null, "", `#/${path}`);
+    routed.current = true;
   }, [screen.s]);
 
   useEffect(() => {
@@ -362,7 +367,6 @@ export function App() {
           }}
           onPortrait={(portrait) => update({ ...save, portrait })}
           onEquip={(slot, id) => update({ ...save, equipped: { ...save.equipped, [slot]: id } })}
-          onRefill={() => update({ ...save, vigor: Math.min(VIGOR_CAP, save.vigor + 6) })}
           onDelete={() => {
             // Confirmation happens in-app (two taps) — window.confirm is
             // silently blocked in sandboxed embeds.
@@ -923,15 +927,18 @@ const STAT_DOES: Record<string, string> = {
   Endurance: "health, and how many pets you can keep",
 };
 
-function StatRow({ label, value }: { label: string; value: number }) {
+function StatRow({ label, value, teach }: { label: string; value: number; teach: boolean }) {
   // 24 is comfortably past a maxed early-game stat, so the bar keeps meaning
   const pct = Math.max(4, Math.min(100, (value / 24) * 100));
   return (
-    <li>
+    // What the stat buys is worth saying once, while the player is learning.
+    // Kept on every row forever it was four lines of noise that doubled the
+    // card's height, so after the first few fights it lives on the tooltip.
+    <li title={`${label} — ${STAT_DOES[label]}`}>
       <b>{label}</b>
       <span className="statbar"><i style={{ width: `${pct}%` }} /></span>
       <span className="num">{value}</span>
-      <em className="stat-does">{STAT_DOES[label]}</em>
+      {teach && <em className="stat-does">{STAT_DOES[label]}</em>}
     </li>
   );
 }
@@ -999,7 +1006,6 @@ function Home(props: {
   onCodex: () => void;
   onLadder: () => void;
   onReorder: (from: number, to: number) => void;
-  onRefill: () => void;
   onDelete: () => void;
   onEquip: (slot: GearSlot, id: string | undefined) => void;
   onPortrait: (p: { arena: number; pose: string }) => void;
@@ -1012,6 +1018,8 @@ function Home(props: {
   const ownedGear = (save.gear ?? []).map((id) => gearItem(id)).filter((g): g is GearItem => !!g);
   const need = costToNext(c.level);
   const hpNow = maxHp(c.level, c.stats.grit, c.beasts, c.skills.includes("beast_bond"));
+  /** The first few fights are the only time the Hall explains itself. */
+  const teaching = save.totalFights < 3;
   const [armDelete, setArmDelete] = useState(false);
   useEffect(() => {
     if (!armDelete) return;
@@ -1021,7 +1029,7 @@ function Home(props: {
 
   return (
     <div className="home">
-      {save.totalFights < 3 && (
+      {teaching && (
         <section className="card hint span-all">
           <p>
             <b>How it plays:</b> fight rivals → earn XP → level up → the Rift rolls your reward
@@ -1056,8 +1064,9 @@ function Home(props: {
             </div>
             <span className="xp-num">{c.xp}/{need}</span>
           </div>
-          {/* The facts that were a dot-separated run now have labels, which is
-              what was actually filling the empty half of this card. */}
+          {/* Two facts, not four. "Gear" repeated the Wardrobe's own counter and
+              "Fights left" repeated the top bar, so half this row was an echo —
+              which is what made it read as filler rather than information. */}
           <dl className="facts">
             <div>
               <dt>Record</dt>
@@ -1067,26 +1076,24 @@ function Home(props: {
               <dt>Health</dt>
               <dd>{hpNow}</dd>
             </div>
-            <div>
-              <dt>Gear</dt>
-              <dd>{ownedGear.length}/{gearPool().length}</dd>
-            </div>
-            <div>
-              <dt>Fights left</dt>
-              <dd>{save.vigor}</dd>
-            </div>
           </dl>
+          {/* The one verb in the game belongs next to the champion, not at the
+              bottom of the page under the wardrobe. */}
+          <button className="btn primary big card-cta" onClick={props.onArena} disabled={save.vigor <= 0}>
+            <PixIcon name="swords" size={15} />{" "}
+            {save.vigor > 0 ? `Fight in the Arena (${save.vigor} left)` : "No fights left today"}
+          </button>
         </div>
       </section>
 
       <section className="grid-2">
-        <div className="card">
+        <div className="card stats-card">
           <h3>Stats</h3>
           <ul className="stats">
-            <StatRow label={STAT_LABEL.might} value={c.stats.might} />
-            <StatRow label={STAT_LABEL.grace} value={c.stats.grace} />
-            <StatRow label={STAT_LABEL.tempo} value={c.stats.tempo} />
-            <StatRow label={STAT_LABEL.grit} value={c.stats.grit} />
+            <StatRow label={STAT_LABEL.might} value={c.stats.might} teach={teaching} />
+            <StatRow label={STAT_LABEL.grace} value={c.stats.grace} teach={teaching} />
+            <StatRow label={STAT_LABEL.tempo} value={c.stats.tempo} teach={teaching} />
+            <StatRow label={STAT_LABEL.grit} value={c.stats.grit} teach={teaching} />
           </ul>
         </div>
         <div className="card">
@@ -1120,6 +1127,13 @@ function Home(props: {
               </div>
             </li>
           </ul>
+          {/* An empty rack should say how it gets filled, not just sit there. */}
+          {c.weapons.length === 0 && (
+            <p className="muted small note">
+              No steel yet. Weapons drop from the Rift when you level — once you hold more than
+              one, this is where you set which comes out first.
+            </p>
+          )}
         </div>
       </section>
 
@@ -1216,10 +1230,8 @@ function Home(props: {
         )}
       </section>
 
-      <div className="actions">
-        <button className="btn primary big" onClick={props.onArena}>
-          <PixIcon name="swords" size={15} /> Fight in the Arena
-        </button>
+      {/* Reference screens, not actions — the action lives on the champion card. */}
+      <div className="actions secondary">
         <button className="btn ghost" onClick={props.onHistory}>
           Level-Up History ({c.tapestry.length})
         </button>
@@ -1265,8 +1277,9 @@ function Arena(props: {
       </div>
       {save.vigor <= 0 && (
         <p className="notice">
-          You're out of fights for today — 6 more arrive at the daily reset (midnight UTC).
-          For testing, use "Dev: +6 fights" in your Hall.
+          You're out of fights for today — 6 more arrive at the daily reset (midnight UTC),
+          and they bank up to {VIGOR_CAP}. Your Hall is still yours to tinker with: reorder your
+          draw, change what you wear, study the Codex.
         </p>
       )}
       <StandingsStrip save={save} />
@@ -1346,8 +1359,12 @@ function RewardModal(props: {
   onClaim: () => void;
 }) {
   const { offer, drop } = props;
+  const claimRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     sound.levelUp();
+    // A modal that announces itself as one should also take the focus, or a
+    // keyboard player is left tabbing the Hall behind it looking for Claim.
+    claimRef.current?.focus();
   }, []);
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-label="Level up">
@@ -1375,7 +1392,7 @@ function RewardModal(props: {
             </div>
           )}
         </div>
-        <button className="btn primary big" onClick={props.onClaim}>
+        <button className="btn primary big" ref={claimRef} onClick={props.onClaim}>
           Claim
         </button>
       </div>

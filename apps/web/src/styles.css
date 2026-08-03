@@ -31,6 +31,25 @@
 
 * { box-sizing: border-box; }
 
+/*
+ * Keyboard focus. Every control in the game is reachable by Tab, but until now
+ * none of them showed it — the only :focus rule in the sheet turned the ring
+ * off. One hard, offset ring in the game's own palette, drawn the way the rest
+ * of the UI is drawn (no blur, no soft glow), applied once to everything.
+ */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--terracotta);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+/* Round controls take a round ring; the swatch already spends its outline on
+   "picked", so its focus reads as a halo instead. */
+.swatch:focus-visible {
+  outline-offset: 3px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--panel), 0 2px 0 rgb(88 66 38 / 25%);
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -208,11 +227,12 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   background: #fffaef;
   color: var(--ink);
   border: var(--border);
-  border-radius: 14px;
+  /* the sheet's own law: hard edges, --radius everywhere — a 14px pill on the
+     first control a player ever touches was the one place it was broken */
+  border-radius: var(--radius);
   box-shadow: inset 0 3px 6px rgb(88 66 38 / 22%);
   padding: 12px 18px;
   width: min(340px, 90%);
-  outline: none;
 }
 .forge-input:focus { border-color: var(--terracotta); }
 .forge-preview {
@@ -359,7 +379,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .arsenal .wname { display: flex; align-items: center; gap: 8px; }
 .reorder button {
   background: var(--panel); border: 2px solid var(--line); color: var(--ink);
-  border-radius: 8px; cursor: pointer; margin-left: 4px; min-width: 30px; min-height: 28px;
+  border-radius: var(--radius); cursor: pointer; margin-left: 4px; min-width: 30px; min-height: 28px;
   font-weight: 800;
 }
 .reorder button:disabled { opacity: 0.3; }
@@ -1729,6 +1749,14 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
     animation: none;
   }
   .xpbar-fill, .statbar i, .hpbar-fill { transition: none; }
+
+  /* The last motion left running: the stage shake on a crit, the victory
+     petals, the aura sparks and the meters that slide. A player who asked the
+     OS for no motion should not get a screen quake at the loudest moment. */
+  .stage.quake, .btn.danger.armed { animation: none; }
+  .petal { display: none; }
+  .qbar-fill { transition: none; }
+  .btn:hover:not(:disabled), .btn:active:not(:disabled) { transform: none; }
 }
 
 /* gear chips carry their numbers */
@@ -1915,6 +1943,19 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   .champ-meta { align-self: center; }
 }
 
+/*
+ * On a phone the portrait is a fixed 234px plate that will not shrink, which
+ * left the name column about 70px wide — "Kassia the Poised" ran off the side
+ * and took the whole page's horizontal scroll with it. Below that width the
+ * card stacks: plate on top, the champion's details full-width underneath.
+ */
+@media (max-width: 560px) {
+  .champ-card { flex-direction: column; align-items: stretch; }
+  .champ-card .portrait-wrap { align-self: center; }
+}
+/* No name, however long, may push the page sideways. */
+.champ-name { overflow-wrap: anywhere; }
+
 /* ---------- tasks as a strip, not a column ---------- */
 
 .quests-strip { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding: 10px 16px; }
@@ -2068,11 +2109,43 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .xp-row .xp-num { font-size: 0.76rem; font-weight: 800; color: var(--ink-soft); flex: none; }
 
 /* Four labelled facts instead of one dot-separated run. */
+/* Two facts sit at their natural width instead of stretching across four
+   columns of mostly air. The card's empty right half is the Fight button now. */
 .facts {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px 14px; margin: 10px 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: 8px 34px; margin: 10px 0 0; padding: 0;
 }
 .facts > div { min-width: 0; }
+
+/* The Hall's one action, on the champion it belongs to. */
+.card-cta { margin-top: 16px; }
+@media (max-width: 560px) { .card-cta { width: 100%; } }
+/*
+ * Out of fights, this is not the hero of the card any more. Half-opacity white
+ * on gold is neither readable nor honest about being inactive, so the button
+ * drops to cut-panel ink: legible, plainly disabled, no longer shouting.
+ */
+.card-cta:disabled {
+  opacity: 1;
+  background: var(--panel-deep);
+  color: var(--ink-soft);
+  text-shadow: none;
+  border-bottom-width: 3px;
+}
+
+/*
+ * Stats sits in the champion's row, so the grid stretches it to the taller
+ * card. Four rows of numbers then clustered at the top over a half-card of
+ * nothing. Rather than pad the card with explanatory text nobody reads twice,
+ * let the rows share the height they are given.
+ */
+.stats-card { display: flex; flex-direction: column; }
+.stats-card .stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
 .facts dt {
   font-size: 0.62rem; font-weight: 800; letter-spacing: 0.07em;
   text-transform: uppercase; color: var(--ink-soft);
