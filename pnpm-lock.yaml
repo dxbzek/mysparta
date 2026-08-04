@@ -39,6 +39,9 @@ importers:
       vite:
         specifier: ^6.0.7
         version: 6.4.3
+      vitest:
+        specifier: ^3.0.5
+        version: 3.2.7
 
   packages/core:
     devDependencies:
