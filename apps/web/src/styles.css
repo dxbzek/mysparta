@@ -2118,7 +2118,40 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .facts > div { min-width: 0; }
 
 /* The Hall's one action, on the champion it belongs to. */
-.card-cta { margin-top: 16px; }
+/*
+ * Stance sits directly above the Fight button because it is the only thing
+ * the player decides before pressing it. Three segments rather than a select:
+ * the whole choice, and its cost, is readable without opening anything.
+ */
+.stance-pick { margin-top: 16px; }
+.stance-cap {
+  font-family: var(--font-display);
+  font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.stance-opts { display: flex; gap: 6px; margin-top: 6px; }
+.stance-opt {
+  flex: 1;
+  font-family: var(--font-body); font-weight: 800; font-size: 0.86rem;
+  background: var(--panel);
+  color: var(--ink);
+  border: var(--border);
+  border-bottom-width: 4px;
+  border-radius: 10px;
+  padding: 8px 6px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.stance-opt.on {
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  border-color: var(--line);
+  color: #1c1710;
+}
+/* Reserve the two lines the longest blurb needs, so picking a stance does not
+   shove the Fight button up and down under the thumb. */
+.stance-blurb { margin-top: 6px; min-height: 2.6em; }
+
+.card-cta { margin-top: 12px; }
 @media (max-width: 560px) { .card-cta { width: 100%; } }
 /*
  * Out of fights, this is not the hero of the card any more. Half-opacity white

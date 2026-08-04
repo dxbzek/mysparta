@@ -1,0 +1,470 @@
+/** The Hall: your champion, what they carry, and the one button that matters. */
+import { useEffect, useState } from "react";
+import {
+  STAT_LABEL,
+  beast,
+  costToNext,
+  maxHp,
+  omen,
+  skill,
+  weapon,
+  type Stance,
+} from "@agoge/core";
+import { PetSprite } from "../pixelPets.js";
+import { WeaponIcon } from "../weaponIcons.js";
+import { SkillIcon, type SkillKind } from "../skillIcons.js";
+import { PixIcon } from "../pixelIcons.js";
+import { AuraSparks, FighterBust, FighterFig, lookFor, type FighterAnim } from "../fighters.js";
+import { ARENAS } from "../arenas.js";
+import { arenaScene } from "../arenaArt.js";
+import { gearDetail, gearItem, gearPool, gearStatLine, lookWithGear, resolveExtras, type GearItem, type GearSlot } from "../gear.js";
+import type { SaveV1 } from "../save.js";
+import type { Look } from "../paperdoll.js";
+import { DISCIPLINE_NAME, StandingsStrip } from "../ui.js";
+
+const PORTRAIT_POSES: Array<{ id: FighterAnim; name: string }> = [
+  { id: "stance", name: "Guard" },
+  { id: "idle", name: "At ease" },
+  { id: "attack1", name: "Strike" },
+  { id: "attack2", name: "Thrust" },
+  { id: "run", name: "Charge" },
+];
+
+/**
+ * The Hall portrait: a framed plate with a painted arena behind the champion,
+ * who stands on its ground line. Both the pose and the backdrop are the
+ * player's to choose — this is the picture of their hunter.
+ */
+function ChampionPortrait({
+  look,
+  aura,
+  particles,
+  portrait,
+  onChange,
+}: {
+  look: Look;
+  aura: number;
+  particles?: string;
+  portrait: { arena: number; pose: string };
+  onChange: (p: { arena: number; pose: string }) => void;
+}) {
+  const SCALE = 3;
+  const NW = 78;
+  const NH = 82;
+  const arena = ARENAS[portrait.arena % ARENAS.length]!;
+  const pose = (PORTRAIT_POSES.find((p) => p.id === portrait.pose) ?? PORTRAIT_POSES[0]!).id;
+  const poseAt = PORTRAIT_POSES.findIndex((p) => p.id === pose);
+  const step = (d: number) =>
+    onChange({ ...portrait, pose: PORTRAIT_POSES[(poseAt + d + PORTRAIT_POSES.length) % PORTRAIT_POSES.length]!.id });
+  const shift = (d: number) =>
+    onChange({ ...portrait, arena: (portrait.arena + d + ARENAS.length) % ARENAS.length });
+
+  return (
+    <div className="portrait-wrap">
+      <div
+        className="portrait"
+        style={{
+          width: NW * SCALE,
+          height: NH * SCALE,
+          backgroundImage: `url(${arenaScene(arena, NW, NH)})`,
+        }}
+      >
+        <AuraSparks aura={aura} />
+        <span
+          className="portrait-figure"
+          style={{ bottom: Math.round(NH * (1 - arena.horizon) * SCALE) - SCALE }}
+        >
+          <FighterFig look={look} height={48 * SCALE} anim={pose} aura={aura} particles={particles} />
+        </span>
+      </div>
+      <div className="portrait-controls">
+        <button className="nudge" onClick={() => step(-1)} aria-label="Previous pose">
+          <PixIcon name="arrowLeft" size={9} />
+        </button>
+        <span className="portrait-label">{PORTRAIT_POSES[poseAt]!.name}</span>
+        <button className="nudge flip" onClick={() => step(1)} aria-label="Next pose">
+          <PixIcon name="arrowLeft" size={9} />
+        </button>
+        <button className="nudge" onClick={() => shift(-1)} aria-label="Previous backdrop">
+          <PixIcon name="arrowLeft" size={9} />
+        </button>
+        <span className="portrait-label wide">{arena.name}</span>
+        <button className="nudge flip" onClick={() => shift(1)} aria-label="Next backdrop">
+          <PixIcon name="arrowLeft" size={9} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** What each stat actually buys, so the Stats card teaches instead of
+ *  listing four numbers and leaving the rest of the panel empty. */
+const STAT_DOES: Record<string, string> = {
+  Strength: "damage on every hit",
+  Agility: "evasion, blocks and ripostes",
+  Speed: "how often you act",
+  Endurance: "health, and how many pets you can keep",
+};
+
+function StatRow({ label, value, teach }: { label: string; value: number; teach: boolean }) {
+  // 24 is comfortably past a maxed early-game stat, so the bar keeps meaning
+  const pct = Math.max(4, Math.min(100, (value / 24) * 100));
+  return (
+    // What the stat buys is worth saying once, while the player is learning.
+    // Kept on every row forever it was four lines of noise that doubled the
+    // card's height, so after the first few fights it lives on the tooltip.
+    <li title={`${label} — ${STAT_DOES[label]}`}>
+      <b>{label}</b>
+      <span className="statbar"><i style={{ width: `${pct}%` }} /></span>
+      <span className="num">{value}</span>
+      {teach && <em className="stat-does">{STAT_DOES[label]}</em>}
+    </li>
+  );
+}
+
+function Quest({ at, of, children }: { at: number; of: number; children: React.ReactNode }) {
+  const done = at >= of;
+  return (
+    <li className={done ? "qdone" : ""}>
+      <span className="qbox">{done && <PixIcon name="check" size={9} />}</span>
+      <span className="qbody">
+        <span className="qtext">{children}</span>
+        <span className="qbar">
+          <span className="qbar-fill" style={{ width: `${Math.min(100, (at / of) * 100)}%` }} />
+        </span>
+      </span>
+      <span className="qcount">{Math.min(at, of)}/{of}</span>
+    </li>
+  );
+}
+
+
+/**
+ * A weapon's character at a glance: how hard it hits, how often, how far it
+ * reaches. Bars beat "dmg 10 · steady" because two weapons can be compared
+ * without doing arithmetic.
+ */
+function WeaponBars({ w }: { w: ReturnType<typeof weapon> }) {
+  if (w.discipline === "aspis") {
+    return <div className="muted small">Raised to turn blows aside — never swung.</div>;
+  }
+  // 900ms is about the slowest swing in the game; invert so faster reads fuller
+  const speed = Math.max(6, Math.min(100, ((450 - w.interval) / 270) * 100));
+  const rows: Array<[string, number]> = [
+    ["Damage", Math.min(100, (w.dmg / 22) * 100)],
+    ["Speed", speed],
+    ["Reach", Math.min(100, ((w.reach + 1) / 4) * 100)],
+  ];
+  return (
+    <div className="wbars">
+      {rows.map(([label, pct]) => (
+        <div className="wbar-row" key={label}>
+          <span>{label}</span>
+          <span className="statbar"><i style={{ width: `${pct}%` }} /></span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+/** The three standing orders, with what each actually does to the sim. */
+const STANCE_INFO: Array<{ id: Stance; name: string; blurb: string }> = [
+  {
+    id: "aggressive",
+    name: "Aggressive",
+    blurb: "Hits 15% harder and swings 10% faster — but you evade, block and counter far less.",
+  },
+  {
+    id: "measured",
+    name: "Measured",
+    blurb: "Steadier: +6 accuracy, +3 evasion, and your blocks chip the attacker back.",
+  },
+  {
+    id: "guarded",
+    name: "Guarded",
+    blurb: "Hits 10% softer and 8% slower, but +12 block, +10 counter and riposte, +2 armour.",
+  },
+];
+
+export function Home(props: {
+  save: SaveV1;
+  onArena: () => void;
+  onHistory: () => void;
+  onCodex: () => void;
+  onLadder: () => void;
+  onReorder: (from: number, to: number) => void;
+  onStance: (stance: Stance) => void;
+  onDelete: () => void;
+  onEquip: (slot: GearSlot, id: string | undefined) => void;
+  onPortrait: (p: { arena: number; pose: string }) => void;
+}) {
+  const { save } = props;
+  const c = save.champion;
+  const baseLook = save.look ?? lookFor(c.displayName);
+  const worn = lookWithGear(baseLook, save.equipped);
+  const extras = resolveExtras(save.aura ?? 0, save.equipped);
+  const ownedGear = (save.gear ?? []).map((id) => gearItem(id)).filter((g): g is GearItem => !!g);
+  const need = costToNext(c.level);
+  const hpNow = maxHp(c.level, c.stats.grit, c.beasts, c.skills.includes("beast_bond"));
+  /** The first few fights are the only time the Hall explains itself. */
+  const teaching = save.totalFights < 3;
+  const [armDelete, setArmDelete] = useState(false);
+  useEffect(() => {
+    if (!armDelete) return;
+    const t = window.setTimeout(() => setArmDelete(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [armDelete]);
+
+  return (
+    <div className="home">
+      {teaching && (
+        <section className="card hint span-all">
+          <p>
+            <b>How it plays:</b> fight rivals → earn XP → level up → the Rift rolls your reward
+            (stats, weapons, skills, pets or gear — always a surprise). You get <b>6 fights a day</b>{" "}
+            (they bank up to 12). <span className="muted">Your name set your awakening — the Rift decides the rest.</span>
+          </p>
+        </section>
+      )}
+
+      <section className="card champ-card">
+        {/* a framed portrait: the champion standing in an arena of their choosing */}
+        <ChampionPortrait
+          look={worn}
+          aura={extras.aura}
+          particles={extras.particles}
+          portrait={save.portrait ?? { arena: 0, pose: "stance" }}
+          onChange={(p) => props.onPortrait(p)}
+        />
+        <div className="champ-meta">
+          <h2 className="champ-name">
+            {c.displayName} <span className="epithet">{extras.title ?? c.epithet}</span>
+          </h2>
+          <div className="muted">
+            {omen(c.omen).name} · Level {c.level}
+          </div>
+          {/* XP is a labelled meter with its number on it, not a rule drawn
+              across the card with the reading stranded on the line below. */}
+          <div className="xp-row">
+            <span className="xp-cap">XP</span>
+            <div className="xpbar" title={`XP toward level ${c.level + 1}`}>
+              <div className="xpbar-fill" style={{ width: `${Math.min(100, (c.xp / need) * 100)}%` }} />
+            </div>
+            <span className="xp-num">{c.xp}/{need}</span>
+          </div>
+          {/* Two facts, not four. "Gear" repeated the Wardrobe's own counter and
+              "Fights left" repeated the top bar, so half this row was an echo —
+              which is what made it read as filler rather than information. */}
+          <dl className="facts">
+            <div>
+              <dt>Record</dt>
+              <dd>{save.wins}W – {save.losses}L</dd>
+            </div>
+            <div>
+              <dt>Health</dt>
+              <dd>{hpNow}</dd>
+            </div>
+          </dl>
+          {/* Everything else the Rift decides. The stance is the standing
+              order the champion carries into every fight, so it sits with the
+              verb it modifies rather than on a screen of its own. */}
+          <div className="stance-pick">
+            <span className="stance-cap">Stance</span>
+            <div className="stance-opts" role="radiogroup" aria-label="Fighting stance">
+              {STANCE_INFO.map((s) => (
+                <button
+                  key={s.id}
+                  role="radio"
+                  aria-checked={save.plan.stance === s.id}
+                  className={`stance-opt${save.plan.stance === s.id ? " on" : ""}`}
+                  onClick={() => props.onStance(s.id)}
+                  title={s.blurb}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+            <p className="muted small stance-blurb">
+              {STANCE_INFO.find((s) => s.id === save.plan.stance)?.blurb}
+            </p>
+          </div>
+
+          {/* The one verb in the game belongs next to the champion, not at the
+              bottom of the page under the wardrobe. */}
+          <button className="btn primary big card-cta" onClick={props.onArena} disabled={save.vigor <= 0}>
+            <PixIcon name="swords" size={15} />{" "}
+            {save.vigor > 0 ? `Fight in the Arena (${save.vigor} left)` : "No fights left today"}
+          </button>
+        </div>
+      </section>
+
+      <section className="grid-2">
+        <div className="card stats-card">
+          <h3>Stats</h3>
+          <ul className="stats">
+            <StatRow label={STAT_LABEL.might} value={c.stats.might} teach={teaching} />
+            <StatRow label={STAT_LABEL.grace} value={c.stats.grace} teach={teaching} />
+            <StatRow label={STAT_LABEL.tempo} value={c.stats.tempo} teach={teaching} />
+            <StatRow label={STAT_LABEL.grit} value={c.stats.grit} teach={teaching} />
+          </ul>
+        </div>
+        <div className="card">
+          <h3>Weapons <span className="muted small">(drawn in this order)</span></h3>
+          <ul className="arsenal rack">
+            {c.weapons.map((id, i) => (
+              <li key={id}>
+                <span className="rack-tile">
+                  <WeaponIcon d={id} size={32} />
+                </span>
+                <div className="wbody">
+                  <div className="wtop">
+                    <b>{weapon(id).name}</b>
+                    <span className="wtag">{DISCIPLINE_NAME[weapon(id).discipline] ?? weapon(id).discipline}</span>
+                  </div>
+                  <WeaponBars w={weapon(id)} />
+                </div>
+                <span className="reorder">
+                  <button aria-label="draw earlier" disabled={i === 0} onClick={() => props.onReorder(i, i - 1)}><PixIcon name="chevronUp" size={7} /></button>
+                  <button aria-label="draw later" disabled={i === c.weapons.length - 1} onClick={() => props.onReorder(i, i + 1)}><PixIcon name="chevronDown" size={7} /></button>
+                </span>
+              </li>
+            ))}
+            <li className="muted">
+              <span className="rack-tile">
+                <WeaponIcon d="fists" size={32} />
+              </span>
+              <div className="wbody">
+                <div className="wtop"><b>Fists</b><span className="wtag">always last</span></div>
+                <div className="muted small">What is left when the steel is gone.</div>
+              </div>
+            </li>
+          </ul>
+          {/* An empty rack should say how it gets filled, not just sit there. */}
+          {c.weapons.length === 0 && (
+            <p className="muted small note">
+              No steel yet. Weapons drop from the Rift when you level — once you hold more than
+              one, this is where you set which comes out first.
+            </p>
+          )}
+        </div>
+      </section>
+
+      <section className="card quests quests-strip span-all">
+        <h3>Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — gear dropped!</span>}</h3>
+        <ul className="qlist">
+          <Quest at={save.quests?.fights ?? 0} of={3}>Fight three times</Quest>
+          <Quest at={save.quests?.wins ?? 0} of={2}>Win two fights</Quest>
+          <Quest at={save.quests?.crits ?? 0} of={1}>Land a critical hit</Quest>
+        </ul>
+        <p className="muted small note">Complete all three for a bonus gear drop. Resets daily.</p>
+      </section>
+
+      {(c.skills.length > 0 || c.beasts.length > 0) && (
+        <section className="card">
+          <h3>Skills & Pets</h3>
+          <div className="plaques">
+            {c.skills.map((s) => (
+              <span key={s} className="plaque" title={skill(s).text}>
+                <SkillIcon id={s} kind={skill(s).kind as SkillKind} size={40} />
+                <em>{skill(s).name}</em>
+              </span>
+            ))}
+            {c.beasts.map((b, i) => (
+              <span key={`${b}${i}`} className="plaque" title={beast(b).flavour}>
+                <span className="pet-tile">
+                  <PetSprite beastId={b} size={44} />
+                </span>
+                <em>{beast(b).name}</em>
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <StandingsStrip save={save} />
+
+      <section className="card wardrobe span-all">
+        <h3>
+          Wardrobe{" "}
+          <span className="muted small">
+            {ownedGear.length}/{gearPool().length} found — drops are random, wear what you own
+          </span>
+        </h3>
+        {ownedGear.length === 0 ? (
+          <div className="wardrobe-empty">
+            {(["Armor", "Helm", "Cloak", "Trinket", "Title"] as const).map((label) => (
+              <span className="slot-empty" key={label}>
+                <span className="slot-frame" />
+                <em>{label}</em>
+              </span>
+            ))}
+            <p className="muted small">
+              Nothing yet — every level up (and some victories) drops a random piece of gear.
+            </p>
+          </div>
+        ) : (
+          (["body", "helm", "cloak", "trinket", "title"] as GearSlot[]).map((slot) => {
+            const items = ownedGear.filter((g) => g.slot === slot);
+            if (items.length === 0) return null;
+            const labels: Record<GearSlot, string> = {
+              body: "Armor",
+              helm: "Helm",
+              cloak: "Cloak",
+              trinket: "Trinket",
+              title: "Title",
+            };
+            return (
+              <div key={slot} className="wardrobe-row">
+                <h4 className="slot-label">{labels[slot]}</h4>
+                <div className="chips">
+                  {items.map((g) => {
+                    const worn = save.equipped?.[slot] === g.id;
+                    return (
+                      <button
+                        key={g.id}
+                        className={`chip gear-chip ${worn ? "worn" : ""}`}
+                        title={g.flavour}
+                        onClick={() => props.onEquip(slot, worn ? undefined : g.id)}
+                      >
+                        {/* worn by your own hunter, so you see it before choosing */}
+                        <FighterBust look={lookWithGear(baseLook, { [slot]: g.id })} size={46} />
+                        <span className="gear-text">
+                          <b>{g.name}</b>
+                          <span className="gear-stat">{gearStatLine(g) || gearDetail(g)}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </section>
+
+      {/* Reference screens, not actions — the action lives on the champion card. */}
+      <div className="actions secondary">
+        <button className="btn ghost" onClick={props.onHistory}>
+          Level-Up History ({c.tapestry.length})
+        </button>
+        <button className="btn ghost" onClick={props.onLadder}>
+          Ladder
+        </button>
+        <button className="btn ghost" onClick={props.onCodex}>
+          Codex
+        </button>
+      </div>
+
+      <div className="devrow">
+        <button
+          className={`btn tiny danger ${armDelete ? "armed" : ""}`}
+          onClick={() => (armDelete ? props.onDelete() : setArmDelete(true))}
+        >
+          {armDelete ? "Tap again — deletes forever!" : "Delete Hunter"}
+        </button>
+      </div>
+    </div>
+  );
+}
+

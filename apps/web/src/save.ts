@@ -116,6 +116,10 @@ export function load(): SaveV1 | null {
     parsed.look = normaliseLook(parsed.look);
     if (parsed.gear == null) parsed.gear = [];
     if (parsed.equipped == null) parsed.equipped = {};
+    // The stance is read on every fight and drawn in the Hall, so a save from
+    // before it was the player's to set must land on the neutral one.
+    if (parsed.plan == null) parsed.plan = { stance: "measured", gambit: "close_the_gap" };
+    if (parsed.plan.stance == null) parsed.plan.stance = "measured";
     return applyDailyReset(parsed);
   } catch {
     return null;
