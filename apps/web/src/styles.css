@@ -195,6 +195,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .btn.big { font-size: 0.96rem; padding: 13px 26px; }
 .btn.tiny { font-size: 0.62rem; min-height: 32px; padding: 4px 10px; border-bottom-width: 4px; }
+/* Small by design, but never smaller than a thumb on a touch screen. */
+@media (pointer: coarse) { .btn.tiny { min-height: 44px; } }
 
 .muted { color: var(--ink-soft); }
 .small { font-size: 0.83rem; }
@@ -409,6 +411,16 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 @media (max-width: 480px) {
   .arena-head h2 { font-size: 1.25rem; }
   .arena-head .btn { font-size: 0.85rem; padding: 6px 10px; }
+  /*
+   * Back, title and "New rivals" do not fit on one 375px line, and nowrap sent
+   * the last button past the right edge — which scrolled the whole page
+   * sideways. The title takes the full first row; the two buttons share the
+   * second, where both keep a thumb-sized target.
+   */
+  .arena-head { flex-wrap: wrap; justify-content: flex-start; }
+  .arena-head h2 { order: -1; flex: 1 0 100%; white-space: normal; }
+  .arena-head .btn { flex: 0 1 auto; min-width: 0; }
+  .arena-head > :last-child:not(h2) { margin-left: auto; }
 }
 
 .rivals { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
@@ -1203,6 +1215,16 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 .league-pill { color: #0d0f16; }
 .sound-toggle { cursor: pointer; font-family: inherit; }
+/*
+ * The two things in the top bar you can actually press were 22-24px tall,
+ * sat against the screen edge, and are the way back to the Hall and the way
+ * to silence the game mid-fight. Touch pointers get a real target; the bar
+ * looks the same on a mouse.
+ */
+@media (pointer: coarse) {
+  .sound-toggle { min-width: 44px; min-height: 44px; justify-content: center; }
+  .wordmark { min-height: 44px; }
+}
 
 .quests h3 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .qlist { list-style: none; margin: 0; padding: 0; }
@@ -1374,6 +1396,18 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .pick-row .opt-row, .pick-row .swatches { flex: 1; min-width: 0; }
 .opt-row.wrap .opt { font-size: 0.8rem; padding: 4px 9px; min-height: 34px; }
 .creator .swatch { width: 28px; height: 28px; border-width: 2.5px; }
+/*
+ * The Forge is the first screen a phone player ever touches, and it is almost
+ * entirely small controls: a dozen 28px colour chips per row, five tabs, and
+ * the part arrows. They stay compact for the mouse and grow for the thumb —
+ * the swatch rows simply wrap onto another line at the larger size.
+ */
+@media (pointer: coarse) {
+  .creator .swatch { width: 44px; height: 44px; }
+  .creator .tab { min-height: 44px; padding: 7px 14px; }
+  .creator .nudge { width: 44px; min-height: 44px; }
+  .picker-ctl select { min-height: 44px; }
+}
 @media (max-width: 560px) {
   .pick-row { flex-direction: column; gap: 4px; }
   .pick-row h4 { width: auto; flex-direction: row; gap: 6px; align-items: baseline; }
@@ -1951,10 +1985,65 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
  */
 @media (max-width: 560px) {
   .champ-card { flex-direction: column; align-items: stretch; }
-  .champ-card .portrait-wrap { align-self: center; }
+  /*
+   * Full bleed: the portrait is the best thing on this card, so on a phone it
+   * runs the whole width and out to the card's edges — the negative margins
+   * cancel the card's own padding, and the frame drops the borders it would
+   * otherwise draw against nothing. Height follows the plate's aspect ratio so
+   * the scene never distorts, and the champion keeps its 3× pixel scale rather
+   * than being resampled to a fraction — its ground line is a percentage, so
+   * it stands on the horizon whatever width the plate ends up.
+   */
+  .champ-card .portrait-wrap { align-self: stretch; align-items: stretch; margin: -14px -16px 0; }
+  .champ-card .portrait {
+    /* explicit, so the cap below shortens the plate instead of narrowing it */
+    width: 100%;
+    height: auto;
+    aspect-ratio: var(--plate-w) / var(--plate-h);
+    /*
+     * Full width at the natural ratio pushed "Fight in the Arena" off a 812px
+     * phone screen — the portrait is the draw, but the verb has to be reachable
+     * without scrolling. Stretching to the shorter box turned the sun into an
+     * ellipse, so the scene is scaled to the plate's width and cropped at the
+     * top instead. The champion's ground line is measured in the same width
+     * (--ground-cqw), so it lands on the horizon in the part that survives.
+     */
+    max-height: 30svh;
+    container-type: inline-size;
+    background-size: cover;
+    background-position: center bottom;
+  }
+  .champ-card .portrait-figure {
+    bottom: calc(var(--ground-cqw) * 1cqw);
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+  }
 }
 /* No name, however long, may push the page sideways. */
 .champ-name { overflow-wrap: anywhere; }
+
+/*
+ * Phones get the short copy. Everything marked .say-more is an aside — a
+ * parenthetical, a second sentence restating the rule, colour — and the
+ * sentence still reads without it. The Hall was three screens of scrolling on
+ * a 375px phone with a paragraph above the champion; this is the difference
+ * between a game and a manual.
+ */
+@media (max-width: 560px) {
+  .say-more { display: none; }
+  /*
+   * The champion is the reason to open the Hall — the primer follows them.
+   * .grid-2 is display:contents, so its cards are grid items too and need the
+   * same default, or they sort ahead of the primer.
+   */
+  .home > *, .grid-2 > * { order: 2; }
+  .home > .champ-card { order: 0; }
+  .home > .hint { order: 1; }
+  /* The bars and numbers already say which stat is which. */
+  .stat-does { display: none; }
+}
 
 /* ---------- tasks as a strip, not a column ---------- */
 
@@ -1967,6 +2056,13 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 @media (max-width: 620px) {
   .quests-strip { gap: 8px; }
   .quests-strip .qlist { gap: 6px 14px; }
+  /*
+   * The heading and the footnote were nowrap, which gave this strip a
+   * min-content width of 361px. Every card on the Hall shares one grid track,
+   * so on a 320px phone that one line pushed the whole page sideways. They
+   * wrap here; the strip still reads as a strip on anything wider.
+   */
+  .quests-strip h3, .quests-strip .note { white-space: normal; }
 }
 
 /* ---------- Hall portrait ---------- */
@@ -1974,6 +2070,10 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .portrait-wrap { display: flex; flex-direction: column; gap: 8px; align-items: center; flex-shrink: 0; }
 .portrait {
   position: relative;
+  /* natural plate size, handed over from ChampionPortrait as bare numbers so
+     the phone rule below can re-derive an aspect ratio from them */
+  width: calc(var(--plate-w) * 1px);
+  height: calc(var(--plate-h) * 1px);
   border: var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm), inset 0 0 0 2px rgb(255 255 255 / 25%);
@@ -1982,9 +2082,19 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   image-rendering: pixelated;
   overflow: hidden;
 }
-.portrait-figure { position: absolute; left: 50%; transform: translateX(-50%); }
+.portrait-figure { position: absolute; left: 50%; bottom: var(--ground-pct); transform: translateX(-50%); }
 .portrait-controls { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+/*
+ * The arrows were 26×28 — under the 44px a thumb actually needs, and the one
+ * control on this card a touch player uses repeatedly. The glyph stays small;
+ * the tappable box around it grows, on touch pointers only, so the desktop
+ * card keeps its tight proportions.
+ */
 .portrait-controls .nudge { width: 26px; min-height: 28px; }
+@media (pointer: coarse) {
+  .portrait-controls .nudge { width: 44px; min-height: 44px; }
+  .portrait-controls { gap: 6px; }
+}
 .portrait-label {
   font-family: var(--font-display);
   font-size: 0.56rem;

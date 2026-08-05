@@ -61,18 +61,37 @@ function ChampionPortrait({
 
   return (
     <div className="portrait-wrap">
+      {/*
+        The plate is a fixed composition — scene, ground line and figure are all
+        sized off SCALE. Handing CSS the natural size and the ground line as a
+        percentage lets the phone stretch the whole thing to the card's width
+        (see .champ-card .portrait) without the champion floating off the
+        horizon or shrinking to a speck in the middle of it.
+      */}
       <div
         className="portrait"
-        style={{
-          width: NW * SCALE,
-          height: NH * SCALE,
-          backgroundImage: `url(${arenaScene(arena, NW, NH)})`,
-        }}
+        style={
+          {
+            backgroundImage: `url(${arenaScene(arena, NW, NH)})`,
+            "--plate-w": `${NW * SCALE}`,
+            "--plate-h": `${NH * SCALE}`,
+            // Where the ground line falls once the scene is scaled to the
+            // plate's WIDTH — in hundredths of that width, so the phone rule
+            // can crop the scene's height without the champion leaving it.
+            "--ground-cqw": `${(1 - arena.horizon) * (NH / NW) * 100 - 100 / NW}`,
+          } as React.CSSProperties
+        }
       >
         <AuraSparks aura={aura} />
         <span
           className="portrait-figure"
-          style={{ bottom: Math.round(NH * (1 - arena.horizon) * SCALE) - SCALE }}
+          style={
+            {
+              // A var, not an inline `bottom` — the phone rule below has to be
+              // able to win, and an inline declaration beats any stylesheet.
+              "--ground-pct": `${(1 - arena.horizon) * 100 - 100 / NH}%`,
+            } as React.CSSProperties
+          }
         >
           <FighterFig look={look} height={48 * SCALE} anim={pose} aura={aura} particles={particles} />
         </span>
@@ -218,12 +237,19 @@ export function Home(props: {
 
   return (
     <div className="home">
+      {/*
+        The asides are the first thing to go on a phone: the loop and the daily
+        allowance survive, the parenthetical colour does not. One copy of the
+        text, two lengths — see .say-more.
+      */}
       {teaching && (
         <section className="card hint span-all">
           <p>
             <b>How it plays:</b> fight rivals → earn XP → level up → the Rift rolls your reward
-            (stats, weapons, skills, pets or gear — always a surprise). You get <b>6 fights a day</b>{" "}
-            (they bank up to 12). <span className="muted">Your name set your awakening — the Rift decides the rest.</span>
+            <span className="say-more"> (stats, weapons, skills, pets or gear — always a surprise)</span>.
+            You get <b>6 fights a day</b>
+            <span className="say-more"> (they bank up to 12)</span>.
+            <span className="muted say-more"> Your name set your awakening — the Rift decides the rest.</span>
           </p>
         </section>
       )}
@@ -343,8 +369,8 @@ export function Home(props: {
           {/* An empty rack should say how it gets filled, not just sit there. */}
           {c.weapons.length === 0 && (
             <p className="muted small note">
-              No steel yet. Weapons drop from the Rift when you level — once you hold more than
-              one, this is where you set which comes out first.
+              No steel yet. Weapons drop from the Rift when you level
+              <span className="say-more"> — once you hold more than one, this is where you set which comes out first</span>.
             </p>
           )}
         </div>
@@ -357,7 +383,7 @@ export function Home(props: {
           <Quest at={save.quests?.wins ?? 0} of={2}>Win two fights</Quest>
           <Quest at={save.quests?.crits ?? 0} of={1}>Land a critical hit</Quest>
         </ul>
-        <p className="muted small note">Complete all three for a bonus gear drop. Resets daily.</p>
+        <p className="muted small note say-more">Complete all three for a bonus gear drop. Resets daily.</p>
       </section>
 
       {(c.skills.length > 0 || c.beasts.length > 0) && (
@@ -388,7 +414,8 @@ export function Home(props: {
         <h3>
           Wardrobe{" "}
           <span className="muted small">
-            {ownedGear.length}/{gearPool().length} found — drops are random, wear what you own
+            {ownedGear.length}/{gearPool().length} found
+            <span className="say-more"> — drops are random, wear what you own</span>
           </span>
         </h3>
         {ownedGear.length === 0 ? (
@@ -400,7 +427,8 @@ export function Home(props: {
               </span>
             ))}
             <p className="muted small">
-              Nothing yet — every level up (and some victories) drops a random piece of gear.
+              Nothing yet — every level up
+              <span className="say-more"> (and some victories)</span> drops a random piece of gear.
             </p>
           </div>
         ) : (
