@@ -36,8 +36,11 @@ const valid = {
   presentation: { look: { build: 1 } },
 };
 
+/** A deep copy without reaching for a browser global in a server package. */
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
+
 const reject = (mutate: (s: Record<string, any>) => void) => {
-  const bad = structuredClone(valid) as Record<string, any>;
+  const bad = clone(valid) as Record<string, any>;
   mutate(bad);
   return saveSchema.safeParse(bad).success;
 };
@@ -98,7 +101,7 @@ describe("the contract refuses a forged one", () => {
   });
 
   it("strips unknown fields rather than passing them through", () => {
-    const smuggled = { ...structuredClone(valid), isAdmin: true, kleosOverride: 4000 } as Record<string, any>;
+    const smuggled = { ...clone(valid), isAdmin: true, kleosOverride: 4000 } as Record<string, any>;
     const parsed = saveSchema.parse(smuggled) as Record<string, unknown>;
     expect(parsed.isAdmin).toBeUndefined();
     expect(parsed.kleosOverride).toBeUndefined();
