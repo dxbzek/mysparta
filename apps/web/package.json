@@ -13,7 +13,8 @@
   "dependencies": {
     "@agoge/core": "workspace:*",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "@agoge/protocol": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

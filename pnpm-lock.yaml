@@ -36,6 +36,9 @@ importers:
       '@agoge/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@agoge/protocol':
+        specifier: workspace:*
+        version: link:../../packages/protocol
       react:
         specifier: ^19.0.0
         version: 19.2.8
