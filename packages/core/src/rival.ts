@@ -84,7 +84,11 @@ function applyDraftViaRival(c: Champion, offers: FateOffer[], picked: number) {
  */
 export function arenaBoard(c: Champion, dayKey: string, refresh: number): Rival[] {
   const rng = makeRng(combineSeed(c.seed, "board", dayKey, refresh));
-  const spread = [-1, -1, 0, 0, 1, 2];
+  // Below level 3 the usual spread clamps into four even fights plus a Lv2
+  // and a Lv3 — and a fresh hunter wins roughly none of those two (measured
+  // ~28% winrate across the whole day-one board). The first day should be
+  // mostly winnable with one stretch goal, not a third of the board as bait.
+  const spread = c.level < 3 ? [-1, -1, 0, 0, 0, 1] : [-1, -1, 0, 0, 1, 2];
   const picked = new Set<string>();
   return spread.map((delta, slot) => {
     let name = RIVAL_NAMES[rng.int(RIVAL_NAMES.length)]!;

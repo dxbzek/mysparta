@@ -26,7 +26,31 @@
     <meta name="twitter:card" content="summary" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!--
+        Painted before a byte of JS arrives, replaced the moment React mounts.
+        A blank parchment page for half a second reads as broken; the wordmark
+        holding the room reads as a game starting. Styles are inline because
+        the bundle (and its CSS) is exactly what we are waiting for.
+      -->
+      <div
+        style="
+          min-height: 100dvh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          background: #efe6cf;
+          color: #3d3428;
+          font: 700 14px/1 monospace;
+          letter-spacing: 0.3em;
+        "
+      >
+        <div style="width: 34px; height: 34px; background: #e39a2e; border: 3px solid #43382a; box-shadow: 0 3px 0 #43382a"></div>
+        RANK&nbsp;ZERO
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

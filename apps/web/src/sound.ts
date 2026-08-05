@@ -158,6 +158,66 @@ function noise(o: NoiseOpts) {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Arena ambience — a crowd that is present without ever performing.   */
+/* Looped filtered noise with a slow breathing LFO: felt, not heard.   */
+/* ------------------------------------------------------------------ */
+
+let amb: { src: AudioBufferSourceNode; out: GainNode; lfo: OscillatorNode } | null = null;
+
+function ambienceStart() {
+  const c = ac();
+  if (!c || !bus || amb) return;
+  try {
+    if (!noiseBuf || noiseBuf.sampleRate !== c.sampleRate) {
+      const len = c.sampleRate;
+      noiseBuf = c.createBuffer(1, len, c.sampleRate);
+      const data = noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    }
+    const src = c.createBufferSource();
+    src.buffer = noiseBuf;
+    src.loop = true;
+    // Murmur register: everything above speech rolled away.
+    const f = c.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.value = 420;
+    f.Q.value = 0.4;
+    // The crowd breathes: a ~9s swell of a few dB, never a beat.
+    const depth = c.createGain();
+    depth.gain.value = 1;
+    const lfo = c.createOscillator();
+    lfo.frequency.value = 0.11;
+    const lfoGain = c.createGain();
+    lfoGain.gain.value = 0.28;
+    lfo.connect(lfoGain).connect(depth.gain);
+    const out = c.createGain();
+    out.gain.setValueAtTime(0.0001, c.currentTime);
+    out.gain.linearRampToValueAtTime(0.05, c.currentTime + 1.6);
+    src.connect(f).connect(depth).connect(out).connect(bus);
+    src.start(0, Math.random());
+    lfo.start();
+    amb = { src, out, lfo };
+  } catch {
+    /* never let audio break the game */
+  }
+}
+
+function ambienceStop() {
+  if (!amb || !ctx) return;
+  try {
+    const { src, out, lfo } = amb;
+    amb = null;
+    out.gain.cancelScheduledValues(ctx.currentTime);
+    out.gain.setValueAtTime(out.gain.value, ctx.currentTime);
+    out.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
+    src.stop(ctx.currentTime + 0.8);
+    lfo.stop(ctx.currentTime + 0.8);
+  } catch {
+    amb = null;
+  }
+}
+
 /** 1-3ms broadband click — the "edge" on the front of a sound. */
 function click(gain = 0.2, when = 0) {
   noise({ dur: 0.012, type: "highpass", from: 6000, gain, when, attack: 0.0005 });
@@ -194,11 +254,20 @@ export const sound = {
   isMuted: () => muted,
   setMuted(m: boolean) {
     muted = m;
+    if (m) ambienceStop();
     try {
       localStorage.setItem(KEY, m ? "1" : "0");
     } catch {
       /* ignore */
     }
+  },
+
+  /** The crowd settles in around a fight. Idempotent; ends with arenaOut. */
+  arenaIn() {
+    if (!muted) ambienceStart();
+  },
+  arenaOut() {
+    ambienceStop();
   },
 
   /** Small UI tick for buttons. */

@@ -88,10 +88,9 @@ function routeOf(hash: string): Screen["s"] | null {
 }
 
 /**
- * Fight behaviour is still mostly the Rift's: the opening gambit and the
- * instinct a trump fires on are seeded-random per fight, so replays hold.
- * The stance is the exception — the player trains it in the Hall and it is
- * overwritten onto this plan, the one dial they turn between fights.
+ * Pure-RNG fight behaviour (MyBrute style): every fight, both sides get a
+ * seeded-random stance, opening and instinct for their special moves —
+ * no player input, but deterministic per fight seed so replays hold.
  */
 function randomPlan(c: Champion, seed: number): BattlePlan {
   const rng = makeRng(seed);
@@ -115,6 +114,44 @@ function randomPlan(c: Champion, seed: number): BattlePlan {
 /** Weapon in hand at the bell (first non-shield in draw order). */
 function heldWeaponId(weapons: string[]): string | undefined {
   return weapons.find((id) => weapon(id).discipline !== "aspis");
+}
+
+/** Dev tools live behind ?dev=1 — playtesting levers, never player-facing. */
+const DEV = new URLSearchParams(location.search).has("dev");
+
+function DevPanel({ save, update }: { save: SaveV1; update: (s: SaveV1) => void }) {
+  const c = save.champion;
+  const give = (xp: number) => {
+    const champion = structuredClone(c);
+    champion.xp += xp;
+    update({ ...save, champion });
+  };
+  return (
+    <div className="devpanel" role="group" aria-label="Dev tools">
+      <span className="devpanel-cap">DEV</span>
+      <button className="btn tiny" onClick={() => give(costToNext(c.level) - c.xp)}>Level up</button>
+      <button className="btn tiny" onClick={() => give(1)}>+1 XP</button>
+      <button className="btn tiny" onClick={() => update({ ...save, vigor: VIGOR_CAP })}>Refill fights</button>
+      <button
+        className="btn tiny"
+        onClick={() => {
+          const drop = rollGearDrop(save.gear ?? [], combineSeed(c.seed, "dev", (save.gear ?? []).length));
+          if (!drop) return;
+          const equipped = { ...(save.equipped ?? {}) };
+          if (!equipped[drop.slot]) equipped[drop.slot] = drop.id;
+          update({ ...save, gear: [...(save.gear ?? []), drop.id], equipped });
+        }}
+      >
+        Drop gear
+      </button>
+      <button
+        className="btn tiny"
+        onClick={() => update({ ...save, vigorDate: "2020-01-01", quests: undefined })}
+      >
+        Rewind day
+      </button>
+    </div>
+  );
 }
 
 export function App() {
@@ -152,6 +189,14 @@ export function App() {
       window.removeEventListener("hashchange", onNav);
     };
   }, []);
+
+  // A due level-up must survive a refresh. Only fights and claims used to
+  // roll the modal, so reloading (or restoring a rescue code) with unclaimed
+  // XP left the hunter stuck at a full bar until their next fight ended.
+  useEffect(() => {
+    if (save && screen.s !== "fight") openDraftIfDue(save);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [save]);
 
   // One crisp tick for every button in the game.
   useEffect(() => {
@@ -193,6 +238,13 @@ export function App() {
             update(s);
             setScreen({ s: "home" });
           }}
+          onRestore={(restored) => {
+            // Persist, then re-read through load() so the code gets the same
+            // migrations an old localStorage save would.
+            persist(restored);
+            setSave(load());
+            setScreen({ s: "home" });
+          }}
         />
       </Shell>
     );
@@ -210,11 +262,7 @@ export function App() {
       champion.stats[k as keyof typeof champion.stats] += v as number;
     }
     const seed = combineSeed(champion.seed, fresh.totalFights, rival.snapshot.name, todayKey());
-    // The Rift rolls the opening and the instinct; the stance is the player's.
-    const plan: BattlePlan = {
-      ...randomPlan(champion, combineSeed(seed, "plan")),
-      stance: fresh.plan.stance,
-    };
+    const plan = randomPlan(champion, combineSeed(seed, "plan"));
     const result = simulateFight({
       seed,
       attacker: snapshot(champion, plan),
@@ -319,6 +367,7 @@ export function App() {
         </header>
       }
     >
+      {DEV && screen.s === "home" && <DevPanel save={save} update={update} />}
       {screen.s === "home" && (
         <Home
           save={save}
@@ -332,7 +381,6 @@ export function App() {
             champion.weapons.splice(to, 0, moved!);
             update({ ...save, champion });
           }}
-          onStance={(stance) => update({ ...save, plan: { ...save.plan, stance } })}
           onPortrait={(portrait) => update({ ...save, portrait })}
           onEquip={(slot, id) => update({ ...save, equipped: { ...save.equipped, [slot]: id } })}
           onDelete={() => {

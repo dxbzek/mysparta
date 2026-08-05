@@ -8,7 +8,6 @@ import {
   omen,
   skill,
   weapon,
-  type Stance,
 } from "@agoge/core";
 import { PetSprite } from "../pixelPets.js";
 import { WeaponIcon } from "../weaponIcons.js";
@@ -18,7 +17,7 @@ import { AuraSparks, FighterBust, FighterFig, lookFor, type FighterAnim } from "
 import { ARENAS } from "../arenas.js";
 import { arenaScene } from "../arenaArt.js";
 import { gearDetail, gearItem, gearPool, gearStatLine, lookWithGear, resolveExtras, type GearItem, type GearSlot } from "../gear.js";
-import type { SaveV1 } from "../save.js";
+import { encodeSave, type SaveV1 } from "../save.js";
 import type { Look } from "../paperdoll.js";
 import { DISCIPLINE_NAME, StandingsStrip } from "../ui.js";
 
@@ -187,25 +186,6 @@ function WeaponBars({ w }: { w: ReturnType<typeof weapon> }) {
 }
 
 
-/** The three standing orders, with what each actually does to the sim. */
-const STANCE_INFO: Array<{ id: Stance; name: string; blurb: string }> = [
-  {
-    id: "aggressive",
-    name: "Aggressive",
-    blurb: "Hits 15% harder and swings 10% faster — but you evade, block and counter far less.",
-  },
-  {
-    id: "measured",
-    name: "Measured",
-    blurb: "Steadier: +6 accuracy, +3 evasion, and your blocks chip the attacker back.",
-  },
-  {
-    id: "guarded",
-    name: "Guarded",
-    blurb: "Hits 10% softer and 8% slower, but +12 block, +10 counter and riposte, +2 armour.",
-  },
-];
-
 export function Home(props: {
   save: SaveV1;
   onArena: () => void;
@@ -213,7 +193,6 @@ export function Home(props: {
   onCodex: () => void;
   onLadder: () => void;
   onReorder: (from: number, to: number) => void;
-  onStance: (stance: Stance) => void;
   onDelete: () => void;
   onEquip: (slot: GearSlot, id: string | undefined) => void;
   onPortrait: (p: { arena: number; pose: string }) => void;
@@ -229,11 +208,21 @@ export function Home(props: {
   /** The first few fights are the only time the Hall explains itself. */
   const teaching = save.totalFights < 3;
   const [armDelete, setArmDelete] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showTasks, setShowTasks] = useState(false);
+  const q = save.quests;
+  const tasksDone =
+    ((q?.fights ?? 0) >= 3 ? 1 : 0) + ((q?.wins ?? 0) >= 2 ? 1 : 0) + ((q?.crits ?? 0) >= 1 ? 1 : 0);
   useEffect(() => {
     if (!armDelete) return;
     const t = window.setTimeout(() => setArmDelete(false), 4000);
     return () => window.clearTimeout(t);
   }, [armDelete]);
+  useEffect(() => {
+    if (!copied) return;
+    const t = window.setTimeout(() => setCopied(false), 2500);
+    return () => window.clearTimeout(t);
+  }, [copied]);
 
   return (
     <div className="home">
@@ -292,30 +281,6 @@ export function Home(props: {
               <dd>{hpNow}</dd>
             </div>
           </dl>
-          {/* Everything else the Rift decides. The stance is the standing
-              order the champion carries into every fight, so it sits with the
-              verb it modifies rather than on a screen of its own. */}
-          <div className="stance-pick">
-            <span className="stance-cap">Stance</span>
-            <div className="stance-opts" role="radiogroup" aria-label="Fighting stance">
-              {STANCE_INFO.map((s) => (
-                <button
-                  key={s.id}
-                  role="radio"
-                  aria-checked={save.plan.stance === s.id}
-                  className={`stance-opt${save.plan.stance === s.id ? " on" : ""}`}
-                  onClick={() => props.onStance(s.id)}
-                  title={s.blurb}
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
-            <p className="muted small stance-blurb">
-              {STANCE_INFO.find((s) => s.id === save.plan.stance)?.blurb}
-            </p>
-          </div>
-
           {/* The one verb in the game belongs next to the champion, not at the
               bottom of the page under the wardrobe. */}
           <button className="btn primary big card-cta" onClick={props.onArena} disabled={save.vigor <= 0}>
@@ -376,15 +341,20 @@ export function Home(props: {
         </div>
       </section>
 
-      <section className="card quests quests-strip span-all">
-        <h3>Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — gear dropped!</span>}</h3>
-        <ul className="qlist">
-          <Quest at={save.quests?.fights ?? 0} of={3}>Fight three times</Quest>
-          <Quest at={save.quests?.wins ?? 0} of={2}>Win two fights</Quest>
-          <Quest at={save.quests?.crits ?? 0} of={1}>Land a critical hit</Quest>
-        </ul>
-        <p className="muted small note say-more">Complete all three for a bonus gear drop. Resets daily.</p>
-      </section>
+      {/* The tasks live behind a small button (player call: the always-open
+          strip took a full row for three lines that rarely change). The
+          button carries the count, so opening it is optional. */}
+      {showTasks && (
+        <section className="card quests quests-strip span-all">
+          <h3>Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — gear dropped!</span>}</h3>
+          <ul className="qlist">
+            <Quest at={save.quests?.fights ?? 0} of={3}>Fight three times</Quest>
+            <Quest at={save.quests?.wins ?? 0} of={2}>Win two fights</Quest>
+            <Quest at={save.quests?.crits ?? 0} of={1}>Land a critical hit</Quest>
+          </ul>
+          <p className="muted small note say-more">Complete all three for a bonus gear drop. Resets daily.</p>
+        </section>
+      )}
 
       {(c.skills.length > 0 || c.beasts.length > 0) && (
         <section className="card">
@@ -473,6 +443,9 @@ export function Home(props: {
 
       {/* Reference screens, not actions — the action lives on the champion card. */}
       <div className="actions secondary">
+        <button className="btn ghost" onClick={() => setShowTasks((v) => !v)} aria-expanded={showTasks}>
+          Today's Tasks {save.quests?.claimed ? "✓" : `${tasksDone}/3`}
+        </button>
         <button className="btn ghost" onClick={props.onHistory}>
           Level-Up History ({c.tapestry.length})
         </button>
@@ -485,6 +458,20 @@ export function Home(props: {
       </div>
 
       <div className="devrow">
+        {/* The save lives in this browser; the code is the copy you keep. */}
+        <button
+          className="btn tiny"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(encodeSave(save));
+              setCopied(true);
+            } catch {
+              /* clipboard denied in sandboxed embeds — the button just stays */
+            }
+          }}
+        >
+          {copied ? "Copied — keep it safe!" : "Copy rescue code"}
+        </button>
         <button
           className={`btn tiny danger ${armDelete ? "armed" : ""}`}
           onClick={() => (armDelete ? props.onDelete() : setArmDelete(true))}

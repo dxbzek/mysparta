@@ -384,6 +384,11 @@ export function simulateFight(input: FightInput): FightResult {
       winner = target.side === 0 ? 1 : 0;
       reason = "ko";
     }
+    // The champion is down, not in debt: no consumer of hp — the event log's
+    // targetHp, the result record, HP bars — wants a negative number, and
+    // beasts already clamp. Clamped after the death checks so "hp <= 0" logic
+    // above is untouched.
+    target.hp = Math.max(0, target.hp);
     return amount;
   };
 
@@ -394,7 +399,7 @@ export function simulateFight(input: FightInput): FightResult {
     if (bs.hp <= 0 && !bs.down) {
       bs.down = true;
       owner.beastFell = true;
-      events.push({ t: tick, type: "beastDown", side: owner.side, beast: bd.name });
+      events.push({ t: tick, type: "beastDown", side: owner.side, beast: bd.id });
       if (has(owner, "beasts_fury")) {
         owner.dmgUpPct += 20;
         events.push({ t: tick, type: "technique", side: owner.side, skill: "beasts_fury" });
@@ -483,7 +488,7 @@ export function simulateFight(input: FightInput): FightResult {
       case "cast_down": {
         const held = heldWeapon(foe, tick);
         if (held.id !== "fists" && !(has(foe, "titan_grip") && held.discipline === "labrys")) {
-          events.push({ t: tick, type: "disarm", side: foe.side, weapon: held.name });
+          events.push({ t: tick, type: "disarm", side: foe.side, weapon: held.id });
           foe.qIndex++;
           foe.wasDisarmed = true;
           foe.statuses.push({ kind: "weaponless", until: tick + 300 });
@@ -520,7 +525,7 @@ export function simulateFight(input: FightInput): FightResult {
     f.qIndex++;
     const w = heldWeapon(f, tick);
     f.ammo = w.ammo ?? 0;
-    events.push({ t: tick, type: "draw", side: f.side, weapon: w.name });
+    events.push({ t: tick, type: "draw", side: f.side, weapon: w.id });
   };
 
   /** One swing (or throw) against the enemy champion or an intercepting beast. */
@@ -569,7 +574,7 @@ export function simulateFight(input: FightInput): FightResult {
       t: tick,
       type: "attack",
       side: att.side,
-      weapon: w.name,
+      weapon: w.id,
       thrown: thrown || undefined,
       target: beastTarget ? { kind: "beast", index: beastTarget.index } : { kind: "champion" },
     });
@@ -732,12 +737,12 @@ export function simulateFight(input: FightInput): FightResult {
         if (chance > 0 && rng.pct(chance)) {
           const held = heldWeapon(def, tick);
           if (held.id !== "fists" && !(has(def, "titan_grip") && held.discipline === "labrys")) {
-            events.push({ t: tick, type: "disarm", side: def.side, weapon: held.name });
+            events.push({ t: tick, type: "disarm", side: def.side, weapon: held.id });
             def.wasDisarmed = true;
             drawNext(def);
           } else if (shieldDef(def, held)) {
             def.shieldLost = true;
-            events.push({ t: tick, type: "disarm", side: def.side, weapon: weapon(def.shieldId!).name });
+            events.push({ t: tick, type: "disarm", side: def.side, weapon: def.shieldId! });
           }
         }
       }
@@ -785,7 +790,7 @@ export function simulateFight(input: FightInput): FightResult {
       }
       const now = heldWeapon(att, tick);
       att.ammo = now.ammo ?? 0;
-      events.push({ t: tick, type: "draw", side: att.side, weapon: now.name });
+      events.push({ t: tick, type: "draw", side: att.side, weapon: now.id });
     } else if (thrown && att.ammo <= 0 && heldWeapon(att, tick).discipline === "akontia") {
       drawNext(att);
     }
@@ -827,10 +832,10 @@ export function simulateFight(input: FightInput): FightResult {
       }
       dmg = Math.max(1, dmg - dDef.armour);
       const dealt = hurt(def, dmg, owner.side);
-      events.push({ t: tick, type: "beastAttack", side: owner.side, beast: bd.name, amount: dealt, targetHp: def.hp });
+      events.push({ t: tick, type: "beastAttack", side: owner.side, beast: bd.id, amount: dealt, targetHp: def.hp });
       checkTrumps();
     } else {
-      events.push({ t: tick, type: "beastAttack", side: owner.side, beast: bd.name, amount: 0, targetHp: def.hp });
+      events.push({ t: tick, type: "beastAttack", side: owner.side, beast: bd.id, amount: 0, targetHp: def.hp });
     }
     bs.nextAt = tick + bd.interval;
   };

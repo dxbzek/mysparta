@@ -53,7 +53,12 @@ export const VIGOR_DAILY = 6;
 export const VIGOR_CAP = 12;
 
 export function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+  // The player's midnight, not UTC's. toISOString put the reset at 4am for a
+  // Dubai player and split one evening session across two "days" — in a game
+  // whose whole economy is "6 fights a day", the day has to be their day.
+  const d = new Date();
+  const p = (x: number) => String(x).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
 export function newSave(
@@ -131,6 +136,80 @@ export function persist(save: SaveV1): void {
     localStorage.setItem(KEY, JSON.stringify(save));
   } catch {
     // Sandboxed embeds may deny storage — the session still plays, unsaved.
+  }
+}
+
+/*
+ * Rescue codes — the prototype's answer to cloud save. The whole save,
+ * base64-wrapped so it survives chat apps and clipboards, restorable on any
+ * device. Auto-save already writes every action; this is the copy you keep.
+ */
+
+export function encodeSave(save: SaveV1): string {
+  return btoa(encodeURIComponent(JSON.stringify(save)));
+}
+
+/**
+ * Returns null on anything that is not a valid v1 rescue code.
+ *
+ * A code is pasted text, so it is treated as hostile until proven otherwise:
+ * numbers must be finite numbers, lists must be short lists of short strings,
+ * and everything is clamped into sane play ranges. Without this, one crafted
+ * paste could persist a save that crashes every render after it (a champion
+ * with 10^9 weapons, an XP of NaN, a name a megabyte long).
+ */
+export function decodeSave(code: string): SaveV1 | null {
+  try {
+    const p = JSON.parse(decodeURIComponent(atob(code.trim()))) as SaveV1;
+    if (p.v !== 1 || typeof p.champion !== "object" || !p.champion) return null;
+    const c = p.champion;
+    const num = (x: unknown, lo: number, hi: number, fallback: number) =>
+      typeof x === "number" && Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : fallback;
+    const str = (x: unknown, max: number) => (typeof x === "string" ? x.slice(0, max) : "");
+    const list = (x: unknown, max: number) =>
+      Array.isArray(x) ? x.filter((s): s is string => typeof s === "string").slice(0, max).map((s) => s.slice(0, 64)) : [];
+    if (!str(c.name, 24) || typeof c.appearance !== "object" || !c.appearance) return null;
+    // Rebuild rather than pass through: unknown fields are dropped, known
+    // fields are coerced into ranges the rest of the app can trust.
+    const champion: Champion = {
+      ...c,
+      name: str(c.name, 24),
+      displayName: str(c.displayName, 24) || str(c.name, 24),
+      seed: num(c.seed, 0, 2 ** 32, 1),
+      omen: str(c.omen, 32),
+      epithet: str(c.epithet, 48),
+      level: num(c.level, 1, 50, 1),
+      xp: num(c.xp, 0, 10_000, 0),
+      stats: {
+        might: num(c.stats?.might, 1, 99, 7),
+        grace: num(c.stats?.grace, 1, 99, 7),
+        tempo: num(c.stats?.tempo, 1, 99, 7),
+        grit: num(c.stats?.grit, 1, 99, 7),
+      },
+      weapons: list(c.weapons, 12),
+      skills: list(c.skills, 20),
+      beasts: list(c.beasts, 6),
+      favour: num(c.favour, 0, 6, 0),
+      tapestry: Array.isArray(c.tapestry) ? c.tapestry.slice(0, 60) : [],
+      declined: Array.isArray(c.declined) ? c.declined.slice(0, 30) : [],
+      sinceWeaponOffer: num(c.sinceWeaponOffer, 0, 99, 0),
+      sinceSkillOffer: num(c.sinceSkillOffer, 0, 99, 0),
+    };
+    return {
+      ...p,
+      v: 1,
+      champion,
+      kleos: num(p.kleos, 1000, 4000, 1500),
+      vigor: num(p.vigor, 0, VIGOR_CAP, 0),
+      vigorDate: str(p.vigorDate, 10) || todayKey(),
+      wins: num(p.wins, 0, 1e6, 0),
+      losses: num(p.losses, 0, 1e6, 0),
+      totalFights: num(p.totalFights, 0, 1e6, 0),
+      boardRefresh: num(p.boardRefresh, 0, 99, 0),
+      gear: list(p.gear, 64),
+    };
+  } catch {
+    return null;
   }
 }
 

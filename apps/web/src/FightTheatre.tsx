@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { BEASTS, FISTS, WEAPONS, type FightResult } from "@agoge/core";
+import { FISTS, WEAPONS, type FightResult } from "@agoge/core";
 import { ImpactBurst, Javelin, Laurel, SlashArc } from "./art.js";
 import { PetSprite } from "./pixelPets.js";
 import { FighterFig, WeatherFx, type FighterAnim } from "./fighters.js";
@@ -22,11 +22,6 @@ export interface StageFigure {
   beasts: string[];
 }
 
-const weaponIdByName = new Map<string, string>([
-  [FISTS.name, FISTS.id],
-  ...WEAPONS.map((w) => [w.name, w.id] as const),
-]);
-
 const weaponNameById = new Map<string, string>([
   [FISTS.id, FISTS.name],
   ...WEAPONS.map((w) => [w.id, w.name] as const),
@@ -42,8 +37,6 @@ interface Props {
   rewards: { xp: number; kleos: number; drops?: string[] };
   onDone: () => void;
 }
-
-const beastIdByName = new Map(BEASTS.map((b) => [b.name, b.id]));
 
 const disciplineById = new Map<string, string>([
   [FISTS.id, FISTS.discipline],
@@ -98,7 +91,13 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   useLayoutEffect(() => {
     const measure = () => {
       const w = stageRef.current?.clientWidth ?? 800;
-      const scale = w < 560 ? 2 : 3;
+      // Scale has to answer to the viewport's HEIGHT as well as its width. On
+      // a landscape phone (667×375) width alone chose 3×, making a 444px stage
+      // for a 375px screen — the fight didn't fit on the fight screen. Take
+      // whichever integer scale fits both, never below 1.
+      const byWidth = w < 560 ? 2 : 3;
+      const byHeight = Math.floor((window.innerHeight * 0.72) / NATIVE_H);
+      const scale = Math.max(1, Math.min(byWidth, byHeight));
       const nativeW = Math.ceil(w / scale);
       setPx({ scale, w: nativeW, h: NATIVE_H });
       const charW = (CHAR.w / CHAR.h) * (CHAR.h * scale);
@@ -128,6 +127,12 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     if (skipped) sound.fanfare(result.winner === 0);
   }, [skipped, result.winner]);
 
+  // The crowd is present for the whole bout and drains away with the screen.
+  useEffect(() => {
+    sound.arenaIn();
+    return () => sound.arenaOut();
+  }, []);
+
   // Stable per beat. It used to be a fresh slice every render, which made the
   // memos below recompute and — worse — re-ran the sound effect, so toggling
   // 2× speed replayed the current blow.
@@ -143,13 +148,12 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   const anim = skipped ? undefined : current?.anim;
   const fx = skipped ? undefined : current?.fx;
 
-  // Beasts that have fallen so far (by display name → id).
+  // Beast ids that have fallen so far.
   const downed: [Set<string>, Set<string>] = useMemo(() => {
     const sets: [Set<string>, Set<string>] = [new Set(), new Set()];
     for (const l of visible) {
       if (l.beastDown) {
-        const id = beastIdByName.get(l.beastDown.beast);
-        if (id) sets[l.beastDown.side].add(id);
+        sets[l.beastDown.side].add(l.beastDown.beast);
       }
     }
     return sets;
@@ -162,7 +166,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       figures[1].weaponId,
     ];
     for (const l of visible) {
-      if (l.drew) held[l.drew.side] = weaponIdByName.get(l.drew.weapon) ?? held[l.drew.side];
+      if (l.drew) held[l.drew.side] = l.drew.weapon;
     }
     return held;
   }, [visible, figures[0].weaponId, figures[1].weaponId]);
@@ -188,7 +192,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       sound.fanfare(l.text.includes(names[0]));
       return;
     }
-    if (l.anim?.beastName) sound.beast();
+    if (l.anim?.beastId) sound.beast();
     // Impacts land a beat after the swing; if the beat is cut short (skip,
     // unmount) the pending blow is cancelled rather than firing into silence.
     const pending: number[] = [];
@@ -238,7 +242,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     const cls = ["fig-slot"];
     if (idx <= 1) cls.push(side === 0 ? "enter-l" : "enter-r");
     // A chain hit keeps the swing but skips the run-in: they are already close.
-    if (anim?.striker === side && !anim.beastName && !anim.chain) {
+    if (anim?.striker === side && !anim.beastId && !anim.chain) {
       cls.push(anim.thrown ? (side === 0 ? "throw-r" : "throw-l") : side === 0 ? "strike-r" : "strike-l");
     }
     if (anim?.reaction?.side === side) {
@@ -261,7 +265,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     if (finished && side === loser && result.reason === "ko") return "death";
     if (finished) return "stance";
     if (anim?.reaction?.side === side && anim.reaction.kind === "hurt") return "hit";
-    if (anim?.striker === side && !anim.beastName) return idx % 2 === 0 ? "attack1" : "attack2";
+    if (anim?.striker === side && !anim.beastId) return idx % 2 === 0 ? "attack1" : "attack2";
     return "stance";
   };
 
@@ -295,7 +299,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   const renderBeasts = (side: 0 | 1) => {
     const list = figures[side].beasts;
     if (list.length === 0) return null;
-    const actingId = anim?.beastName ? beastIdByName.get(anim.beastName) : undefined;
+    const actingId = anim?.beastId;
     const actingSide = anim?.striker;
     return (
       <div className={`fig-beasts ${side === 0 ? "beasts-l" : "beasts-r"}`}>
@@ -319,11 +323,29 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       <div
         className={`stage ${fx?.crit && !finished ? "quake" : ""}`}
         ref={stageRef}
-        style={{ "--dash": `${dash}px` } as React.CSSProperties}
+        style={
+          {
+            "--dash": `${dash}px`,
+            // The height comes from the scale we actually measured, not from a
+            // media query guessing at it. CSS switched on the VIEWPORT while
+            // this switches on the STAGE's width, so between about 561 and
+            // 587px the backdrop was stretched 3x tall while the fighters were
+            // drawn at 2x — the ground line and the champions came apart.
+            height: px.h * px.scale,
+          } as React.CSSProperties
+        }
       >
         <div
           className="stage-bg"
-          style={{ backgroundImage: `url(${arenaScene(arena, px.w, px.h)})` }}
+          style={{
+            backgroundImage: `url(${arenaScene(arena, px.w, px.h)})`,
+            // Exactly nativeW × scale, not "100% of the stage": ceil(w/scale)
+            // painted back into w stretched the art by a fraction of a pixel
+            // (1.994x at some widths) and smeared the pixel grid. The couple
+            // of surplus pixels vanish under the stage's overflow: hidden.
+            width: px.w * px.scale,
+            height: px.h * px.scale,
+          }}
         />
         {arena.overlay && <div className="stage-wash" style={{ background: arena.overlay }} />}
         {arena.weather && <WeatherFx kind={arena.weather} count={14} />}
@@ -409,7 +431,9 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
                   }}
                 />
               ))}
-            <Laurel size={150} color={result.winner === 0 ? "#a78bfa" : "#5b6178"} />
+            {/* Sized to the stage: at 150px on the 2× stage the wreath reached
+                up over the HP bars and read as a purple creature, not a crown. */}
+            <Laurel size={px.scale === 2 ? 92 : 150} color={result.winner === 0 ? "#a78bfa" : "#5b6178"} />
             <div className={`verdict ${result.winner === 0 ? "won" : "lost"}`}>
               {result.winner === 0 ? "VICTORY" : "DEFEAT"}
             </div>

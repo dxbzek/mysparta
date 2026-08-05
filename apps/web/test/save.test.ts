@@ -126,6 +126,24 @@ describe("daily reset", () => {
   });
 });
 
+describe("rescue codes", () => {
+  it("round-trips a save through encode/decode", async () => {
+    const { encodeSave, decodeSave } = await import("../src/save.js");
+    const save = fresh();
+    expect(decodeSave(encodeSave(save))).toEqual(save);
+    // tolerant of the whitespace a chat app pastes in
+    expect(decodeSave("  " + encodeSave(save) + "\n")).toEqual(save);
+  });
+
+  it("rejects garbage, truncated codes, and foreign versions", async () => {
+    const { encodeSave, decodeSave } = await import("../src/save.js");
+    expect(decodeSave("not a code")).toBeNull();
+    expect(decodeSave(encodeSave(fresh()).slice(0, 40))).toBeNull();
+    expect(decodeSave(btoa(encodeURIComponent(JSON.stringify({ v: 99 }))))).toBeNull();
+    expect(decodeSave(btoa(encodeURIComponent(JSON.stringify({ v: 1 }))))).toBeNull();
+  });
+});
+
 describe("a new save", () => {
   it("starts at 1500 rating with the day-one bonus rations", () => {
     const save = fresh();

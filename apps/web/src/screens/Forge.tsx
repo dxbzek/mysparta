@@ -1,6 +1,7 @@
 /** Two steps to a hunter: type a name, then make them look like you want. */
 import { useMemo, useState } from "react";
 import { STAT_LABEL, createChampion, omen, type Champion } from "@agoge/core";
+import { decodeSave, type SaveV1 } from "../save.js";
 import { PixIcon } from "../pixelIcons.js";
 import { AURAS, AuraSparks, FighterBust, FighterFig, lookFor } from "../fighters.js";
 import {
@@ -26,8 +27,11 @@ import {
 
 export function Forge({
   onForge,
+  onRestore,
 }: {
   onForge: (c: Champion, look: Look, aura: number) => void;
+  /** A pasted rescue code checked out as a full save (save.ts). */
+  onRestore: (save: SaveV1) => void;
 }) {
   const [name, setName] = useState("");
   const [champ, setChamp] = useState<Champion | null>(null);
@@ -35,6 +39,9 @@ export function Forge({
   const [aura, setAura] = useState(0);
   const [previewPose, setPreviewPose] = useState<"idle" | "attack1">("idle");
   const [tab, setTab] = useState<CreatorTab>("body");
+  const [restoring, setRestoring] = useState(false);
+  const [code, setCode] = useState("");
+  const [codeBad, setCodeBad] = useState(false);
   const preview = useMemo(() => {
     const trimmed = name.trim();
     if (trimmed.length < 2) return null;
@@ -88,6 +95,38 @@ export function Forge({
           </button>
         </form>
         <p className="fineprint">Next: make them look like you want. Weapons, stats and skills are all found as you level.</p>
+        {/* The way back for a hunter carried from another browser. */}
+        {!restoring ? (
+          <button className="btn ghost tiny restore-toggle" onClick={() => setRestoring(true)}>
+            Have a rescue code?
+          </button>
+        ) : (
+          <form
+            className="restore-row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const saved = decodeSave(code);
+              if (saved) onRestore(saved);
+              else setCodeBad(true);
+            }}
+          >
+            <input
+              className="forge-input small"
+              value={code}
+              placeholder="paste your rescue code"
+              aria-label="Rescue code"
+              aria-invalid={codeBad}
+              onChange={(e) => {
+                setCode(e.target.value);
+                setCodeBad(false);
+              }}
+            />
+            <button className="btn" type="submit" disabled={!code.trim()}>
+              Restore
+            </button>
+            {codeBad && <p className="muted small error-note">That code doesn't read as a hunter. Copy it again, whole.</p>}
+          </form>
+        )}
       </div>
     );
   }

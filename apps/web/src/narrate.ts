@@ -5,6 +5,7 @@
  * The text doubles as the screen-reader fight (06-ui-ux.md).
  */
 
+import { beast, weapon } from "@agoge/core";
 import type { FightEvent, FightResult } from "@agoge/core";
 
 export interface Line {
@@ -31,12 +32,12 @@ export interface Line {
     invoke?: { side: 0 | 1; name: string };
     /** A word floater when no number applies ("Miss!", "Blocked!"). */
     label?: { side: 0 | 1; text: string };
-    /** Acting beast's display name (beast attack beats). */
-    beastName?: string;
+    /** Acting beast's id (beast attack beats). */
+    beastId?: string;
   };
-  /** A beast on `side` was felled this beat. */
+  /** A beast on `side` was felled this beat (beast id). */
   beastDown?: { side: 0 | 1; beast: string };
-  /** `side` drew a new weapon (display name) this beat. */
+  /** `side` drew a new weapon (weapon id) this beat. */
   drew?: { side: 0 | 1; weapon: string };
 }
 
@@ -159,12 +160,12 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         });
         break;
       case "disarm":
-        push(e.side, `${n(e.side)}'s ${e.weapon} clatters across the arena floor!`, "trump", 900, {
+        push(e.side, `${n(e.side)}'s ${weapon(e.weapon).name} clatters across the arena floor!`, "trump", 900, {
           anim: { label: { side: e.side, text: "Disarmed!" } },
         });
         break;
       case "draw":
-        push(e.side, `${n(e.side)} draws ${e.weapon}.`, "info", 500, {
+        push(e.side, `${n(e.side)} draws ${weapon(e.weapon).name}.`, "info", 500, {
           drew: { side: e.side, weapon: e.weapon },
         });
         break;
@@ -199,14 +200,14 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
       case "beastAttack":
         if (e.amount > 0) {
           hp[foe(e.side)] = Math.max(0, e.targetHp);
-          push(e.side, `${n(e.side)}'s ${e.beast} savages for ${e.amount}!`, "hit", 720, {
+          push(e.side, `${n(e.side)}'s ${beast(e.beast).name} savages for ${e.amount}!`, "hit", 720, {
             fx: { target: foe(e.side), amount: e.amount },
-            anim: { beastName: e.beast, striker: e.side, reaction: { side: foe(e.side), kind: "hurt" } },
+            anim: { beastId: e.beast, striker: e.side, reaction: { side: foe(e.side), kind: "hurt" } },
           });
         } else {
-          push(e.side, `${n(e.side)}'s ${e.beast} lunges and misses.`, "defend", 650, {
+          push(e.side, `${n(e.side)}'s ${beast(e.beast).name} lunges and misses.`, "defend", 650, {
             anim: {
-              beastName: e.beast,
+              beastId: e.beast,
               striker: e.side,
               reaction: { side: foe(e.side), kind: "dodge" },
               label: { side: foe(e.side), text: "Miss!" },
@@ -215,7 +216,7 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         }
         break;
       case "beastDown":
-        push(e.side, `${n(e.side)}'s ${e.beast} falls, vanishing in a burst of light.`, "trump", 850, {
+        push(e.side, `${n(e.side)}'s ${beast(e.beast).name} falls, vanishing in a burst of light.`, "trump", 850, {
           beastDown: { side: e.side, beast: e.beast },
         });
         break;

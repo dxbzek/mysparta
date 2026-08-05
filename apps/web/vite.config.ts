@@ -10,5 +10,12 @@ export default defineConfig({
   // Inline the painted sprites/backdrop as data URIs so the whole game stays
   // a single deployable file (the shareable artifact build depends on it).
   build: { assetsInlineLimit: 256 * 1024 },
-  server: { port: 5173, host: true },
+  // PORT comes from the launcher when 5173 is taken; nothing here needs a
+  // fixed port (no OAuth callbacks or CORS allowlists in the prototype).
+  server: {
+    port:
+      Number((globalThis as { process?: { env?: Record<string, string> } }).process?.env?.PORT) ||
+      5173,
+    host: true,
+  },
 });

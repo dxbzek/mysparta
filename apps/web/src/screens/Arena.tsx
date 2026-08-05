@@ -44,8 +44,6 @@ export function Arena(props: {
           draw, change what you wear, study the Codex.
         </p>
       )}
-      <StandingsStrip save={save} />
-
       <div className="rivals">
         {board.map((r, i) => {
           return (
@@ -89,25 +87,31 @@ export function Arena(props: {
                 ))}
               </div>
 
-              {/* the wager, so picking an opponent is a decision */}
-              <div className="wager">
-                <span className="wager-side win">
-                  <b>+{kleosDelta(true, save.kleos, r.kleos)}</b>
-                  <em>win</em>
-                </span>
-                <span className="wager-side lose">
-                  <b>{kleosDelta(false, save.kleos, r.kleos)}</b>
-                  <em>lose</em>
-                </span>
-              </div>
+              {/* the wager, so picking an opponent is a decision; on a phone
+                  it shares one row with the verb it informs */}
+              <div className="rival-action">
+                <div className="wager">
+                  <span className="wager-side win">
+                    <b>+{kleosDelta(true, save.kleos, r.kleos)}</b>
+                    <em>win</em>
+                  </span>
+                  <span className="wager-side lose">
+                    <b>{kleosDelta(false, save.kleos, r.kleos)}</b>
+                    <em>lose</em>
+                  </span>
+                </div>
 
-              <button className="btn primary" disabled={save.vigor <= 0} onClick={() => props.onFight(r)}>
-                <span className="btn-label">Fight (1 <PixIcon name="bolt" size={11} />)</span>
-              </button>
+                <button className="btn primary" disabled={save.vigor <= 0} onClick={() => props.onFight(r)}>
+                  <span className="btn-label">Fight (1 <PixIcon name="bolt" size={11} />)</span>
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
+
+      {/* Who to fight is the decision; where you stand is the epilogue. */}
+      <StandingsStrip save={save} />
     </div>
   );
 }

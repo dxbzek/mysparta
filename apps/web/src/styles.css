@@ -6,7 +6,10 @@
   --panel: #fbf4e4;
   --panel-deep: #f1e6cd;
   --ink: #3d3428;
-  --ink-soft: #86795f;
+  /* Same warm olive family, but dark enough to pass WCAG AA: the old
+     #86795f measured 3.9:1 on --panel and worse on --panel-deep, and nearly
+     every secondary label in the game is set in this at small sizes. */
+  --ink-soft: #6f654f;
   --line: #43382a;
   --gold: #e39a2e;
   --gold-bright: #f3b64e;
@@ -248,6 +251,19 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .fineprint { color: var(--ink-soft); font-size: 0.85rem; margin-top: 24px; }
 
+/* ---------- rescue code (restore a hunter from another browser) ---------- */
+.restore-toggle { margin-top: 18px; }
+.restore-row { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; justify-content: center; }
+.forge-input.small {
+  font-size: 0.8rem;
+  letter-spacing: normal;
+  text-transform: none;
+  padding: 10px 12px;
+  flex: 1;
+  min-width: 200px;
+}
+.error-note { flex-basis: 100%; color: var(--red); }
+
 @keyframes pop {
   from { opacity: 0; transform: scale(0.85); }
   to { opacity: 1; transform: scale(1); }
@@ -400,6 +416,19 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .actions { display: flex; gap: 12px; justify-content: center; margin-top: 6px; flex-wrap: wrap; }
 .devrow { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
 
+/* ?dev=1 playtesting levers — deliberately utilitarian, never shipped copy */
+.devpanel {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 6px 10px; margin-bottom: 12px;
+  border: 2px dashed var(--terracotta);
+  border-radius: var(--radius);
+  background: rgb(217 95 67 / 8%);
+}
+.devpanel-cap {
+  font-family: var(--font-display);
+  font-size: 0.62rem; letter-spacing: 0.14em; color: var(--terracotta);
+}
+
 /* ---------- arena ---------- */
 
 .arena-head {
@@ -481,10 +510,9 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   overflow: hidden;
   /* painted arena scene set inline; gradient is the loading fallback */
   background: linear-gradient(180deg, #252d4a 0%, #1b2136 58%, #151a29 72%);
+  /* Fallback only — FightTheatre sets the real height from the scale it
+     measured, so the backdrop and the fighters can never disagree. */
   height: 444px;
-}
-@media (max-width: 560px) {
-  .stage { height: 296px; }
 }
 /*
  * The arena painting. It is generated at exactly the stage's native pixel
@@ -493,7 +521,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
  */
 .stage-bg {
   position: absolute;
-  inset: 0;
+  /* top-left anchored; FightTheatre sets the exact integer-scaled size so the
+     painting lands on the same pixel grid as the fighters (no inset: 0 —
+     right/bottom would fight the inline width and re-stretch it). */
+  top: 0;
+  left: 0;
   background-size: 100% 100%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
@@ -949,6 +981,12 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   gap: 2px;
   background: rgb(0 0 0 / 45%);
   animation: pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  /*
+   * The fighters are painted after this overlay, so with auto stacking they
+   * came out on top of it — the champion's head sat over the V of VICTORY
+   * while the scrim dimmed everything else. The result banner wins.
+   */
+  z-index: 3;
 }
 .verdict {
   font-family: var(--font-display);
@@ -963,6 +1001,10 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .verdict.won { color: #f4c94e; }
 .verdict.lost { color: var(--red); }
+/* At 2.6rem plus letter-spacing, VICTORY filled a 347px stage edge to edge. */
+@media (max-width: 560px) {
+  .verdict { font-size: 1.9rem; padding: 2px 16px; letter-spacing: 0.1em; }
+}
 .verdict-sub {
   margin-top: 6px;
   font-size: 0.75rem;
@@ -1025,6 +1067,31 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   margin: 18px 0 16px;
 }
 @media (max-width: 620px) { .fate-row { grid-template-columns: 1fr; } }
+/*
+ * On a phone the stacked reward cards filled the entire screen for what is a
+ * two-fact announcement (the roll, the drop). Everything compresses: tighter
+ * card padding, one size down on the names, the flavour lines fold away, and
+ * the modal scrolls internally instead of growing past the viewport.
+ */
+@media (max-width: 560px) {
+  .overlay { padding: 12px; }
+  .draft { max-height: calc(100dvh - 24px); overflow-y: auto; padding: 12px 14px; }
+  .draft h2 { font-size: 1.2rem; margin: 0; }
+  .draft > .muted { font-size: 0.78rem; margin: 4px 0 0; }
+  .draft .fate-row { gap: 6px; margin: 10px 0 10px; }
+  .draft .fate-card { padding: 8px 10px; min-height: 0; gap: 3px; border-bottom-width: 4px; border-radius: 10px; }
+  .draft .fate-card b { font-size: 0.9rem; }
+  .draft .fate-detail { display: none; }
+  /* the art is a garnish here, not the hero — the name is */
+  .draft .offer-art { margin: 0 auto; }
+  .draft .offer-art .pix-icon { width: 22px; height: 22px; }
+  .draft .offer-art svg { width: 34px; height: auto; }
+  .draft .offer-art.pet-tile { padding: 4px; }
+  /* A new pet is a reveal and keeps its art; "+3 Agility" is just news. */
+  .draft .offer-art.stat-tile { display: none; }
+  .draft .fate-stats { font-size: 0.72rem; padding: 3px 6px; }
+  .draft .btn.big { min-height: 46px; padding: 8px 22px; margin-top: 2px; }
+}
 .fate-card {
   font-family: var(--font-body);
   background: linear-gradient(180deg, var(--panel), var(--panel-deep));
@@ -1192,8 +1259,23 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   100% { opacity: 0.9; transform: translateY(320px) rotate(260deg); }
 }
 
-.reward-chips { display: flex; gap: 10px; margin-top: 10px; z-index: 2; }
-.reward-chips .pill { font-size: 1rem; }
+/*
+ * XP, rating and any drop, on one row inside the stage. A gear name like
+ * "Mosswalker's Rig" made that row 467px wide in a 347px stage, so the XP chip
+ * and half the drop were clipped off both edges — the reward for the fight was
+ * the one thing you could not read. They wrap and stay inside the stage now.
+ */
+.reward-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  max-width: 100%;
+  padding: 0 10px;
+  z-index: 2;
+}
+.reward-chips .pill { font-size: 1rem; max-width: 100%; }
 /* these sit over a night arena, so they carry their own light background */
 .reward-chips .pill { background: var(--panel); color: var(--ink); }
 .reward-chips .pill.gain { background: #cfe0b6; color: #2f3d20; }
@@ -1862,6 +1944,23 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .wager-side.win { background: #cfe0b6; color: #2f3d20; }
 .wager-side.lose { background: #eab4a4; color: #4a1d14; }
+/*
+ * On a phone the rival card read as four storeys — big bust, chip row, two
+ * wager slabs, then a tall Fight bar (player call: "should not be that
+ * big"). The wager folds onto the Fight row: stakes left, verb right, one
+ * line. The bust and paddings come down a step to match. Desktop keeps the
+ * stacked layout — the wrapper dissolves via display: contents.
+ */
+.rival-action { display: contents; }
+@media (max-width: 560px) {
+  .rival { gap: 4px; }
+  .rival-top .fighter-bust { width: 48px !important; height: 48px !important; }
+  .rival-action { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .rival-action .wager { flex: 0 1 auto; gap: 4px; }
+  .wager-side { flex-direction: row; gap: 4px; padding: 4px 7px; box-shadow: none; }
+  .wager-side em { display: none; }
+  .rival .btn { margin-top: 0; flex: 1; min-height: 44px; }
+}
 
 /* the drop tells you what it is worth, not only what it is called */
 .fate-stats {
@@ -1947,7 +2046,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 /* slot groups sit side by side, so a short wardrobe still fills its card */
 .wardrobe {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(236px, 1fr));
+  /* min(236px, 100%): on a 280px fold the fixed 236px track plus card padding
+     was 274px of min-content, and since every Hall card shares one grid track
+     that single number pushed the whole page — champion card included — off
+     the right edge. The track gives way before the viewport does. */
+  grid-template-columns: repeat(auto-fit, minmax(min(236px, 100%), 1fr));
   gap: 4px 18px;
   align-content: start;
 }
@@ -1955,72 +2058,58 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .wardrobe .chips { grid-template-columns: 1fr; }
 .wardrobe .wardrobe-row { margin-bottom: 4px; }
 
-/* the Hall's standings panel is a column card like the rest */
-.home > .standings { margin-bottom: 0; }
+/*
+ * Standings owns its row. It used to take one track of the two-column grid,
+ * and until the hunter owns a skill or pet there is no card to sit beside it
+ * — half the row was raw parchment. Full width, with the five names flowing
+ * down two internal columns so the card stays short.
+ */
+.home > .standings { margin-bottom: 0; grid-column: 1 / -1; }
+@media (min-width: 700px) {
+  .standings .ladder {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(3, auto);
+    column-gap: 18px;
+  }
+}
 
 /* ---------- the champion, big enough to look at ---------- */
 
-.champ-card { gap: 22px; }
+.champ-card { gap: 16px; }
+/* Legacy of the side-by-side card; the stacked full-bleed layout replaced it. */
 .hero-fig { display: none; }
-@media (min-width: 720px) {
-  /* the whole point of a paper doll is seeing it */
-  .hero-fig {
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    position: relative;
-    min-width: 150px;
-    /* sits on the card's floor and grows upward inside it, never clipped */
-    margin: 0 0 -14px 6px;
-  }
-  .champ-card { align-items: flex-end; min-height: 216px; }
-  .champ-meta { align-self: center; }
-}
 
 /*
- * On a phone the portrait is a fixed 234px plate that will not shrink, which
- * left the name column about 70px wide — "Kassia the Poised" ran off the side
- * and took the whole page's horizontal scroll with it. Below that width the
- * card stacks: plate on top, the champion's details full-width underneath.
+ * The portrait is the best thing on the card, so it runs full bleed at every
+ * width (player call): edge to edge of the card, details underneath. The
+ * negative margins cancel the card's own padding and the frame drops the
+ * borders it would draw against nothing. Height follows the plate's aspect
+ * ratio, capped so the Fight button stays reachable; the scene is cropped
+ * from the top, never stretched, and the champion's ground line is measured
+ * in plate-widths (--ground-cqw) so it stands on the horizon at any size.
  */
-@media (max-width: 560px) {
-  .champ-card { flex-direction: column; align-items: stretch; }
-  /*
-   * Full bleed: the portrait is the best thing on this card, so on a phone it
-   * runs the whole width and out to the card's edges — the negative margins
-   * cancel the card's own padding, and the frame drops the borders it would
-   * otherwise draw against nothing. Height follows the plate's aspect ratio so
-   * the scene never distorts, and the champion keeps its 3× pixel scale rather
-   * than being resampled to a fraction — its ground line is a percentage, so
-   * it stands on the horizon whatever width the plate ends up.
-   */
-  .champ-card .portrait-wrap { align-self: stretch; align-items: stretch; margin: -14px -16px 0; }
-  .champ-card .portrait {
-    /* explicit, so the cap below shortens the plate instead of narrowing it */
-    width: 100%;
-    height: auto;
-    aspect-ratio: var(--plate-w) / var(--plate-h);
-    /*
-     * Full width at the natural ratio pushed "Fight in the Arena" off a 812px
-     * phone screen — the portrait is the draw, but the verb has to be reachable
-     * without scrolling. Stretching to the shorter box turned the sun into an
-     * ellipse, so the scene is scaled to the plate's width and cropped at the
-     * top instead. The champion's ground line is measured in the same width
-     * (--ground-cqw), so it lands on the horizon in the part that survives.
-     */
-    max-height: 30svh;
-    container-type: inline-size;
-    background-size: cover;
-    background-position: center bottom;
-  }
-  .champ-card .portrait-figure {
-    bottom: calc(var(--ground-cqw) * 1cqw);
-    border-radius: 0;
-    border-left: 0;
-    border-right: 0;
-    border-top: 0;
-  }
+.champ-card { flex-direction: column; align-items: stretch; }
+.champ-card .portrait-wrap { align-self: stretch; align-items: stretch; margin: -14px -16px 0; }
+.champ-card .portrait {
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--plate-w) / var(--plate-h);
+  max-height: min(42svh, 380px);
+  container-type: inline-size;
+  background-size: cover;
+  background-position: center bottom;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
 }
+.champ-card .portrait-figure { bottom: calc(var(--ground-cqw) * 1cqw); }
+/* The pose and backdrop steppers: arrows hugging their label, a clear breath
+   between the two groups. Wrap stays on — at fold widths (280px) the pair
+   drops into two centred rows instead of shoving the card sideways. */
+.champ-card .portrait-controls { padding: 2px 12px 0; }
+.portrait-controls > :nth-child(4) { margin-left: 14px; }
 /* No name, however long, may push the page sideways. */
 .champ-name { overflow-wrap: anywhere; }
 
@@ -2228,39 +2317,6 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .facts > div { min-width: 0; }
 
 /* The Hall's one action, on the champion it belongs to. */
-/*
- * Stance sits directly above the Fight button because it is the only thing
- * the player decides before pressing it. Three segments rather than a select:
- * the whole choice, and its cost, is readable without opening anything.
- */
-.stance-pick { margin-top: 16px; }
-.stance-cap {
-  font-family: var(--font-display);
-  font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--ink-soft);
-}
-.stance-opts { display: flex; gap: 6px; margin-top: 6px; }
-.stance-opt {
-  flex: 1;
-  font-family: var(--font-body); font-weight: 800; font-size: 0.86rem;
-  background: var(--panel);
-  color: var(--ink);
-  border: var(--border);
-  border-bottom-width: 4px;
-  border-radius: 10px;
-  padding: 8px 6px;
-  min-height: 44px;
-  cursor: pointer;
-}
-.stance-opt.on {
-  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
-  border-color: var(--line);
-  color: #1c1710;
-}
-/* Reserve the two lines the longest blurb needs, so picking a stance does not
-   shove the Fight button up and down under the thumb. */
-.stance-blurb { margin-top: 6px; min-height: 2.6em; }
-
 .card-cta { margin-top: 12px; }
 @media (max-width: 560px) { .card-cta { width: 100%; } }
 /*
