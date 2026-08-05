@@ -37,6 +37,7 @@ import {
   VIGOR_CAP,
 } from "./save.js";
 import { sound } from "./sound.js";
+import { queueCloudPush } from "./cloud.js";
 import { Shell } from "./Shell.js";
 import { league } from "./ui.js";
 import { Forge } from "./screens/Forge.js";
@@ -210,6 +211,10 @@ export function App() {
   const update = (next: SaveV1) => {
     persist(next);
     setSave(next);
+    // Fire-and-forget: the local save is already written and authoritative,
+    // so a sync that fails, conflicts or is switched off changes nothing the
+    // player can see. Debounced because a fight writes several times in a row.
+    queueCloudPush(next);
   };
 
   /**

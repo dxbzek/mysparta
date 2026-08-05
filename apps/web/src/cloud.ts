@@ -130,6 +130,25 @@ export async function push(save: SaveV1): Promise<SyncResult> {
   return { status: "synced", version: body.version };
 }
 
+/**
+ * Coalesce a burst of saves into one push. Resolving a fight writes several
+ * times in a row (xp, gear, quests, vigor); the server only needs the last.
+ */
+let pending: ReturnType<typeof setTimeout> | undefined;
+let latest: SaveV1 | undefined;
+
+export function queueCloudPush(save: SaveV1, delayMs = 2000): void {
+  if (!API) return;
+  latest = save;
+  if (pending) clearTimeout(pending);
+  pending = setTimeout(() => {
+    pending = undefined;
+    const s = latest;
+    latest = undefined;
+    if (s) void push(s);
+  }, delayMs);
+}
+
 /** Pull the cloud save down, or null when there is nothing stored yet. */
 export async function pull(): Promise<{ wire: Save; version: number } | null> {
   if (!API) return null;
