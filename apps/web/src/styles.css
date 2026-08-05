@@ -159,6 +159,37 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   .champ-card .portrait-wrap { margin-bottom: 0; }
 }
 
+/*
+ * Short AND wide — landscape handsets from 620px up, tablets, ultrawide
+ * dragged flat. Stacking wastes the one axis these screens have: at 1280×360
+ * the portrait sat above the details with 1000px of unused width beside it,
+ * pushing the Fight button off a 360px-tall screen. Side by side instead, the
+ * portrait taking a third and bleeding to the card's left edge as it does
+ * everywhere else.
+ */
+@media (max-height: 560px) and (min-width: 620px) {
+  /* .home-scoped so these outrank the stacked defaults further down the sheet */
+  .home .champ-card { flex-direction: row; align-items: stretch; gap: 16px; }
+  .home .champ-card .portrait-wrap {
+    flex: 0 0 34%;
+    align-self: stretch;
+    margin: -14px 0 -14px -16px;
+  }
+  .home .champ-card .portrait {
+    /* fills the stretched column: with aspect-ratio off and nothing in flow
+       inside it, height:auto collapsed the plate to zero */
+    flex: 1 1 auto;
+    height: auto;
+    /* the sprite is ~148px and stands on a ground line ~40px up from the
+       plate's foot, so anything under ~190px crops the champion's head */
+    min-height: 190px;
+    max-height: none;
+    aspect-ratio: auto;
+    border-bottom: 0;
+  }
+  .home .champ-meta { flex: 1; min-width: 0; align-self: center; }
+}
+
 .pill {
   display: inline-flex;
   align-items: center;
@@ -2137,7 +2168,14 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   border-right: 0;
   border-top: 0;
 }
-.champ-card .portrait-figure { bottom: calc(var(--ground-cqw) * 1cqw); }
+/*
+ * The ground line is measured in plate-WIDTHS, which is right while the plate
+ * keeps its shape. On a wide-but-short plate (1024x600 caps it at 144px tall)
+ * that put the horizon 165px up inside a 144px box and the champion floated
+ * clean off the top. Clamped to a share of the plate's own height, so the
+ * crop can never lift them out of frame.
+ */
+.champ-card .portrait-figure { bottom: min(calc(var(--ground-cqw) * 1cqw), 22%); }
 /* The pose and backdrop steppers: arrows hugging their label, a clear breath
    between the two groups. Wrap stays on — at fold widths (280px) the pair
    drops into two centred rows instead of shoving the card sideways. */

@@ -1,5 +1,5 @@
 /** The Hall: your champion, what they carry, and the one button that matters. */
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   STAT_LABEL,
   beast,
@@ -51,6 +51,33 @@ function ChampionPortrait({
   const NW = 78;
   const NH = 82;
   const arena = ARENAS[portrait.arena % ARENAS.length]!;
+  /*
+   * The champion has to fit the plate, and the plate's height is decided by
+   * CSS — capped by viewport height on short screens, stretched by the card on
+   * wide ones. A fixed 3x sprite in a 115px-tall plate loses its head, so the
+   * figure is measured against the box it actually got rather than assumed.
+   * Integer scales only: this is pixel art, and 2.4x is mush.
+   */
+  const plateRef = useRef<HTMLDivElement>(null);
+  const [figScale, setFigScale] = useState(SCALE);
+  useLayoutEffect(() => {
+    const fit = () => {
+      const h = plateRef.current?.clientHeight ?? 0;
+      if (!h) return;
+      // The sprite stands on the ground line, which CSS clamps to 22% of the
+      // plate on short boxes — so what it actually has is the 78% above that.
+      const usable = h * 0.78;
+      setFigScale(Math.max(1, Math.min(SCALE, Math.floor(usable / 48))));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    if (plateRef.current) ro.observe(plateRef.current);
+    window.addEventListener("resize", fit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, []);
   const pose = (PORTRAIT_POSES.find((p) => p.id === portrait.pose) ?? PORTRAIT_POSES[0]!).id;
   const poseAt = PORTRAIT_POSES.findIndex((p) => p.id === pose);
   const step = (d: number) =>
@@ -69,6 +96,7 @@ function ChampionPortrait({
       */}
       <div
         className="portrait"
+        ref={plateRef}
         style={
           {
             backgroundImage: `url(${arenaScene(arena, NW, NH)})`,
@@ -92,7 +120,7 @@ function ChampionPortrait({
             } as React.CSSProperties
           }
         >
-          <FighterFig look={look} height={48 * SCALE} anim={pose} aura={aura} particles={particles} />
+          <FighterFig look={look} height={48 * figScale} anim={pose} aura={aura} particles={particles} />
         </span>
       </div>
       <div className="portrait-controls">
