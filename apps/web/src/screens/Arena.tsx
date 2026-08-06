@@ -6,7 +6,7 @@ import { PixIcon } from "../pixelIcons.js";
 import { FighterBust, rivalLook } from "../fighters.js";
 import { PetSprite } from "../pixelPets.js";
 import { SkillIcon, type SkillKind } from "../skillIcons.js";
-import { todayKey, VIGOR_CAP, type SaveV1 } from "../save.js";
+import { todayKey, untilReset, VIGOR_CAP, VIGOR_DAILY, type SaveV1 } from "../save.js";
 import { StandingsStrip } from "../ui.js";
 /** How dangerous a rival looks next to your own rating. */
 
@@ -39,8 +39,8 @@ export function Arena(props: {
       </div>
       {save.vigor <= 0 && (
         <p className="notice">
-          You're out of fights for today — 6 more arrive at the daily reset (midnight UTC),
-          and they bank up to {VIGOR_CAP}. Your Hall is still yours to tinker with: reorder your
+          You're out of fights for today — <b>{VIGOR_DAILY} more in {untilReset().text}</b>, and
+          they bank up to {VIGOR_CAP}. Your Hall is still yours to tinker with: reorder your
           draw, change what you wear, study the Codex.
         </p>
       )}

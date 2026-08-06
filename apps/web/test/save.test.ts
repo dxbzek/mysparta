@@ -152,3 +152,29 @@ describe("a new save", () => {
     expect(save.wins + save.losses + save.totalFights).toBe(0);
   });
 });
+
+describe("untilReset", () => {
+  it("counts down to the player's own midnight, not UTC's", async () => {
+    const { untilReset } = await import("../src/save.js");
+    // 21:30 local on any day is 2h30m from local midnight, whatever the zone.
+    const evening = new Date(2026, 7, 5, 21, 30, 0);
+    expect(untilReset(evening)).toMatchObject({ hours: 2, minutes: 30, text: "2h 30m" });
+  });
+
+  it("drops the hours once inside the last one", async () => {
+    const { untilReset } = await import("../src/save.js");
+    expect(untilReset(new Date(2026, 7, 5, 23, 41, 0)).text).toBe("19m");
+  });
+
+  it("stays in range all day — at midnight itself the next ration is a full day off", async () => {
+    const { untilReset } = await import("../src/save.js");
+    for (const h of [0, 6, 12, 18, 23]) {
+      const r = untilReset(new Date(2026, 7, 5, h, 0, 0));
+      expect(r.hours).toBeGreaterThanOrEqual(0);
+      expect(r.hours).toBeLessThanOrEqual(24);
+      expect(r.minutes).toBeGreaterThanOrEqual(0);
+      expect(r.minutes).toBeLessThan(60);
+    }
+    expect(untilReset(new Date(2026, 7, 5, 0, 0, 0)).hours).toBe(24);
+  });
+});

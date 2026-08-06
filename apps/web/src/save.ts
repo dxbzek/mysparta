@@ -86,6 +86,21 @@ export function newSave(
   };
 }
 
+/**
+ * How long until the next ration, in the player's own timezone — the same
+ * midnight `todayKey` counts from. "Tomorrow" is useless at 11pm and wrong at
+ * 1am; a number of hours is neither.
+ */
+export function untilReset(now = new Date()): { hours: number; minutes: number; text: string } {
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  const ms = midnight.getTime() - now.getTime();
+  const hours = Math.floor(ms / 3_600_000);
+  const minutes = Math.floor((ms % 3_600_000) / 60_000);
+  const text = hours >= 1 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  return { hours, minutes, text };
+}
+
 /** Daily reset: +6 Vigor, banked to a cap of 12 (00-vision.md §5). */
 export function applyDailyReset(save: SaveV1): SaveV1 {
   const today = todayKey();

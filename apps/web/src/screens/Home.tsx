@@ -17,7 +17,7 @@ import { AuraSparks, FighterBust, FighterFig, lookFor, type FighterAnim } from "
 import { ARENAS } from "../arenas.js";
 import { arenaScene } from "../arenaArt.js";
 import { gearDetail, gearItem, gearPool, gearStatLine, lookWithGear, resolveExtras, type GearItem, type GearSlot } from "../gear.js";
-import { encodeSave, type SaveV1 } from "../save.js";
+import { encodeSave, untilReset, type SaveV1 } from "../save.js";
 import type { Look } from "../paperdoll.js";
 import { DISCIPLINE_NAME, StandingsStrip } from "../ui.js";
 
@@ -313,7 +313,7 @@ export function Home(props: {
               bottom of the page under the wardrobe. */}
           <button className="btn primary big card-cta" onClick={props.onArena} disabled={save.vigor <= 0}>
             <PixIcon name="swords" size={15} />{" "}
-            {save.vigor > 0 ? `Fight in the Arena (${save.vigor} left)` : "No fights left today"}
+            {save.vigor > 0 ? `Fight in the Arena (${save.vigor} left)` : `Next fights in ${untilReset().text}`}
           </button>
         </div>
       </section>
