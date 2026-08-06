@@ -2180,7 +2180,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
    between the two groups. Wrap stays on — at fold widths (280px) the pair
    drops into two centred rows instead of shoving the card sideways. */
 .champ-card .portrait-controls { padding: 2px 12px 0; }
-.portrait-controls > :nth-child(4) { margin-left: 14px; }
+.champ-card .portrait-controls { gap: 6px 14px; }
 /* No name, however long, may push the page sideways. */
 .champ-name { overflow-wrap: anywhere; }
 
@@ -2243,7 +2243,9 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   overflow: hidden;
 }
 .portrait-figure { position: absolute; left: 50%; bottom: var(--ground-pct); transform: translateX(-50%); }
-.portrait-controls { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.portrait-controls { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; justify-content: center; }
+/* A stepper is one control: arrows and the value they change never split. */
+.stepper { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
 /*
  * The arrows were 26×28 — under the 44px a thumb actually needs, and the one
  * control on this card a touch player uses repeatedly. The glyph stays small;

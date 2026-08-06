@@ -124,21 +124,31 @@ function ChampionPortrait({
           <FighterFig look={look} height={48 * figScale} anim={pose} aura={aura} particles={particles} />
         </span>
       </div>
+      {/*
+        Two steppers, each its own group. Flat, the six controls were one wrap
+        context: when the row ran out of width the LAST arrow dropped to a line
+        of its own, orphaned from the label it belongs to. Grouped, a pair
+        either fits or moves as a pair.
+      */}
       <div className="portrait-controls">
-        <button className="nudge" onClick={() => step(-1)} aria-label="Previous pose">
-          <PixIcon name="arrowLeft" size={9} />
-        </button>
-        <span className="portrait-label">{PORTRAIT_POSES[poseAt]!.name}</span>
-        <button className="nudge flip" onClick={() => step(1)} aria-label="Next pose">
-          <PixIcon name="arrowLeft" size={9} />
-        </button>
-        <button className="nudge" onClick={() => shift(-1)} aria-label="Previous backdrop">
-          <PixIcon name="arrowLeft" size={9} />
-        </button>
-        <span className="portrait-label wide">{arena.name}</span>
-        <button className="nudge flip" onClick={() => shift(1)} aria-label="Next backdrop">
-          <PixIcon name="arrowLeft" size={9} />
-        </button>
+        <div className="stepper" role="group" aria-label="Pose">
+          <button className="nudge" onClick={() => step(-1)} aria-label="Previous pose">
+            <PixIcon name="arrowLeft" size={9} />
+          </button>
+          <span className="portrait-label">{PORTRAIT_POSES[poseAt]!.name}</span>
+          <button className="nudge flip" onClick={() => step(1)} aria-label="Next pose">
+            <PixIcon name="arrowLeft" size={9} />
+          </button>
+        </div>
+        <div className="stepper" role="group" aria-label="Backdrop">
+          <button className="nudge" onClick={() => shift(-1)} aria-label="Previous backdrop">
+            <PixIcon name="arrowLeft" size={9} />
+          </button>
+          <span className="portrait-label wide">{arena.name}</span>
+          <button className="nudge flip" onClick={() => shift(1)} aria-label="Next backdrop">
+            <PixIcon name="arrowLeft" size={9} />
+          </button>
+        </div>
       </div>
     </div>
   );
