@@ -1,6 +1,7 @@
 /** The Hall: your champion, what they carry, and the one button that matters. */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
+  LEVEL_CAP,
   STAT_LABEL,
   beast,
   costToNext,
@@ -289,13 +290,27 @@ export function Home(props: {
           </div>
           {/* XP is a labelled meter with its number on it, not a rule drawn
               across the card with the reading stranded on the line below. */}
-          <div className="xp-row">
-            <span className="xp-cap">XP</span>
-            <div className="xpbar" title={`XP toward level ${c.level + 1}`}>
-              <div className="xpbar-fill" style={{ width: `${Math.min(100, (c.xp / need) * 100)}%` }} />
+          {/* At the cap there is no next level, and costToNext says so with
+              Infinity — which the meter printed straight to the player as
+              "XP 0/Infinity". The top of the ladder should read as an
+              achievement, not a broken number. */}
+          {c.level >= LEVEL_CAP ? (
+            <div className="xp-row">
+              <span className="xp-cap">RANK</span>
+              <div className="xpbar maxed" title="Nothing left to level — the Rift has given you everything">
+                <div className="xpbar-fill" style={{ width: "100%" }} />
+              </div>
+              <span className="xp-num">MAX</span>
             </div>
-            <span className="xp-num">{c.xp}/{need}</span>
-          </div>
+          ) : (
+            <div className="xp-row">
+              <span className="xp-cap">XP</span>
+              <div className="xpbar" title={`XP toward level ${c.level + 1}`}>
+                <div className="xpbar-fill" style={{ width: `${Math.min(100, (c.xp / need) * 100)}%` }} />
+              </div>
+              <span className="xp-num">{c.xp}/{need}</span>
+            </div>
+          )}
           {/* Two facts, not four. "Gear" repeated the Wardrobe's own counter and
               "Fights left" repeated the top bar, so half this row was an echo —
               which is what made it read as filler rather than information. */}

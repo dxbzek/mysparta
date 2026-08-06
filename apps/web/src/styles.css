@@ -2266,6 +2266,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* the XP gauge is a gauge, not a ruler across the whole card */
 .xpbar.short { max-width: 340px; }
+/* Capped out: the meter stops being a progress bar and becomes a laurel. */
+.xpbar.maxed .xpbar-fill {
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  animation: none;
+}
 
 /*
  * The champion card spanned the whole row from when the figure was large and

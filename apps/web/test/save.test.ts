@@ -178,3 +178,11 @@ describe("untilReset", () => {
     expect(untilReset(new Date(2026, 7, 5, 0, 0, 0)).hours).toBe(24);
   });
 });
+
+describe("the level cap", () => {
+  it("costToNext reports Infinity at the cap — the UI must not print it", async () => {
+    const { costToNext, LEVEL_CAP } = await import("@agoge/core");
+    expect(costToNext(LEVEL_CAP)).toBe(Infinity);
+    expect(Number.isFinite(costToNext(LEVEL_CAP - 1))).toBe(true);
+  });
+});
