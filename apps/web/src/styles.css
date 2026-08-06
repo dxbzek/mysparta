@@ -2266,6 +2266,17 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* the XP gauge is a gauge, not a ruler across the whole card */
 .xpbar.short { max-width: 340px; }
+/* A sentence, with one word in it that goes somewhere. */
+.linkish {
+  background: none; border: none; padding: 0;
+  font: inherit; color: var(--terracotta); font-weight: 800;
+  text-decoration: underline; cursor: pointer;
+}
+.capped-note { margin-top: 6px; }
+/* The roster's active hunter, and its empty chairs. */
+.rival.on { outline: 3px solid var(--gold); outline-offset: 2px; }
+.empty-slot .slot-frame { width: 64px; height: 64px; flex: 0 0 auto; }
+.empty-slot { opacity: 0.85; }
 /* Capped out: the meter stops being a progress bar and becomes a laurel. */
 .xpbar.maxed .xpbar-fill {
   background: linear-gradient(180deg, var(--gold-bright), var(--gold));

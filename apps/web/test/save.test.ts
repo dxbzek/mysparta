@@ -118,11 +118,15 @@ describe("daily reset", () => {
       ...fresh(),
       vigorDate: "2020-01-01",
       boardRefresh: 4,
-      quests: { day: "2020-01-01", fights: 3, wins: 2, crits: 1, claimed: true },
+      quests: { day: "2020-01-01", fights: 3, wins: 2, crits: 1, blocks: 9, streak: 2, run: 2, claimed: true },
     };
     const out = applyDailyReset(yesterday);
     expect(out.boardRefresh).toBe(0);
-    expect(out.quests).toEqual({ day: todayKey(), fights: 0, wins: 0, crits: 0, claimed: false });
+    expect(out.quests).toEqual({
+      day: todayKey(),
+      fights: 0, wins: 0, crits: 0, blocks: 0, streak: 0, run: 0,
+      claimed: false,
+    });
   });
 });
 
@@ -184,5 +188,92 @@ describe("the level cap", () => {
     const { costToNext, LEVEL_CAP } = await import("@agoge/core");
     expect(costToNext(LEVEL_CAP)).toBe(Infinity);
     expect(Number.isFinite(costToNext(LEVEL_CAP - 1))).toBe(true);
+  });
+});
+
+describe("the roster", () => {
+  it("keeps three hunters apart, and slot 0 stays the original save key", async () => {
+    const { persist, loadSlot, setActiveSlot, activeSlot, rosterSummary } = await import("../src/save.js");
+    const a = { ...fresh(), kleos: 1600 };
+    const b = { ...fresh(), kleos: 1700 };
+    persist(a, 0);
+    persist(b, 1);
+    expect(localStorage.getItem("agoge.save.v1")).toBeTruthy();
+    expect(loadSlot(0)!.kleos).toBe(1600);
+    expect(loadSlot(1)!.kleos).toBe(1700);
+    expect(loadSlot(2)).toBeNull();
+    setActiveSlot(1);
+    expect(activeSlot()).toBe(1);
+    expect(rosterSummary().filter(Boolean)).toHaveLength(2);
+  });
+
+  it("retiring one hunter leaves the others alone", async () => {
+    const { persist, wipe, loadSlot } = await import("../src/save.js");
+    persist(fresh(), 0);
+    persist(fresh(), 1);
+    wipe(1);
+    expect(loadSlot(0)).not.toBeNull();
+    expect(loadSlot(1)).toBeNull();
+  });
+
+  it("refuses a slot outside the roster rather than writing junk", async () => {
+    const { setActiveSlot, activeSlot } = await import("../src/save.js");
+    setActiveSlot(0);
+    setActiveSlot(99);
+    expect(activeSlot()).toBe(0);
+    setActiveSlot(-1);
+    expect(activeSlot()).toBe(0);
+  });
+
+  it("reports the first free slot, and none when full", async () => {
+    const { persist, firstFreeSlot, hasFreeSlot, ROSTER_MAX } = await import("../src/save.js");
+    expect(firstFreeSlot()).toBe(0);
+    persist(fresh(), 0);
+    expect(firstFreeSlot()).toBe(1);
+    for (let i = 1; i < ROSTER_MAX; i++) persist(fresh(), i);
+    expect(hasFreeSlot()).toBe(false);
+    expect(firstFreeSlot()).toBeNull();
+  });
+});
+
+describe("rotating daily tasks", () => {
+  it("gives three tasks, all different metrics", async () => {
+    const { questsForDay } = await import("../src/save.js");
+    const q = questsForDay("2026-08-05");
+    expect(q).toHaveLength(3);
+    expect(new Set(q.map((d) => d.metric)).size).toBe(3);
+  });
+
+  it("is stable for a day and different across days", async () => {
+    const { questsForDay } = await import("../src/save.js");
+    expect(questsForDay("2026-08-05")).toEqual(questsForDay("2026-08-05"));
+    const week = new Set(
+      ["01", "02", "03", "04", "05", "06", "07"].map((d) =>
+        questsForDay(`2026-08-${d}`).map((q) => q.text).join("|"),
+      ),
+    );
+    // Not every day need differ, but a week must not be one board seven times.
+    expect(week.size).toBeGreaterThan(1);
+  });
+
+  it("only ever draws tasks from the pool", async () => {
+    const { questsForDay } = await import("../src/save.js");
+    const metrics = new Set(["fights", "wins", "crits", "blocks", "streak"]);
+    for (let d = 1; d <= 28; d++) {
+      for (const q of questsForDay(`2026-09-${String(d).padStart(2, "0")}`)) {
+        expect(metrics.has(q.metric)).toBe(true);
+        expect(q.need).toBeGreaterThan(0);
+        expect(q.text.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("counts progress against the day's board and knows when it is done", async () => {
+    const { questsForDay, questProgress, questsComplete, freshQuests } = await import("../src/save.js");
+    const defs = questsForDay("2026-08-05");
+    const q = { ...freshQuests(), fights: 99, wins: 99, crits: 99, blocks: 99, streak: 99 };
+    expect(questsComplete(q, defs)).toBe(true);
+    for (const d of defs) expect(questProgress(q, d)).toBe(d.need);
+    expect(questsComplete(freshQuests(), defs)).toBe(false);
   });
 });

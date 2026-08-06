@@ -18,7 +18,7 @@ import { AuraSparks, FighterBust, FighterFig, lookFor, type FighterAnim } from "
 import { ARENAS } from "../arenas.js";
 import { arenaScene } from "../arenaArt.js";
 import { gearDetail, gearItem, gearPool, gearStatLine, lookWithGear, resolveExtras, type GearItem, type GearSlot } from "../gear.js";
-import { encodeSave, untilReset, type SaveV1 } from "../save.js";
+import { encodeSave, questProgress, questsForDay, untilReset, type SaveV1 } from "../save.js";
 import type { Look } from "../paperdoll.js";
 import { DISCIPLINE_NAME, StandingsStrip } from "../ui.js";
 
@@ -221,6 +221,7 @@ export function Home(props: {
   onHistory: () => void;
   onCodex: () => void;
   onLadder: () => void;
+  onRoster: () => void;
   onReorder: (from: number, to: number) => void;
   onDelete: () => void;
   onEquip: (slot: GearSlot, id: string | undefined) => void;
@@ -240,8 +241,8 @@ export function Home(props: {
   const [copied, setCopied] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
   const q = save.quests;
-  const tasksDone =
-    ((q?.fights ?? 0) >= 3 ? 1 : 0) + ((q?.wins ?? 0) >= 2 ? 1 : 0) + ((q?.crits ?? 0) >= 1 ? 1 : 0);
+  const todaysTasks = questsForDay();
+  const tasksDone = todaysTasks.filter((d) => questProgress(q, d) >= d.need).length;
   useEffect(() => {
     if (!armDelete) return;
     const t = window.setTimeout(() => setArmDelete(false), 4000);
@@ -295,13 +296,22 @@ export function Home(props: {
               "XP 0/Infinity". The top of the ladder should read as an
               achievement, not a broken number. */}
           {c.level >= LEVEL_CAP ? (
-            <div className="xp-row">
-              <span className="xp-cap">RANK</span>
-              <div className="xpbar maxed" title="Nothing left to level — the Rift has given you everything">
-                <div className="xpbar-fill" style={{ width: "100%" }} />
+            <>
+              <div className="xp-row">
+                <span className="xp-cap">RANK</span>
+                <div className="xpbar maxed" title="Nothing left to level — the Rift has given you everything">
+                  <div className="xpbar-fill" style={{ width: "100%" }} />
+                </div>
+                <span className="xp-num">MAX</span>
               </div>
-              <span className="xp-num">MAX</span>
-            </div>
+              {/* The cap used to be the end of the game. It is a fifty-day
+                  climb; the least it can do is point at what comes next. */}
+              <p className="muted small note capped-note">
+                {c.displayName} has taken everything the Rift will give. The rating still moves —
+                and a second hunter finds a different {" "}
+                <button className="linkish" onClick={props.onRoster}>road through it</button>.
+              </p>
+            </>
           ) : (
             <div className="xp-row">
               <span className="xp-cap">XP</span>
@@ -391,9 +401,11 @@ export function Home(props: {
         <section className="card quests quests-strip span-all">
           <h3>Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — gear dropped!</span>}</h3>
           <ul className="qlist">
-            <Quest at={save.quests?.fights ?? 0} of={3}>Fight three times</Quest>
-            <Quest at={save.quests?.wins ?? 0} of={2}>Win two fights</Quest>
-            <Quest at={save.quests?.crits ?? 0} of={1}>Land a critical hit</Quest>
+            {todaysTasks.map((d) => (
+              <Quest key={d.metric + d.need} at={questProgress(save.quests, d)} of={d.need}>
+                {d.text}
+              </Quest>
+            ))}
           </ul>
           <p className="muted small note say-more">Complete all three for a bonus gear drop. Resets daily.</p>
         </section>
@@ -487,10 +499,13 @@ export function Home(props: {
       {/* Reference screens, not actions — the action lives on the champion card. */}
       <div className="actions secondary">
         <button className="btn ghost" onClick={() => setShowTasks((v) => !v)} aria-expanded={showTasks}>
-          Today's Tasks {save.quests?.claimed ? "✓" : `${tasksDone}/3`}
+          Today's Tasks {save.quests?.claimed ? "✓" : `${tasksDone}/${todaysTasks.length}`}
         </button>
         <button className="btn ghost" onClick={props.onHistory}>
           Level-Up History ({c.tapestry.length})
+        </button>
+        <button className="btn ghost" onClick={props.onRoster}>
+          Your Hunters
         </button>
         <button className="btn ghost" onClick={props.onLadder}>
           Ladder

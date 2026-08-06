@@ -14,6 +14,12 @@ export interface DailyQuests {
   fights: number;
   wins: number;
   crits: number;
+  /** Blows turned aside — blocks and evades both count. */
+  blocks: number;
+  /** Best consecutive-win run today (what the task reads). */
+  streak: number;
+  /** The run currently going — reset by a loss, never shown. */
+  run: number;
   claimed: boolean;
 }
 
@@ -43,11 +49,161 @@ export interface SaveV1 {
   equipped?: Equipped;
 }
 
+/**
+ * The day's three tasks, drawn from a pool rather than hardcoded.
+ *
+ * "Fight three times / win two / land a crit" was every single day, forever —
+ * which is how a daily board stops being read after the first week. These
+ * rotate on the date, so the same day gives every player the same board (and
+ * the same one all day, however often they reload), but tomorrow asks for
+ * something else.
+ *
+ * Counters are shared: a task tracks one of the tallies the fight loop already
+ * keeps, so adding a task never means threading new state through a fight.
+ */
+export type QuestMetric = "fights" | "wins" | "crits" | "blocks" | "streak";
+
+export interface QuestDef {
+  metric: QuestMetric;
+  need: number;
+  text: string;
+}
+
+const QUEST_POOL: QuestDef[] = [
+  { metric: "fights", need: 3, text: "Fight three times" },
+  { metric: "fights", need: 5, text: "Fight five times" },
+  { metric: "wins", need: 2, text: "Win two fights" },
+  { metric: "wins", need: 3, text: "Win three fights" },
+  { metric: "crits", need: 1, text: "Land a critical hit" },
+  { metric: "crits", need: 3, text: "Land three critical hits" },
+  { metric: "blocks", need: 4, text: "Turn four blows aside" },
+  { metric: "streak", need: 2, text: "Win two in a row" },
+];
+
+/** Stable per-day shuffle: same date, same board, for everyone, all day. */
+function questsFor(day: string): QuestDef[] {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < day.length; i++) {
+    h ^= day.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  const pool = [...QUEST_POOL];
+  const picked: QuestDef[] = [];
+  const metrics = new Set<QuestMetric>();
+  while (picked.length < 3 && pool.length > 0) {
+    h = (Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) + 0x297a2d39) >>> 0;
+    const idx = h % pool.length;
+    const [q] = pool.splice(idx, 1);
+    // One task per metric, or a day can ask for three flavours of the same
+    // thing and complete two of them by accident.
+    if (q && !metrics.has(q.metric)) {
+      metrics.add(q.metric);
+      picked.push(q);
+    }
+  }
+  return picked;
+}
+
+/** The three tasks for a given day, in board order. */
+export function questsForDay(day = todayKey()): QuestDef[] {
+  return questsFor(day);
+}
+
 export function freshQuests(): DailyQuests {
-  return { day: todayKey(), fights: 0, wins: 0, crits: 0, claimed: false };
+  return { day: todayKey(), fights: 0, wins: 0, crits: 0, blocks: 0, streak: 0, run: 0, claimed: false };
+}
+
+/** Progress on one task, clamped to what it asks for. */
+export function questProgress(q: DailyQuests | undefined, def: QuestDef): number {
+  if (!q) return 0;
+  return Math.min(def.need, (q[def.metric] as number | undefined) ?? 0);
+}
+
+/** True when every one of the day's tasks is done. */
+export function questsComplete(q: DailyQuests | undefined, defs = questsForDay()): boolean {
+  return !!q && defs.every((d) => questProgress(q, d) >= d.need);
 }
 
 const KEY = "agoge.save.v1";
+const ROSTER_KEY = "agoge.roster.v1";
+
+/**
+ * The roster — up to three hunters, because one champion only ever meets a
+ * fraction of what the Rift holds. A level-50 hunter has seen roughly 9 of 24
+ * weapons and 7 of 30 skills; the Codex stays three-quarters grey for them
+ * forever. A second hunter is how the rest of the game gets played, and it is
+ * the reason to open the app on the day your first one is capped.
+ *
+ * Storage keeps the original single-save key as slot 0, so a player who has
+ * been here since before the roster keeps their champion untouched.
+ */
+export const ROSTER_MAX = 3;
+
+const slotKey = (slot: number) => (slot === 0 ? KEY : `${KEY}.${slot}`);
+
+interface RosterState {
+  active: number;
+}
+
+function readRoster(): RosterState {
+  try {
+    const raw = localStorage.getItem(ROSTER_KEY);
+    if (!raw) return { active: 0 };
+    const parsed = JSON.parse(raw) as RosterState;
+    const active = Number(parsed?.active);
+    return { active: Number.isInteger(active) && active >= 0 && active < ROSTER_MAX ? active : 0 };
+  } catch {
+    return { active: 0 };
+  }
+}
+
+/** Which slot the game is currently playing. */
+export function activeSlot(): number {
+  return readRoster().active;
+}
+
+export function setActiveSlot(slot: number): void {
+  if (!Number.isInteger(slot) || slot < 0 || slot >= ROSTER_MAX) return;
+  try {
+    localStorage.setItem(ROSTER_KEY, JSON.stringify({ active: slot }));
+  } catch {
+    // storage denied — the switch still holds for this session
+  }
+}
+
+export interface SlotSummary {
+  slot: number;
+  name: string;
+  level: number;
+  kleos: number;
+  vigor: number;
+  look?: Look;
+  aura?: number;
+  equipped?: Equipped;
+}
+
+/** Every slot, filled or empty, for the roster screen. */
+export function rosterSummary(): Array<SlotSummary | null> {
+  const out: Array<SlotSummary | null> = [];
+  for (let i = 0; i < ROSTER_MAX; i++) {
+    const s = loadSlot(i);
+    out.push(
+      s
+        ? {
+            slot: i,
+            name: s.champion.displayName,
+            level: s.champion.level,
+            kleos: s.kleos,
+            vigor: s.vigor,
+            look: s.look,
+            aura: s.aura,
+            equipped: s.equipped,
+          }
+        : null,
+    );
+  }
+  return out;
+}
 
 export const VIGOR_DAILY = 6;
 export const VIGOR_CAP = 12;
@@ -115,8 +271,13 @@ export function applyDailyReset(save: SaveV1): SaveV1 {
 }
 
 export function load(): SaveV1 | null {
+  return loadSlot(activeSlot());
+}
+
+/** Read one slot, applying every migration and the daily reset. */
+export function loadSlot(slot: number): SaveV1 | null {
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(slotKey(slot));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as SaveV1;
     if (parsed.v !== 1) return null;
@@ -146,9 +307,9 @@ export function load(): SaveV1 | null {
   }
 }
 
-export function persist(save: SaveV1): void {
+export function persist(save: SaveV1, slot = activeSlot()): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(save));
+    localStorage.setItem(slotKey(slot), JSON.stringify(save));
   } catch {
     // Sandboxed embeds may deny storage — the session still plays, unsaved.
   }
@@ -228,10 +389,21 @@ export function decodeSave(code: string): SaveV1 | null {
   }
 }
 
-export function wipe(): void {
+export function wipe(slot = activeSlot()): void {
   try {
-    localStorage.removeItem(KEY);
+    localStorage.removeItem(slotKey(slot));
   } catch {
     // ignore
   }
+}
+
+/** True when at least one slot is still free for a new hunter. */
+export function hasFreeSlot(): boolean {
+  return rosterSummary().some((s) => s === null);
+}
+
+/** The lowest empty slot, or null when the roster is full. */
+export function firstFreeSlot(): number | null {
+  const i = rosterSummary().findIndex((s) => s === null);
+  return i === -1 ? null : i;
 }

@@ -27,7 +27,12 @@ import { arenaForFight, type Arena as ArenaDef } from "./arenas.js";
 import { gearStats, lookWithGear, resolveExtras, rollGearDrop, type GearItem, type GearSlot } from "./gear.js";
 import {
   applyDailyReset,
+  activeSlot,
+  firstFreeSlot,
   freshQuests,
+  questsComplete,
+  rosterSummary,
+  setActiveSlot,
   load,
   newSave,
   persist,
@@ -46,6 +51,7 @@ import { Arena } from "./screens/Arena.js";
 import { Ladder } from "./screens/Ladder.js";
 import { History } from "./screens/History.js";
 import { Codex } from "./screens/Codex.js";
+import { Roster } from "./screens/Roster.js";
 import { RewardModal } from "./screens/RewardModal.js";
 
 type Screen =
@@ -61,7 +67,8 @@ type Screen =
     }
   | { s: "history" }
   | { s: "ladder" }
-  | { s: "codex" };
+  | { s: "codex" }
+  | { s: "roster" };
 
 /** Screens that live at their own URL, so back/forward and refresh work. */
 const ROUTES: Record<string, string> = {
@@ -70,6 +77,7 @@ const ROUTES: Record<string, string> = {
   history: "history",
   ladder: "ladder",
   codex: "codex",
+  roster: "hunters",
   forge: "new",
 };
 const BREADCRUMB: Record<string, string> = {
@@ -78,6 +86,7 @@ const BREADCRUMB: Record<string, string> = {
   history: "Hall / Level-Up History",
   ladder: "Hall / Ladder",
   codex: "Hall / Codex",
+  roster: "Your Hunters",
   forge: "New Hunter",
   fight: "Hall / Arena / Fight",
 };
@@ -239,6 +248,11 @@ export function App() {
       <Shell>
         <Forge
           onForge={(champion, look, aura) => {
+            // A new hunter takes the first free slot and becomes the one being
+            // played; without this the Forge would write over whoever is
+            // already in the active slot.
+            const target = firstFreeSlot() ?? activeSlot();
+            setActiveSlot(target);
             const s = newSave(champion, { stance: "measured", gambit: "close_the_gap" }, look, aura);
             update(s);
             setScreen({ s: "home" });
@@ -291,10 +305,21 @@ export function App() {
     };
 
     const q = fresh.quests?.day === todayKey() ? { ...fresh.quests } : freshQuests();
+    // Older saves predate the blocks/streak tallies the rotating tasks read.
+    q.blocks ??= 0;
+    q.streak ??= 0;
+    q.run ??= 0;
     q.fights += 1;
     if (won) q.wins += 1;
     if (result.events.some((e) => e.type === "hit" && e.side === 0 && e.crit)) q.crits += 1;
-    if (!q.claimed && q.fights >= 3 && q.wins >= 2 && q.crits >= 1) {
+    q.blocks += result.events.filter(
+      (e) => (e.type === "block" || e.type === "evade") && e.side === 0,
+    ).length;
+    // `streak` is the best run of the day, so a loss does not erase what the
+    // player already earned — it just stops the current run growing.
+    q.run = won ? q.run + 1 : 0;
+    q.streak = Math.max(q.streak, q.run);
+    if (!q.claimed && questsComplete(q)) {
       q.claimed = true;
       addDrop(rollGearDrop(gear, combineSeed(seed, "questdrop")));
     }
@@ -380,6 +405,7 @@ export function App() {
           onHistory={() => setScreen({ s: "history" })}
           onCodex={() => setScreen({ s: "codex" })}
           onLadder={() => setScreen({ s: "ladder" })}
+          onRoster={() => setScreen({ s: "roster" })}
           onReorder={(from, to) => {
             const champion = structuredClone(c);
             const [moved] = champion.weapons.splice(from, 1);
@@ -440,6 +466,45 @@ export function App() {
 
       {screen.s === "ladder" && (
         <Ladder save={save} onBack={() => setScreen({ s: "home" })} />
+      )}
+
+      {screen.s === "roster" && (
+        <Roster
+          slots={rosterSummary()}
+          active={activeSlot()}
+          onBack={() => setScreen({ s: "home" })}
+          onPlay={(slot) => {
+            setActiveSlot(slot);
+            setSave(load());
+            setDraft(null);
+            setScreen({ s: "home" });
+          }}
+          onNew={(slot) => {
+            setActiveSlot(slot);
+            setSave(null);
+            setDraft(null);
+            setScreen({ s: "forge" });
+          }}
+          onRetire={(slot) => {
+            wipe(slot);
+            // Retiring the hunter you are playing drops you onto whoever is
+            // left, or to the Forge if that was the last one.
+            if (slot === activeSlot()) {
+              const next = rosterSummary().find((r) => r !== null);
+              if (next) {
+                setActiveSlot(next.slot);
+                setSave(load());
+                setScreen({ s: "home" });
+              } else {
+                setSave(null);
+                setScreen({ s: "forge" });
+              }
+            } else {
+              setSave((v) => (v ? { ...v } : v));
+            }
+            setDraft(null);
+          }}
+        />
       )}
 
       {screen.s === "history" && <History champion={c} onBack={() => setScreen({ s: "home" })} />}
