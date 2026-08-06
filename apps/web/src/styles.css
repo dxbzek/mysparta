@@ -794,6 +794,27 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* white-hot flash on the struck body */
 .fig-inner.flash > svg, .fig-inner.flash .hero-sprite { animation: flash 420ms ease 300ms; }
+/*
+ * A critical reads differently from a jab: the lunge goes further and lands
+ * heavier, and the fighter taking it is knocked back rather than rocked.
+ * Both ride on top of the normal strike/hurt animations.
+ */
+.strike-crit { animation-duration: 900ms !important; }
+.fig-slot.strike-crit { --dash-boost: 1.12; }
+.hurt-hard { animation-duration: 620ms !important; }
+.hurt-l.hurt-hard { animation-name: hurtHardL !important; }
+.hurt-r.hurt-hard { animation-name: hurtHardR !important; }
+@keyframes hurtHardL {
+  25% { transform: translateX(-26px) rotate(-11deg); }
+  60% { transform: translateX(-10px) rotate(-4deg); }
+  100% { transform: none; }
+}
+@keyframes hurtHardR {
+  25% { transform: translateX(26px) rotate(11deg); }
+  60% { transform: translateX(10px) rotate(4deg); }
+  100% { transform: none; }
+}
+
 @keyframes flash { 30% { filter: brightness(1.9) saturate(0.5); } }
 
 /* --- painted hero sprites --- */

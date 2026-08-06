@@ -180,6 +180,16 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     [heldWeapon],
   );
 
+  // How many swings each side has thrown so far — the alternation key. Derived
+  // from the beats on screen so a rewind or a skip stays consistent.
+  const swingCount: [number, number] = useMemo(() => {
+    const n: [number, number] = [0, 0];
+    for (const l of visible) {
+      if (l.anim?.striker !== undefined && !l.anim.beastId) n[l.anim.striker]++;
+    }
+    return n;
+  }, [visible]);
+
   const idxRef = useRef(0);
   idxRef.current = idx;
 
@@ -244,9 +254,14 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     // A chain hit keeps the swing but skips the run-in: they are already close.
     if (anim?.striker === side && !anim.beastId && !anim.chain) {
       cls.push(anim.thrown ? (side === 0 ? "throw-r" : "throw-l") : side === 0 ? "strike-r" : "strike-l");
+      // A critical is the same lunge, further and harder — it should not look
+      // like every other swing when the feed is shouting CRITICAL.
+      if (fx?.crit) cls.push("strike-crit");
     }
     if (anim?.reaction?.side === side) {
       cls.push(`${anim.reaction.kind}-${side === 0 ? "l" : "r"}`);
+      // Taking a critical staggers you back rather than rocking you.
+      if (fx?.crit && anim.reaction.kind === "hurt") cls.push("hurt-hard");
     }
     return cls.join(" ");
   };
@@ -260,12 +275,30 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     return cls.join(" ");
   };
 
-  /** Which sheet animation each fighter plays this beat. */
+  /**
+   * Which sheet animation each fighter plays this beat.
+   *
+   * Every beat used to resolve to one of three poses — attack, hit, stance —
+   * with the swing alternating on the GLOBAL beat index, so both fighters
+   * always threw the same one at the same time and every defensive beat was
+   * the idle guard. The reads now differ: a dodge steps, a block braces, and
+   * the two fighters are on their own swing counts so a long exchange stops
+   * looking like a metronome.
+   */
   const animOf = (side: 0 | 1): FighterAnim => {
     if (finished && side === loser && result.reason === "ko") return "death";
     if (finished) return "stance";
-    if (anim?.reaction?.side === side && anim.reaction.kind === "hurt") return "hit";
-    if (anim?.striker === side && !anim.beastId) return idx % 2 === 0 ? "attack1" : "attack2";
+    const react = anim?.reaction?.side === side ? anim.reaction.kind : undefined;
+    if (react === "hurt") return "hit";
+    // A dodge is a body moving out of the way; the run frames read as the
+    // quick step the CSS is already sliding them through.
+    if (react === "dodge") return "run";
+    // A block is taken on the guard — the braced stance, not the loose idle.
+    if (react === "block") return "stance";
+    if (anim?.striker === side && !anim.beastId) {
+      // Per-side swing count, so the two fighters are never in lockstep.
+      return swingCount[side] % 2 === 0 ? "attack1" : "attack2";
+    }
     return "stance";
   };
 
