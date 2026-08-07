@@ -64,3 +64,47 @@ describe("fight animation variety", () => {
     expect(animOf(1, swing(1), [1, 0])).toBe("attack1");
   });
 });
+
+/** The app's level-up picker, mirrored so the guarantee can be asserted. */
+function pickFor(
+  champion: { seed: number; level: number; weapons: string[]; skills: string[] },
+  offers: Array<{ kind: string }>,
+  rngPick: number,
+): number {
+  const next = champion.level + 1;
+  const forced =
+    next === 5 && champion.weapons.length === 0
+      ? offers.findIndex((o) => o.kind === "weapon")
+      : next === 10 && champion.skills.length === 0
+        ? offers.findIndex((o) => o.kind === "skill")
+        : -1;
+  return forced >= 0 ? forced : rngPick;
+}
+
+describe("milestone level-ups", () => {
+  it("a weaponless hunter takes the weapon at 5, whatever the roll says", () => {
+    const offers = [{ kind: "stat3" }, { kind: "weapon" }, { kind: "stat21" }];
+    const c = { seed: 1, level: 4, weapons: [], skills: [] };
+    for (const roll of [0, 1, 2]) expect(pickFor(c, offers, roll)).toBe(1);
+  });
+
+  it("a skill-less hunter takes the skill at 10", () => {
+    const offers = [{ kind: "skill" }, { kind: "stat3" }, { kind: "stat21" }];
+    const c = { seed: 1, level: 9, weapons: ["xiphos"], skills: [] };
+    for (const roll of [0, 1, 2]) expect(pickFor(c, offers, roll)).toBe(0);
+  });
+
+  it("leaves the roll alone once the hunter already has one", () => {
+    const offers = [{ kind: "stat3" }, { kind: "weapon" }, { kind: "stat21" }];
+    const c = { seed: 1, level: 4, weapons: ["xiphos"], skills: [] };
+    expect(pickFor(c, offers, 2)).toBe(2);
+  });
+
+  it("leaves every non-milestone level to chance", () => {
+    const offers = [{ kind: "stat3" }, { kind: "weapon" }, { kind: "stat21" }];
+    for (const level of [1, 2, 3, 5, 6, 11, 20]) {
+      const c = { seed: 1, level, weapons: [], skills: [] };
+      expect(pickFor(c, offers, 0)).toBe(0);
+    }
+  });
+});

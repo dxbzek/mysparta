@@ -79,6 +79,11 @@ const ROUTES: Record<string, string> = {
   codex: "codex",
   roster: "hunters",
   forge: "new",
+  // The fight gets a URL of its own so it is a real history entry. Without
+  // one, starting a fight from #/arena left the address bar on #/arena — so
+  // navigating "back to the arena" changed nothing, fired no hashchange, and
+  // the player sat on the stage with no way out but finishing it.
+  fight: "fight",
 };
 const BREADCRUMB: Record<string, string> = {
   home: "Hall",
@@ -190,7 +195,13 @@ export function App() {
   useEffect(() => {
     const onNav = () => {
       const s = routeOf(location.hash);
-      if (s && s !== "fight") setScreen({ s } as Screen);
+      // A fight cannot be entered from a URL — its result lives in memory, not
+      // the address bar — so a forward button onto #/fight lands in the Arena.
+      if (s === "fight") {
+        setScreen({ s: "arena" });
+        return;
+      }
+      if (s) setScreen({ s } as Screen);
     };
     window.addEventListener("popstate", onNav);
     window.addEventListener("hashchange", onNav);
@@ -205,8 +216,11 @@ export function App() {
   // XP left the hunter stuck at a full bar until their next fight ended.
   useEffect(() => {
     if (save && screen.s !== "fight") openDraftIfDue(save);
+    // Keyed on the screen too: walking out of a fight with the back button
+    // skips onDone, and without this a level earned in that fight would sit
+    // unclaimed behind a full XP bar until the next one ended.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [save]);
+  }, [save, screen.s]);
 
   // One crisp tick for every button in the game.
   useEffect(() => {
@@ -234,9 +248,27 @@ export function App() {
   const openDraftIfDue = (s: SaveV1) => {
     const c = s.champion;
     if (c.level < 50 && c.xp >= costToNext(c.level)) {
-      const offers = generateDraft(c, c.level + 1, 0);
-      const pick = makeRng(combineSeed(c.seed, "roll", c.level + 1)).int(offers.length);
-      const drop = rollGearDrop(s.gear ?? [], combineSeed(c.seed, "gear", c.level + 1));
+      const next = c.level + 1;
+      const offers = generateDraft(c, next, 0);
+      let pick = makeRng(combineSeed(c.seed, "roll", next)).int(offers.length);
+      /*
+       * The core guarantees a WEAPON is offered at level 5 and a SKILL at 10 —
+       * but the pick was a flat roll across all three offers, so the guarantee
+       * only landed a third of the time. A full day of play reached level 6
+       * with no weapon, no skill and no pet: five level-ups of pure stats, in
+       * a game whose whole pitch is what the Rift hands you.
+       *
+       * The roll stays random everywhere else. On a milestone, if the hunter
+       * still owns nothing of the promised kind, the promise is kept.
+       */
+      const forced =
+        next === 5 && c.weapons.length === 0
+          ? offers.findIndex((o) => o.kind === "weapon")
+          : next === 10 && c.skills.length === 0
+            ? offers.findIndex((o) => o.kind === "skill")
+            : -1;
+      if (forced >= 0) pick = forced;
+      const drop = rollGearDrop(s.gear ?? [], combineSeed(c.seed, "gear", next));
       setDraft({ offers, pick, drop });
     } else {
       setDraft(null);
