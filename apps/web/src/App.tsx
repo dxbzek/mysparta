@@ -40,6 +40,7 @@ import {
   wipe,
   type SaveV1,
   VIGOR_CAP,
+  VIGOR_DAILY,
 } from "./save.js";
 import { sound } from "./sound.js";
 import { queueCloudPush } from "./cloud.js";
@@ -472,8 +473,23 @@ export function App() {
             >
               {league(save.kleos).name} {save.kleos}
             </span>
-            <span className="pill" title={`Fights refill daily (+6, up to ${VIGOR_CAP})`}>
-              <PixIcon name="bolt" size={13} className="icon-gold" /> {save.vigor} fights
+            <span
+              className="pill vigor-pips"
+              title={`Fights refill daily (+${VIGOR_DAILY}, banked up to ${VIGOR_CAP})`}
+            >
+              <PixIcon name="bolt" size={13} className="icon-gold" />
+              {/* Six pips drain as the day is spent — a glance, not a number.
+                  Banked fights past the daily six stay a count, because twelve
+                  pips stops being glanceable and becomes a bar chart. */}
+              {save.vigor <= VIGOR_DAILY ? (
+                <span className="pips" aria-label={`${save.vigor} of ${VIGOR_DAILY} fights left today`}>
+                  {Array.from({ length: VIGOR_DAILY }, (_, i) => (
+                    <i key={i} className={`pip${i < save.vigor ? " on" : ""}`} />
+                  ))}
+                </span>
+              ) : (
+                <>{save.vigor} fights</>
+              )}
             </span>
             {save.champion.favour > 0 && (
               <span className="pill" title="Favour — spend it to reroll a level-up reward">

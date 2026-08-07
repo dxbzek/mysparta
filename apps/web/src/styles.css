@@ -2636,3 +2636,100 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* Claim and the Favour reroll share a row; Claim stays the hero. */
 .draft-actions { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; }
+
+
+/* ==================================================================== *
+ * Mobile layout pass
+ *
+ * Adopted from the mobile design handoff, which was drawn at 390px against
+ * these same tokens — so this is a density and reach pass, not a restyle.
+ * What it buys, in the design's own terms: thumb-sized targets everywhere
+ * (52-56px on the primary verb, 44px on everything else), a 12px page
+ * rhythm, type floors so nothing shrinks past reading size, and horizontal
+ * rails instead of wrapping grids where a wrap was costing three screens of
+ * scroll. Below 480px only: the desktop layout is untouched.
+ * ==================================================================== */
+
+@media (max-width: 480px) {
+  /* --- rhythm: one page padding, one card gap, everywhere --- */
+  .content { padding-left: 12px; padding-right: 12px; }
+  .home { gap: 12px; }
+  .card { padding: 12px 14px; }
+
+  /*
+   * Grid items default to min-width:auto, so ONE card's min-content sets the
+   * shared track — and with it the width of every other card and the page.
+   * That single rule is what let a nowrap footnote, and then a scroll rail,
+   * push the whole Hall sideways. Cards give way before the viewport does.
+   */
+  .home > *,
+  .grid-2 > * { min-width: 0; }
+  .wardrobe-row,
+  .wardrobe .chips,
+  .plaques { min-width: 0; }
+
+  /* --- reach: the verb is 56px, everything you can press is 44px --- */
+  .champ-meta .btn.big.card-cta { min-height: 56px; font-size: 0.9rem; }
+  .btn { min-height: 44px; }
+  .btn.primary { min-height: 52px; }
+  .actions.secondary .btn { min-height: 52px; width: 100%; }
+  .actions.secondary { display: flex; flex-direction: column; gap: 10px; }
+  .rival-action .btn.primary { min-height: 52px; }
+
+  /* --- type floors: Silkscreen never under .6rem, Karla never under .7 --- */
+  .pill,
+  .fate-kind,
+  .wtag,
+  .portrait-label { font-size: 0.62rem; }
+  .muted.small,
+  .note,
+  .codex-tile em,
+  .kit-chip { font-size: 0.72rem; }
+
+  /*
+   * --- rails ---
+   * Skills, pets and gear wrapped into ever-taller grids: the wardrobe alone
+   * could run past a phone screen once a few pieces dropped, pushing the
+   * standings and nav off the bottom. A rail keeps each shelf one row tall
+   * and makes "there is more" a swipe rather than a scroll.
+   */
+  .plaques,
+  .wardrobe .chips,
+  .tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 10px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    /* A rail must never widen its card. Every Hall card shares one grid track,
+       so an edge-bleed here (negative margins) pushed the whole page 31px
+       sideways — the same class of bug the height pass already paid for once.
+       min-width:0 lets the flex row scroll instead of demanding its content
+       width from the layout. */
+    min-width: 0;
+  }
+  .plaques::-webkit-scrollbar,
+  .wardrobe .chips::-webkit-scrollbar,
+  .tabs::-webkit-scrollbar { display: none; }
+  .plaques > *,
+  .wardrobe .chips > * { flex: 0 0 auto; }
+  .wardrobe .gear-chip { width: auto; min-width: 168px; }
+  .wardrobe { display: block; }
+  .tabs { border-bottom: none; padding-bottom: 8px; }
+  .tab { flex: 0 0 auto; min-height: 44px; }
+
+  /* --- weapon rows read as tiles, not a text list --- */
+  .arsenal.rack li { gap: 12px; }
+  .arsenal .rack-tile { width: 56px; height: 56px; }
+  .reorder button { min-width: 42px; min-height: 34px; }
+}
+
+/*
+ * Vigor as pips: six squares that drain is a glanceable read of the day's
+ * budget, where "6 fights" is a number you have to think about. Past the
+ * daily six (banked fights go to 12) the pill keeps the count, because
+ * twelve pips is a bar chart, not a glance.
+ */
+.vigor-pips { display: inline-flex; align-items: center; gap: 5px; }
