@@ -1,4 +1,5 @@
 /** Everything the Rift can give you: found in colour, the rest greyed out. */
+import { useState } from "react";
 import { BEASTS, BOONS, TECHNIQUES, TRUMPS, WEAPONS, beast, skill, type Champion } from "@agoge/core";
 import { PetSprite } from "../pixelPets.js";
 import { WeaponIcon } from "../weaponIcons.js";
@@ -9,6 +10,12 @@ import { DISCIPLINE_NAME } from "../ui.js";
 
 export function Codex({ champion, onBack }: { champion: Champion; onBack: () => void }) {
   const found = WEAPONS.filter((w) => champion.weapons.includes(w.id)).length;
+  // Tap-to-inspect: title tooltips never fire on touch, so on phones the
+  // Codex was a grid of names with zero information. One selection, one
+  // detail strip, shared by every case.
+  const [sel, setSel] = useState<{ name: string; detail: string } | null>(null);
+  const inspect = (name: string, detail: string) =>
+    setSel((cur) => (cur?.name === name ? null : { name, detail }));
   return (
     <div className="codex">
       <div className="arena-head">
@@ -18,12 +25,18 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
       </div>
       <p className="muted">
         Everything the Rift can give you, laid out in full. What you have found is in colour;
-        the rest is greyed until it drops. Hover any of them for what it does.
+        the rest is greyed until it drops. Tap any of them for what it does.
       </p>
+      {sel && (
+        <p className="notice codex-detail" aria-live="polite">
+          <b>{sel.name}</b> — {sel.detail}
+        </p>
+      )}
 
       <CodexCase title="Weapons" have={found} all={WEAPONS.length}>
         {WEAPONS.map((w) => (
           <CodexTile
+            onTap={inspect}
             key={w.id}
             name={w.name}
             owned={champion.weapons.includes(w.id)}
@@ -49,7 +62,7 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
           all={group.list.length}
         >
           {group.list.map((s) => (
-            <CodexTile key={s.id} name={s.name} owned={champion.skills.includes(s.id)} detail={s.text}>
+            <CodexTile onTap={inspect} key={s.id} name={s.name} owned={champion.skills.includes(s.id)} detail={s.text}>
               <SkillIcon id={s.id} kind={s.kind as SkillKind} size={46} />
             </CodexTile>
           ))}
@@ -59,6 +72,7 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
       <CodexCase title="Pets" have={champion.beasts.length} all={BEASTS.length}>
         {BEASTS.map((b) => (
           <CodexTile
+            onTap={inspect}
             key={b.id}
             name={b.name}
             owned={champion.beasts.includes(b.id)}
@@ -75,6 +89,9 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
 }
 
 /** One shelf of the Codex, with how much of it you have found. */
+/** Tap-to-inspect: `title` never fires on touch, so hover-only tooltips made
+ *  the Codex a grid of names with zero information on phones — the platform
+ *  the collection screen most needs to sell chase targets on. */
 function CodexCase({
   title,
   note,
@@ -106,17 +123,24 @@ function CodexTile({
   name,
   owned,
   detail,
+  onTap,
   children,
 }: {
   name: string;
   owned: boolean;
   detail: string;
+  onTap: (name: string, detail: string) => void;
   children: React.ReactNode;
 }) {
   return (
-    <span className={`codex-tile ${owned ? "" : "locked"}`} title={`${name} — ${detail}`}>
+    <button
+      type="button"
+      className={`codex-tile ${owned ? "" : "locked"}`}
+      title={`${name} — ${detail}`}
+      onClick={() => onTap(name, detail)}
+    >
       {children}
       <em>{name}</em>
-    </span>
+    </button>
   );
 }

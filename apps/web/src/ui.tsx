@@ -3,6 +3,7 @@
  * two lookup tables that name a rating and a weapon family in player words.
  */
 import { useMemo } from "react";
+import { weapon } from "@agoge/core";
 import { PixIcon } from "./pixelIcons.js";
 import { ladder, standing } from "./ladder.js";
 import type { SaveV1 } from "./save.js";
@@ -55,3 +56,32 @@ export function StandingsStrip({ save }: { save: SaveV1 }) {
   );
 }
 
+
+/**
+ * A weapon's character at a glance: how hard it hits, how often, how far it
+ * reaches. Bars beat "dmg 10 · steady" because two weapons can be compared
+ * without doing arithmetic. Lives here because both the Hall rack and the
+ * level-up reward card draw it.
+ */
+export function WeaponBars({ w }: { w: ReturnType<typeof weapon> }) {
+  if (w.discipline === "aspis") {
+    return <div className="muted small">Raised to turn blows aside — never swung.</div>;
+  }
+  // 900ms is about the slowest swing in the game; invert so faster reads fuller
+  const speed = Math.max(6, Math.min(100, ((450 - w.interval) / 270) * 100));
+  const rows: Array<[string, number]> = [
+    ["Damage", Math.min(100, (w.dmg / 22) * 100)],
+    ["Speed", speed],
+    ["Reach", Math.min(100, ((w.reach + 1) / 4) * 100)],
+  ];
+  return (
+    <div className="wbars">
+      {rows.map(([label, pct]) => (
+        <div className="wbar-row" key={label}>
+          <span>{label}</span>
+          <span className="statbar"><i style={{ width: `${pct}%` }} /></span>
+        </div>
+      ))}
+    </div>
+  );
+}

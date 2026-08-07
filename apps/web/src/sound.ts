@@ -35,9 +35,20 @@ function ac(): AudioContext | null {
       shelf.type = "highshelf";
       shelf.frequency.value = 3200;
       shelf.gain.value = 4;
+      // Brickwall after the glue: the 5:1 compressor shapes, it does not
+      // cap, and its automatic makeup gain means a crit + drum + fanfare
+      // chord stacking could still push past 0 dBFS and crackle.
+      const limiter = ctx.createDynamicsCompressor();
+      limiter.threshold.value = -1.5;
+      limiter.knee.value = 0;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.001;
+      limiter.release.value = 0.06;
+      const ceiling = ctx.createGain();
+      ceiling.gain.value = 0.95;
       bus = ctx.createGain();
       bus.gain.value = 0.9;
-      bus.connect(shelf).connect(comp).connect(ctx.destination);
+      bus.connect(shelf).connect(comp).connect(limiter).connect(ceiling).connect(ctx.destination);
     }
     if (ctx.state === "suspended") void ctx.resume();
     return ctx;
@@ -67,12 +78,12 @@ function tone(o: ToneOpts) {
   try {
     const t0 = c.currentTime + (o.when ?? 0);
     const attack = o.attack ?? 0.003;
-    const gain = o.gain ?? 0.2;
+    const gain = H(o.gain ?? 0.2, 0.14);
     const osc = c.createOscillator();
     osc.type = o.type ?? "sine";
     if (o.detune) osc.detune.value = o.detune;
-    osc.frequency.setValueAtTime(Math.max(20, o.from), t0);
-    osc.frequency.exponentialRampToValueAtTime(Math.max(20, o.to ?? o.from), t0 + o.dur);
+    osc.frequency.setValueAtTime(Math.max(20, H(o.from)), t0);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, H(o.to ?? o.from)), t0 + o.dur);
     const g = c.createGain();
     g.gain.setValueAtTime(0.0001, t0);
     g.gain.linearRampToValueAtTime(gain, t0 + attack);
@@ -134,13 +145,13 @@ function noise(o: NoiseOpts) {
     src.loopEnd = noiseBuf.duration;
     const f = c.createBiquadFilter();
     f.type = o.type ?? "lowpass";
-    f.frequency.setValueAtTime(o.from, t0);
-    if (o.to) f.frequency.exponentialRampToValueAtTime(o.to, t0 + o.dur);
+    f.frequency.setValueAtTime(Math.max(30, H(o.from, 0.07)), t0);
+    if (o.to) f.frequency.exponentialRampToValueAtTime(Math.max(30, H(o.to, 0.07)), t0 + o.dur);
     f.Q.value = o.q ?? 0.8;
     const g = c.createGain();
     const attack = o.attack ?? 0.002;
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.linearRampToValueAtTime(o.gain ?? 0.15, t0 + attack);
+    g.gain.linearRampToValueAtTime(H(o.gain ?? 0.15, 0.14), t0 + attack);
     g.gain.exponentialRampToValueAtTime(0.001, t0 + o.dur);
     let head: AudioNode = f;
     if (o.pan) {
@@ -164,6 +175,9 @@ function noise(o: NoiseOpts) {
 /* ------------------------------------------------------------------ */
 
 let amb: { src: AudioBufferSourceNode; out: GainNode; lfo: OscillatorNode } | null = null;
+// Whether a fight currently wants ambience — so unmuting mid-bout can bring
+// the crowd back instead of leaving every SFX naked over silence.
+let wantAmbience = false;
 
 function ambienceStart() {
   const c = ac();
@@ -247,6 +261,31 @@ function chime(freq: number, dur: number, gain: number, when: number) {
   tone({ from: freq, dur: dur * 0.8, type: "triangle", gain: gain * 0.28, when: when + 0.15, attack: 0.01 });
 }
 
+/**
+ * Humanising jitter. Every strike used to be built from the same fixed
+ * frequencies and gains — bit-identical blows, ten times a fight, which is
+ * the number-one tell of cheap procedural audio. Frequencies wander a few
+ * percent and gains a shade more; musical cues (fanfare, level-up) do NOT
+ * use this, so melodies stay in tune.
+ */
+function j(v: number, pct = 0.05): number {
+  return v * (1 + (Math.random() * 2 - 1) * pct);
+}
+let humanise = false;
+/** Jitter only while a combat cue is being built. */
+function H(v: number, pct = 0.05): number {
+  return humanise ? j(v, pct) : v;
+}
+/** Run a cue body with humanising on — combat only, never melodies. */
+function rough(fn: () => void): void {
+  humanise = true;
+  try {
+    fn();
+  } finally {
+    humanise = false;
+  }
+}
+
 /** What a blow is made of — chosen from the weapon actually in hand. */
 export type StrikeKind = "fist" | "kick" | "sword" | "spear" | "axe" | "pierce";
 
@@ -255,6 +294,7 @@ export const sound = {
   setMuted(m: boolean) {
     muted = m;
     if (m) ambienceStop();
+    else if (wantAmbience) ambienceStart();
     try {
       localStorage.setItem(KEY, m ? "1" : "0");
     } catch {
@@ -264,9 +304,11 @@ export const sound = {
 
   /** The crowd settles in around a fight. Idempotent; ends with arenaOut. */
   arenaIn() {
+    wantAmbience = true;
     if (!muted) ambienceStart();
   },
   arenaOut() {
+    wantAmbience = false;
     ambienceStop();
   },
 
@@ -284,6 +326,11 @@ export const sound = {
    */
   strike(kind: StrikeKind, crit = false) {
     if (muted) return;
+    rough(() => this.strikeRaw(kind, crit));
+  },
+
+  /** @internal The un-jittered body — always called through strike(). */
+  strikeRaw(kind: StrikeKind, crit = false) {
     switch (kind) {
       case "fist":
         // knuckle snap, then the soft give of a body. No metal anywhere.
@@ -342,7 +389,8 @@ export const sound = {
   /** The swing before contact — mass and edge decide how the air moves. */
   swing(kind: StrikeKind) {
     if (muted) return;
-    switch (kind) {
+    rough(() => {
+      switch (kind) {
       case "fist":
         noise({ dur: 0.11, type: "bandpass", from: 800, to: 2700, q: 2.2, gain: 0.11, attack: 0.035 });
         break;
@@ -362,22 +410,30 @@ export const sound = {
         noise({ dur: 0.25, type: "bandpass", from: 300, to: 1300, q: 1.4, gain: 0.17, attack: 0.1 });
         break;
       case "pierce":
-        noise({ dur: 0.12, type: "bandpass", from: 1200, to: 3600, q: 2.6, gain: 0.12, attack: 0.03 });
-        break;
-    }
+          noise({ dur: 0.12, type: "bandpass", from: 1200, to: 3600, q: 2.6, gain: 0.12, attack: 0.03 });
+          break;
+      }
+    });
   },
 
   /** Nothing connects: cloth, a shifted foot, air closing where a body was. */
   dodge() {
     if (muted) return;
-    noise({ dur: 0.13, type: "bandpass", from: 1300, to: 2700, q: 1.2, gain: 0.1, attack: 0.045 });
-    noise({ dur: 0.05, type: "lowpass", from: 700, gain: 0.12, when: 0.07, attack: 0.002 });
-    tone({ from: 95, to: 55, dur: 0.06, type: "sine", gain: 0.13, when: 0.07, attack: 0.002 });
+    rough(() => {
+      noise({ dur: 0.13, type: "bandpass", from: 1300, to: 2700, q: 1.2, gain: 0.1, attack: 0.045 });
+      noise({ dur: 0.05, type: "lowpass", from: 700, gain: 0.12, when: 0.07, attack: 0.002 });
+      tone({ from: 95, to: 55, dur: 0.06, type: "sine", gain: 0.13, when: 0.07, attack: 0.002 });
+    });
   },
 
   /** Caught on a shield (dull wood, ringing rim) or turned on a blade. */
   block(onShield = true) {
     if (muted) return;
+    rough(() => this.blockRaw(onShield));
+  },
+
+  /** @internal The un-jittered body — always called through block(). */
+  blockRaw(onShield = true) {
     click(0.24);
     if (onShield) {
       tone({ from: 240, to: 95, dur: 0.09, type: "square", gain: 0.26, attack: 0.001, filter: { type: "lowpass", from: 1900, to: 500 } });

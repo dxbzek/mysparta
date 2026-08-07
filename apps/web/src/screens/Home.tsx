@@ -18,9 +18,9 @@ import { AuraSparks, FighterBust, FighterFig, lookFor, type FighterAnim } from "
 import { ARENAS } from "../arenas.js";
 import { arenaScene } from "../arenaArt.js";
 import { gearDetail, gearItem, gearPool, gearStatLine, lookWithGear, resolveExtras, type GearItem, type GearSlot } from "../gear.js";
-import { encodeSave, questProgress, questsForDay, untilReset, type SaveV1 } from "../save.js";
+import { encodeSave, questProgress, questsForDay, untilReset, VIGOR_CAP, VIGOR_DAILY, type SaveV1 } from "../save.js";
 import type { Look } from "../paperdoll.js";
-import { DISCIPLINE_NAME, StandingsStrip } from "../ui.js";
+import { DISCIPLINE_NAME, StandingsStrip, WeaponBars } from "../ui.js";
 
 const PORTRAIT_POSES: Array<{ id: FighterAnim; name: string }> = [
   { id: "stance", name: "Guard" },
@@ -61,14 +61,24 @@ function ChampionPortrait({
    */
   const plateRef = useRef<HTMLDivElement>(null);
   const [figScale, setFigScale] = useState(SCALE);
+  // The scene, repainted for the box the plate actually got. It used to be
+  // painted once at 78x82 and stretched with background-size: cover — a
+  // continuously FRACTIONAL scale on the most-viewed art in the game, mushy
+  // pixels under a strictly integer-scaled champion. Now the plate picks an
+  // integer scale, paints the scene at ceil(box/scale) native pixels, and
+  // blows it up exactly scale times, same as the fight stage.
+  const [plate, setPlate] = useState({ w: NW, h: NH, scale: SCALE });
   useLayoutEffect(() => {
     const fit = () => {
+      const w = plateRef.current?.clientWidth ?? 0;
       const h = plateRef.current?.clientHeight ?? 0;
-      if (!h) return;
+      if (!w || !h) return;
       // The sprite stands on the ground line, which CSS clamps to 22% of the
       // plate on short boxes — so what it actually has is the 78% above that.
       const usable = h * 0.78;
       setFigScale(Math.max(1, Math.min(SCALE, Math.floor(usable / 48))));
+      const scale = Math.max(1, Math.min(4, Math.floor(w / NW)));
+      setPlate({ w: Math.ceil(w / scale), h: Math.ceil(h / scale), scale });
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -100,7 +110,11 @@ function ChampionPortrait({
         ref={plateRef}
         style={
           {
-            backgroundImage: `url(${arenaScene(arena, NW, NH)})`,
+            backgroundImage: `url(${arenaScene(arena, plate.w, plate.h)})`,
+            // exact integer blow-up, anchored to the ground — overrides the
+            // stylesheet's cover/stretch on every layout branch
+            backgroundSize: `${plate.w * plate.scale}px ${plate.h * plate.scale}px`,
+            backgroundPosition: "center bottom",
             "--plate-w": `${NW * SCALE}`,
             "--plate-h": `${NH * SCALE}`,
             // Where the ground line falls once the scene is scaled to the
@@ -196,33 +210,6 @@ function Quest({ at, of, children }: { at: number; of: number; children: React.R
 }
 
 
-/**
- * A weapon's character at a glance: how hard it hits, how often, how far it
- * reaches. Bars beat "dmg 10 · steady" because two weapons can be compared
- * without doing arithmetic.
- */
-function WeaponBars({ w }: { w: ReturnType<typeof weapon> }) {
-  if (w.discipline === "aspis") {
-    return <div className="muted small">Raised to turn blows aside — never swung.</div>;
-  }
-  // 900ms is about the slowest swing in the game; invert so faster reads fuller
-  const speed = Math.max(6, Math.min(100, ((450 - w.interval) / 270) * 100));
-  const rows: Array<[string, number]> = [
-    ["Damage", Math.min(100, (w.dmg / 22) * 100)],
-    ["Speed", speed],
-    ["Reach", Math.min(100, ((w.reach + 1) / 4) * 100)],
-  ];
-  return (
-    <div className="wbars">
-      {rows.map(([label, pct]) => (
-        <div className="wbar-row" key={label}>
-          <span>{label}</span>
-          <span className="statbar"><i style={{ width: `${pct}%` }} /></span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 
 export function Home(props: {
@@ -249,6 +236,7 @@ export function Home(props: {
   const teaching = save.totalFights < 3;
   const [armDelete, setArmDelete] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showCode, setShowCode] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
   const q = save.quests;
   const todaysTasks = questsForDay();
@@ -276,8 +264,10 @@ export function Home(props: {
           <p>
             <b>How it plays:</b> fight rivals → earn XP → level up → the Rift rolls your reward
             <span className="say-more"> (stats, weapons, skills, pets or gear — always a surprise)</span>.
-            You get <b>6 fights a day</b>
-            <span className="say-more"> (they bank up to 12)</span>.
+            Winning also moves your <b>Rating</b>
+            <span className="say-more"> — every rival card shows what a win or loss is worth</span>.
+            You get <b>{VIGOR_DAILY} fights a day</b>
+            <span className="say-more"> (they bank up to {VIGOR_CAP} — today you start with a full tank)</span>.
             <span className="muted say-more"> Your name set your awakening — the Rift decides the rest.</span>
           </p>
         </section>
@@ -417,7 +407,7 @@ export function Home(props: {
               </Quest>
             ))}
           </ul>
-          <p className="muted small note say-more">Complete all three for a bonus gear drop. Resets daily.</p>
+          <p className="muted small note say-more">Complete all three for a bonus drop. Resets daily.</p>
         </section>
       )}
 
@@ -533,20 +523,34 @@ export function Home(props: {
             try {
               await navigator.clipboard.writeText(encodeSave(save));
               setCopied(true);
+              setShowCode(false);
             } catch {
-              /* clipboard denied in sandboxed embeds — the button just stays */
+              // Clipboard is denied in exactly the sandboxed embeds rescue
+              // codes exist for. Silence here meant the game's only backup
+              // mechanism failed with zero feedback — show the code instead
+              // so it can be selected and copied by hand.
+              setShowCode(true);
             }
           }}
         >
           {copied ? "Copied — keep it safe!" : "Copy rescue code"}
         </button>
         <button
-          className={`btn tiny danger ${armDelete ? "armed" : ""}`}
+          className={`btn tiny danger devrow-delete ${armDelete ? "armed" : ""}`}
           onClick={() => (armDelete ? props.onDelete() : setArmDelete(true))}
         >
           {armDelete ? "Tap again — deletes forever!" : "Delete Hunter"}
         </button>
       </div>
+      {showCode && (
+        <textarea
+          className="rescue-out"
+          readOnly
+          value={encodeSave(save)}
+          onFocus={(e) => e.currentTarget.select()}
+          aria-label="Your rescue code — select and copy it"
+        />
+      )}
     </div>
   );
 }

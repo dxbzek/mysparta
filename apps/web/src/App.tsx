@@ -176,7 +176,7 @@ export function App() {
     if (!save) return { s: "forge" };
     return wanted && wanted !== "fight" ? ({ s: wanted } as Screen) : { s: "home" };
   });
-  const [draft, setDraft] = useState<{ offers: FateOffer[]; pick: number; drop?: GearItem } | null>(null);
+  const [draft, setDraft] = useState<{ offers: FateOffer[]; pick: number; drop?: GearItem; nonce: number } | null>(null);
 
   // The address bar follows the screen, so refresh and the back button land
   // where the player expects instead of dumping them at the Hall.
@@ -215,17 +215,40 @@ export function App() {
   // roll the modal, so reloading (or restoring a rescue code) with unclaimed
   // XP left the hunter stuck at a full bar until their next fight ended.
   useEffect(() => {
-    if (save && screen.s !== "fight") openDraftIfDue(save);
+    // Only when no draft is open: this watchdog exists for refresh/restore
+    // with unclaimed XP, and without the guard it re-rolled an OPEN draft
+    // back to nonce 0 — instantly undoing a Favour reroll it had just paid for.
+    if (save && screen.s !== "fight" && !draft) openDraftIfDue(save);
     // Keyed on the screen too: walking out of a fight with the back button
     // skips onDone, and without this a level earned in that fight would sit
     // unclaimed behind a full XP bar until the next one ended.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [save, screen.s]);
 
+  const [muted, setMuted] = useState(() => sound.isMuted());
+
+  // Another tab writing the same slot must not be clobbered by this one's
+  // stale copy: rebase on the stored save whenever it changes elsewhere.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key && (e.key.startsWith("agoge.save") || e.key.startsWith("agoge.roster"))) {
+        setSave(load());
+        setDraft(null);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   // One crisp tick for every button in the game.
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if ((e.target as HTMLElement | null)?.closest("button")) sound.click();
+      const t = e.target as HTMLElement | null;
+      // The mute button manages its own confirmation sound — a capture-phase
+      // tick here fired BEFORE the flag flipped, so muting beeped and
+      // unmuting was silent: inverted feedback on the one audio button.
+      if (t?.closest("[data-nosfx]")) return;
+      if (t?.closest("button")) sound.click();
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
@@ -245,34 +268,56 @@ export function App() {
    * offers and one themed gear drop — the player only claims, never chooses.
    * Seeded from the champion, so the same hunter always rolls the same fate.
    */
+  /*
+   * The core guarantees a WEAPON is offered at level 5 and a SKILL at 10 —
+   * but the pick was a flat roll across all three offers, so the guarantee
+   * only landed a third of the time. A full day of play reached level 6
+   * with no weapon, no skill and no pet: five level-ups of pure stats, in
+   * a game whose whole pitch is what the Rift hands you.
+   *
+   * The roll stays random everywhere else. On a milestone, if the hunter
+   * still owns nothing of the promised kind, the promise is kept — and a
+   * Favour reroll re-rolls under the same promise.
+   */
+  const rollDraft = (c: Champion, next: number, nonce: number) => {
+    const offers = generateDraft(c, next, nonce);
+    let pick = makeRng(combineSeed(c.seed, "roll", next, nonce)).int(offers.length);
+    const forced =
+      next === 5 && c.weapons.length === 0
+        ? offers.findIndex((o) => o.kind === "weapon")
+        : next === 10 && c.skills.length === 0
+          ? offers.findIndex((o) => o.kind === "skill")
+          : -1;
+    if (forced >= 0) pick = forced;
+    return { offers, pick };
+  };
+
   const openDraftIfDue = (s: SaveV1) => {
     const c = s.champion;
     if (c.level < 50 && c.xp >= costToNext(c.level)) {
       const next = c.level + 1;
-      const offers = generateDraft(c, next, 0);
-      let pick = makeRng(combineSeed(c.seed, "roll", next)).int(offers.length);
-      /*
-       * The core guarantees a WEAPON is offered at level 5 and a SKILL at 10 —
-       * but the pick was a flat roll across all three offers, so the guarantee
-       * only landed a third of the time. A full day of play reached level 6
-       * with no weapon, no skill and no pet: five level-ups of pure stats, in
-       * a game whose whole pitch is what the Rift hands you.
-       *
-       * The roll stays random everywhere else. On a milestone, if the hunter
-       * still owns nothing of the promised kind, the promise is kept.
-       */
-      const forced =
-        next === 5 && c.weapons.length === 0
-          ? offers.findIndex((o) => o.kind === "weapon")
-          : next === 10 && c.skills.length === 0
-            ? offers.findIndex((o) => o.kind === "skill")
-            : -1;
-      if (forced >= 0) pick = forced;
       const drop = rollGearDrop(s.gear ?? [], combineSeed(c.seed, "gear", next));
-      setDraft({ offers, pick, drop });
+      setDraft({ ...rollDraft(c, next, 0), drop, nonce: 0 });
     } else {
       setDraft(null);
     }
+  };
+
+  /*
+   * The Favour reroll — the currency's first and only sink. Favour has been
+   * accruing (+1 per milestone, cap 6) since the sim was written, synced and
+   * rescue-coded, and the client never showed or spent it: a fully dead
+   * currency. Spending is final (draft.ts: redraw is final) and paid up
+   * front; the gear drop is not rerolled, only the Rift's offer.
+   */
+  const rerollDraft = () => {
+    if (!draft || !save || save.champion.favour <= 0) return;
+    const champion = structuredClone(save.champion);
+    champion.favour -= 1;
+    const next = champion.level + 1;
+    update({ ...save, champion });
+    sound.power();
+    setDraft({ ...rollDraft(champion, next, draft.nonce + 1), drop: draft.drop, nonce: draft.nonce + 1 });
   };
 
   if (!save || screen.s === "forge") {
@@ -290,9 +335,15 @@ export function App() {
             setScreen({ s: "home" });
           }}
           onRestore={(restored) => {
+            // A restored code lands in a FREE slot when one exists. It used to
+            // write into the active slot — so pasting a rescue code with a
+            // hunter already loaded silently destroyed that hunter, making the
+            // backup mechanism the game's one data-loss path.
+            const target = firstFreeSlot() ?? activeSlot();
+            setActiveSlot(target);
             // Persist, then re-read through load() so the code gets the same
             // migrations an old localStorage save would.
-            persist(restored);
+            persist(restored, target);
             setSave(load());
             setScreen({ s: "home" });
           }}
@@ -329,8 +380,16 @@ export function App() {
     let gear = fresh.gear ?? [];
     const equipped = { ...(fresh.equipped ?? {}) };
     const drops: string[] = [];
+    // Once the wardrobe is complete (46 pieces, done by the mid-20s levels)
+    // rollGearDrop returns undefined — and the daily board and win loot used
+    // to silently pay nothing for the rest of a fifty-level career. The
+    // fallback bounty keeps the promise that finishing the tasks pays.
     const addDrop = (item?: GearItem) => {
-      if (!item) return;
+      if (!item) {
+        champion.xp += 2;
+        drops.push("Rift bounty — +2 XP");
+        return;
+      }
       gear = [...gear, item.id];
       if (!equipped[item.slot]) equipped[item.slot] = item.id;
       drops.push(item.name);
@@ -387,10 +446,11 @@ export function App() {
     if (!draft) return;
     const champion = structuredClone(save.champion);
     champion.xp -= costToNext(champion.level);
-    applyDraft(champion, draft.offers, draft.pick, false);
+    applyDraft(champion, draft.offers, draft.pick, draft.nonce > 0);
     const gear = [...(save.gear ?? []), ...(draft.drop ? [draft.drop.id] : [])];
     const equipped = { ...(save.equipped ?? {}) };
     if (draft.drop && !equipped[draft.drop.slot]) equipped[draft.drop.slot] = draft.drop.id;
+    if (draft.drop) sound.drop();
     const next = { ...save, champion, gear, equipped };
     update(next);
     openDraftIfDue(next);
@@ -415,15 +475,25 @@ export function App() {
             <span className="pill" title={`Fights refill daily (+6, up to ${VIGOR_CAP})`}>
               <PixIcon name="bolt" size={13} className="icon-gold" /> {save.vigor} fights
             </span>
+            {save.champion.favour > 0 && (
+              <span className="pill" title="Favour — spend it to reroll a level-up reward">
+                <PixIcon name="dice" size={13} className="icon-gold" /> {save.champion.favour}
+              </span>
+            )}
             <button
               className="pill sound-toggle"
+              data-nosfx
               onClick={() => {
+                // Local state only. This used to call update({...save}) — a
+                // full persist + cloud push + app re-render to flip a flag
+                // that does not even live in the save.
                 sound.setMuted(!sound.isMuted());
-                update({ ...save });
+                if (!sound.isMuted()) sound.click();
+                setMuted(sound.isMuted());
               }}
-              title={sound.isMuted() ? "Sound is off" : "Sound is on"}
+              title={muted ? "Sound is off" : "Sound is on"}
             >
-              <PixIcon name={sound.isMuted() ? "speakerOff" : "speaker"} size={13} />
+              <PixIcon name={muted ? "speakerOff" : "speaker"} size={13} />
             </button>
           </div>
         </header>
@@ -547,6 +617,9 @@ export function App() {
           level={c.level + 1}
           offer={draft.offers[draft.pick]!}
           drop={draft.drop}
+          favour={c.favour}
+          rerolled={draft.nonce > 0}
+          onReroll={rerollDraft}
           onClaim={claimReward}
         />
       )}

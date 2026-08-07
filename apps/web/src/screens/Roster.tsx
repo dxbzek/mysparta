@@ -6,7 +6,7 @@
  * grey for them forever. A second hunter is how the rest of the game gets
  * seen, and it is the reason to open the app on the day your first is capped.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PixIcon } from "../pixelIcons.js";
 import { FighterBust } from "../fighters.js";
 import { lookWithGear } from "../gear.js";
@@ -25,6 +25,13 @@ export function Roster(props: {
   // Retiring is two taps, like deleting a hunter — window.confirm is silently
   // blocked in sandboxed embeds, and this ends a fifty-day climb.
   const [armed, setArmed] = useState<number | null>(null);
+  // Same stakes as Delete Hunter, same defusal: an armed Retire that never
+  // disarms is a landmine for a later stray tap.
+  useEffect(() => {
+    if (armed === null) return;
+    const t = window.setTimeout(() => setArmed(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [armed]);
   const filled = slots.filter(Boolean).length;
 
   return (
@@ -82,7 +89,10 @@ export function Roster(props: {
                 <button
                   className="btn primary"
                   disabled={i === active}
-                  onClick={() => props.onPlay(i)}
+                  onClick={() => {
+                    setArmed(null);
+                    props.onPlay(i);
+                  }}
                 >
                   {i === active ? "Playing" : "Play"}
                 </button>

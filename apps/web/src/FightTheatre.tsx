@@ -75,7 +75,15 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   // re-narrating the whole fight each time would be pure waste.
   const lines = useMemo(() => narrate(result, names), [result, names[0], names[1]]);
   const [shown, setShown] = useState(1);
-  const [speed, setSpeed] = useState<1 | 2>(1);
+  // Remembered like mute: with six banked fights a day, re-tapping 2x every
+  // single bout was the most-repeated dead interaction in the game.
+  const [speed, setSpeed] = useState<1 | 2>(() => {
+    try {
+      return localStorage.getItem("agoge.speed") === "2" ? 2 : 1;
+    } catch {
+      return 1;
+    }
+  });
   const [skipped, setSkipped] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -199,7 +207,9 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     const l = lines[shown - 1];
     if (!l) return;
     if (l.kind === "end") {
-      sound.fanfare(l.text.includes(names[0]));
+      // By the result, not by name-substring: "Ajax" losing to "Ajax the Red"
+      // used to hear the victory fanfare.
+      sound.fanfare(result.winner === 0);
       return;
     }
     if (l.anim?.beastId) sound.beast();
@@ -211,6 +221,10 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     // beat, and the defender's real answer to it.
     const striker = l.anim?.striker;
     const kind = strikeKind(striker === undefined ? undefined : heldWeapon[striker], idxRef.current);
+    // The strike keyframe reaches the foe ~42% into its run (~320ms at 1x),
+    // but impacts used to land at 95ms — the thwack played while the striker
+    // was still mid-sprint, audio leading video by ~200ms on every hit.
+    const contact = Math.round(290 / speedRef.current);
     switch (l.kind) {
       case "info":
         if (l.text.includes("enter the arena")) {
@@ -225,7 +239,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
         if (l.anim?.thrown) sound.strike("pierce", crit);
         else {
           sound.swing(kind);
-          land(() => sound.strike(kind, crit), kind === "axe" ? 150 : 95);
+          land(() => sound.strike(kind, crit), kind === "axe" ? Math.round(360 / speedRef.current) : contact);
         }
         break;
       }
@@ -234,10 +248,10 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
         else if (l.anim?.reaction?.kind === "block") {
           sound.swing(kind);
           const guard = l.anim.reaction.side;
-          land(() => sound.block(hasShield[guard]), 95);
+          land(() => sound.block(hasShield[guard]), contact);
         } else if (l.anim?.reaction?.kind === "dodge") {
           sound.swing(kind);
-          land(() => sound.dodge(), 90);
+          land(() => sound.dodge(), contact);
         } else if (l.anim?.thrown) sound.throwSpear();
         else sound.swing(kind);
         break;
@@ -246,7 +260,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
         break;
     }
     return () => pending.forEach((id) => window.clearTimeout(id));
-  }, [shown, skipped, lines, names, heldWeapon, hasShield]);
+  }, [shown, skipped, lines, names, heldWeapon, hasShield, result.winner]);
 
   const slotClass = (side: 0 | 1): string => {
     const cls = ["fig-slot"];
@@ -254,6 +268,9 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     // A chain hit keeps the swing but skips the run-in: they are already close.
     if (anim?.striker === side && !anim.beastId && !anim.chain) {
       cls.push(anim.thrown ? (side === 0 ? "throw-r" : "throw-l") : side === 0 ? "strike-r" : "strike-l");
+      // Three lunge shapes, cycled per-side: every hit used to be the same
+      // full-stage sprint, so a 30-beat fight read as one GIF looping.
+      if (!anim.thrown) cls.push(`sv${swingCount[side] % 3}`);
       // A critical is the same lunge, further and harder — it should not look
       // like every other swing when the feed is shouting CRITICAL.
       if (fx?.crit) cls.push("strike-crit");
@@ -352,7 +369,11 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   };
 
   return (
-    <div className="theatre">
+    // --spd compresses the choreography with the clock. At 2x the beats were
+    // halved but the CSS kept its 1x durations, so strikes were killed
+    // mid-sprint and damage numbers lived ~110ms — 2x looked broken rather
+    // than fast, in the mode repeat players live in.
+    <div className="theatre" style={{ "--spd": speed === 2 ? 0.5 : 1 } as React.CSSProperties}>
       <div
         className={`stage ${fx?.crit && !finished ? "quake" : ""}`}
         ref={stageRef}
@@ -480,7 +501,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
               ))}
             </div>
             <div className="verdict-sub">
-              {names[result.winner]} · {result.ticks} ticks · sim v{result.simVersion}
+              {names[result.winner]} takes it in {result.ticks} exchanges
             </div>
           </div>
         )}
@@ -497,7 +518,18 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       <div className="theatre-controls">
         {!finished ? (
           <>
-            <button className="btn ghost" onClick={() => setSpeed(speed === 1 ? 2 : 1)}>
+            <button
+              className="btn ghost"
+              onClick={() => {
+                const next = speed === 1 ? 2 : 1;
+                try {
+                  localStorage.setItem("agoge.speed", String(next));
+                } catch {
+                  /* storage denied — the choice still holds for this fight */
+                }
+                setSpeed(next as 1 | 2);
+              }}
+            >
               {speed === 1 ? "2× speed" : "1× speed"}
             </button>
             <button className="btn ghost" onClick={() => setSkipped(true)}>

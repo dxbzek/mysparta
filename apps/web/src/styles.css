@@ -1,6 +1,11 @@
 /* RANK ZERO — warm paper theme (MyBrute-era visual language, hand-crafted feel). */
 
 :root {
+  /* text-on-parchment variants of the accent hues — ≥4.5:1 on --panel */
+  --gold-ink: #8a6410;
+  --lapis-ink: #2d5f93;
+  --terracotta-ink: #b03f28;
+  --olive-ink: #55772f;
   --page: #f0e6d2;
   --page-deep: #e5d8bd;
   --panel: #fbf4e4;
@@ -360,7 +365,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .champ-name { margin: 0; font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; }
 .champ-name.small { font-size: 0.8rem; }
-.epithet { color: var(--terracotta); font-style: italic; font-weight: 600; }
+.epithet { color: var(--terracotta-ink); font-style: italic; font-weight: 600; }
 .statline { color: var(--ink-soft); font-size: 0.92rem; margin-top: 4px; font-weight: 600; }
 
 .xpbar {
@@ -520,7 +525,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .rival { display: flex; flex-direction: column; gap: 6px; }
 .rival-top { display: flex; align-items: center; gap: 10px; }
 .rival-top .champ-name { flex: 1; }
-.lastseen { color: var(--lapis); font-style: italic; font-weight: 700; }
+.lastseen { color: var(--lapis-ink); font-style: italic; font-weight: 700; }
 .rival .btn { margin-top: 8px; }
 
 /* ---------- battle plan ---------- */
@@ -721,8 +726,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 
 /* --- the run-in strike: sprint, wind up, SWING, run back --- */
-.strike-r { animation: strikeR 760ms ease-in-out; z-index: 4; }
-.strike-l { animation: strikeL 760ms ease-in-out; z-index: 4; }
+.strike-r { animation: strikeR calc(760ms * var(--spd, 1)) ease-in-out; z-index: 4; }
+.strike-l { animation: strikeL calc(760ms * var(--spd, 1)) ease-in-out; z-index: 4; }
 @keyframes strikeR {
   0%   { transform: translateX(0); }
   11%  { transform: translateX(calc(var(--dash) * 0.25)) translateY(-7px) rotate(-4deg); }
@@ -746,9 +751,54 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   100% { transform: translateX(0); }
 }
 
+/*
+ * Lunge variants. Every non-chain hit used to play the identical sprint —
+ * over a 30-beat fight the eye reads one GIF looping. sv1 is a low, flat
+ * rush with an overshoot skid; sv2 hops in with a higher arc and drops the
+ * blow from above. The theatre cycles sv0/sv1/sv2 on each side's own count.
+ */
+.strike-r.sv1 { animation-name: strikeRb; }
+.strike-l.sv1 { animation-name: strikeLb; }
+.strike-r.sv2 { animation-name: strikeRc; }
+.strike-l.sv2 { animation-name: strikeLc; }
+@keyframes strikeRb {
+  0%   { transform: translateX(0); }
+  30%  { transform: translateX(calc(var(--dash) * 0.7)) translateY(2px) rotate(2deg); }
+  44%  { transform: translateX(calc(var(--dash) + 26px)) translateY(2px) rotate(-19deg); }
+  56%  { transform: translateX(calc(var(--dash) + 6px)) rotate(9deg); }
+  70%  { transform: translateX(var(--dash)) rotate(0deg); }
+  100% { transform: translateX(0); }
+}
+@keyframes strikeLb {
+  0%   { transform: translateX(0); }
+  30%  { transform: translateX(calc(var(--dash) * -0.7)) translateY(2px) rotate(-2deg); }
+  44%  { transform: translateX(calc(var(--dash) * -1 - 26px)) translateY(2px) rotate(19deg); }
+  56%  { transform: translateX(calc(var(--dash) * -1 - 6px)) rotate(-9deg); }
+  70%  { transform: translateX(calc(var(--dash) * -1)) rotate(0deg); }
+  100% { transform: translateX(0); }
+}
+@keyframes strikeRc {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(calc(var(--dash) * 0.35)) translateY(-16px) rotate(-6deg); }
+  38%  { transform: translateX(calc(var(--dash) * 0.8)) translateY(-22px) rotate(-9deg); }
+  50%  { transform: translateX(var(--dash)) translateY(0) rotate(-18deg); }
+  60%  { transform: translateX(calc(var(--dash) + 12px)) rotate(11deg); }
+  76%  { transform: translateX(calc(var(--dash) * 0.5)) translateY(-8px); }
+  100% { transform: translateX(0); }
+}
+@keyframes strikeLc {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(calc(var(--dash) * -0.35)) translateY(-16px) rotate(6deg); }
+  38%  { transform: translateX(calc(var(--dash) * -0.8)) translateY(-22px) rotate(9deg); }
+  50%  { transform: translateX(calc(var(--dash) * -1)) translateY(0) rotate(18deg); }
+  60%  { transform: translateX(calc(var(--dash) * -1 - 12px)) rotate(-11deg); }
+  76%  { transform: translateX(calc(var(--dash) * -0.5)) translateY(-8px); }
+  100% { transform: translateX(0); }
+}
+
 /* --- thrown attack: plant, wind, hurl --- */
-.throw-r { animation: throwR 620ms ease; }
-.throw-l { animation: throwL 620ms ease; }
+.throw-r { animation: throwR calc(620ms * var(--spd, 1)) ease; }
+.throw-l { animation: throwL calc(620ms * var(--spd, 1)) ease; }
 @keyframes throwR {
   30% { transform: rotate(-13deg) translateX(-10px); }
   55% { transform: rotate(13deg) translateX(12px); }
@@ -761,8 +811,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 
 /* --- reactions, delayed to land at the moment of contact --- */
-.hurt-l { animation: hurtL 460ms ease 280ms; }
-.hurt-r { animation: hurtR 460ms ease 280ms; }
+.hurt-l { animation: hurtL calc(460ms * var(--spd, 1)) ease calc(280ms * var(--spd, 1)); }
+.hurt-r { animation: hurtR calc(460ms * var(--spd, 1)) ease calc(280ms * var(--spd, 1)); }
 @keyframes hurtL {
   25% { transform: translateX(-24px) rotate(-7deg); }
   55% { transform: translateX(8px); }
@@ -774,8 +824,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   100% { transform: none; }
 }
 
-.dodge-l { animation: dodgeL 540ms ease 230ms; }
-.dodge-r { animation: dodgeR 540ms ease 230ms; }
+.dodge-l { animation: dodgeL calc(540ms * var(--spd, 1)) ease calc(230ms * var(--spd, 1)); }
+.dodge-r { animation: dodgeR calc(540ms * var(--spd, 1)) ease calc(230ms * var(--spd, 1)); }
 @keyframes dodgeL {
   30% { transform: translateX(-44px) translateY(-16px) rotate(6deg); }
   70% { transform: translateX(-32px); }
@@ -787,21 +837,21 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   100% { transform: none; }
 }
 
-.block-l { animation: blockL 460ms ease 230ms; }
-.block-r { animation: blockR 460ms ease 230ms; }
+.block-l { animation: blockL calc(460ms * var(--spd, 1)) ease calc(230ms * var(--spd, 1)); }
+.block-r { animation: blockR calc(460ms * var(--spd, 1)) ease calc(230ms * var(--spd, 1)); }
 @keyframes blockL { 35% { transform: translateX(-8px) rotate(7deg); } 100% { transform: none; } }
 @keyframes blockR { 35% { transform: translateX(8px) rotate(-7deg); } 100% { transform: none; } }
 
 /* white-hot flash on the struck body */
-.fig-inner.flash > svg, .fig-inner.flash .hero-sprite { animation: flash 420ms ease 300ms; }
+.fig-inner.flash > svg, .fig-inner.flash .hero-sprite { animation: flash calc(420ms * var(--spd, 1)) ease calc(300ms * var(--spd, 1)); }
 /*
  * A critical reads differently from a jab: the lunge goes further and lands
  * heavier, and the fighter taking it is knocked back rather than rocked.
  * Both ride on top of the normal strike/hurt animations.
  */
-.strike-crit { animation-duration: 900ms !important; }
+.strike-crit { animation-duration: calc(900ms * var(--spd, 1)) !important; }
 .fig-slot.strike-crit { --dash-boost: 1.12; }
-.hurt-hard { animation-duration: 620ms !important; }
+.hurt-hard { animation-duration: calc(620ms * var(--spd, 1)) !important; }
 .hurt-l.hurt-hard { animation-name: hurtHardL !important; }
 .hurt-r.hurt-hard { animation-name: hurtHardR !important; }
 @keyframes hurtHardL {
@@ -907,12 +957,13 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   white-space: nowrap;
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--ink);
+  color: #fdf6dd;
   background: rgba(14, 17, 28, 0.82);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 2px 10px;
   z-index: 3;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 70%);
 }
 
 /* knocked out — the death sheet plays the fall; we just drain the colour */
@@ -1021,7 +1072,10 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   font-weight: 800;
   font-size: 0.95rem;
   margin-bottom: 3px;
-  text-shadow: 0 1px 0 #ffffff77;
+  /* Sits over arena skies, six of which are near-black — parchment ink with
+     a white shadow was unreadable there. Light ink, dark halo, all 14 skies. */
+  color: #fdf6dd;
+  text-shadow: 0 1px 0 var(--line), 0 0 3px rgb(0 0 0 / 60%);
 }
 .hpbar.mirror .hpbar-name, .hpbar.mirror .hpbar-num { text-align: right; }
 .hpbar-track {
@@ -1039,7 +1093,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .hpbar-fill.warn { background: linear-gradient(180deg, var(--gold-bright), var(--gold)); }
 .hpbar-fill.danger { background: linear-gradient(180deg, #d96a4f, var(--red)); }
-.hpbar-num { font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); margin-top: 2px; }
+.hpbar-num { font-size: 0.8rem; font-weight: 700; color: #fdf6dd; text-shadow: 0 1px 0 var(--line), 0 0 3px rgb(0 0 0 / 60%); margin-top: 2px; }
 
 .vs-badge {
   position: absolute;
@@ -1113,9 +1167,9 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .line.mine { color: var(--ink); }
 .line.theirs { color: #6d5f49; }
 .line.mid { color: var(--ink-soft); font-style: italic; }
-.line-crit { color: var(--terracotta); font-weight: 800; }
-.line-trump { color: #f4c94e; font-weight: 800; }
-.line-defend { color: var(--lapis); }
+.line-crit { color: var(--terracotta-ink); font-weight: 800; }
+.line-trump { color: var(--gold-ink); font-weight: 800; }
+.line-defend { color: var(--lapis-ink); }
 .line-end { font-weight: 800; }
 
 @keyframes rise {
@@ -1316,7 +1370,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* ---------- screen shake ---------- */
 
-.stage.quake { animation: quake 300ms ease; }
+.stage.quake { animation: quake calc(300ms * var(--spd, 1)) ease calc(320ms * var(--spd, 1)) backwards; }
 @keyframes quake {
   20% { transform: translate(-4px, 2px) rotate(-0.3deg); }
   40% { transform: translate(4px, -2px) rotate(0.3deg); }
@@ -2556,3 +2610,29 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   .codex-grid { grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); }
   .codex-tile em { font-size: 0.6rem; }
 }
+
+/* Codex tap-to-inspect: the tile grid's detail strip (title never fires on touch). */
+.codex-detail { margin: 0 0 8px; }
+.codex-tile { background: none; border: none; font: inherit; cursor: pointer; text-align: center; }
+
+/* The rescue code, visible and selectable when the clipboard is denied —
+   which is exactly the sandboxed embeds rescue codes exist for. */
+.rescue-out {
+  width: 100%;
+  min-height: 74px;
+  margin-top: 8px;
+  font-family: monospace;
+  font-size: 0.7rem;
+  background: #fdf6dd;
+  color: var(--ink);
+  border: 2.5px solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+  word-break: break-all;
+}
+
+/* Backup and destruction should not be adjacent tiny buttons. */
+.devrow-delete { margin-left: auto; }
+
+/* Claim and the Favour reroll share a row; Claim stays the hero. */
+.draft-actions { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; }
