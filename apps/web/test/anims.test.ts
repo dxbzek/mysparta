@@ -108,3 +108,96 @@ describe("milestone level-ups", () => {
     }
   });
 });
+
+describe("battle animation coverage", () => {
+  /** Every stage direction the theatre can draw, harvested from real bouts. */
+  function harvest(count: number) {
+    const seen = {
+      chain: 0, riposte: 0, cast: 0, summon: 0, ready: 0,
+      dodge: 0, block: 0, hurt: 0, thrown: 0, beastDown: 0,
+    };
+    for (let s = 0; s < count; s++) {
+      const a = grown("Alpha" + (s % 11), 8 + (s % 16));
+      const b = grown("Beta" + (s % 9), 8 + (s % 16));
+      const r = simulateFight({ seed: s, attacker: snapshot(a, PLAN), defender: snapshot(b, PLAN) });
+      for (const l of narrate(r, ["Alpha", "Beta"])) {
+        const an = l.anim;
+        if (!an) continue;
+        if (an.chain) seen.chain++;
+        if (an.riposte) seen.riposte++;
+        if (an.cast) seen.cast++;
+        if (an.summon) seen.summon++;
+        if (an.ready !== undefined) seen.ready++;
+        if (an.thrown) seen.thrown++;
+        if (an.reaction?.kind === "dodge") seen.dodge++;
+        if (an.reaction?.kind === "block") seen.block++;
+        if (an.reaction?.kind === "hurt") seen.hurt++;
+        if (l.beastDown) seen.beastDown++;
+      }
+    }
+    return seen;
+  }
+
+  it("real fights emit every beat the stage now animates", () => {
+    const seen = harvest(160);
+    // Each of these had no distinct animation before this pass — a combo
+    // replayed the opening swing, a riposte sprinted like an attack, a skill
+    // was a caption over an idle, and a beast simply existed.
+    expect(seen.chain).toBeGreaterThan(0);
+    expect(seen.riposte).toBeGreaterThan(0);
+    expect(seen.cast).toBeGreaterThan(0);
+    expect(seen.summon).toBeGreaterThan(0);
+    expect(seen.ready).toBeGreaterThan(0);
+    expect(seen.dodge).toBeGreaterThan(0);
+    expect(seen.block).toBeGreaterThan(0);
+    expect(seen.hurt).toBeGreaterThan(0);
+  });
+
+  it("a chain carries its position, so follow-ups can escalate", () => {
+    const depths = new Set<number>();
+    for (let s = 0; s < 200; s++) {
+      const r = simulateFight({
+        seed: s,
+        attacker: snapshot(grown("Chain" + (s % 7), 14), PLAN),
+        defender: snapshot(grown("Foe" + (s % 5), 14), PLAN),
+      });
+      for (const l of narrate(r, ["A", "B"])) if (l.anim?.chain) depths.add(l.anim.chain);
+    }
+    // Not just "is a chain" — the link number, which drives cx1/cx2/cx3.
+    expect(Math.max(...depths)).toBeGreaterThanOrEqual(2);
+    expect([...depths].every((d) => d >= 1)).toBe(true);
+  });
+
+  it("a beast is summoned once and only once per side", () => {
+    for (let s = 0; s < 120; s++) {
+      const r = simulateFight({
+        seed: s,
+        attacker: snapshot(grown("Beastly" + (s % 6), 20), PLAN),
+        defender: snapshot(grown("Rival" + (s % 4), 20), PLAN),
+      });
+      const summons = new Map<string, number>();
+      for (const l of narrate(r, ["A", "B"])) {
+        if (l.anim?.summon) {
+          const k = `${l.anim.striker}:${l.anim.summon}`;
+          summons.set(k, (summons.get(k) ?? 0) + 1);
+        }
+      }
+      for (const [k, n] of summons) expect(`${k}=${n}`).toBe(`${k}=1`);
+    }
+  });
+
+  it("counters and ripostes never also claim a run-in", () => {
+    for (let s = 0; s < 120; s++) {
+      const r = simulateFight({
+        seed: s,
+        attacker: snapshot(grown("Guard" + (s % 8), 16), PLAN),
+        defender: snapshot(grown("Rush" + (s % 6), 16), PLAN),
+      });
+      for (const l of narrate(r, ["A", "B"])) {
+        // riposte and chain are mutually exclusive branches in slotClass;
+        // both set would silently drop one of the two animations.
+        if (l.anim?.riposte) expect(l.anim.chain ?? 0).toBe(0);
+      }
+    }
+  });
+});

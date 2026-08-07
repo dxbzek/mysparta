@@ -198,6 +198,16 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     return n;
   }, [visible]);
 
+  // The same idea for evasions: one dodge shape repeated is as flat as one
+  // swing shape repeated, and defensive beats are half a fight.
+  const dodgeCount: [number, number] = useMemo(() => {
+    const n: [number, number] = [0, 0];
+    for (const l of visible) {
+      if (l.anim?.reaction?.kind === "dodge") n[l.anim.reaction.side]++;
+    }
+    return n;
+  }, [visible]);
+
   const idxRef = useRef(0);
   idxRef.current = idx;
 
@@ -264,19 +274,42 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
 
   const slotClass = (side: 0 | 1): string => {
     const cls = ["fig-slot"];
+    const R = side === 0 ? "r" : "l"; // the direction this side attacks toward
+    const S = side === 0 ? "l" : "r"; // the side of the stage they stand on
     if (idx <= 1) cls.push(side === 0 ? "enter-l" : "enter-r");
-    // A chain hit keeps the swing but skips the run-in: they are already close.
-    if (anim?.striker === side && !anim.beastId && !anim.chain) {
-      cls.push(anim.thrown ? (side === 0 ? "throw-r" : "throw-l") : side === 0 ? "strike-r" : "strike-l");
-      // Three lunge shapes, cycled per-side: every hit used to be the same
-      // full-stage sprint, so a 30-beat fight read as one GIF looping.
-      if (!anim.thrown) cls.push(`sv${swingCount[side] % 3}`);
-      // A critical is the same lunge, further and harder — it should not look
-      // like every other swing when the feed is shouting CRITICAL.
-      if (fx?.crit) cls.push("strike-crit");
+
+    if (anim?.striker === side && !anim.beastId) {
+      if (anim.cast) {
+        // A skill is not a swing: they plant, draw themselves up, and the
+        // power leaves them. Casting used to be a bare caption over an idle.
+        cls.push(`cast-${S}`);
+      } else if (anim.riposte) {
+        // Counters and ripostes are answers, not charges — the foe already
+        // closed the distance. A short pivot on the spot, no sprint.
+        cls.push(`riposte-${R}`);
+      } else if (anim.chain) {
+        // Follow-ups escalate: each one tighter and faster than the last,
+        // rather than replaying the opening swing in place.
+        cls.push(`chain-${R}`, `cx${Math.min(3, anim.chain)}`);
+      } else {
+        cls.push(anim.thrown ? `throw-${R}` : `strike-${R}`);
+        // Three lunge shapes, cycled per-side: every hit used to be the same
+        // full-stage sprint, so a 30-beat fight read as one GIF looping.
+        if (!anim.thrown) cls.push(`sv${swingCount[side] % 3}`);
+        // A critical is the same lunge, further and harder — it should not
+        // look like every other swing when the feed is shouting CRITICAL.
+        if (fx?.crit) cls.push("strike-crit");
+      }
     }
+
+    // A weapon coming up into guard, on the beat it is drawn.
+    if (anim?.ready === side) cls.push(`ready-${S}`);
+
     if (anim?.reaction?.side === side) {
-      cls.push(`${anim.reaction.kind}-${side === 0 ? "l" : "r"}`);
+      cls.push(`${anim.reaction.kind}-${S}`);
+      // Three ways to not be hit: step aside, hop back, duck under. One
+      // shape for every evasion made half the fight look identical.
+      if (anim.reaction.kind === "dodge") cls.push(`dv${dodgeCount[side] % 3}`);
       // Taking a critical staggers you back rather than rocking you.
       if (fx?.crit && anim.reaction.kind === "hurt") cls.push("hurt-hard");
     }
@@ -289,6 +322,8 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     else if (finished && side === result.winner) cls.push("win");
     else cls.push("idle");
     if (anim?.reaction?.side === side && anim.reaction.kind === "hurt") cls.push("flash");
+    // The skill lights its caster up, so the ring reads as coming FROM them.
+    if (anim?.cast && anim.striker === side) cls.push("channel");
     return cls.join(" ");
   };
 
@@ -307,14 +342,21 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     if (finished) return "stance";
     const react = anim?.reaction?.side === side ? anim.reaction.kind : undefined;
     if (react === "hurt") return "hit";
+    // A cast holds the guard while the body channels; the CSS does the lift.
+    if (anim?.cast && anim.striker === side) return "stance";
+    // Drawing steel reads as the wind-up frames, not an idle sway.
+    if (anim?.ready === side) return "attack1";
     // A dodge is a body moving out of the way; the run frames read as the
     // quick step the CSS is already sliding them through.
     if (react === "dodge") return "run";
     // A block is taken on the guard — the braced stance, not the loose idle.
     if (react === "block") return "stance";
     if (anim?.striker === side && !anim.beastId) {
-      // Per-side swing count, so the two fighters are never in lockstep.
-      return swingCount[side] % 2 === 0 ? "attack1" : "attack2";
+      // Per-side swing count, so the two fighters are never in lockstep — and
+      // inside a chain the follow-ups alternate against the chain index, so a
+      // three-hit combo is three pictures rather than one repeated.
+      const beat = anim.chain ? swingCount[side] + anim.chain : swingCount[side];
+      return beat % 2 === 0 ? "attack1" : "attack2";
     }
     return "stance";
   };
@@ -355,12 +397,27 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       <div className={`fig-beasts ${side === 0 ? "beasts-l" : "beasts-r"}`}>
         {list.map((id, i) => {
           const striking = actingSide === side && actingId === id;
+          const summoning = anim?.summon === id && actingSide === side;
+          const falling = current?.beastDown?.side === side && current.beastDown.beast === id;
           return (
             <span
-              key={`${id}${i}${striking ? idx : ""}`}
-              className={striking ? (side === 0 ? "beast-dash-r" : "beast-dash-l") : "beast-idle"}
+              key={`${id}${i}${striking || falling ? idx : ""}`}
+              className={[
+                striking ? (side === 0 ? "beast-dash-r" : "beast-dash-l") : "beast-idle",
+                // Loosed for the first time: it drops in behind its master
+                // instead of having always been standing there.
+                summoning ? "beast-summon" : "",
+                falling ? "beast-fall" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
             >
               <PetSprite beastId={id} size={54} mirror={side === 1} down={downed[side].has(id)} />
+              {falling && (
+                <span className="beast-poof">
+                  <ImpactBurst size={46} crit={false} />
+                </span>
+              )}
             </span>
           );
         })}

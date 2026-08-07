@@ -824,6 +824,13 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   100% { transform: none; }
 }
 
+/*
+ * Three ways not to be hit. Half of every fight is defensive beats, and they
+ * all played one shape: lean back and away. Now the evasion cycles per side
+ * (dv0/dv1/dv2) — a side-step out of the line, a hop clean backwards, and a
+ * duck under the swing — so a long exchange reads as a fighter reacting
+ * rather than a sprite playing its one animation.
+ */
 .dodge-l { animation: dodgeL calc(540ms * var(--spd, 1)) ease calc(230ms * var(--spd, 1)); }
 .dodge-r { animation: dodgeR calc(540ms * var(--spd, 1)) ease calc(230ms * var(--spd, 1)); }
 @keyframes dodgeL {
@@ -835,6 +842,153 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   30% { transform: translateX(44px) translateY(-16px) rotate(-6deg); }
   70% { transform: translateX(32px); }
   100% { transform: none; }
+}
+/* dv1 — a side-step: out of the line of the blow, not away from it. */
+.dodge-l.dv1 { animation-name: sidestepL; }
+.dodge-r.dv1 { animation-name: sidestepR; }
+@keyframes sidestepL {
+  25% { transform: translateX(-10px) translateY(-26px) rotate(-9deg); }
+  55% { transform: translateX(-16px) translateY(-4px) rotate(4deg); }
+  100% { transform: none; }
+}
+@keyframes sidestepR {
+  25% { transform: translateX(10px) translateY(-26px) rotate(9deg); }
+  55% { transform: translateX(16px) translateY(-4px) rotate(-4deg); }
+  100% { transform: none; }
+}
+/* dv2 — a duck: drop under the arc and come straight back up. */
+.dodge-l.dv2 { animation-name: duckL; }
+.dodge-r.dv2 { animation-name: duckR; }
+@keyframes duckL {
+  22% { transform: translateY(11px) translateX(-8px) scaleY(0.82); }
+  48% { transform: translateY(6px) translateX(-14px) scaleY(0.92); }
+  100% { transform: none; }
+}
+@keyframes duckR {
+  22% { transform: translateY(11px) translateX(8px) scaleY(0.82); }
+  48% { transform: translateY(6px) translateX(14px) scaleY(0.92); }
+  100% { transform: none; }
+}
+
+/*
+ * Follow-up attacks. A combo used to replay the opening swing in place, so a
+ * three-hit chain looked like the same blow stuttering. Each link now cuts in
+ * tighter and quicker than the last (cx1/cx2/cx3 shorten the beat), which is
+ * what makes a chain feel like it is accelerating rather than repeating.
+ */
+.chain-r { animation: chainR calc(360ms * var(--spd, 1)) cubic-bezier(0.3, 0, 0.2, 1); z-index: 4; }
+.chain-l { animation: chainL calc(360ms * var(--spd, 1)) cubic-bezier(0.3, 0, 0.2, 1); z-index: 4; }
+.chain-r.cx2, .chain-l.cx2 { animation-duration: calc(310ms * var(--spd, 1)); }
+.chain-r.cx3, .chain-l.cx3 { animation-duration: calc(260ms * var(--spd, 1)); }
+@keyframes chainR {
+  0%   { transform: translateX(var(--dash)) rotate(0deg); }
+  30%  { transform: translateX(calc(var(--dash) - 14px)) rotate(-13deg); }
+  55%  { transform: translateX(calc(var(--dash) + 20px)) rotate(15deg); }
+  100% { transform: translateX(var(--dash)) rotate(0deg); }
+}
+@keyframes chainL {
+  0%   { transform: translateX(calc(var(--dash) * -1)) rotate(0deg); }
+  30%  { transform: translateX(calc(var(--dash) * -1 + 14px)) rotate(13deg); }
+  55%  { transform: translateX(calc(var(--dash) * -1 - 20px)) rotate(-15deg); }
+  100% { transform: translateX(calc(var(--dash) * -1)) rotate(0deg); }
+}
+
+/*
+ * Counters and ripostes: an answer, not a charge. The foe crossed the arena
+ * to get here — punishing them with an identical full-stage sprint made the
+ * defender look like the aggressor. A short pivot and a thrust on the spot.
+ */
+.riposte-r { animation: riposteR calc(420ms * var(--spd, 1)) ease-out; z-index: 5; }
+.riposte-l { animation: riposteL calc(420ms * var(--spd, 1)) ease-out; z-index: 5; }
+@keyframes riposteR {
+  0%   { transform: translateX(0) rotate(0deg); }
+  28%  { transform: translateX(-12px) rotate(7deg); }
+  52%  { transform: translateX(42px) rotate(-17deg); }
+  74%  { transform: translateX(16px) rotate(-4deg); }
+  100% { transform: none; }
+}
+@keyframes riposteL {
+  0%   { transform: translateX(0) rotate(0deg); }
+  28%  { transform: translateX(12px) rotate(-7deg); }
+  52%  { transform: translateX(-42px) rotate(17deg); }
+  74%  { transform: translateX(-16px) rotate(4deg); }
+  100% { transform: none; }
+}
+
+/*
+ * A skill going off. The ring and the name were already there; the fighter
+ * casting them stood in idle, so the power appeared to come from the stage
+ * rather than from them. They plant, draw up, and settle.
+ */
+.cast-l { animation: castL calc(900ms * var(--spd, 1)) ease-out; z-index: 5; }
+.cast-r { animation: castR calc(900ms * var(--spd, 1)) ease-out; z-index: 5; }
+@keyframes castL {
+  18% { transform: translateY(5px) scaleY(0.94); }
+  42% { transform: translateY(-16px) scaleY(1.06) rotate(-3deg); }
+  70% { transform: translateY(-6px); }
+  100% { transform: none; }
+}
+@keyframes castR {
+  18% { transform: translateY(5px) scaleY(0.94); }
+  42% { transform: translateY(-16px) scaleY(1.06) rotate(3deg); }
+  70% { transform: translateY(-6px); }
+  100% { transform: none; }
+}
+/* the caster lights up, so the ring reads as leaving their body */
+.fig-inner.channel > svg, .fig-inner.channel .hero-sprite, .fig-inner.channel .strip {
+  animation: channelGlow calc(900ms * var(--spd, 1)) ease-out;
+}
+@keyframes channelGlow {
+  35% { filter: brightness(1.5) saturate(1.3) drop-shadow(0 0 10px var(--gold-bright)); }
+  100% { filter: none; }
+}
+
+/*
+ * Steel coming up into guard on the beat it is drawn — the sprite used to
+ * swap weapons mid-stance with nothing marking that the fighter rearmed.
+ */
+.ready-l { animation: readyL calc(460ms * var(--spd, 1)) ease-out; }
+.ready-r { animation: readyR calc(460ms * var(--spd, 1)) ease-out; }
+@keyframes readyL {
+  25% { transform: translateY(4px) rotate(-8deg); }
+  60% { transform: translateY(-7px) rotate(5deg); }
+  100% { transform: none; }
+}
+@keyframes readyR {
+  25% { transform: translateY(4px) rotate(8deg); }
+  60% { transform: translateY(-7px) rotate(-5deg); }
+  100% { transform: none; }
+}
+
+/*
+ * Beasts arriving and leaving. A loosed beast used to have simply always
+ * been standing at its master's heel, and a felled one vanished with the
+ * caption still promising "a burst of light".
+ */
+.beast-summon { animation: beastSummon calc(620ms * var(--spd, 1)) cubic-bezier(0.2, 1.5, 0.4, 1); }
+@keyframes beastSummon {
+  0%   { transform: translateY(-40px) scale(0.4); opacity: 0; }
+  55%  { transform: translateY(4px) scale(1.12); opacity: 1; }
+  100% { transform: none; }
+}
+.beast-fall { animation: beastFall calc(700ms * var(--spd, 1)) ease-in forwards; }
+@keyframes beastFall {
+  0%   { transform: none; opacity: 1; }
+  40%  { transform: translateY(-8px) scale(1.1); opacity: 0.9; }
+  100% { transform: translateY(6px) scale(0.7); opacity: 0; }
+}
+.beast-poof {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: beastPoof calc(620ms * var(--spd, 1)) ease-out both;
+}
+@keyframes beastPoof {
+  0%   { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  30%  { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
 }
 
 .block-l { animation: blockL calc(460ms * var(--spd, 1)) ease calc(230ms * var(--spd, 1)); }
@@ -978,6 +1132,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .beasts-l { right: calc(100% - 30px); }
 .beasts-r { left: calc(100% - 30px); flex-direction: row-reverse; }
 .beast-idle { display: inline-block; animation: idle 1.2s ease-in-out infinite alternate; }
+/* the death burst is positioned against its own beast, not the whole rank */
+.fig-beasts > span { position: relative; }
 .beast-dash-r { display: inline-block; animation: beastR 720ms ease-in-out; z-index: 4; position: relative; }
 .beast-dash-l { display: inline-block; animation: beastL 720ms ease-in-out; z-index: 4; position: relative; }
 @keyframes beastR {
@@ -1179,6 +1335,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 @media (prefers-reduced-motion: reduce) {
   .hero-anim, .hero-anim::after, .spark, .wpart, .strip, .weather-storm::after,
   .line, .fig-slot, .fig-inner, .fig-inner > svg, .beast-idle, .beast-dash-r, .beast-dash-l,
+  .beast-summon, .beast-fall, .beast-poof, .chain-r, .chain-l, .riposte-r, .riposte-l,
+  .cast-l, .cast-r, .ready-l, .ready-r,
   .burst, .slash, .missile, .floater, .verdict-wrap, .forge-preview {
     animation: none !important;
   }
