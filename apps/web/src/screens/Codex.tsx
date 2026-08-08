@@ -5,7 +5,7 @@ import { PetSprite } from "../pixelPets.js";
 import { WeaponIcon } from "../weaponIcons.js";
 import { SkillIcon, type SkillKind } from "../skillIcons.js";
 import { PixIcon } from "../pixelIcons.js";
-import { DISCIPLINE_NAME } from "../ui.js";
+import { DISCIPLINE_NAME, TabPanel, TabRail } from "../ui.js";
 
 
 type CodexShelf = "weapons" | "boons" | "techniques" | "trumps" | "pets";
@@ -42,28 +42,30 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
           {SHELVES.reduce((n, s) => n + s.have, 0)}/{SHELVES.reduce((n, s) => n + s.all, 0)}
         </span>
       </div>
-      <div className="tabs" role="tablist" aria-label="Codex shelf">
-        {SHELVES.map((s) => (
-          <button
-            key={s.id}
-            role="tab"
-            aria-selected={shelf === s.id}
-            className={`tab${shelf === s.id ? " on" : ""}`}
-            onClick={() => {
-              setShelf(s.id);
-              setSel(null);
-            }}
-          >
-            {s.label} <span className="muted small">{s.have}/{s.all}</span>
-          </button>
-        ))}
-      </div>
+      <TabRail
+        id="codex"
+        label="Codex shelf"
+        value={shelf}
+        onPick={(id) => {
+          setShelf(id);
+          setSel(null);
+        }}
+        tabs={SHELVES.map((s) => ({
+          id: s.id,
+          label: (
+            <>
+              {s.label} <span className="muted small">{s.have}/{s.all}</span>
+            </>
+          ),
+        }))}
+      />
       {sel && (
         <p className="notice codex-detail" aria-live="polite">
           <b>{sel.name}</b> — {sel.detail}
         </p>
       )}
 
+      <TabPanel id="codex" label={SHELVES.find((s) => s.id === shelf)!.label}>
       {shelf === "weapons" && (
       <CodexCase title="Weapons" have={found} all={WEAPONS.length}>
         {WEAPONS.map((w) => (
@@ -121,6 +123,7 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
         ))}
       </CodexCase>
       )}
+      </TabPanel>
     </div>
   );
 }

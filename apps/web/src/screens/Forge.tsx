@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { STAT_LABEL, createChampion, omen, type Champion } from "@agoge/core";
 import { decodeSave, type SaveV1 } from "../save.js";
+import { TabPanel, TabRail } from "../ui.js";
 import { PixIcon } from "../pixelIcons.js";
 import { AURAS, AuraSparks, FighterBust, FighterFig, lookFor } from "../fighters.js";
 import {
@@ -200,20 +201,15 @@ export function Forge({
         <div className="card creator">
           {/* One category at a time, the way a console creator does it — the
               whole sheet used to be on screen at once and read as a wall. */}
-          <div className="tabs" role="tablist">
-            {CREATOR_TABS.map(([id, name]) => (
-              <button
-                key={id}
-                role="tab"
-                aria-selected={tab === id}
-                className={`tab ${tab === id ? "on" : ""}`}
-                onClick={() => setTab(id)}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
+          <TabRail
+            id="creator"
+            label="What to change"
+            value={tab}
+            onPick={setTab}
+            tabs={CREATOR_TABS.map(([id, name]) => ({ id, label: name }))}
+          />
 
+          <TabPanel id="creator" label={CREATOR_TABS.find(([id]) => id === tab)![1]}>
           {tab === "body" && (
             <>
               {part("Build", BUILDS, me.build, "build")}
@@ -262,6 +258,7 @@ export function Forge({
               </div>
             </div>
           )}
+          </TabPanel>
         </div>
 
         <div className="actions">
@@ -324,12 +321,14 @@ function PartPicker({
         {label}
         <em>{parts[value]!.name}</em>
       </span>
-      <div className="opt-rail" role="radiogroup" aria-label={label}>
+      {/* aria-pressed buttons, not a radiogroup: a radiogroup promises arrow-key
+          navigation between the options and we do not implement it, so the
+          honest contract is a row of toggles. */}
+      <div className="opt-rail" role="group" aria-label={label}>
         {list.map((i) => (
           <button
             key={parts[i]!.name}
-            role="radio"
-            aria-checked={value === i}
+            aria-pressed={value === i}
             className={`opt-chip${value === i ? " picked" : ""}`}
             onClick={() => onPick(i)}
           >

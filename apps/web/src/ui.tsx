@@ -19,6 +19,84 @@ export function league(kleos: number): { name: string; color: string } {
   return { name: "E-Rank", color: "#9a8c74" };
 }
 
+/**
+ * The tab rail, once.
+ *
+ * Three screens had grown their own — Forge, Codex, Closet — each with
+ * `role="tab"` and `aria-selected` and none of the rest of the contract.
+ * `role="tab"` promises a keyboard a great deal: arrow keys between the tabs,
+ * Home/End to the ends, exactly one tab in the page's tab order, and a panel
+ * that says which tab owns it. A rail that promises that and does none of it
+ * is worse for a screen reader than a row of plain buttons.
+ */
+export function TabRail<T extends string>({
+  id,
+  label,
+  tabs,
+  value,
+  onPick,
+}: {
+  /** Prefix for the generated tab/panel ids — must be unique per screen. */
+  id: string;
+  label: string;
+  tabs: Array<{ id: T; label: React.ReactNode }>;
+  value: T;
+  onPick: (id: T) => void;
+}) {
+  const at = Math.max(0, tabs.findIndex((t) => t.id === value));
+  const move = (to: number) => {
+    const next = tabs[(to + tabs.length) % tabs.length]!;
+    onPick(next.id);
+    // Follow the selection with focus, the way a tablist is expected to.
+    document.getElementById(`${id}-tab-${next.id}`)?.focus();
+  };
+  return (
+    <div className="tabs" role="tablist" aria-label={label}>
+      {tabs.map((t, i) => (
+        <button
+          key={t.id}
+          id={`${id}-tab-${t.id}`}
+          role="tab"
+          type="button"
+          aria-selected={value === t.id}
+          aria-controls={`${id}-panel`}
+          // roving tabindex: one stop for the whole rail, arrows do the rest
+          tabIndex={value === t.id ? 0 : -1}
+          className={`tab${value === t.id ? " on" : ""}`}
+          onClick={() => onPick(t.id)}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight" || e.key === "ArrowDown") move(i + 1);
+            else if (e.key === "ArrowLeft" || e.key === "ArrowUp") move(i - 1);
+            else if (e.key === "Home") move(0);
+            else if (e.key === "End") move(tabs.length - 1);
+            else return;
+            e.preventDefault();
+          }}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** The panel a TabRail points at. */
+export function TabPanel({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div id={`${id}-panel`} role="tabpanel" aria-label={label} tabIndex={-1}>
+      {children}
+    </div>
+  );
+}
+
 export const DISCIPLINE_NAME: Record<string, string> = {
   xiphos: "Blade",
   doru: "Spear",

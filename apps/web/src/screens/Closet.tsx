@@ -20,6 +20,7 @@ import {
   type GearSlot,
 } from "../gear.js";
 import type { SaveV1 } from "../save.js";
+import { TabPanel, TabRail } from "../ui.js";
 
 const SLOTS: Array<{ id: GearSlot; label: string }> = [
   { id: "body", label: "Armor" },
@@ -61,23 +62,23 @@ export function Closet(props: {
       ) : (
         <>
           {/* which shelf you are looking at */}
-          <div className="tabs" role="tablist" aria-label="Gear slot">
-            {SLOTS.map((s) => {
-              const n = owned.filter((g) => g.slot === s.id).length;
-              return (
-                <button
-                  key={s.id}
-                  role="tab"
-                  aria-selected={slot === s.id}
-                  className={`tab${slot === s.id ? " on" : ""}`}
-                  onClick={() => setSlot(s.id)}
-                >
-                  {s.label} <span className="muted small">{n}</span>
-                </button>
-              );
-            })}
-          </div>
+          <TabRail
+            id="closet"
+            label="Gear slot"
+            value={slot}
+            onPick={setSlot}
+            tabs={SLOTS.map((s) => ({
+              id: s.id,
+              label: (
+                <>
+                  {s.label}{" "}
+                  <span className="muted small">{owned.filter((g) => g.slot === s.id).length}</span>
+                </>
+              ),
+            }))}
+          />
 
+          <TabPanel id="closet" label={SLOTS.find((s) => s.id === slot)!.label}>
           <div className="closet-grid">
             {items.length === 0 && (
               <p className="muted small note">Nothing found for this slot yet.</p>
@@ -103,6 +104,7 @@ export function Closet(props: {
               );
             })}
           </div>
+          </TabPanel>
         </>
       )}
     </div>

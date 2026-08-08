@@ -480,7 +480,19 @@ export function Home(props: {
       {/* The tasks open over the Hall rather than pushing a card into it — the
           list is a thing you check, not a thing you live beside. */}
       {showTasks && (
-        <div className="overlay" role="dialog" aria-modal="true" aria-label="Today's Tasks" onClick={() => setShowTasks(false)}>
+        <div
+          className="overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Today's Tasks"
+          onClick={() => setShowTasks(false)}
+          // A dialog you can open with the keyboard has to close with it too.
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowTasks(false);
+          }}
+          ref={(el) => el?.focus()}
+          tabIndex={-1}
+        >
           <section className="card quests quests-strip popover" onClick={(e) => e.stopPropagation()}>
             <h3>
               Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — gear dropped!</span>}
