@@ -409,7 +409,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 @media (min-width: 640px) {
   .hero-fig { display: block; position: relative; margin: -10px -4px -14px 0; }
 }
-.champ-name { margin: 0; font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; }
+.champ-name { margin: 0; font-family: var(--font-display); font-size: 1.02rem; font-weight: 700; }
 .champ-name.small { font-size: 0.8rem; }
 .epithet { color: var(--terracotta-ink); font-style: italic; font-weight: 600; }
 .statline { color: var(--ink-soft); font-size: 0.92rem; margin-top: 4px; font-weight: 600; }
@@ -2725,12 +2725,12 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
    columns of mostly air. The card's empty right half is the Fight button now. */
 .facts {
   display: grid; grid-template-columns: repeat(2, minmax(0, max-content));
-  gap: 8px 34px; margin: 10px 0 0; padding: 0;
+  gap: 4px 28px; margin: 6px 0 0; padding: 0;
 }
 .facts > div { min-width: 0; }
 
 /* The Hall's one action, on the champion it belongs to. */
-.card-cta { margin-top: 12px; }
+.card-cta { margin-top: 10px; }
 @media (max-width: 560px) { .card-cta { width: 100%; } }
 /*
  * Out of fights, this is not the hero of the card any more. Half-opacity white
@@ -2752,12 +2752,25 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
  * let the rows share the height they are given.
  */
 .stats-card { display: flex; flex-direction: column; }
+/*
+ * Four stacked rows put 196px of card on screen to say four numbers. Two
+ * columns halves that without shrinking anything you have to read — the bar
+ * is still a bar, the value is still Silkscreen. One column only below 360px,
+ * where a label plus a bar plus a value genuinely needs the width.
+ */
 .stats-card .stats {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-evenly;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 16px;
+  align-content: space-evenly;
 }
+@media (max-width: 359px) {
+  .stats-card .stats { grid-template-columns: 1fr; }
+}
+.stats-card .stats li { padding: 4px 0; gap: 8px; }
+.stats-card .stats li b { flex: 0 0 66px; font-size: 0.86rem; }
+.stats-card .stats .statbar { height: 10px; }
 .facts dt {
   font-size: 0.62rem; font-weight: 800; letter-spacing: 0.07em;
   text-transform: uppercase; color: var(--ink-soft);
@@ -2976,6 +2989,16 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   .arsenal .rack-tile { width: 64px; height: 64px; }
   .reorder button { min-width: 42px; min-height: 34px; }
   .shell { padding-left: 12px; padding-right: 12px; }
+}
+/*
+ * Full bleed, but not the whole phone. At 390x844 the plate took 354px and the
+ * card around it 622 — 74% of the screen before a single stat. Capped so the
+ * portrait still leads and the Fight button, the tasks and the stats are all
+ * above the fold. Guarded on height so a landscape handset keeps its own,
+ * smaller cap from the short-screen rules above.
+ */
+@media (max-width: 560px) and (min-height: 620px) {
+  :root { --plate-cap: min(32svh, 240px); }
 }
 
 /*
