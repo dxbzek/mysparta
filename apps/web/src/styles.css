@@ -2321,7 +2321,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .threat-even { background: #ecd9a8; }
 .threat-hard { background: #eab4a4; }
 
-.rival-kit { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0 4px; }
+.rival-kit { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 4px; }
 .kit-chip {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 0.74rem; font-weight: 700;
@@ -3000,8 +3000,10 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
  * still lands on whole pixels.
  */
 .kit-chip.kit-icon {
-  width: 40px;
-  height: 40px;
+  /* 32px of art + 2px border a side + 1px air: any wider and the seventh
+     chip wrapped, putting a second row on every card in the board */
+  width: 38px;
+  height: 38px;
   padding: 0;
   gap: 0;
   justify-content: center;
@@ -3016,7 +3018,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   white-space: nowrap;
 }
 .kit-chip.kit-icon > :first-child { flex: 0 0 auto; }
-.rival-kit .kit-more { align-self: center; height: 40px; }
+.rival-kit .kit-more { align-self: center; height: 38px; padding: 3px 6px; }
 
 @media (max-width: 560px) {
   .plaque { width: 62px; }

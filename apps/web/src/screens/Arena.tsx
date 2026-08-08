@@ -21,9 +21,10 @@ const THREAT_LABEL: Record<string, string> = { easy: "Weaker", even: "Even", har
  * A level-18 rival carries eleven things, and eleven named chips was five rows
  * of shopping list above the button you came to press. The board is a glance:
  * icons only, at 2x so the 16px pixel grid lands on whole pixels, with the name
- * on the tooltip. Eight fit one row; the rest collapse into a count.
+ * on the tooltip. Six plus the count fit one row on a phone; more than that
+ * wrapped and put a second row on every card in the board.
  */
-const KIT_SHOWN = 8;
+const KIT_SHOWN = 6;
 /** Icons are drawn on a 16px grid, so only integer multiples stay crisp. */
 const KIT_ICON = 32;
 
