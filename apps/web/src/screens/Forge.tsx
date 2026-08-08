@@ -312,35 +312,30 @@ function PartPicker({
   onPick: (i: number) => void;
 }) {
   const list = allowed ?? parts.map((_, i) => i);
-  const at = Math.max(0, list.indexOf(value));
-  const step = (d: number) => onPick(list[(at + d + list.length) % list.length]!);
+  /*
+   * Every option, visible, one tap away. A <select> plus prev/next arrows is a
+   * settings form: it hides the choices behind a menu and makes "try them all"
+   * — the entire point of a character creator — a sequence of taps through a
+   * list you cannot see. A rail shows the set and lands any of them directly.
+   */
   return (
-    <div className="picker">
+    <div className="picker opt-picker">
       <span className="picker-label">
         {label}
         <em>{parts[value]!.name}</em>
       </span>
-      <div className="picker-ctl">
-        <button className="nudge" onClick={() => step(-1)} aria-label={`Previous ${label}`}>
-          <PixIcon name="arrowLeft" size={9} />
-        </button>
-        <select
-          value={value}
-          onChange={(e) => onPick(Number(e.target.value))}
-          aria-label={label}
-        >
-          {list.map((i) => (
-            <option key={parts[i]!.name} value={i}>
-              {parts[i]!.name}
-            </option>
-          ))}
-        </select>
-        <button className="nudge flip" onClick={() => step(1)} aria-label={`Next ${label}`}>
-          <PixIcon name="arrowLeft" size={9} />
-        </button>
-        <span className="picker-count">
-          {at + 1}/{list.length}
-        </span>
+      <div className="opt-rail" role="radiogroup" aria-label={label}>
+        {list.map((i) => (
+          <button
+            key={parts[i]!.name}
+            role="radio"
+            aria-checked={value === i}
+            className={`opt-chip${value === i ? " picked" : ""}`}
+            onClick={() => onPick(i)}
+          >
+            {parts[i]!.name}
+          </button>
+        ))}
       </div>
     </div>
   );
