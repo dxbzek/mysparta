@@ -137,3 +137,70 @@ pool, roster, and rescue codes give a full daily loop without a server. When
 one lands: defence-snapshot PvP (the `ChampionSnapshot` type is already the
 wire format), weekly ladders per league tier, then the Aristeia seasonal
 reset. Nothing in the current save shape blocks any of it.
+
+---
+
+## Second pass — full design + gameplay sweep
+
+Driven by "fix everything… ALL OF IT DESIGN GAMEPLAY". Audited every screen at
+320/390/844-landscape/1280/2560 with a real level-19 save, drove the loop end
+to end, and fixed in priority order.
+
+### Shipped
+
+**Crash / robustness**
+- `weapon()`, `skill()`, `beast()` and `omen()` threw on an unknown id, so a
+  save naming content we renamed took the whole Hall down behind the error
+  boundary — which reads to a player as "my hunter is gone". They warn and
+  fall back now, with a test.
+
+**Combat feel**
+- Reverb: the SFX were bone dry. A synthesised arena (1.1s dark impulse, 18ms
+  pre-delay) on a send; combat placed in stereo by who threw it; presence
+  shelf +4 → +2 dB now the room carries it; melodies stay mostly dry.
+- Mending got a beat — drop, drink, green bloom with motes, and the HP bar
+  flares. It was a number over an idle sway.
+- Hit-stop on the killing blow: +420ms hold, every animation frozen, white
+  flash. Anchored by a test to the last-line-is-an-epilogue invariant.
+- Beasts: the rank was 160px of animal beside a 52px fighter starting 89px off
+  a 342px stage. 32px, overlapped into a rank, per-beast breathing offsets.
+  Also un-broke their facing — a CSS animation on `transform` was eating the
+  inline `scaleX(-1)`, so every beast on the right faced backwards.
+
+**Screens**
+- Closet promoted to its own page; the Hall keeps a worn strip that taps in.
+- Character creation rebuilt to the standard shape: fixed stage, scrolling
+  option sheet, every option a chip on a rail. It was a `<select>` form.
+- Codex split into five tabbed shelves: 3,065px → 1,356.
+- Weapons became a board you tap; wardrobe became its twin.
+- Stat bars read to 60 and band red/orange/gold/green with an over-scale mark.
+- Hall nav 300px → 148; rival kit two rows → one; Arena 2,051 → 1,769.
+
+**Accessibility**
+- One `TabRail`/`TabPanel` for Forge, Codex and Closet with the full contract:
+  arrow keys, Home/End, roving tabindex, `aria-controls` to a real tabpanel.
+  Three screens previously promised `role="tab"` and delivered none of it.
+- Option chips use `aria-pressed`, not a `role="radio"` we do not navigate.
+- Today's Tasks closes on Escape.
+
+**Pacing**
+- The XP row states the pace ("~2d"). The curve steepens sharply at level 30
+  and nothing said so, which reads as breakage rather than difficulty. The
+  curve itself is untouched — that is canon and a design call.
+
+### Verified
+
+No horizontal overflow and no error boundary on any screen at 320, 390,
+844-landscape, 1280 or 2560. Full loop drives clean: arena → fight → verdict →
+continue → level-up draft → claim, with vigor, rating, record and level all
+moving correctly. 64 web tests, 20 core, 19 api.
+
+### Still open
+
+- **Art direction.** Zek wants MyBrute's flat-cartoon look. Their sheet is
+  Motion Twin's and cannot be used. The free CC0 sets are either pixel (what
+  ships today) or painted; neither is that idiom. Needs either a paid cartoon
+  pack or hand-drawn SVGs for 25 weapons + 8 beasts.
+- Level-30 XP cliff itself (GDD §6.2 canon).
+- Thrown-beat effect-before-cause; per-arena ambience; paperdoll/arenaScene
+  LRU caches; Favour cost on board refresh; Forge back-to-name.
