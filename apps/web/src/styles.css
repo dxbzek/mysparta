@@ -3183,7 +3183,9 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .codex-tile > .pet-tile .pet-sprite { max-width: 100%; max-height: 100%; }
 
 /* The pet tiles are wider than they are tall, so they need their own track. */
-.codex-case:last-of-type .codex-grid { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
+/* :last-of-type used to mean "pets"; with one shelf on screen at a time it
+   meant every shelf, which cost the weapon grid a whole column on a phone. */
+.codex-case.wide .codex-grid { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
 
 @media (max-width: 560px) {
   .codex-grid { grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); }

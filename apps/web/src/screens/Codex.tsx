@@ -105,7 +105,7 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
       ))}
 
       {shelf === "pets" && (
-      <CodexCase title="Pets" have={champion.beasts.length} all={BEASTS.length}>
+      <CodexCase title="Pets" have={champion.beasts.length} all={BEASTS.length} wide>
         {BEASTS.map((b) => (
           <CodexTile
             onTap={inspect}
@@ -134,16 +134,19 @@ function CodexCase({
   note,
   have,
   all,
+  wide,
   children,
 }: {
   title: string;
   note?: string;
   have: number;
   all: number;
+  /** pets are drawn wider than they are tall and need the room */
+  wide?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <section className="card codex-case">
+    <section className={`card codex-case${wide ? " wide" : ""}`}>
       <h3>
         {title}{" "}
         <span className="muted small">
