@@ -1732,6 +1732,30 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   padding: 18px 12px 12px;
   overflow: hidden;
 }
+/*
+ * One column means the stage is above the pickers, so by the time you reach
+ * "Top colour" the hunter you are colouring has scrolled off the top of the
+ * screen — you are choosing blind. It pins instead, compact, and the options
+ * scroll under it. Wide screens already had this via the two-column rule.
+ */
+@media (max-width: 859px) {
+  .styler-stage {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    max-height: 34svh;
+    padding: 8px 10px 6px;
+    border-top: 0;
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+  .styler-stage .fighter-fig { transform: scale(0.66); transform-origin: bottom center; }
+  .styler-stage .hero-caption b { font-size: 0.72rem; }
+  .styler-stage .hero-caption .muted { display: none; }
+  /* the pinned stage would otherwise sit under the sticky page furniture */
+  .styler { gap: 0; }
+  .styler > .card.creator { margin-top: 12px; }
+}
+
 .hero-caption { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; color: var(--ink); }
 .styler-stage .muted { color: var(--ink-soft); }
 .hero-caption b { font-family: var(--font-display); font-size: 0.82rem; }
