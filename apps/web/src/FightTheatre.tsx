@@ -118,13 +118,22 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
 
   const finished = skipped || shown >= lines.length;
 
+  /*
+   * Hit-stop. The killing blow used to be paced exactly like the forty before
+   * it — the feed just stopped having more to say. Every fighting game since
+   * Street Fighter II freezes the frame on the blow that ends it, because the
+   * pause is what tells you it was the last one. The beat before the end holds
+   * longer, the stage holds still, and then the verdict.
+   */
+  const kills = lines.length > 1 && shown === lines.length - 1 && result.reason === "ko";
+
   useEffect(() => {
     if (finished) return;
     const line = lines[shown - 1];
-    const hold = (line?.hold ?? 600) / speedRef.current;
+    const hold = ((line?.hold ?? 600) + (kills ? 420 : 0)) / speedRef.current;
     const id = window.setTimeout(() => setShown((s) => s + 1), hold);
     return () => window.clearTimeout(id);
-  }, [shown, finished, lines, speed]);
+  }, [shown, finished, lines, speed, kills]);
 
   useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
@@ -439,7 +448,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     // than fast, in the mode repeat players live in.
     <div className="theatre" style={{ "--spd": speed === 2 ? 0.5 : 1 } as React.CSSProperties}>
       <div
-        className={`stage ${fx?.crit && !finished ? "quake" : ""}`}
+        className={`stage ${fx?.crit && !finished ? "quake" : ""}${kills ? " hitstop" : ""}`}
         ref={stageRef}
         style={
           {

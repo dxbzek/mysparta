@@ -233,3 +233,25 @@ describe("content lookups survive a stale save", () => {
     expect(weapon("a_weapon_we_cut").name).toBeTruthy();
   });
 });
+
+describe("the killing blow is the beat before the epilogue", () => {
+  it("a KO ends with a summary line, so hit-stop lands on the blow itself", () => {
+    let kos = 0;
+    for (let s = 0; s < 60 && kos < 8; s++) {
+      const r = simulateFight({
+        seed: s,
+        attacker: snapshot(grown("Ender" + (s % 9), 10 + (s % 8)), PLAN),
+        defender: snapshot(grown("Fallen" + (s % 7), 10 + (s % 8)), PLAN),
+      });
+      if (r.reason !== "ko") continue;
+      kos++;
+      const lines = narrate(r, ["Ender", "Fallen"]);
+      // The stage extends the hold on lines.length - 1, which is only the
+      // killing blow while the very last line stays a non-action epilogue.
+      expect(lines[lines.length - 1]!.kind).toBe("end");
+      expect(lines[lines.length - 1]!.anim).toBeUndefined();
+      expect(lines.length).toBeGreaterThan(1);
+    }
+    expect(kos).toBeGreaterThan(0);
+  });
+});

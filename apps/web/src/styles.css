@@ -3345,3 +3345,22 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
  * twelve pips is a bar chart, not a glance.
  */
 .vigor-pips { display: inline-flex; align-items: center; gap: 5px; }
+
+/*
+ * Hit-stop. On the blow that ends it the stage stops dead for a beat — every
+ * running animation frozen, the colour pushed, a hard white flash — and then
+ * lets go. It is the difference between a fight ending and a fight stopping.
+ */
+.stage.hitstop { animation: hitstopFlash 420ms steps(1, end); }
+.stage.hitstop *,
+.stage.hitstop *::before,
+.stage.hitstop *::after { animation-play-state: paused !important; }
+@keyframes hitstopFlash {
+  0% { filter: brightness(2.2) contrast(1.3) saturate(0.2); }
+  14% { filter: brightness(1.05) contrast(1.08); }
+  100% { filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage.hitstop { animation: none; }
+  .stage.hitstop * { animation-play-state: running !important; }
+}
