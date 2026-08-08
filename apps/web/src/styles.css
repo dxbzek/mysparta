@@ -2963,8 +2963,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
   /* --- weapon rows read as tiles, not a text list --- */
   .arsenal.rack li { gap: 12px; }
-  .arsenal .rack-tile { width: 56px; height: 56px; }
+  /* 64px wood tile per the mobile spec, and an integer 2x home for the 32px
+     icon inside it. 56 was neither. */
+  .arsenal .rack-tile { width: 64px; height: 64px; }
   .reorder button { min-width: 42px; min-height: 34px; }
+  .shell { padding-left: 12px; padding-right: 12px; }
 }
 
 /*
