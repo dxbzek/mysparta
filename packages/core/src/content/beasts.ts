@@ -112,7 +112,10 @@ const byId = new Map(BEASTS.map((b) => [b.id, b] as const));
 
 export function beast(id: string): BeastDef {
   const b = byId.get(id);
-  if (!b) throw new Error(`Unknown beast: ${id}`);
+  if (!b) {
+    console.warn(`Unknown beast: ${id}`);
+    return BEASTS[0]!;
+  }
   return b;
 }
 

@@ -170,7 +170,10 @@ const byId = new Map(SKILLS.map((s) => [s.id, s] as const));
 
 export function skill(id: string): SkillDef {
   const s = byId.get(id);
-  if (!s) throw new Error(`Unknown skill: ${id}`);
+  if (!s) {
+    console.warn(`Unknown skill: ${id}`);
+    return SKILLS[0]!;
+  }
   return s;
 }
 

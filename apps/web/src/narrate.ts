@@ -31,6 +31,9 @@ export interface Line {
     riposte?: boolean;
     /** A skill going off on the caster: they plant and flare rather than swing. */
     cast?: boolean;
+    /** Mending: the fighter takes a knee, drinks, and blooms green. Its own
+     *  beat because "recovers 40" was a number with no moment attached. */
+    heal?: boolean;
     /** A beast arriving for the first time — it pounces in rather than
      *  appearing fully formed at its master's heel. */
     summon?: string;
@@ -218,8 +221,9 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         break;
       case "heal":
         hp[e.side] = e.hp;
-        push(e.side, `${n(e.side)} recovers ${e.amount} (${e.source}).`, "defend", 650, {
+        push(e.side, `${n(e.side)} recovers ${e.amount} (${e.source}).`, "defend", 780, {
           fx: { target: e.side, amount: e.amount, heal: true },
+          anim: { heal: true, striker: e.side },
         });
         break;
       case "beastAttack":

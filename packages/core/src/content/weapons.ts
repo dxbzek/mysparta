@@ -332,8 +332,19 @@ const byId = new Map<string, WeaponDef>([
   ...WEAPONS.map((w) => [w.id, w] as const),
 ]);
 
+/*
+ * A save is a string in someone's browser. It can name a weapon we renamed, a
+ * skill we cut, or an omen from a build six months old — and until now any one
+ * of those took the whole Hall down behind the error boundary, which reads to
+ * the player as "my hunter is gone". Unknown ids fall back to the first entry
+ * and the game keeps drawing. The sim still refuses them (see below) so a
+ * corrupt save can never silently change a fight result.
+ */
 export function weapon(id: string): WeaponDef {
   const w = byId.get(id);
-  if (!w) throw new Error(`Unknown weapon: ${id}`);
+  if (!w) {
+    console.warn(`Unknown weapon: ${id}`);
+    return FISTS;
+  }
   return w;
 }

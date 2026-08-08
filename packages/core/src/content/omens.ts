@@ -48,6 +48,9 @@ export const OMENS: OmenDef[] = [
 
 export function omen(id: string): OmenDef {
   const o = OMENS.find((x) => x.id === id);
-  if (!o) throw new Error(`Unknown omen: ${id}`);
+  if (!o) {
+    console.warn(`Unknown omen: ${id}`);
+    return OMENS[0]!;
+  }
   return o;
 }

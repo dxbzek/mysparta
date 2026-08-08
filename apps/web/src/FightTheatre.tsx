@@ -246,24 +246,24 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       case "crit": {
         const crit = l.kind === "crit";
         // swing first, impact landing a beat later — the gap sells the blow
-        if (l.anim?.thrown) sound.strike("pierce", crit);
+        if (l.anim?.thrown) sound.strike("pierce", crit, l.anim.striker);
         else {
-          sound.swing(kind);
-          land(() => sound.strike(kind, crit), kind === "axe" ? Math.round(360 / speedRef.current) : contact);
+          sound.swing(kind, l.anim?.striker);
+          land(() => sound.strike(kind, crit, l.anim?.striker), kind === "axe" ? Math.round(360 / speedRef.current) : contact);
         }
         break;
       }
       case "defend":
         if (l.fx?.heal) sound.heal();
         else if (l.anim?.reaction?.kind === "block") {
-          sound.swing(kind);
+          sound.swing(kind, l.anim?.striker);
           const guard = l.anim.reaction.side;
           land(() => sound.block(hasShield[guard]), contact);
         } else if (l.anim?.reaction?.kind === "dodge") {
-          sound.swing(kind);
+          sound.swing(kind, l.anim?.striker);
           land(() => sound.dodge(), contact);
         } else if (l.anim?.thrown) sound.throwSpear();
-        else sound.swing(kind);
+        else sound.swing(kind, l.anim?.striker);
         break;
       case "trump":
         sound.power();
@@ -272,6 +272,9 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     return () => pending.forEach((id) => window.clearTimeout(id));
   }, [shown, skipped, lines, names, heldWeapon, hasShield, result.winner]);
 
+  /** who mended on this beat, so their bar flares with the number */
+  const healed = anim?.heal ? anim.striker : undefined;
+
   const slotClass = (side: 0 | 1): string => {
     const cls = ["fig-slot"];
     const R = side === 0 ? "r" : "l"; // the direction this side attacks toward
@@ -279,7 +282,10 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     if (idx <= 1) cls.push(side === 0 ? "enter-l" : "enter-r");
 
     if (anim?.striker === side && !anim.beastId) {
-      if (anim.cast) {
+      if (anim.heal) {
+        // Mending is a beat of its own: take a knee, tip the flask back, bloom.
+        cls.push(`mend-${S}`);
+      } else if (anim.cast) {
         // A skill is not a swing: they plant, draw themselves up, and the
         // power leaves them. Casting used to be a bare caption over an idle.
         cls.push(`cast-${S}`);
@@ -324,6 +330,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     if (anim?.reaction?.side === side && anim.reaction.kind === "hurt") cls.push("flash");
     // The skill lights its caster up, so the ring reads as coming FROM them.
     if (anim?.cast && anim.striker === side) cls.push("channel");
+    if (anim?.heal && anim.striker === side) cls.push("mending");
     return cls.join(" ");
   };
 
@@ -343,7 +350,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     const react = anim?.reaction?.side === side ? anim.reaction.kind : undefined;
     if (react === "hurt") return "hit";
     // A cast holds the guard while the body channels; the CSS does the lift.
-    if (anim?.cast && anim.striker === side) return "stance";
+    if ((anim?.cast || anim?.heal) && anim.striker === side) return "stance";
     // Drawing steel reads as the wind-up frames, not an idle sway.
     if (anim?.ready === side) return "attack1";
     // A dodge is a body moving out of the way; the run frames read as the
@@ -412,7 +419,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
                 .filter(Boolean)
                 .join(" ")}
             >
-              <PetSprite beastId={id} size={54} mirror={side === 1} down={downed[side].has(id)} />
+              <PetSprite beastId={id} size={32} mirror={side === 1} down={downed[side].has(id)} />
               {falling && (
                 <span className="beast-poof">
                   <ImpactBurst size={46} crit={false} />
@@ -462,8 +469,8 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
         {arena.weather && <WeatherFx kind={arena.weather} count={14} />}
         <div className="arena-chip">{arena.name}</div>
         <div className="stage-hp">
-          <HpBar name={names[0]} hp={hp[0]!} max={result.hpMax[0]} mirror={false} />
-          <HpBar name={names[1]} hp={hp[1]!} max={result.hpMax[1]} mirror={true} />
+          <HpBar name={names[0]} hp={hp[0]!} max={result.hpMax[0]} mirror={false} gain={healed === 0} />
+          <HpBar name={names[1]} hp={hp[1]!} max={result.hpMax[1]} mirror={true} gain={healed === 1} />
         </div>
         <div className="vs-badge">VS</div>
 
@@ -603,14 +610,27 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   );
 }
 
-function HpBar({ name, hp, max, mirror }: { name: string; hp: number; max: number; mirror: boolean }) {
+function HpBar({
+  name,
+  hp,
+  max,
+  mirror,
+  gain,
+}: {
+  name: string;
+  hp: number;
+  max: number;
+  mirror: boolean;
+  /** healed on this beat — the bar flares so the gain is not just a number */
+  gain?: boolean;
+}) {
   const pct = Math.max(0, Math.min(100, Math.round((hp / max) * 100)));
   return (
     <div className={`hpbar ${mirror ? "mirror" : ""}`}>
       <div className="hpbar-name">{name}</div>
       <div className="hpbar-track">
         <div
-          className={`hpbar-fill ${pct <= 20 ? "danger" : pct <= 50 ? "warn" : ""}`}
+          className={`hpbar-fill ${pct <= 20 ? "danger" : pct <= 50 ? "warn" : ""}${gain ? " gain" : ""}`}
           style={{ width: `${pct}%` }}
         />
       </div>
