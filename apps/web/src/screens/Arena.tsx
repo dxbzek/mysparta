@@ -18,11 +18,14 @@ function threatOf(mine: number, theirs: number): "easy" | "even" | "hard" {
 const THREAT_LABEL: Record<string, string> = { easy: "Weaker", even: "Even", hard: "Stronger" };
 
 /**
- * A level-18 rival carries eleven things, and eleven chips is five rows of
- * shopping list above the button you actually came to press. Five chips read
- * as "here is the shape of them"; the rest collapse into one you can hover.
+ * A level-18 rival carries eleven things, and eleven named chips was five rows
+ * of shopping list above the button you came to press. The board is a glance:
+ * icons only, at 2x so the 16px pixel grid lands on whole pixels, with the name
+ * on the tooltip. Eight fit one row; the rest collapse into a count.
  */
-const KIT_SHOWN = 5;
+const KIT_SHOWN = 8;
+/** Icons are drawn on a 16px grid, so only integer multiples stay crisp. */
+const KIT_ICON = 32;
 
 /** Phone-sized bust. Sized here, not in CSS: the tile clips what overflows it,
     so shrinking the box without shrinking the fighter beheads them. */
@@ -49,31 +52,31 @@ function rivalKit(r: Rival) {
       ? r.snapshot.weapons.map((w) => ({
           key: `w${w}`,
           cls: "kit-chip",
-          title: weapon(w).flavour,
-          icon: <WeaponIcon d={w} size={15} />,
+          title: `${weapon(w).name} — ${weapon(w).flavour}`,
+          icon: <WeaponIcon d={w} size={KIT_ICON} />,
           name: weapon(w).name,
         }))
       : [
           {
             key: "bare",
             cls: "kit-chip",
-            title: "No weapon at all.",
-            icon: <WeaponIcon d="fists" size={15} />,
+            title: "Bare-handed — no weapon at all.",
+            icon: <WeaponIcon d="fists" size={KIT_ICON} />,
             name: "Bare-handed",
           },
         ]),
     ...r.snapshot.skills.map((s) => ({
       key: `s${s}`,
       cls: "kit-chip skill",
-      title: skill(s).text,
-      icon: <SkillIcon id={s} kind={skill(s).kind as SkillKind} size={17} />,
+      title: `${skill(s).name} — ${skill(s).text}`,
+      icon: <SkillIcon id={s} kind={skill(s).kind as SkillKind} size={KIT_ICON} />,
       name: skill(s).name,
     })),
     ...r.snapshot.beasts.map((b, bi) => ({
       key: `b${b}${bi}`,
       cls: "kit-chip pet",
       title: `${beast(b).name} fights alongside them.`,
-      icon: <PetSprite beastId={b} size={16} />,
+      icon: <PetSprite beastId={b} size={KIT_ICON} />,
       name: beast(b).name,
     })),
   ];
@@ -132,8 +135,9 @@ export function Arena(props: {
                 return (
                   <div className="rival-kit">
                     {kit.shown.map((c) => (
-                      <span className={c.cls} key={c.key} title={c.title}>
-                        {c.icon} {c.name}
+                      <span className={`${c.cls} kit-icon`} key={c.key} title={c.title}>
+                        {c.icon}
+                        <em>{c.name}</em>
                       </span>
                     ))}
                     {kit.rest.length > 0 && (
@@ -141,7 +145,7 @@ export function Arena(props: {
                         className="kit-chip kit-more"
                         title={kit.rest.map((c) => c.name).join(" · ")}
                       >
-                        +{kit.rest.length} more
+                        +{kit.rest.length}
                       </span>
                     )}
                   </div>

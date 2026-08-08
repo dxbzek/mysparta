@@ -216,11 +216,12 @@ export function WeatherFx({ kind, count }: { kind: string; count: number }) {
 
 /** Circular bust: a live mini idle loop framed in a ring. */
 /**
- * A bust is a portrait, not a shrunken full body. Measured off the strip: hair
- * starts at frame row 10, the chin lands at 29 and the shoulders spread by 36,
- * so rows 8-36 hold a head-and-shoulders crop with a little air above.
+ * A bust is a portrait, not a shrunken full body. Measured across the rival
+ * looks: hair inks from row 10-17 and the neck narrows at 31-34, so rows 10-39
+ * put the eye line at ~40% with real air under the chin instead of the jaw
+ * sitting on the tile's bottom edge. 29 rows is also exactly 2x in a 64px tile.
  */
-const BUST = { top: 8, rows: 29 };
+const BUST = { top: 10, rows: 29 };
 
 export function FighterBust({
   look,

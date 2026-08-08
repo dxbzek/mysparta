@@ -104,7 +104,7 @@ export function RewardModal(props: {
 /** A level-up reward should be a thing you can see, not just a line of text. */
 function OfferArt({ offer }: { offer: FateOffer }) {
   if (offer.kind === "skill")
-    return <SkillIcon id={offer.skill} kind={skill(offer.skill).kind as SkillKind} size={62} />;
+    return <SkillIcon id={offer.skill} kind={skill(offer.skill).kind as SkillKind} size={64} />;
   if (offer.kind === "weapon")
     return (
       <span className="offer-art rack-tile">

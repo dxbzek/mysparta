@@ -43,7 +43,7 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
             detail={`${DISCIPLINE_NAME[w.discipline] ?? w.discipline}${w.ammo ? ` · ${w.ammo} throws` : ""}${w.twoHanded ? " · two-handed" : ""} — ${w.flavour}`}
           >
             <span className="rack-tile">
-              <WeaponIcon d={w.id} size={40} />
+              <WeaponIcon d={w.id} size={48} />
             </span>
           </CodexTile>
         ))}
@@ -63,7 +63,7 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
         >
           {group.list.map((s) => (
             <CodexTile onTap={inspect} key={s.id} name={s.name} owned={champion.skills.includes(s.id)} detail={s.text}>
-              <SkillIcon id={s.id} kind={s.kind as SkillKind} size={46} />
+              <SkillIcon id={s.id} kind={s.kind as SkillKind} size={48} />
             </CodexTile>
           ))}
         </CodexCase>

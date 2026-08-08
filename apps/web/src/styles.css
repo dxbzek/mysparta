@@ -2668,6 +2668,30 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   color: var(--ink-soft);
   cursor: default;
 }
+/*
+ * The board is a glance, so a rival's kit reads as a row of icons: the name
+ * lives on the tooltip and in the accessibility tree, not on the card. The
+ * tile is 40px (32px of icon + 2px border + 2px air) so the 16px pixel grid
+ * still lands on whole pixels.
+ */
+.kit-chip.kit-icon {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  gap: 0;
+  justify-content: center;
+  cursor: help;
+}
+.kit-chip.kit-icon > em {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.kit-chip.kit-icon > :first-child { flex: 0 0 auto; }
+.rival-kit .kit-more { align-self: center; height: 40px; }
 
 @media (max-width: 560px) {
   .plaque { width: 62px; }

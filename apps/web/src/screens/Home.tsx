@@ -135,7 +135,7 @@ function ChampionPortrait({
             } as React.CSSProperties
           }
         >
-          <FighterFig look={look} height={48 * figScale} anim={pose} aura={aura} particles={particles} />
+          <FighterFig look={look} height={CHAR.h * figScale} anim={pose} aura={aura} particles={particles} />
         </span>
       </div>
       {/*
@@ -417,7 +417,7 @@ export function Home(props: {
           <div className="plaques">
             {c.skills.map((s) => (
               <span key={s} className="plaque" title={skill(s).text}>
-                <SkillIcon id={s} kind={skill(s).kind as SkillKind} size={40} />
+                <SkillIcon id={s} kind={skill(s).kind as SkillKind} size={32} />
                 <em>{skill(s).name}</em>
               </span>
             ))}

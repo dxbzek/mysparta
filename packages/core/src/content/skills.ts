@@ -10,7 +10,7 @@ export const SKILLS: SkillDef[] = [
     id: "hoplite_drill",
     name: "Hoplite Drill",
     kind: "boon",
-    text: "+10 Block with an Aspis equipped; +5 without",
+    text: "+10 Block with a shield equipped; +5 without",
     // Conditional bonus applied in derive().
   },
   {
@@ -23,7 +23,7 @@ export const SKILLS: SkillDef[] = [
     id: "titan_grip",
     name: "Titan Grip",
     kind: "boon",
-    text: "Labrys-discipline interval −15%; cannot be disarmed while wielding a Labrys weapon",
+    text: "Axe interval −15%; cannot be disarmed while wielding an axe",
   },
   { id: "keen_edge", name: "Keen Edge", kind: "boon", text: "+6 Crit", mods: { crit: 6 } },
   { id: "serpent_reflex", name: "Serpent Reflex", kind: "boon", text: "+10 Counter", mods: { counter: 10 } },
@@ -50,7 +50,7 @@ export const SKILLS: SkillDef[] = [
     id: "endless_quiver",
     name: "Endless Quiver",
     kind: "boon",
-    text: "Akontia ammo +3 per weapon; thrown damage +10%",
+    text: "Thrown ammo +3 per weapon; thrown damage +10%",
   },
 
   // --- Techniques (10): auto-triggered actives ---
