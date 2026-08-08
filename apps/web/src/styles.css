@@ -3386,3 +3386,95 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 /* Vector arsenal: crisp at any size, so no pixel snapping and no smoothing
    hacks — the outline is part of the drawing. */
 .cartoon-art { display: block; overflow: visible; }
+
+/* ---------- skill effects ----------
+ * One box per fighter, centred on them, sized to the stage scale. Each kind
+ * gets its own motion: a bolt drops, a dome closes, speed streaks past. All
+ * CSS, so a skill firing costs a compositor pass.
+ */
+.skill-fx {
+  position: absolute;
+  left: 50%; bottom: 0;
+  width: 190%; height: 190%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 6;
+}
+.skill-fx svg { display: block; overflow: visible; }
+
+.fx-bolt { animation: fxBolt calc(620ms * var(--spd, 1)) cubic-bezier(0.2, 0.9, 0.3, 1); }
+@keyframes fxBolt {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-40%) scaleY(0.4); }
+  22% { opacity: 1; transform: translateX(-50%) translateY(0) scaleY(1.1); }
+  60% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) scale(1.06); }
+}
+.fx-flame { animation: fxRise calc(700ms * var(--spd, 1)) ease-out; }
+@keyframes fxRise {
+  0% { opacity: 0; transform: translateX(-50%) translateY(14%) scale(0.7); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-16%) scale(1.12); }
+}
+.fx-dome, .fx-guard { animation: fxClose calc(800ms * var(--spd, 1)) ease-out; }
+@keyframes fxClose {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.5); }
+  30% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+  70% { opacity: 0.9; transform: translateX(-50%) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) scale(1.02); }
+}
+.fx-roar, .fx-rage { animation: fxPulse calc(760ms * var(--spd, 1)) ease-out; }
+@keyframes fxPulse {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.35); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) scale(1.5); }
+}
+.fx-chains { animation: fxSnap calc(720ms * var(--spd, 1)) cubic-bezier(0.3, 1.6, 0.4, 1); }
+@keyframes fxSnap {
+  0% { opacity: 0; transform: translateX(-90%) scaleX(0.3); }
+  30% { opacity: 1; transform: translateX(-50%) scaleX(1); }
+  100% { opacity: 0; transform: translateX(-50%) scaleX(1); }
+}
+.fx-leap { animation: fxDrop calc(680ms * var(--spd, 1)) cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes fxDrop {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-55%); }
+  40% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(4%) scale(1.1); }
+}
+.fx-speed { animation: fxStreak calc(560ms * var(--spd, 1)) ease-out; }
+@keyframes fxStreak {
+  0% { opacity: 0; transform: translateX(-70%); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-28%); }
+}
+.fx-fear { animation: fxCreep calc(880ms * var(--spd, 1)) ease-in-out; }
+@keyframes fxCreep {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.8) rotate(-4deg); }
+  40% { opacity: 1; transform: translateX(-50%) scale(1.04) rotate(3deg); }
+  100% { opacity: 0; transform: translateX(-50%) scale(1.1) rotate(-2deg); }
+}
+.fx-quake { animation: fxShock calc(640ms * var(--spd, 1)) ease-out; }
+@keyframes fxShock {
+  0% { opacity: 0; transform: translateX(-50%) scaleY(0.4); }
+  25% { opacity: 1; transform: translateX(-50%) scaleY(1.15); }
+  100% { opacity: 0; transform: translateX(-50%) scaleY(1); }
+}
+.fx-blades { animation: fxSpin calc(700ms * var(--spd, 1)) linear; }
+@keyframes fxSpin {
+  0% { opacity: 0; transform: translateX(-50%) rotate(-40deg) scale(0.7); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) rotate(150deg) scale(1.15); }
+}
+.fx-thread { animation: fxDraw calc(900ms * var(--spd, 1)) ease-in-out; }
+@keyframes fxDraw {
+  0% { opacity: 0; transform: translateX(-50%) scaleX(0.2); }
+  35% { opacity: 1; transform: translateX(-50%) scaleX(1); }
+  100% { opacity: 0; }
+}
+
+/* a beast arriving on someone */
+.beast-bite { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-fx { animation: fxHold 500ms ease-out !important; }
+  @keyframes fxHold { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+}

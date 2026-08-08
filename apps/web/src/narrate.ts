@@ -45,6 +45,9 @@ export interface Line {
     reaction?: { side: 0 | 1; kind: "hurt" | "dodge" | "block" };
     /** A skill going off: the stage announces it and flares the caster. */
     invoke?: { side: 0 | 1; name: string };
+    /** Which skill, so the stage can draw THAT skill rather than a gold flare
+     *  with a caption. See fightFx.tsx. */
+    skillId?: string;
     /** A word floater when no number applies ("Miss!", "Blocked!"). */
     label?: { side: 0 | 1; text: string };
     /** Acting beast's id (beast attack beats). */
@@ -202,6 +205,7 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
             striker: e.side,
             label: { side: e.side, text: prettySkill(e.skill) },
             invoke: { side: e.side, name: prettySkill(e.skill) },
+            skillId: e.skill,
           },
         });
         break;
@@ -214,9 +218,20 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
           e.amount
             ? {
                 fx: { target: foe(e.side), amount: e.amount },
-                anim: { striker: e.side, reaction: { side: foe(e.side), kind: "hurt" } },
+                anim: {
+                  striker: e.side,
+                  skillId: e.skill,
+                  reaction: { side: foe(e.side), kind: "hurt" },
+                },
               }
-            : { anim: { cast: true, striker: e.side, label: { side: e.side, text: prettySkill(e.skill) } } },
+            : {
+                anim: {
+                  cast: true,
+                  striker: e.side,
+                  skillId: e.skill,
+                  label: { side: e.side, text: prettySkill(e.skill) },
+                },
+              },
         );
         break;
       case "heal":

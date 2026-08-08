@@ -255,3 +255,22 @@ describe("the killing blow is the beat before the epilogue", () => {
     expect(kos).toBeGreaterThan(0);
   });
 });
+
+describe("every skill has a picture", () => {
+  it("no skill falls back to the generic effect", async () => {
+    const { SKILLS } = await import("@agoge/core");
+    const { SKILL_FX } = await import("../src/fightFx.js");
+    const missing = SKILLS.filter((s) => !SKILL_FX[s.id]).map((s) => s.id);
+    // A skill with no entry still draws something, but it draws the SAME
+    // something as every other unmapped skill — which is the bug this
+    // vocabulary exists to end.
+    expect(missing).toEqual([]);
+  });
+
+  it("maps only skills that exist", async () => {
+    const { SKILLS } = await import("@agoge/core");
+    const { SKILL_FX } = await import("../src/fightFx.js");
+    const ids = new Set(SKILLS.map((s) => s.id));
+    expect(Object.keys(SKILL_FX).filter((k) => !ids.has(k))).toEqual([]);
+  });
+});

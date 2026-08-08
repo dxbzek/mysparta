@@ -8,6 +8,7 @@ import { PixIcon } from "./pixelIcons.js";
 import type { Arena } from "./arenas.js";
 import { CHAR, weaponArtFor, type Look } from "./paperdoll.js";
 import { narrate, type Line } from "./narrate.js";
+import { SkillFx, fxFor } from "./fightFx.js";
 import { sound, type StrikeKind } from "./sound.js";
 
 export interface StageFigure {
@@ -382,8 +383,20 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     const showSlash = showBurst && anim?.striker !== undefined && !anim.thrown;
     const label = anim?.label?.side === side ? anim.label.text : undefined;
     const edge = side === 0 ? "on-right" : "on-left";
+    /*
+     * The skill itself, drawn. Thirty skills used to share one gold flare and
+     * a caption, so the biggest thing a fighter can do read as a subtitle.
+     * The effect plays on whoever it happens to: a bolt lands on the target,
+     * a shield closes over the caster.
+     */
+    const spell = anim?.skillId ? fxFor(anim.skillId) : undefined;
+    const spellHere =
+      spell && anim?.striker !== undefined
+        ? (spell.at === "self" ? anim.striker : anim.striker === 0 ? 1 : 0) === side
+        : false;
     return (
       <>
+        {spellHere && spell && <SkillFx kind={spell.fx} />}
         {showSlash && (
           <span className={`slash ${edge}`}>
             <SlashArc size={90} mirror={side === 0} />
@@ -442,6 +455,14 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
               {falling && (
                 <span className="beast-poof">
                   <ImpactBurst size={46} crit={false} />
+                </span>
+              )}
+              {/* the bite itself — a beast used to cross the stage and arrive
+                  at nothing, which read as a sprite sliding rather than an
+                  animal landing on someone */}
+              {striking && (
+                <span className="beast-bite">
+                  <ImpactBurst size={40} crit={false} />
                 </span>
               )}
             </span>
