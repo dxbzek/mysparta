@@ -484,6 +484,30 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   position: absolute; inset: 0;
   background: repeating-linear-gradient(90deg, transparent 0 5px, rgb(47 42 34 / 32%) 5px 6px);
 }
+/*
+ * A stat bar that is gold whatever the number tells you nothing at a glance.
+ * Banded: red is a dump stat, orange is thin, gold is solid, green is a
+ * strength. `.over` means the value has run past the bar's scale entirely —
+ * the bar is full and hatched bright, because that is the fact worth showing.
+ */
+.statbar i.s-low { background: linear-gradient(180deg, #e2695c, var(--red)); }
+.statbar i.s-mid { background: linear-gradient(180deg, #e8865f, var(--terracotta)); }
+.statbar i.s-good { background: linear-gradient(180deg, var(--gold-bright), var(--gold)); }
+.statbar i.s-high { background: linear-gradient(180deg, #8fbf58, var(--olive)); }
+.statbar.over i { background: linear-gradient(180deg, #a8dd63, #4e7a26); }
+.statbar.over {
+  border-color: var(--olive);
+  box-shadow: 0 0 0 1px rgb(111 154 62 / 45%);
+}
+.statbar.over::after {
+  background:
+    repeating-linear-gradient(135deg, rgb(255 255 255 / 45%) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(90deg, transparent 0 5px, rgb(47 42 34 / 32%) 5px 6px);
+}
+.stats .num.s-low { color: var(--red); }
+.stats .num.s-mid { color: var(--terracotta-ink); }
+.stats .num.s-good { color: var(--gold-ink); }
+.stats .num.s-high { color: var(--olive-ink); }
 
 .arsenal { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
 .arsenal li {
@@ -1404,6 +1428,14 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   z-index: 20;
 }
 .draft { max-width: 700px; width: 100%; text-align: center; animation: pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+/* A checked-not-lived-beside panel: opens over the Hall, closes on the scrim. */
+.popover {
+  max-width: 460px; width: 100%;
+  max-height: calc(100dvh - 36px); overflow-y: auto;
+  animation: pop 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.popover h3 { display: flex; align-items: center; gap: 8px; }
+.popover h3 .rack-close { margin-left: auto; }
 .draft h2 { margin: 4px 0 2px; font-weight: 800; font-size: 1.7rem; }
 .fate-row {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
@@ -1928,6 +1960,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 /* a pet chip carries its sprite, not just its name */
 .pet-chip { display: inline-flex; align-items: center; gap: 7px; padding-left: 7px; }
 .pet-sprite { display: block; }
+/* Facing and felled sit here; the breathing loop sits on the sprite inside. */
+.pet-holder { display: inline-block; line-height: 0; }
 /* Real 32px tiles, blown up by whole numbers only — no smoothing, ever. */
 .tile-art {
   display: block;
@@ -2691,23 +2725,28 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .rack-move .btn { padding: 4px 9px; font-size: 0.66rem; }
 .rack-move > .muted { margin-right: auto; }
 
-/* One line per gear slot: what is on, how many you own, options on tap. */
-.slot-summary {
-  display: flex; align-items: center; gap: 9px; width: 100%;
-  padding: 7px 9px; min-height: 42px;
-  background: rgb(255 255 255 / 34%);
-  border: 2px solid rgb(67 56 42 / 32%); border-radius: var(--radius);
-  font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+/* The wardrobe is the same board as the weapons: one square per slot, wearing
+   what you have on, with the rail of options on tap. */
+.wardrobe-board { gap: 8px; }
+/* scoped past `.rack-board .rack-tile`, which is more specific than a bare
+   `.slot-tile` and was quietly holding these at 48px */
+.rack-board .slot-tile {
+  width: 64px; height: 64px;
+  flex-direction: column; gap: 2px;
+  padding: 3px 0 2px;
 }
-.slot-summary.picked { border-color: var(--gold); background: rgb(227 154 46 / 14%); }
-.slot-summary .slot-label {
-  margin: 0; flex: 0 0 62px;
-  font-family: var(--font-display); font-size: 0.6rem; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--ink-soft);
+.slot-tile em {
+  font-family: var(--font-display); font-style: normal;
+  font-size: 0.46rem; letter-spacing: 0.05em; text-transform: uppercase;
+  color: #f4e6c8; text-shadow: 0 1px 0 rgb(0 0 0 / 55%);
 }
-.slot-summary b { flex: 1; min-width: 0; font-size: 0.84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wardrobe-row { margin-bottom: 6px; }
-.wardrobe-row .chips { margin-top: 6px; }
+.slot-tile .hero-bust { width: 42px !important; height: 42px !important; border-width: 2px; }
+.slot-glyph {
+  width: 42px; height: 42px;
+  border: 2px dashed rgb(255 255 255 / 34%); border-radius: var(--radius);
+}
+.slot-tile.worn { background: rgb(243 182 78 / 14%); }
+.rack-detail .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 
 .sr-only {
   position: absolute;

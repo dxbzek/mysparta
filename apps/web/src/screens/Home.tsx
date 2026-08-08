@@ -177,17 +177,34 @@ const STAT_DOES: Record<string, string> = {
   Endurance: "health, and how many pets you can keep",
 };
 
+/**
+ * The bar topped out at 24, so a hunter with 30 Agility and 52 Endurance saw
+ * two identical full bars — no information exactly when the numbers get
+ * interesting. It reads to 60 now, and the fill is coloured by band so the
+ * shape of a build is legible without reading a single digit. Past 60 the bar
+ * is full and marked, because "off the scale" is itself the fact.
+ */
+const STAT_SCALE = 60;
+function statTier(v: number): string {
+  if (v >= 40) return "s-high";
+  if (v >= 25) return "s-good";
+  if (v >= 12) return "s-mid";
+  return "s-low";
+}
+
 function StatRow({ label, value, teach }: { label: string; value: number; teach: boolean }) {
-  // 24 is comfortably past a maxed early-game stat, so the bar keeps meaning
-  const pct = Math.max(4, Math.min(100, (value / 24) * 100));
+  const pct = Math.max(4, Math.min(100, (value / STAT_SCALE) * 100));
+  const over = value > STAT_SCALE;
   return (
     // What the stat buys is worth saying once, while the player is learning.
     // Kept on every row forever it was four lines of noise that doubled the
     // card's height, so after the first few fights it lives on the tooltip.
     <li title={`${label} — ${STAT_DOES[label]}`}>
       <b>{label}</b>
-      <span className="statbar"><i style={{ width: `${pct}%` }} /></span>
-      <span className="num">{value}</span>
+      <span className={`statbar${over ? " over" : ""}`}>
+        <i className={statTier(value)} style={{ width: `${pct}%` }} />
+      </span>
+      <span className={`num ${statTier(value)}`}>{value}</span>
       {teach && <em className="stat-does">{STAT_DOES[label]}</em>}
     </li>
   );
@@ -451,21 +468,27 @@ export function Home(props: {
         </div>
       </section>
 
-      {/* The tasks live behind a small button (player call: the always-open
-          strip took a full row for three lines that rarely change). The
-          button carries the count, so opening it is optional. */}
+      {/* The tasks open over the Hall rather than pushing a card into it — the
+          list is a thing you check, not a thing you live beside. */}
       {showTasks && (
-        <section className="card quests quests-strip span-all">
-          <h3>Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — gear dropped!</span>}</h3>
-          <ul className="qlist">
-            {todaysTasks.map((d) => (
-              <Quest key={d.metric + d.need} at={questProgress(save.quests, d)} of={d.need}>
-                {d.text}
-              </Quest>
-            ))}
-          </ul>
-          <p className="muted small note say-more">Complete all three for a bonus drop. Resets daily.</p>
-        </section>
+        <div className="overlay" role="dialog" aria-modal="true" aria-label="Today's Tasks" onClick={() => setShowTasks(false)}>
+          <section className="card quests quests-strip popover" onClick={(e) => e.stopPropagation()}>
+            <h3>
+              Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — gear dropped!</span>}
+              <button className="rack-close" onClick={() => setShowTasks(false)} aria-label="Close">
+                ×
+              </button>
+            </h3>
+            <ul className="qlist">
+              {todaysTasks.map((d) => (
+                <Quest key={d.metric + d.need} at={questProgress(save.quests, d)} of={d.need}>
+                  {d.text}
+                </Quest>
+              ))}
+            </ul>
+            <p className="muted small note">Complete all three for a bonus drop. Resets daily.</p>
+          </section>
+        </div>
       )}
 
       {(c.skills.length > 0 || c.beasts.length > 0) && (
@@ -514,9 +537,7 @@ export function Home(props: {
             </p>
           </div>
         ) : (
-          (["body", "helm", "cloak", "trinket", "title"] as GearSlot[]).map((slot) => {
-            const items = ownedGear.filter((g) => g.slot === slot);
-            if (items.length === 0) return null;
+          (() => {
             const labels: Record<GearSlot, string> = {
               body: "Armor",
               helm: "Helm",
@@ -524,51 +545,75 @@ export function Home(props: {
               trinket: "Trinket",
               title: "Title",
             };
-            const on = save.equipped?.[slot];
-            const wornItem = items.find((g) => g.id === on);
-            const isOpen = slotOpen === slot;
+            const slots = (["body", "helm", "cloak", "trinket", "title"] as GearSlot[]).filter(
+              (s) => ownedGear.some((g) => g.slot === s),
+            );
+            const openItems = slotOpen ? ownedGear.filter((g) => g.slot === slotOpen) : [];
             return (
-              <div key={slot} className="wardrobe-row">
-                {/*
-                  One line per slot: what you are wearing, and how many others
-                  you own. Five slots x a rail of 62px chips was 544px of Hall
-                  spent on a decision you make once a level.
-                */}
-                <button
-                  className={`slot-summary${isOpen ? " picked" : ""}`}
-                  aria-expanded={isOpen}
-                  onClick={() => setSlotOpen(isOpen ? null : slot)}
-                >
-                  <span className="slot-label">{labels[slot]}</span>
-                  <b>{wornItem ? wornItem.name : "Nothing"}</b>
-                  <span className="muted small">{items.length}</span>
-                  <PixIcon name={isOpen ? "chevronUp" : "chevronDown"} size={7} />
-                </button>
-                {isOpen && (
-                  <div className="chips">
-                    {items.map((g) => {
-                      const worn = on === g.id;
-                      return (
-                        <button
-                          key={g.id}
-                          className={`chip gear-chip ${worn ? "worn" : ""}`}
-                          title={g.flavour}
-                          onClick={() => props.onEquip(slot, worn ? undefined : g.id)}
-                        >
-                          {/* worn by your own hunter, so you see it before choosing */}
-                          <FighterBust look={lookWithGear(baseLook, { [slot]: g.id })} size={46} />
-                          <span className="gear-text">
-                            <b>{g.name}</b>
-                            <span className="gear-stat">{gearStatLine(g) || gearDetail(g)}</span>
-                          </span>
-                        </button>
-                      );
-                    })}
+              <>
+                {/* The same board as the weapons: square slots, detail on tap. */}
+                <div className="rack-board wardrobe-board">
+                  {slots.map((slot) => {
+                    const on = save.equipped?.[slot];
+                    const wornItem = ownedGear.find((g) => g.id === on);
+                    return (
+                      <button
+                        key={slot}
+                        type="button"
+                        className={`rack-tile rack-pick slot-tile${slotOpen === slot ? " picked" : ""}${
+                          wornItem ? " worn" : ""
+                        }`}
+                        aria-expanded={slotOpen === slot}
+                        title={`${labels[slot]} — ${wornItem ? wornItem.name : "nothing worn"}`}
+                        onClick={() => setSlotOpen(slotOpen === slot ? null : slot)}
+                      >
+                        {wornItem ? (
+                          <FighterBust look={lookWithGear(baseLook, { [slot]: wornItem.id })} size={46} />
+                        ) : (
+                          <span className="slot-glyph" aria-hidden />
+                        )}
+                        <em>{labels[slot]}</em>
+                        <span className="sr-only">
+                          {labels[slot]}: {wornItem ? wornItem.name : "nothing worn"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {slotOpen && (
+                  <div className="rack-detail">
+                    <div className="rack-detail-head">
+                      <b>{labels[slotOpen]}</b>
+                      <span className="muted small">{openItems.length} owned</span>
+                      <button className="rack-close" onClick={() => setSlotOpen(null)} aria-label="Close">
+                        ×
+                      </button>
+                    </div>
+                    <div className="chips">
+                      {openItems.map((g) => {
+                        const worn = save.equipped?.[slotOpen] === g.id;
+                        return (
+                          <button
+                            key={g.id}
+                            className={`chip gear-chip ${worn ? "worn" : ""}`}
+                            title={g.flavour}
+                            onClick={() => props.onEquip(slotOpen, worn ? undefined : g.id)}
+                          >
+                            {/* worn by your own hunter, so you see it before choosing */}
+                            <FighterBust look={lookWithGear(baseLook, { [slotOpen]: g.id })} size={46} />
+                            <span className="gear-text">
+                              <b>{g.name}</b>
+                              <span className="gear-stat">{gearStatLine(g) || gearDetail(g)}</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-              </div>
+              </>
             );
-          })
+          })()
         )}
       </section>
 
