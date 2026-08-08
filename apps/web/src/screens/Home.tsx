@@ -283,6 +283,8 @@ export function Home(props: {
   const [showTasks, setShowTasks] = useState(false);
   /** Which weapon on the rack board has its details open. */
   const [open, setOpen] = useState<number | null>(null);
+  /** Which wardrobe slot is showing its options. */
+  const [slotOpen, setSlotOpen] = useState<GearSlot | null>(null);
   const q = save.quests;
   const todaysTasks = questsForDay();
   const tasksDone = todaysTasks.filter((d) => questProgress(q, d) >= d.need).length;
@@ -417,8 +419,9 @@ export function Home(props: {
                 title={weapon(id).name}
               >
                 <WeaponIcon d={id} size={32} />
-                <span className="rack-ord">{i + 1}</span>
-                <span className="sr-only">{weapon(id).name}</span>
+                <span className="sr-only">
+                  {weapon(id).name}, drawn {i + 1}
+                </span>
               </button>
             ))}
             <span className="rack-tile rack-fists" title="Fists — always last">
@@ -521,29 +524,48 @@ export function Home(props: {
               trinket: "Trinket",
               title: "Title",
             };
+            const on = save.equipped?.[slot];
+            const wornItem = items.find((g) => g.id === on);
+            const isOpen = slotOpen === slot;
             return (
               <div key={slot} className="wardrobe-row">
-                <h4 className="slot-label">{labels[slot]}</h4>
-                <div className="chips">
-                  {items.map((g) => {
-                    const worn = save.equipped?.[slot] === g.id;
-                    return (
-                      <button
-                        key={g.id}
-                        className={`chip gear-chip ${worn ? "worn" : ""}`}
-                        title={g.flavour}
-                        onClick={() => props.onEquip(slot, worn ? undefined : g.id)}
-                      >
-                        {/* worn by your own hunter, so you see it before choosing */}
-                        <FighterBust look={lookWithGear(baseLook, { [slot]: g.id })} size={46} />
-                        <span className="gear-text">
-                          <b>{g.name}</b>
-                          <span className="gear-stat">{gearStatLine(g) || gearDetail(g)}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                {/*
+                  One line per slot: what you are wearing, and how many others
+                  you own. Five slots x a rail of 62px chips was 544px of Hall
+                  spent on a decision you make once a level.
+                */}
+                <button
+                  className={`slot-summary${isOpen ? " picked" : ""}`}
+                  aria-expanded={isOpen}
+                  onClick={() => setSlotOpen(isOpen ? null : slot)}
+                >
+                  <span className="slot-label">{labels[slot]}</span>
+                  <b>{wornItem ? wornItem.name : "Nothing"}</b>
+                  <span className="muted small">{items.length}</span>
+                  <PixIcon name={isOpen ? "chevronUp" : "chevronDown"} size={7} />
+                </button>
+                {isOpen && (
+                  <div className="chips">
+                    {items.map((g) => {
+                      const worn = on === g.id;
+                      return (
+                        <button
+                          key={g.id}
+                          className={`chip gear-chip ${worn ? "worn" : ""}`}
+                          title={g.flavour}
+                          onClick={() => props.onEquip(slot, worn ? undefined : g.id)}
+                        >
+                          {/* worn by your own hunter, so you see it before choosing */}
+                          <FighterBust look={lookWithGear(baseLook, { [slot]: g.id })} size={46} />
+                          <span className="gear-text">
+                            <b>{g.name}</b>
+                            <span className="gear-stat">{gearStatLine(g) || gearDetail(g)}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })

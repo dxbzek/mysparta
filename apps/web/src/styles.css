@@ -2682,6 +2682,24 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .rack-move .btn { padding: 4px 9px; font-size: 0.66rem; }
 .rack-move > .muted { margin-right: auto; }
 
+/* One line per gear slot: what is on, how many you own, options on tap. */
+.slot-summary {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 7px 9px; min-height: 42px;
+  background: rgb(255 255 255 / 34%);
+  border: 2px solid rgb(67 56 42 / 32%); border-radius: var(--radius);
+  font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+}
+.slot-summary.picked { border-color: var(--gold); background: rgb(227 154 46 / 14%); }
+.slot-summary .slot-label {
+  margin: 0; flex: 0 0 62px;
+  font-family: var(--font-display); font-size: 0.6rem; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink-soft);
+}
+.slot-summary b { flex: 1; min-width: 0; font-size: 0.84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wardrobe-row { margin-bottom: 6px; }
+.wardrobe-row .chips { margin-top: 6px; }
+
 .sr-only {
   position: absolute;
   width: 1px; height: 1px;
@@ -2992,8 +3010,17 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   .champ-meta .btn.big.card-cta { min-height: 56px; font-size: 0.9rem; }
   .btn { min-height: 44px; }
   .btn.primary { min-height: 52px; }
-  .actions.secondary .btn { min-height: 52px; width: 100%; }
-  .actions.secondary { display: flex; flex-direction: column; gap: 10px; }
+  /*
+   * Five full-width 52px slabs was 300px of Hall for five links you take once
+   * a session. Two columns, 44px — still a real tap target, a third of the
+   * height, and they read as a nav block instead of five equal decisions.
+   */
+  .actions.secondary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .actions.secondary .btn { min-height: 44px; width: 100%; font-size: 0.7rem; padding: 6px 8px; }
   .rival-action .btn.primary { min-height: 52px; }
 
   /* --- type floors: Silkscreen never under .6rem, Karla never under .7 --- */
