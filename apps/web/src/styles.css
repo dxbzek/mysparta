@@ -109,11 +109,19 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   box-shadow: var(--shadow);
   padding: 10px 16px;
   margin: 0 2px 18px;
+  /*
+   * The status group is all fixed-width glyphs and cannot give way, so if the
+   * bar is forced to nowrap the group overflows its own box to the *left* and
+   * paints straight over the wordmark. Let the row break instead.
+   */
+  flex-wrap: wrap;
 }
 
 .wordmark {
   background: none;
   border: none;
+  min-width: 0;
+  overflow: hidden;
   white-space: nowrap;
   color: var(--gold-bright);
   text-shadow: 0 2px 0 #0a0c12;
@@ -124,11 +132,12 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   padding: 0;
 }
 
-.topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+/* nowrap so the group's hypothetical width is its real width — a wrapping
+   child container reports max-content to the parent and breaks the bar early. */
+.topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; justify-content: flex-end; flex: 0 0 auto; }
 @media (max-width: 480px) {
   .wordmark { font-size: 1.05rem; letter-spacing: 0.08em; }
-  .pip { width: 7px; height: 13px; }
-  .pips { gap: 2px; }
+  :root { --pip-w: 7px; --pip-h: 13px; --pip-gap: 2px; }
 }
 
 /*
@@ -140,8 +149,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
  */
 @media (max-height: 700px) {
   :root { --plate-cap: 24svh; }
-  .topbar { padding: 5px 10px; gap: 6px; flex-wrap: nowrap; }
-  .topbar-right { flex-wrap: nowrap; gap: 5px; }
+  .topbar { padding: 5px 10px; gap: 6px; }
+  .topbar-right { gap: 5px; }
   .wordmark { font-size: 0.95rem; letter-spacing: 0.06em; }
   .pill { padding: 2px 7px; font-size: 0.66rem; }
   .crumbs { display: none; }
@@ -156,6 +165,41 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   .champ-meta .btn.big.card-cta { font-size: 0.82rem; padding: 9px 12px; min-height: 48px; }
   .champ-meta .facts dt { font-size: 0.55rem; }
   .champ-meta > .muted { font-size: 0.72rem; }
+}
+/*
+ * A short screen only earns the single-row bar if it is also wide enough to
+ * hold one — below this the row costs the wordmark, which the group then
+ * overlaps. Vertical room is worth less than a legible title.
+ */
+@media (max-height: 700px) and (min-width: 560px) {
+  .topbar { flex-wrap: nowrap; }
+}
+/*
+ * Under 560px the full wordmark plus the status group needs ~397px of a 342px
+ * row, so the bar breaks in two and eats 107px of a 640px phone. The status
+ * group is the part that carries information; the title becomes a monogram and
+ * keeps its job as the way back to the Hall.
+ */
+@media (max-width: 559px) {
+  .topbar { padding: 8px 12px; gap: 8px; }
+  .topbar-right { margin-left: auto; }
+  .wordmark { font-size: 0; letter-spacing: 0; }
+  .wordmark::before {
+    content: "RZ";
+    font-size: 1.15rem;
+    letter-spacing: 0.1em;
+  }
+}
+@media (max-width: 399px) {
+  .topbar-right { gap: 6px; }
+  .pill { padding: 2px 6px; }
+  :root { --pip-w: 6px; --pip-h: 12px; --pip-gap: 2px; }
+}
+/* At 360px the status group still fits its own row unbroken; below that it is
+   wider than the row, so it breaks internally rather than push the page
+   sideways. Three shallow rows beat a horizontal scrollbar. */
+@media (max-width: 359px) {
+  .topbar-right { flex-wrap: wrap; flex: 0 1 auto; min-width: 0; }
 }
 /* Landscape handsets: the portrait becomes a strip, the verb stays reachable. */
 @media (max-height: 460px) {
@@ -210,9 +254,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   box-shadow: var(--shadow-sm);
 }
 
-.pips { display: inline-flex; gap: 3px; }
+/* Read through custom properties: this base rule sits below the media queries
+   that shrink the pips, so a plain `.pip { width }` override up there loses. */
+.pips { display: inline-flex; gap: var(--pip-gap, 3px); }
 .pip {
-  width: 10px; height: 16px;
+  width: var(--pip-w, 10px); height: var(--pip-h, 16px);
   background: #d8c6a2;
   border: 2px solid var(--line);
   border-radius: 3px;
