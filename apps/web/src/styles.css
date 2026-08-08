@@ -3372,3 +3372,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   letter-spacing: 0.04em;
   cursor: help;
 }
+
+/* Vector arsenal: crisp at any size, so no pixel snapping and no smoothing
+   hacks — the outline is part of the drawing. */
+.cartoon-art { display: block; overflow: visible; }

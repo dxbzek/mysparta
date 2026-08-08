@@ -1,18 +1,21 @@
 /**
- * One tile per weapon, drawn by people who draw weapons for a living.
+ * One drawn weapon per weapon.
  *
- * This used to be 500 lines of my own 16x16 pixel grids — one per weapon, so
- * at least the Spear and the Trident were different objects, but at icon size
- * they read as coloured smudges and none of them looked like they came from
- * the same world as the LPC fighters. They are now 32px CC0 tiles from
- * Dungeon Crawl Stone Soup; see docs/CREDITS.md and src/tileArt.ts.
+ * Three sets have stood here. Mine at 16x16, which read as coloured smudges.
+ * Then CC0 roguelike tiles, which are real art but a pixel idiom — and the
+ * look Zek asked for is the flat, heavy-outlined cartoon arsenal. These are
+ * that: vector, drawn from a shared parts vocabulary so twenty-five weapons
+ * read as one hand, in `cartoonArt.tsx`.
+ *
+ * The 32px tiles stay as the fallback for any id the cartoon set has not been
+ * drawn for yet, so a new weapon is never a blank square.
  */
+import { CARTOON_WEAPON } from "./cartoonArt.js";
 import { weaponTile } from "./tileArt.js";
 
 export type Discipline = "xiphos" | "doru" | "cestus" | "labrys" | "akontia" | "aspis";
 
-/** `d` takes a weapon id first, then a discipline. Size should be a whole
- *  multiple of 32 — the tiles are 32px and anything else is mush. */
+/** `d` takes a weapon id first, then a discipline. */
 export function WeaponIcon({
   d,
   size = 32,
@@ -22,11 +25,25 @@ export function WeaponIcon({
   size?: number;
   className?: string;
 }) {
-  const src = weaponTile(d);
+  const draw = CARTOON_WEAPON[d];
+  if (draw) {
+    return (
+      <svg
+        className={`weapon-icon cartoon-art ${className ?? ""}`}
+        viewBox="0 0 32 32"
+        width={size}
+        height={size}
+        aria-hidden
+        focusable="false"
+      >
+        {draw()}
+      </svg>
+    );
+  }
   return (
     <img
       className={`weapon-icon tile-art ${className ?? ""}`}
-      src={src}
+      src={weaponTile(d)}
       width={size}
       height={size}
       alt=""
