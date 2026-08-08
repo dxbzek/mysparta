@@ -8,31 +8,63 @@ import { PixIcon } from "../pixelIcons.js";
 import { DISCIPLINE_NAME } from "../ui.js";
 
 
+type CodexShelf = "weapons" | "boons" | "techniques" | "trumps" | "pets";
+
 export function Codex({ champion, onBack }: { champion: Champion; onBack: () => void }) {
   const found = WEAPONS.filter((w) => champion.weapons.includes(w.id)).length;
   // Tap-to-inspect: title tooltips never fire on touch, so on phones the
   // Codex was a grid of names with zero information. One selection, one
   // detail strip, shared by every case.
   const [sel, setSel] = useState<{ name: string; detail: string } | null>(null);
+  /*
+   * One shelf at a time. All five stacked ran 3,065px — three and a half
+   * phone screens of grid with no way to reach the pets except scrolling past
+   * every weapon and skill in the game. A collection screen should let you go
+   * straight to the case you are filling.
+   */
+  const [shelf, setShelf] = useState<CodexShelf>("weapons");
   const inspect = (name: string, detail: string) =>
     setSel((cur) => (cur?.name === name ? null : { name, detail }));
+  const skillsIn = (list: typeof BOONS) => list.filter((s) => champion.skills.includes(s.id)).length;
+  const SHELVES: Array<{ id: CodexShelf; label: string; have: number; all: number }> = [
+    { id: "weapons", label: "Weapons", have: found, all: WEAPONS.length },
+    { id: "boons", label: "Boons", have: skillsIn(BOONS), all: BOONS.length },
+    { id: "techniques", label: "Techniques", have: skillsIn(TECHNIQUES), all: TECHNIQUES.length },
+    { id: "trumps", label: "Trumps", have: skillsIn(TRUMPS), all: TRUMPS.length },
+    { id: "pets", label: "Pets", have: champion.beasts.length, all: BEASTS.length },
+  ];
   return (
     <div className="codex">
       <div className="arena-head">
         <button className="btn ghost" onClick={onBack}><PixIcon name="arrowLeft" size={11} /> Hall</button>
         <h2>Codex</h2>
-        <span />
+        <span className="muted small">
+          {SHELVES.reduce((n, s) => n + s.have, 0)}/{SHELVES.reduce((n, s) => n + s.all, 0)}
+        </span>
       </div>
-      <p className="muted">
-        Everything the Rift can give you, laid out in full. What you have found is in colour;
-        the rest is greyed until it drops. Tap any of them for what it does.
-      </p>
+      <div className="tabs" role="tablist" aria-label="Codex shelf">
+        {SHELVES.map((s) => (
+          <button
+            key={s.id}
+            role="tab"
+            aria-selected={shelf === s.id}
+            className={`tab${shelf === s.id ? " on" : ""}`}
+            onClick={() => {
+              setShelf(s.id);
+              setSel(null);
+            }}
+          >
+            {s.label} <span className="muted small">{s.have}/{s.all}</span>
+          </button>
+        ))}
+      </div>
       {sel && (
         <p className="notice codex-detail" aria-live="polite">
           <b>{sel.name}</b> — {sel.detail}
         </p>
       )}
 
+      {shelf === "weapons" && (
       <CodexCase title="Weapons" have={found} all={WEAPONS.length}>
         {WEAPONS.map((w) => (
           <CodexTile
@@ -48,12 +80,15 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
           </CodexTile>
         ))}
       </CodexCase>
+      )}
 
       {[
-        { title: "Boons", note: "always-on passives", list: BOONS },
-        { title: "Techniques", note: "trigger on their own", list: TECHNIQUES },
-        { title: "Trumps", note: "big moves that fire on instinct", list: TRUMPS },
-      ].map((group) => (
+        { id: "boons" as const, title: "Boons", note: "always-on passives", list: BOONS },
+        { id: "techniques" as const, title: "Techniques", note: "trigger on their own", list: TECHNIQUES },
+        { id: "trumps" as const, title: "Trumps", note: "big moves that fire on instinct", list: TRUMPS },
+      ]
+        .filter((group) => shelf === group.id)
+        .map((group) => (
         <CodexCase
           key={group.title}
           title={group.title}
@@ -69,6 +104,7 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
         </CodexCase>
       ))}
 
+      {shelf === "pets" && (
       <CodexCase title="Pets" have={champion.beasts.length} all={BEASTS.length}>
         {BEASTS.map((b) => (
           <CodexTile
@@ -84,6 +120,7 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
           </CodexTile>
         ))}
       </CodexCase>
+      )}
     </div>
   );
 }

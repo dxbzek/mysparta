@@ -201,3 +201,35 @@ describe("battle animation coverage", () => {
     }
   });
 });
+
+describe("mending has a beat of its own", () => {
+  it("every heal carries the anim the stage needs to play it", () => {
+    let heals = 0;
+    for (let s = 0; s < 240 && heals < 6; s++) {
+      const r = simulateFight({
+        seed: s,
+        attacker: snapshot(grown("Mender" + (s % 11), 12 + (s % 10)), PLAN),
+        defender: snapshot(grown("Foe" + (s % 13), 12 + (s % 10)), PLAN),
+      });
+      for (const line of narrate(r, ["Mender", "Foe"])) {
+        if (!line.fx?.heal) continue;
+        heals++;
+        // the number alone was the whole animation before this
+        expect(line.anim?.heal).toBe(true);
+        expect(line.anim?.striker).toBe(line.fx.target);
+      }
+    }
+    expect(heals).toBeGreaterThan(0);
+  });
+});
+
+describe("content lookups survive a stale save", () => {
+  it("an id we no longer ship falls back instead of taking the app down", async () => {
+    const { weapon, skill, beast, omen } = await import("@agoge/core");
+    expect(() => weapon("a_weapon_we_cut")).not.toThrow();
+    expect(() => skill("a_skill_we_cut")).not.toThrow();
+    expect(() => beast("a_beast_we_cut")).not.toThrow();
+    expect(() => omen("an_omen_we_cut")).not.toThrow();
+    expect(weapon("a_weapon_we_cut").name).toBeTruthy();
+  });
+});
