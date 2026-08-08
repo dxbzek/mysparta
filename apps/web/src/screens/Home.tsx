@@ -19,7 +19,7 @@ import { ARENAS } from "../arenas.js";
 import { arenaScene } from "../arenaArt.js";
 import { gearDetail, gearItem, gearPool, gearStatLine, lookWithGear, resolveExtras, type GearItem, type GearSlot } from "../gear.js";
 import { encodeSave, questProgress, questsForDay, untilReset, VIGOR_CAP, VIGOR_DAILY, type SaveV1 } from "../save.js";
-import type { Look } from "../paperdoll.js";
+import { CHAR, type Look } from "../paperdoll.js";
 import { DISCIPLINE_NAME, StandingsStrip, WeaponBars } from "../ui.js";
 
 const PORTRAIT_POSES: Array<{ id: FighterAnim; name: string }> = [
@@ -76,7 +76,7 @@ function ChampionPortrait({
       // The sprite stands on the ground line, which CSS clamps to 22% of the
       // plate on short boxes — so what it actually has is the 78% above that.
       const usable = h * 0.78;
-      setFigScale(Math.max(1, Math.min(SCALE, Math.floor(usable / 48))));
+      setFigScale(Math.max(1, Math.min(SCALE, Math.floor(usable / CHAR.h))));
       const scale = Math.max(1, Math.min(4, Math.floor(w / NW)));
       setPlate({ w: Math.ceil(w / scale), h: Math.ceil(h / scale), scale });
     };

@@ -1,5 +1,5 @@
 /** The board of rivals: who you can fight today, and what each is worth. */
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { arenaBoard, beast, kleosDelta, skill, weapon, type Rival } from "@agoge/core";
 import { WeaponIcon } from "../weaponIcons.js";
 import { PixIcon } from "../pixelIcons.js";
@@ -17,6 +17,69 @@ function threatOf(mine: number, theirs: number): "easy" | "even" | "hard" {
 }
 const THREAT_LABEL: Record<string, string> = { easy: "Weaker", even: "Even", hard: "Stronger" };
 
+/**
+ * A level-18 rival carries eleven things, and eleven chips is five rows of
+ * shopping list above the button you actually came to press. Five chips read
+ * as "here is the shape of them"; the rest collapse into one you can hover.
+ */
+const KIT_SHOWN = 5;
+
+/** Phone-sized bust. Sized here, not in CSS: the tile clips what overflows it,
+    so shrinking the box without shrinking the fighter beheads them. */
+const RIVAL_BUST = { wide: 64, narrow: 48 };
+
+function useNarrow() {
+  const [narrow, setNarrow] = useState(
+    () => typeof matchMedia === "function" && matchMedia("(max-width: 560px)").matches,
+  );
+  useEffect(() => {
+    if (typeof matchMedia !== "function") return;
+    const q = matchMedia("(max-width: 560px)");
+    const on = () => setNarrow(q.matches);
+    on();
+    q.addEventListener("change", on);
+    return () => q.removeEventListener("change", on);
+  }, []);
+  return narrow;
+}
+
+function rivalKit(r: Rival) {
+  const chips = [
+    ...(r.snapshot.weapons.length > 0
+      ? r.snapshot.weapons.map((w) => ({
+          key: `w${w}`,
+          cls: "kit-chip",
+          title: weapon(w).flavour,
+          icon: <WeaponIcon d={w} size={15} />,
+          name: weapon(w).name,
+        }))
+      : [
+          {
+            key: "bare",
+            cls: "kit-chip",
+            title: "No weapon at all.",
+            icon: <WeaponIcon d="fists" size={15} />,
+            name: "Bare-handed",
+          },
+        ]),
+    ...r.snapshot.skills.map((s) => ({
+      key: `s${s}`,
+      cls: "kit-chip skill",
+      title: skill(s).text,
+      icon: <SkillIcon id={s} kind={skill(s).kind as SkillKind} size={17} />,
+      name: skill(s).name,
+    })),
+    ...r.snapshot.beasts.map((b, bi) => ({
+      key: `b${b}${bi}`,
+      cls: "kit-chip pet",
+      title: `${beast(b).name} fights alongside them.`,
+      icon: <PetSprite beastId={b} size={16} />,
+      name: beast(b).name,
+    })),
+  ];
+  return { shown: chips.slice(0, KIT_SHOWN), rest: chips.slice(KIT_SHOWN) };
+}
+
 
 
 export function Arena(props: {
@@ -26,6 +89,7 @@ export function Arena(props: {
   onFight: (r: Rival) => void;
 }) {
   const { save } = props;
+  const bustSize = useNarrow() ? RIVAL_BUST.narrow : RIVAL_BUST.wide;
   const board = useMemo(
     () => arenaBoard(save.champion, todayKey(), save.boardRefresh),
     [save.champion, save.boardRefresh],
@@ -49,7 +113,7 @@ export function Arena(props: {
           return (
             <div className="card rival" key={r.snapshot.name} style={{ animationDelay: `${i * 55}ms` }}>
               <div className="rival-top">
-                <FighterBust look={rivalLook(r.snapshot.name).look} size={64} mirror />
+                <FighterBust look={rivalLook(r.snapshot.name).look} size={bustSize} mirror />
                 <div className="rival-id">
                   <span className="champ-name small">{r.snapshot.name}</span>
                   <span className="muted small">
@@ -63,29 +127,26 @@ export function Arena(props: {
               </div>
 
               {/* what they carry, at a glance */}
-              <div className="rival-kit">
-                {r.snapshot.weapons.length > 0 ? (
-                  r.snapshot.weapons.map((w) => (
-                    <span className="kit-chip" key={w} title={weapon(w).flavour}>
-                      <WeaponIcon d={w} size={15} /> {weapon(w).name}
-                    </span>
-                  ))
-                ) : (
-                  <span className="kit-chip">
-                    <WeaponIcon d="fists" size={15} /> Bare-handed
-                  </span>
-                )}
-                {r.snapshot.skills.map((s) => (
-                  <span className="kit-chip skill" key={s} title={skill(s).text}>
-                    <SkillIcon id={s} kind={skill(s).kind as SkillKind} size={17} /> {skill(s).name}
-                  </span>
-                ))}
-                {r.snapshot.beasts.map((b, bi) => (
-                  <span className="kit-chip pet" key={`${b}${bi}`}>
-                    <PetSprite beastId={b} size={16} /> {beast(b).name}
-                  </span>
-                ))}
-              </div>
+              {(() => {
+                const kit = rivalKit(r);
+                return (
+                  <div className="rival-kit">
+                    {kit.shown.map((c) => (
+                      <span className={c.cls} key={c.key} title={c.title}>
+                        {c.icon} {c.name}
+                      </span>
+                    ))}
+                    {kit.rest.length > 0 && (
+                      <span
+                        className="kit-chip kit-more"
+                        title={kit.rest.map((c) => c.name).join(" · ")}
+                      >
+                        +{kit.rest.length} more
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* the wager, so picking an opponent is a decision; on a phone
                   it shares one row with the verb it informs */}

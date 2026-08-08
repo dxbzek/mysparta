@@ -34,8 +34,14 @@ function sheet(name: string): string {
 export const FRAME = 64;
 export const STRIP_FRAMES = 32;
 
-/** Where the character sits inside the 64px frame (measured from the art). */
-export const CHAR = { cx: 32, w: 24, h: 48, groundOff: 2 };
+/**
+ * Where the character sits inside the 64px frame, measured off the composited
+ * strip rather than guessed: the standing figure inks x19-44, y10-61, so it is
+ * 26x52 with two rows of frame under its feet. The old 24x48 understated the
+ * height by 8%, so every figure drew taller than the box asked for and pushed
+ * its head out of the top of whatever contained it.
+ */
+export const CHAR = { cx: 32, w: 26, h: 52, groundOff: 2 };
 
 export type Anim = "idle" | "stance" | "run" | "attack1" | "attack2" | "hit" | "death";
 
