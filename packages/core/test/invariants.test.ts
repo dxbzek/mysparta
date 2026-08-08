@@ -5,7 +5,9 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  LEVEL_CAP,
   applyDraft,
+  costToNext,
   createChampion,
   generateDraft,
   simulateFight,
@@ -112,5 +114,23 @@ describe("fight invariants", () => {
       }
     });
     expect(bad.slice(0, 10)).toEqual([]);
+  });
+});
+
+describe("the XP curve rises without a cliff", () => {
+  it("never costs more than 2 XP over the level before it", () => {
+    // Ratio is the wrong lens at the bottom — 2 XP to 3 XP is +50% and fine.
+    // The wall was absolute: 29 -> 30 jumped 31 XP to 50, a 19 XP step, which
+    // at six fights a day is a day and a half appearing out of nowhere.
+    for (let l = 2; l < LEVEL_CAP; l++) {
+      const step = costToNext(l) - costToNext(l - 1);
+      expect(step, `level ${l - 1} -> ${l}`).toBeGreaterThanOrEqual(0);
+      expect(step, `level ${l - 1} -> ${l}`).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it("still gets harder all the way to the cap", () => {
+    expect(costToNext(49)).toBeGreaterThan(costToNext(29) * 2);
+    expect(costToNext(LEVEL_CAP)).toBe(Infinity);
   });
 });

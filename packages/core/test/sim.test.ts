@@ -73,14 +73,21 @@ describe("fight invariants", () => {
   });
 });
 
-describe("XP curve (02-gdd-core.md §6.2)", () => {
-  it("hits the canonical anchors", () => {
+/*
+ * The first two bands are the GDD's (§6.2) verbatim. The third was a flat
+ * level+20, which made 29->30 jump 31 -> 50 in one step; it ramps now, so the
+ * anchors past 30 are ours and are pinned here deliberately.
+ */
+describe("XP curve", () => {
+  it("hits the anchors", () => {
     expect(cumulativeXp(10)).toBe(54);
     expect(cumulativeXp(30)).toBe(484);
-    expect(cumulativeXp(50)).toBe(1674);
+    expect(cumulativeXp(50)).toBe(1524);
     expect(costToNext(2)).toBe(3);
     expect(costToNext(10)).toBe(12);
-    expect(costToNext(30)).toBe(50);
+    expect(costToNext(29)).toBe(31);
+    expect(costToNext(30)).toBe(33);
+    expect(costToNext(49)).toBe(71);
   });
 });
 

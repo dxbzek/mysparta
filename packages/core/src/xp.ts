@@ -2,12 +2,27 @@
 
 export const LEVEL_CAP = 50;
 
-/** XP required to go from `level` to `level + 1`. */
+/**
+ * XP required to go from `level` to `level + 1`.
+ *
+ * The GDD's third band was a flat `level + 20`, which put a cliff at exactly
+ * one level: 29→30 cost 31 XP and 30→31 cost 50, a 61% jump overnight. At six
+ * fights a day that is two days becoming three and a half with no warning,
+ * and a wall that appears in a single step reads as the game breaking rather
+ * than the climb steepening.
+ *
+ * The band ramps instead of stepping. 29→30 now costs 33 against the 31
+ * before it, and the curve keeps rising to 71 at the cap, so the top of the
+ * ladder is still the hard part — it just gets hard gradually. The whole climb
+ * to 50 is 1,524 XP against the old 1,674, about 9% shorter.
+ *
+ * To restore the GDD's exact numbers, the third band is `level + 20`.
+ */
 export function costToNext(level: number): number {
   if (level >= LEVEL_CAP) return Infinity;
   if (level <= 9) return level + 1;
   if (level <= 29) return level + 2;
-  return level + 20;
+  return level + 2 + (level - 29);
 }
 
 /** Cumulative XP required to reach `level` from level 1. */
