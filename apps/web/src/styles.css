@@ -2229,19 +2229,29 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* ---------- pets: idle breath and a lunge on the attack ---------- */
 
-.pet-sprite { animation: petBreath 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pet-sprite { animation: petBreath 2.9s ease-in-out infinite; transform-origin: 50% 100%; }
+/*
+ * A 4% squash on a 54px sprite was already subtle; at 32px it is one pixel,
+ * which is indistinguishable from a still image. An animal waiting to be set
+ * on someone shifts its weight — so: a real bob, a breath, and a tail-end
+ * settle, at an amplitude you can actually see at 32px.
+ */
 @keyframes petBreath {
-  0%, 100% { transform: translateY(0) scaleY(1); }
-  50% { transform: translateY(-1px) scaleY(1.045); }
+  0% { transform: translateY(0) scaleY(1) scaleX(1); }
+  28% { transform: translateY(-2.5px) scaleY(1.06) scaleX(0.98); }
+  52% { transform: translateY(0) scaleY(0.97) scaleX(1.03); }
+  76% { transform: translateY(-1px) scaleY(1.02) scaleX(0.99); }
+  100% { transform: translateY(0) scaleY(1) scaleX(1); }
 }
 /* a felled pet holds still */
 .pet-holder[style*="rotate"] .pet-sprite { animation: none; }
 .beast-dash-r .pet-sprite, .beast-dash-l .pet-sprite { animation: petLunge 480ms ease-out; }
 @keyframes petLunge {
-  0% { transform: translateY(0) scaleX(1); }
-  30% { transform: translateY(-3px) scaleX(1.08); }
-  60% { transform: translateY(0) scaleX(0.96); }
-  100% { transform: translateY(0) scaleX(1); }
+  0% { transform: translateY(0) scale(1); }
+  18% { transform: translateY(2px) scaleY(0.86) scaleX(1.14); }
+  46% { transform: translateY(-7px) scaleY(1.14) scaleX(0.92); }
+  72% { transform: translateY(1px) scaleY(0.94) scaleX(1.06); }
+  100% { transform: translateY(0) scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
   .pet-sprite { animation: none; }

@@ -428,7 +428,17 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
                 .filter(Boolean)
                 .join(" ")}
             >
-              <PetSprite beastId={id} size={32} mirror={side === 1} down={downed[side].has(id)} />
+              <PetSprite
+                beastId={id}
+                size={32}
+                /* The tiles are drawn facing LEFT — the wolf's ears are on the
+                   left of its 32px box and the tail sweeps right. So the LEFT
+                   fighter's pack is the one that has to be flipped to look at
+                   the enemy. This was backwards, and every beast in the game
+                   spent the fight staring away from it. */
+                mirror={side === 0}
+                down={downed[side].has(id)}
+              />
               {falling && (
                 <span className="beast-poof">
                   <ImpactBurst size={46} crit={false} />
