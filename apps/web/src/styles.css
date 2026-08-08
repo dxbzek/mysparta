@@ -1928,6 +1928,13 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 /* a pet chip carries its sprite, not just its name */
 .pet-chip { display: inline-flex; align-items: center; gap: 7px; padding-left: 7px; }
 .pet-sprite { display: block; }
+/* Real 32px tiles, blown up by whole numbers only — no smoothing, ever. */
+.tile-art {
+  display: block;
+  image-rendering: pixelated;
+  user-select: none;
+  -webkit-user-drag: none;
+}
 
 /* ---------- character creator: tabs + steppers ---------- */
 
@@ -2452,13 +2459,14 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   border-top: 0;
 }
 /*
- * The ground line is measured in plate-WIDTHS, which is right while the plate
- * keeps its shape. On a wide-but-short plate (1024x600 caps it at 144px tall)
- * that put the horizon 165px up inside a 144px box and the champion floated
- * clean off the top. Clamped to a share of the plate's own height, so the
- * crop can never lift them out of frame.
+ * The ground line used to be measured in plate-WIDTHS and clamped to 22% of
+ * the height, from back when the scene was one fixed painting cropped to fit.
+ * It is repainted for the box it actually gets now (see ChampionPortrait), so
+ * the horizon always lands at the arena's own fraction of the plate's HEIGHT —
+ * which is what --ground-pct is. The old clamp was holding the champion 38px
+ * above the sand on a full-bleed plate. It stands on the base rule's value.
  */
-.champ-card .portrait-figure { bottom: min(calc(var(--ground-cqw) * 1cqw), 22%); }
+.champ-card .portrait-figure { bottom: min(var(--ground-pct), 40%); }
 /* The pose and backdrop steppers: arrows hugging their label, a clear breath
    between the two groups. Wrap stays on — at fold widths (280px) the pair
    drops into two centred rows instead of shoving the card sideways. */

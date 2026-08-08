@@ -108,7 +108,7 @@ function OfferArt({ offer }: { offer: FateOffer }) {
   if (offer.kind === "weapon")
     return (
       <span className="offer-art rack-tile">
-        <WeaponIcon d={offer.weapon} size={48} />
+        <WeaponIcon d={offer.weapon} size={64} />
       </span>
     );
   if (offer.kind === "beast")

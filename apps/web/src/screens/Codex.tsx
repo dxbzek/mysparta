@@ -43,7 +43,7 @@ export function Codex({ champion, onBack }: { champion: Champion; onBack: () => 
             detail={`${DISCIPLINE_NAME[w.discipline] ?? w.discipline}${w.ammo ? ` · ${w.ammo} throws` : ""}${w.twoHanded ? " · two-handed" : ""} — ${w.flavour}`}
           >
             <span className="rack-tile">
-              <WeaponIcon d={w.id} size={48} />
+              <WeaponIcon d={w.id} size={64} />
             </span>
           </CodexTile>
         ))}
