@@ -52,6 +52,7 @@ import { Arena } from "./screens/Arena.js";
 import { Ladder } from "./screens/Ladder.js";
 import { History } from "./screens/History.js";
 import { Codex } from "./screens/Codex.js";
+import { Closet } from "./screens/Closet.js";
 import { Roster } from "./screens/Roster.js";
 import { RewardModal } from "./screens/RewardModal.js";
 
@@ -69,7 +70,8 @@ type Screen =
   | { s: "history" }
   | { s: "ladder" }
   | { s: "codex" }
-  | { s: "roster" };
+  | { s: "roster" }
+  | { s: "closet" };
 
 /** Screens that live at their own URL, so back/forward and refresh work. */
 const ROUTES: Record<string, string> = {
@@ -79,6 +81,7 @@ const ROUTES: Record<string, string> = {
   ladder: "ladder",
   codex: "codex",
   roster: "hunters",
+  closet: "closet",
   forge: "new",
   // The fight gets a URL of its own so it is a real history entry. Without
   // one, starting a fight from #/arena left the address bar on #/arena — so
@@ -93,6 +96,7 @@ const BREADCRUMB: Record<string, string> = {
   ladder: "Hall / Ladder",
   codex: "Hall / Codex",
   roster: "Your Hunters",
+  closet: "Hall / Closet",
   forge: "New Hunter",
   fight: "Hall / Arena / Fight",
 };
@@ -524,6 +528,7 @@ export function App() {
           onCodex={() => setScreen({ s: "codex" })}
           onLadder={() => setScreen({ s: "ladder" })}
           onRoster={() => setScreen({ s: "roster" })}
+          onCloset={() => setScreen({ s: "closet" })}
           onReorder={(from, to) => {
             const champion = structuredClone(c);
             const [moved] = champion.weapons.splice(from, 1);
@@ -627,6 +632,9 @@ export function App() {
 
       {screen.s === "history" && <History champion={c} onBack={() => setScreen({ s: "home" })} />}
       {screen.s === "codex" && <Codex champion={c} onBack={() => setScreen({ s: "home" })} />}
+      {screen.s === "closet" && (
+        <Closet save={save} onBack={() => setScreen({ s: "home" })} onEquip={(slot, id) => update({ ...save, equipped: { ...save.equipped, [slot]: id } })} />
+      )}
 
       {draft && (
         <RewardModal

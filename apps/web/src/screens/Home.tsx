@@ -22,6 +22,14 @@ import { encodeSave, questProgress, questsForDay, untilReset, VIGOR_CAP, VIGOR_D
 import { CHAR, type Look } from "../paperdoll.js";
 import { DISCIPLINE_NAME, StandingsStrip, WeaponBars } from "../ui.js";
 
+const SLOT_LABEL: Record<GearSlot, string> = {
+  body: "Armor",
+  helm: "Helm",
+  cloak: "Cloak",
+  trinket: "Trinket",
+  title: "Title",
+};
+
 const PORTRAIT_POSES: Array<{ id: FighterAnim; name: string }> = [
   { id: "stance", name: "Guard" },
   { id: "idle", name: "At ease" },
@@ -283,6 +291,7 @@ export function Home(props: {
   onDelete: () => void;
   onEquip: (slot: GearSlot, id: string | undefined) => void;
   onPortrait: (p: { arena: number; pose: string }) => void;
+  onCloset: () => void;
 }) {
   const { save } = props;
   const c = save.champion;
@@ -515,106 +524,39 @@ export function Home(props: {
 
       <StandingsStrip save={save} />
 
-      <section className="card wardrobe span-all">
+      {/*
+        The closet is its own page now: 46 items across five slots is a
+        browse-and-try surface, and it could never be that in a card wedged
+        between the champion and the standings. What stays here is the one
+        line that matters — what you are wearing — and the way through.
+      */}
+      <section className="card worn-strip span-all">
         <h3>
-          Wardrobe{" "}
+          Worn{" "}
           <span className="muted small">
             {ownedGear.length}/{gearPool().length} found
-            <span className="say-more"> — drops are random, wear what you own</span>
           </span>
         </h3>
-        {ownedGear.length === 0 ? (
-          <div className="wardrobe-empty">
-            {(["Armor", "Helm", "Cloak", "Trinket", "Title"] as const).map((label) => (
-              <span className="slot-empty" key={label}>
-                <span className="slot-frame" />
-                <em>{label}</em>
-              </span>
-            ))}
-            <p className="muted small">
-              Nothing yet — every level up
-              <span className="say-more"> (and some victories)</span> drops a random piece of gear.
-            </p>
-          </div>
-        ) : (
-          (() => {
-            const labels: Record<GearSlot, string> = {
-              body: "Armor",
-              helm: "Helm",
-              cloak: "Cloak",
-              trinket: "Trinket",
-              title: "Title",
-            };
-            const slots = (["body", "helm", "cloak", "trinket", "title"] as GearSlot[]).filter(
-              (s) => ownedGear.some((g) => g.slot === s),
-            );
-            const openItems = slotOpen ? ownedGear.filter((g) => g.slot === slotOpen) : [];
+        <button className="rack-board worn-board" onClick={props.onCloset} aria-label="Open the closet">
+          {(["body", "helm", "cloak", "trinket", "title"] as GearSlot[]).map((slot) => {
+            const g = save.equipped?.[slot] ? gearItem(save.equipped[slot]!) : undefined;
             return (
-              <>
-                {/* The same board as the weapons: square slots, detail on tap. */}
-                <div className="rack-board wardrobe-board">
-                  {slots.map((slot) => {
-                    const on = save.equipped?.[slot];
-                    const wornItem = ownedGear.find((g) => g.id === on);
-                    return (
-                      <button
-                        key={slot}
-                        type="button"
-                        className={`rack-tile rack-pick slot-tile${slotOpen === slot ? " picked" : ""}${
-                          wornItem ? " worn" : ""
-                        }`}
-                        aria-expanded={slotOpen === slot}
-                        title={`${labels[slot]} — ${wornItem ? wornItem.name : "nothing worn"}`}
-                        onClick={() => setSlotOpen(slotOpen === slot ? null : slot)}
-                      >
-                        {wornItem ? (
-                          <FighterBust look={lookWithGear(baseLook, { [slot]: wornItem.id })} size={46} />
-                        ) : (
-                          <span className="slot-glyph" aria-hidden />
-                        )}
-                        <em>{labels[slot]}</em>
-                        <span className="sr-only">
-                          {labels[slot]}: {wornItem ? wornItem.name : "nothing worn"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {slotOpen && (
-                  <div className="rack-detail">
-                    <div className="rack-detail-head">
-                      <b>{labels[slotOpen]}</b>
-                      <span className="muted small">{openItems.length} owned</span>
-                      <button className="rack-close" onClick={() => setSlotOpen(null)} aria-label="Close">
-                        ×
-                      </button>
-                    </div>
-                    <div className="chips">
-                      {openItems.map((g) => {
-                        const worn = save.equipped?.[slotOpen] === g.id;
-                        return (
-                          <button
-                            key={g.id}
-                            className={`chip gear-chip ${worn ? "worn" : ""}`}
-                            title={g.flavour}
-                            onClick={() => props.onEquip(slotOpen, worn ? undefined : g.id)}
-                          >
-                            {/* worn by your own hunter, so you see it before choosing */}
-                            <FighterBust look={lookWithGear(baseLook, { [slotOpen]: g.id })} size={46} />
-                            <span className="gear-text">
-                              <b>{g.name}</b>
-                              <span className="gear-stat">{gearStatLine(g) || gearDetail(g)}</span>
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+              <span
+                key={slot}
+                className={`rack-tile slot-tile${g ? " worn" : ""}`}
+                title={g ? g.name : "empty"}
+              >
+                {g ? (
+                  <FighterBust look={lookWithGear(baseLook, { [slot]: g.id })} size={46} />
+                ) : (
+                  <span className="slot-glyph" aria-hidden />
                 )}
-              </>
+                <em>{SLOT_LABEL[slot]}</em>
+              </span>
             );
-          })()
-        )}
+          })}
+          <span className="worn-go">Open closet</span>
+        </button>
       </section>
 
       {/* Reference screens, not actions — the action lives on the champion card. */}
