@@ -193,6 +193,49 @@ function StatRow({ label, value, teach }: { label: string; value: number; teach:
   );
 }
 
+/**
+ * What a weapon is, shown only when you ask for it. Draw order is the one
+ * decision on this card, so it moves from here rather than from the tile.
+ */
+function WeaponDetail({
+  w,
+  at,
+  of,
+  onMove,
+  onClose,
+}: {
+  w: ReturnType<typeof weapon>;
+  at: number;
+  of: number;
+  onMove: (to: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="rack-detail" role="group" aria-label={w.name}>
+      <div className="rack-detail-head">
+        <b>{w.name}</b>
+        <span className="wtag">{DISCIPLINE_NAME[w.discipline] ?? w.discipline}</span>
+        <button className="rack-close" onClick={onClose} aria-label="Close">
+          ×
+        </button>
+      </div>
+      <WeaponBars w={w} />
+      <p className="muted small">{w.flavour}</p>
+      <div className="rack-move">
+        <span className="muted small">
+          Drawn {at + 1} of {of}
+        </span>
+        <button className="btn ghost" disabled={at === 0} onClick={() => onMove(at - 1)}>
+          <PixIcon name="chevronUp" size={7} /> Earlier
+        </button>
+        <button className="btn ghost" disabled={at === of - 1} onClick={() => onMove(at + 1)}>
+          <PixIcon name="chevronDown" size={7} /> Later
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Quest({ at, of, children }: { at: number; of: number; children: React.ReactNode }) {
   const done = at >= of;
   return (
@@ -238,6 +281,8 @@ export function Home(props: {
   const [copied, setCopied] = useState(false);
   const [showCode, setShowCode] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
+  /** Which weapon on the rack board has its details open. */
+  const [open, setOpen] = useState<number | null>(null);
   const q = save.quests;
   const todaysTasks = questsForDay();
   const tasksDone = todaysTasks.filter((d) => questProgress(q, d) >= d.need).length;
@@ -353,37 +398,46 @@ export function Home(props: {
             <StatRow label={STAT_LABEL.grit} value={c.stats.grit} teach={teaching} />
           </ul>
         </div>
+        {/*
+          The rack was one full-width row per weapon — name, discipline and
+          three bars each — so six weapons ran past a phone screen to tell you
+          things you only want when you are deciding. It is a board now: the
+          weapons as tiles in draw order, and the detail on tap.
+        */}
         <div className="card">
           <h3>Weapons <span className="muted small">(drawn in this order)</span></h3>
-          <ul className="arsenal rack">
+          <div className="rack-board">
             {c.weapons.map((id, i) => (
-              <li key={id}>
-                <span className="rack-tile">
-                  <WeaponIcon d={id} size={32} />
-                </span>
-                <div className="wbody">
-                  <div className="wtop">
-                    <b>{weapon(id).name}</b>
-                    <span className="wtag">{DISCIPLINE_NAME[weapon(id).discipline] ?? weapon(id).discipline}</span>
-                  </div>
-                  <WeaponBars w={weapon(id)} />
-                </div>
-                <span className="reorder">
-                  <button aria-label="draw earlier" disabled={i === 0} onClick={() => props.onReorder(i, i - 1)}><PixIcon name="chevronUp" size={7} /></button>
-                  <button aria-label="draw later" disabled={i === c.weapons.length - 1} onClick={() => props.onReorder(i, i + 1)}><PixIcon name="chevronDown" size={7} /></button>
-                </span>
-              </li>
+              <button
+                key={id}
+                type="button"
+                className={`rack-tile rack-pick${open === i ? " picked" : ""}`}
+                aria-expanded={open === i}
+                onClick={() => setOpen(open === i ? null : i)}
+                title={weapon(id).name}
+              >
+                <WeaponIcon d={id} size={32} />
+                <span className="rack-ord">{i + 1}</span>
+                <span className="sr-only">{weapon(id).name}</span>
+              </button>
             ))}
-            <li className="muted">
-              <span className="rack-tile">
-                <WeaponIcon d="fists" size={32} />
-              </span>
-              <div className="wbody">
-                <div className="wtop"><b>Fists</b><span className="wtag">always last</span></div>
-                <div className="muted small">What is left when the steel is gone.</div>
-              </div>
-            </li>
-          </ul>
+            <span className="rack-tile rack-fists" title="Fists — always last">
+              <WeaponIcon d="fists" size={32} />
+              <span className="sr-only">Fists, always last</span>
+            </span>
+          </div>
+          {open !== null && c.weapons[open] && (
+            <WeaponDetail
+              w={weapon(c.weapons[open]!)}
+              at={open}
+              of={c.weapons.length}
+              onMove={(to) => {
+                props.onReorder(open, to);
+                setOpen(to);
+              }}
+              onClose={() => setOpen(null)}
+            />
+          )}
           {/* An empty rack should say how it gets filled, not just sit there. */}
           {c.weapons.length === 0 && (
             <p className="muted small note">
