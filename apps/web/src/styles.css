@@ -3364,3 +3364,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   .stage.hitstop { animation: none; }
   .stage.hitstop * { animation-play-state: running !important; }
 }
+/* the pace of the climb, next to how far along it you are */
+.xp-pace {
+  font-family: var(--font-display);
+  font-size: 0.56rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+  cursor: help;
+}

@@ -300,6 +300,10 @@ export function Home(props: {
   const extras = resolveExtras(save.aura ?? 0, save.equipped);
   const ownedGear = (save.gear ?? []).map((id) => gearItem(id)).filter((g): g is GearItem => !!g);
   const need = costToNext(c.level);
+  /* A day of fighting is VIGOR_DAILY bouts at 2 XP a win, so ~2 XP a fight
+     once losses are in the mix. Rounded up: nobody wants "0 days" on a bar
+     that has not filled. */
+  const daysToLevel = Math.max(1, Math.ceil((need - c.xp) / (VIGOR_DAILY * 2)));
   const hpNow = maxHp(c.level, c.stats.grit, c.beasts, c.skills.includes("beast_bond"));
   /** The first few fights are the only time the Hall explains itself. */
   const teaching = save.totalFights < 3;
@@ -392,6 +396,15 @@ export function Home(props: {
                 <div className="xpbar-fill" style={{ width: `${Math.min(100, (c.xp / need) * 100)}%` }} />
               </div>
               <span className="xp-num">{c.xp}/{need}</span>
+              {/*
+                A level costs level+2 XP up to 29 and level+20 from 30, so the
+                bar quietly goes from two days' fighting to three and a half
+                with no warning — which reads as the game breaking rather than
+                the climb steepening. Say the pace out loud.
+              */}
+              <span className="xp-pace" title={`About ${daysToLevel} day${daysToLevel === 1 ? "" : "s"} at ${VIGOR_DAILY} fights a day`}>
+                ~{daysToLevel}d
+              </span>
             </div>
           )}
           {/* Two facts, not four. "Gear" repeated the Wardrobe's own counter and
