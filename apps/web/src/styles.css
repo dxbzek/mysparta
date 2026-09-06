@@ -3478,3 +3478,81 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   .skill-fx { animation: fxHold 500ms ease-out !important; }
   @keyframes fxHold { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
 }
+
+/*
+ * Three-column Hall: the champion takes two tracks and Stats took the third
+ * — stretched to the champion's 536px with four numbers spread evenly down
+ * it, while Weapons dropped to the next row. The third column is a stack
+ * now: Stats at its own height, Weapons filling what is left beside the
+ * champion. Below 1100px the grid has two tracks and display:contents keeps
+ * the two cards side by side under the full-width champion.
+ */
+@media (min-width: 1100px) {
+  .home > .grid-2 { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .home > .grid-2 > .card { flex: 0 0 auto; min-width: 0; }
+  .home > .grid-2 > .card:last-child { flex: 1 1 auto; }
+  .stats-card .stats { flex: 0 0 auto; grid-template-columns: 1fr; gap: 0; align-content: start; }
+  .stats-card .stats li { padding: 5px 0; }
+}
+
+/* Gear icons sit on the same plank as the weapons and get the same shadow. */
+.gear-icon { display: block; overflow: visible; }
+.slot-tile .gear-icon { filter: drop-shadow(2px 3px 0 rgb(0 0 0 / 32%)); }
+.closet-art {
+  flex: 0 0 auto; display: grid; place-items: center;
+  width: 64px; height: 64px; border-radius: var(--radius);
+  border: 3px solid #38220f;
+  background:
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 8%) 0 1px, transparent 1px 11px),
+    linear-gradient(#9c6b38, #6f4622);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 18%), inset 0 -4px 0 rgb(0 0 0 / 16%);
+}
+.closet-art .gear-icon { filter: drop-shadow(2px 3px 0 rgb(0 0 0 / 32%)); }
+
+/*
+ * The pack stands in a rank BESIDE its hunter, not in a heap under them: the
+ * -10px overlap that stacked three 32px tiles into one grey blob made 64px
+ * beasts eat the fighter's legs. Each further beast steps back a little, and
+ * the rank starts clear of the doll's feet.
+ */
+.fig-beasts > span + span { margin-left: 4px; }
+.beasts-r > span + span { margin-left: 0; margin-right: 4px; }
+.fig-beasts > span:nth-child(2) { margin-bottom: 0; }
+.fig-beasts > span:nth-child(3) { margin-bottom: 0; }
+.beasts-l { right: calc(100% - 26px); }
+.beasts-r { left: calc(100% - 26px); }
+/* The pack leads: it stands between its hunter and the enemy, the first beast
+   at the hunter's heel and the rest fanned toward the centre, overlapping a
+   third so three read as one pack. Outward-facing ranks clipped off the stage
+   edge as soon as a hunter owned two. */
+.beasts-l { right: auto; left: calc(100% - 22px); flex-direction: row; }
+.beasts-r { left: auto; right: calc(100% - 22px); flex-direction: row-reverse; }
+.fig-beasts > span + span { margin-left: -22px; }
+.beasts-r > span + span { margin-left: 0; margin-right: -22px; }
+.fig-beasts > span:nth-child(2) { z-index: -1; }
+.fig-beasts > span:nth-child(3) { z-index: -2; }
+
+/*
+ * Phone topbar: once Favour shows its pill the row is RZ + four pills =
+ * 349px, and a 375px screen minus padding is 323px, so the pills dropped to
+ * a second line and the header stood 115px tall over the Hall. Tighter
+ * padding and 8px pips bring the row back under 320px.
+ */
+@media (max-width: 419px) {
+  .topbar { gap: 6px; }
+  .topbar-right { gap: 6px; }
+  .topbar-right .pill { padding: 3px 7px; font-size: 0.62rem; }
+  .topbar-right .pips { --pip-w: 7px; --pip-h: 13px; --pip-gap: 2px; }
+  .topbar-right .sound-toggle { width: 38px; min-width: 38px; }
+}
+@media (max-width: 419px) {
+  /* the bar is inset 14px a side, so its inner width at 375px is 302px */
+  .topbar { padding: 8px 8px; }
+  .topbar-right { gap: 4px; }
+  .topbar-right .pill { padding: 3px 5px; }
+  .topbar-right .sound-toggle { width: 34px; min-width: 34px; }
+}
+@media (max-width: 369px) {
+  .topbar-right .pill { font-size: 0.58rem; padding: 3px 4px; }
+  .topbar-right { gap: 3px; }
+}

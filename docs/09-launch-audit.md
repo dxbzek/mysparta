@@ -204,3 +204,33 @@ moving correctly. 64 web tests, 20 core, 19 api.
 - Level-30 XP cliff itself (GDD §6.2 canon).
 - Thrown-beat effect-before-cause; per-arena ambience; paperdoll/arenaScene
   LRU caches; Favour cost on board refresh; Forge back-to-name.
+
+## Third pass (2026-09-06)
+
+Played a fresh hunter from name entry to level 16 in the pane; fixed what
+the playthrough surfaced:
+
+- **Header spoiled the verdict.** The save is written when the bell rings, so
+  the rating pill showed the loss while the first blow landed. The theatre now
+  carries `kleosBefore` and the header holds it until Continue.
+- **Fight log never scrolled.** A smooth `scrollTo` restarted every ~600ms
+  never reached the bottom; instant scroll now.
+- **"Takes it in 1310 exchanges"** was sim ticks. Counts attack events: blows.
+- **Stats card stretched to 536px** beside the champion at ≥1100px with four
+  numbers spread down it. The third column is a stack now: Stats, then
+  Weapons filling the rest. Skills & Pets spans the row.
+- **Worn strip showed five copies of the champion's face.** Gear has icons
+  (`gearArt.tsx`): cuirass / helm / mantle / charm / laurel in the weapon
+  cartoon hand, coloured by the piece. Closet cards use them too.
+- **Beasts were 32px ants piled under a 156px doll**, the rival's hound
+  invisible. They scale one step below the stage (64px at 3×) and stand in a
+  rank between hunter and enemy, overlapping a third.
+- **Beasts hit for 1 at level 16** — flat 4–6 through 12 armour. Damage adds
+  `floor(owner Strength / 4)`.
+- **A combo kept savaging a beast it had already felled.** Target drops to
+  the hunter once the beast is down.
+- **"Frozen for 250 ticks"** and "guard down 300 ticks" leaked sim units into
+  the log.
+- **Phone header wrapped to two rows (115px)** once the Favour pill appeared.
+  Compact pills under 420px; one 43px row from 360px up.
+- `#/` routes to the Hall instead of nowhere.

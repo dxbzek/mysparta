@@ -66,6 +66,8 @@ type Screen =
       rival: Rival;
       arena: ArenaDef;
       rewards: { xp: number; kleos: number; drops: string[] };
+      /** Rating as it stood when the bell rang — the header shows this until the verdict is left. */
+      kleosBefore: number;
     }
   | { s: "history" }
   | { s: "ladder" }
@@ -103,6 +105,8 @@ const BREADCRUMB: Record<string, string> = {
 
 function routeOf(hash: string): Screen["s"] | null {
   const want = hash.replace(/^#\/?/, "");
+  // A bare "#/" is the front door, not nowhere.
+  if (want === "") return "home";
   const hit = Object.entries(ROUTES).find(([, path]) => path === want);
   return (hit?.[0] as Screen["s"]) ?? null;
 }
@@ -444,6 +448,7 @@ export function App() {
       rival,
       arena: arenaForFight(seed),
       rewards: { xp: xpGain, kleos: kd, drops },
+      kleosBefore: fresh.kleos,
     });
   };
 
@@ -461,6 +466,12 @@ export function App() {
     openDraftIfDue(next);
   };
 
+  // The result is written to the save the moment a fight starts (so a refresh
+  // mid-bout cannot dodge a loss), which meant the header announced the new
+  // rating while the first blow was still landing. The theatre keeps the old
+  // number until the player walks out of it.
+  const shownKleos = screen.s === "fight" ? screen.kleosBefore : save.kleos;
+
   return (
     <Shell
       crumb={BREADCRUMB[screen.s]}
@@ -472,10 +483,10 @@ export function App() {
           <div className="topbar-right">
             <span
               className="pill league-pill"
-              style={{ background: league(save.kleos).color }}
-              title={`Rating ${save.kleos} — ${league(save.kleos).name} league`}
+              style={{ background: league(shownKleos).color }}
+              title={`Rating ${shownKleos} — ${league(shownKleos).name} league`}
             >
-              {league(save.kleos).name} {save.kleos}
+              {league(shownKleos).name} {shownKleos}
             </span>
             <span
               className="pill vigor-pips"

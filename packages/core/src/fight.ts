@@ -461,7 +461,7 @@ export function simulateFight(input: FightInput): FightResult {
         break;
       case "gorgons_glare":
         foe.nextAt = Math.max(foe.nextAt, tick + 250);
-        events.push({ t: tick, type: "status", side: foe.side, what: "Frozen for 250 ticks" });
+        events.push({ t: tick, type: "status", side: foe.side, what: "Frozen stiff!" });
         break;
       case "chirons_mending": {
         const healed = Math.floor((f.hpMax - f.hp) * 40 / 100);
@@ -621,7 +621,9 @@ export function simulateFight(input: FightInput): FightResult {
     let firstComboExtended = false;
     let guaranteedChain = 0;
 
-    const target = beastTarget;
+    // Mutable: a combo that fells a beast on its first blow carries the rest
+    // of the chain onto the hunter instead of savaging a corpse.
+    let target = beastTarget;
     const doOneHit = (comboPos: number): "stop" | "chained" => {
       const dDefNow = target ? undefined : derive(def, att, tick);
 
@@ -710,6 +712,7 @@ export function simulateFight(input: FightInput): FightResult {
       if (target) {
         const net = hurtBeast(def, target.bs, dmg);
         events.push({ t: tick, type: "hit", side: att.side, amount: net, crit, combo: comboPos, targetHp: Math.max(0, target.bs.hp), target: { kind: "beast", index: target.index } });
+        if (target.bs.down) target = undefined;
       } else {
         const net = Math.max(1, dmg - (thrown ? 0 : derive(def, att, tick).armour));
         const dealt = hurt(def, net, att.side);
@@ -774,7 +777,7 @@ export function simulateFight(input: FightInput): FightResult {
     if (att.plan.gambit === "feint" && att.attacksMade === 1) {
       def.statuses.push({ kind: "guardDown", until: tick + 300 });
       events.push({ t: tick, type: "technique", side: att.side, skill: "feint" as never });
-      events.push({ t: tick, type: "status", side: def.side, what: "Feinted — guard down 300 ticks" });
+      events.push({ t: tick, type: "status", side: def.side, what: "Feinted — guard down!" });
       checkTrumps();
     } else {
       let step = doOneHit(0);
@@ -821,7 +824,9 @@ export function simulateFight(input: FightInput): FightResult {
     const dDef = derive(def, owner, tick);
     const hitChance = clamp(85 - dDef.eva, 5, 95);
     if (rng.pct(hitChance)) {
-      let dmg = rng.roll(bd.dmgMin, bd.dmgMax);
+      // A beast fights with its hunter's strength behind it: flat 4–6 was a
+      // wolf that bit for 1 through a level-16 rival's armour.
+      let dmg = rng.roll(bd.dmgMin, bd.dmgMax) + Math.floor(owner.snap.stats.might / 4);
       if (bs.id === "kalydon_boar" && !bs.usedCharge) {
         bs.usedCharge = true;
         dmg = Math.floor(dmg * 150 / 100);

@@ -8,6 +8,7 @@
  * you are wearing right now, which is the one number that decides it.
  */
 import { useState } from "react";
+import { GearIcon } from "../gearArt.js";
 import { PixIcon } from "../pixelIcons.js";
 import { FighterBust, lookFor } from "../fighters.js";
 import {
@@ -92,8 +93,9 @@ export function Closet(props: {
                   onClick={() => props.onEquip(slot, worn ? undefined : g.id)}
                   aria-pressed={worn}
                 >
-                  {/* worn by your own hunter, so you see it before choosing */}
-                  <FighterBust look={lookWithGear(baseLook, { [slot]: g.id })} size={64} />
+                  <span className="closet-art">
+                    <GearIcon id={g.id} slot={slot} size={48} />
+                  </span>
                   <span className="closet-body">
                     <b>{g.name}</b>
                     <span className="gear-stat">{gearStatLine(g) || gearDetail(g)}</span>

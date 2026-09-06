@@ -118,6 +118,8 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   }, [figures]);
 
   const finished = skipped || shown >= lines.length;
+  // result.ticks is sim time, not a count — "1310 exchanges" was a lie.
+  const blows = useMemo(() => result.events.filter((e) => e.type === "attack").length, [result]);
 
   /*
    * Hit-stop. The killing blow used to be paced exactly like the forty before
@@ -136,8 +138,12 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     return () => window.clearTimeout(id);
   }, [shown, finished, lines, speed, kills]);
 
+  // Instant, not smooth: a new line lands every ~600ms, and a smooth scroll
+  // restarted that often never reached the bottom — the log sat on the bell
+  // while the fight ran twenty lines below the fold.
   useEffect(() => {
-    feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
+    const el = feedRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [shown, skipped]);
 
 
@@ -443,7 +449,10 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
             >
               <PetSprite
                 beastId={id}
-                size={32}
+                /* One tile step below the fighters' own scale: at the 3x stage
+                   the paper dolls stand 156px and a 32px beast was an ant at
+                   their heel — the rival's hound was invisible in play. */
+                size={32 * Math.max(1, px.scale - 1)}
                 /* The tiles are drawn facing LEFT — the wolf's ears are on the
                    left of its 32px box and the tail sweeps right. So the LEFT
                    fighter's pack is the one that has to be flipped to look at
@@ -605,7 +614,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
               ))}
             </div>
             <div className="verdict-sub">
-              {names[result.winner]} takes it in {result.ticks} exchanges
+              {names[result.winner]} takes it in {blows} blows
             </div>
           </div>
         )}

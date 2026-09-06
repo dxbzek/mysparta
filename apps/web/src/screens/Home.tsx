@@ -1,5 +1,6 @@
 /** The Hall: your champion, what they carry, and the one button that matters. */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { GearIcon } from "../gearArt.js";
 import {
   LEVEL_CAP,
   STAT_LABEL,
@@ -526,7 +527,7 @@ export function Home(props: {
       )}
 
       {(c.skills.length > 0 || c.beasts.length > 0) && (
-        <section className="card">
+        <section className="card span-all">
           <h3>Skills & Pets</h3>
           <div className="plaques">
             {c.skills.map((s) => (
@@ -571,11 +572,7 @@ export function Home(props: {
                 className={`rack-tile slot-tile${g ? " worn" : ""}`}
                 title={g ? g.name : "empty"}
               >
-                {g ? (
-                  <FighterBust look={lookWithGear(baseLook, { [slot]: g.id })} size={46} />
-                ) : (
-                  <span className="slot-glyph" aria-hidden />
-                )}
+                <GearIcon id={g?.id} slot={slot} size={40} />
                 <em>{SLOT_LABEL[slot]}</em>
               </span>
             );
