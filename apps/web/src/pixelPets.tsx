@@ -1,10 +1,10 @@
 /**
- * The beasts, as 32px CC0 creature tiles from Dungeon Crawl Stone Soup (see
- * docs/CREDITS.md, src/tileArt.ts). They stand next to LPC paper dolls on the
- * fight stage, which is exactly why they are real tiles now rather than the
- * hand-drawn grids that used to live here.
+ * The beasts, hand-drawn in the arsenal's idiom (beastArt.tsx). The CC0
+ * Dungeon Crawl tiles stay wired as the fallback so an unmapped id is never a
+ * blank square, but all eight shipped beasts are drawn now.
  */
 import { beastTile } from "./tileArt.js";
+import { drawBeast, hasBeastArt } from "./beastArt.js";
 
 export function PetSprite({
   beastId,
@@ -18,9 +18,10 @@ export function PetSprite({
   /** felled: greyed and tipped over */
   down?: boolean;
 }) {
-  // 32px tiles only scale by whole numbers; snap to the nearest one so a
-  // caller asking for 54 gets a crisp 64 rather than a smeared 54.
-  const px = 32 * Math.max(1, Math.round(size / 32));
+  const drawn = hasBeastArt(beastId);
+  // Tiles only scale by whole numbers; the drawings take any size. Snap only
+  // when we are actually showing a tile.
+  const px = drawn ? size : 32 * Math.max(1, Math.round(size / 32));
   // Facing and felled live on a wrapper, never on the sprite itself. CSS
   // animations beat inline styles, so the breathing loop was silently eating
   // `scaleX(-1)` and every beast on the right faced the wrong way.
@@ -34,15 +35,28 @@ export function PetSprite({
         filter: down ? "grayscale(0.85) brightness(0.8)" : undefined,
       }}
     >
-      <img
-        className="pet-sprite tile-art"
-        src={beastTile(beastId)}
-        width={px}
-        height={px}
-        alt=""
-        aria-hidden
-        draggable={false}
-      />
+      {drawn ? (
+        <svg
+          className="pet-sprite cartoon-art"
+          viewBox="0 0 32 32"
+          width={px}
+          height={px}
+          aria-hidden
+          focusable="false"
+        >
+          {drawBeast(beastId)}
+        </svg>
+      ) : (
+        <img
+          className="pet-sprite tile-art"
+          src={beastTile(beastId)}
+          width={px}
+          height={px}
+          alt=""
+          aria-hidden
+          draggable={false}
+        />
+      )}
     </span>
   );
 }

@@ -234,3 +234,35 @@ the playthrough surfaced:
 - **Phone header wrapped to two rows (115px)** once the Favour pill appeared.
   Compact pills under 420px; one 43px row from 360px up.
 - `#/` routes to the Hall instead of nowhere.
+
+## Fourth pass — one art direction (2026-09-06)
+
+Zek: *"it's ugly though even our skills and pets"*, then *"One art direction"*.
+
+The game was three idioms at once: LPC pixel dolls on the stage, CC0 32px
+roguelike tiles for skills and beasts, hand-drawn vector for weapons and gear.
+Searched itch.io, CraftPix, gamedevmarket and Envato Elements for a coherent
+bought set — Envato is stock illustration (mascots, no rigs); itch's cartoon
+animals are 3D or top-down; the one real candidate is Robert Brooks
+(gamedeveloperstudio) at ~£15/pack. Nothing there beat drawing them.
+
+So: **everything but the fighter is now drawn in one hand.**
+- `beastArt.tsx` — all 8 beasts. Wolf, Raven, Boar, Guard Dog, Fox, Firebird,
+  Hound, Tortoise, all facing left, on the same shared parts (Quad, Head, Ear,
+  Tail, Eye) so they read as one artist.
+- `skillArt.tsx` — all 30 skills, grouped boon / technique / trump, each icon
+  saying what the skill *does* rather than what its myth name is.
+- `gearArt.tsx` (earlier this session) — the five gear slots.
+- The Crawl tiles stay wired as a fallback but nothing shipped renders one:
+  `.tile-art` count is 0 on every screen.
+
+Four beasts and seven skills were redrawn after looking at them at size:
+the Guard Dog's mane read as a hat, the Hound's three heads merged into a
+blob, the Raven had no beak, the Boar's tusks vanished, Bronze Hide and
+Pankration both read as sandwiches, Wrath's fire didn't show, Hermes' sandal
+was a bracket. Rule that keeps paying: draw it, render it at 44px and 150px,
+look at it, fix what does not read.
+
+**Still open:** the fight stage's paper dolls are the last borrowed idiom.
+Closing it means replacing the fighter rig — bought (£14.95 Brute Knight pack
+has swappable helmet/armour/weapon maps) or drawn with its own frames.

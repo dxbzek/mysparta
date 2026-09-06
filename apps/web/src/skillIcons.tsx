@@ -1,10 +1,14 @@
 /**
- * A skill as a plaque: a coloured bevel by kind, with a 32px CC0 tile from
- * Dungeon Crawl Stone Soup inside it (see docs/CREDITS.md, src/tileArt.ts).
- * The bevel colour is the game's own — olive boons, amber techniques, gold
- * trumps — so the kind still reads before the picture does.
+ * A skill as a plaque: a coloured bevel by kind — olive boons, amber
+ * techniques, gold trumps — with the skill's own drawing inside it
+ * (skillArt.tsx, drawn in the arsenal's hand). The bevel colour means the
+ * kind reads before the picture does.
+ *
+ * The CC0 Dungeon Crawl tile stays wired as the fallback so a skill we have
+ * not drawn is never a blank plaque.
  */
 import { skillTile } from "./tileArt.js";
+import { drawSkill, hasSkillArt } from "./skillArt.js";
 
 export type SkillKind = "boon" | "technique" | "trump";
 
@@ -19,20 +23,34 @@ export function SkillIcon({
   size?: number;
   title?: string;
 }) {
-  // The plaque takes whatever size the caller asked for; the art inside can
-  // only ever be a whole multiple of its own 32px, so it snaps and centres.
-  const art = size >= 56 ? 64 : 32;
+  const drawn = hasSkillArt(id);
+  // A tile can only be a whole multiple of its own 32px, so it snaps; the
+  // drawing takes whatever the plaque gives it, less a little breathing room.
+  const art = drawn ? Math.round(size * 0.82) : size >= 56 ? 64 : 32;
   return (
     <span className={`skill-tile tile-${kind}`} style={{ width: size, height: size }} title={title}>
-      <img
-        className="tile-art"
-        src={skillTile(id)}
-        width={art}
-        height={art}
-        alt=""
-        aria-hidden
-        draggable={false}
-      />
+      {drawn ? (
+        <svg
+          className="skill-art cartoon-art"
+          viewBox="0 0 32 32"
+          width={art}
+          height={art}
+          aria-hidden
+          focusable="false"
+        >
+          {drawSkill(id)}
+        </svg>
+      ) : (
+        <img
+          className="tile-art"
+          src={skillTile(id)}
+          width={art}
+          height={art}
+          alt=""
+          aria-hidden
+          draggable={false}
+        />
+      )}
     </span>
   );
 }
