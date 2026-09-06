@@ -3562,3 +3562,204 @@ svg.pet-sprite { overflow: visible; }
 
 /* Drawn skill art: vector, so it needs outline room and no pixel snapping. */
 .skill-art { display: block; overflow: visible; }
+
+/* =============== rigged beasts: one animal, many parts ===============
+   Every beast is an SVG whose head, body, legs, tail and wings are their own
+   `.bp-*` groups with their own pivots (beastArt.tsx). The old animation moved
+   the WHOLE sprite with one shared `petBreath`, which is why three beasts on a
+   stage looked like three copies of one object. Now each part moves, and each
+   animal keeps its own clock: --idle, --sway and --reach come from
+   BEAST_MOTION via the sprite's style attribute.
+
+   transform-box: view-box is what makes the pivots in beastArt (given in the
+   32-box's own units) mean anything at all. */
+svg.pet-sprite { animation: none; }
+svg.pet-sprite .bp {
+  transform-box: view-box;
+  animation-fill-mode: both;
+}
+
+/* ---- idle: prowl (four legs on the ground) ---- */
+svg.pet-sprite[data-gait="prowl"] .bp-body { animation: bpBreathe var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="prowl"] .bp-head { animation: bpSniff var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="prowl"] .bp-tail { animation: bpSway var(--sway) ease-in-out infinite alternate; }
+svg.pet-sprite[data-gait="prowl"] .bp-leg-f { animation: bpPawF var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="prowl"] .bp-leg-b { animation: bpPawB var(--idle) ease-in-out infinite; }
+
+@keyframes bpBreathe {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  40% { transform: translateY(-0.6px) scaleY(1.05); }
+  70% { transform: translateY(0.2px) scaleY(0.98); }
+}
+@keyframes bpSniff {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  22% { transform: translateY(-1.1px) rotate(-4deg); }
+  55% { transform: translateY(0.6px) rotate(3deg); }
+  78% { transform: translateY(-0.4px) rotate(-1deg); }
+}
+@keyframes bpSway {
+  from { transform: rotate(-13deg); }
+  to { transform: rotate(15deg); }
+}
+@keyframes bpPawF {
+  0%, 62%, 100% { transform: rotate(0deg); }
+  74% { transform: rotate(-9deg) translateY(-1px); }
+  86% { transform: rotate(4deg); }
+}
+@keyframes bpPawB {
+  0%, 30%, 100% { transform: rotate(0deg); }
+  42% { transform: rotate(6deg); }
+  54% { transform: rotate(-2deg); }
+}
+
+/* ---- idle: perch (birds — the body barely moves, the wings do) ---- */
+svg.pet-sprite[data-gait="perch"] .bp-body { animation: bpPuff var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="perch"] .bp-head { animation: bpPeer var(--idle) steps(1, end) infinite; }
+svg.pet-sprite[data-gait="perch"] .bp-wing-f { animation: bpFlapF var(--sway) ease-in-out infinite; }
+svg.pet-sprite[data-gait="perch"] .bp-wing-b { animation: bpFlapB var(--sway) ease-in-out infinite; }
+svg.pet-sprite[data-gait="perch"] .bp-tail { animation: bpSway calc(var(--sway) * 2) ease-in-out infinite alternate; }
+
+@keyframes bpPuff {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.04, 1.03); }
+}
+/* A bird's head snaps between positions, it does not glide: steps(1) is the
+   entire point of this one. */
+@keyframes bpPeer {
+  0%, 44% { transform: rotate(0deg); }
+  45%, 68% { transform: rotate(-7deg) translateX(-0.6px); }
+  69%, 88% { transform: rotate(5deg); }
+  89%, 100% { transform: rotate(0deg); }
+}
+@keyframes bpFlapF {
+  0%, 100% { transform: rotate(0deg) scaleY(1); }
+  50% { transform: rotate(-11deg) scaleY(1.08); }
+}
+@keyframes bpFlapB {
+  0%, 100% { transform: rotate(0deg) scaleY(1); }
+  50% { transform: rotate(11deg) scaleY(1.08); }
+}
+
+/* ---- idle: plod (the tortoise: everything slow, the neck the only life) ---- */
+svg.pet-sprite[data-gait="plod"] .bp-body { animation: bpBreathe var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="plod"] .bp-head { animation: bpCrane var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="plod"] .bp-tail { animation: bpSway calc(var(--sway) * 1.6) ease-in-out infinite alternate; }
+svg.pet-sprite[data-gait="plod"] .bp-leg-f { animation: bpPlodF var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="plod"] .bp-leg-b { animation: bpPlodB var(--idle) ease-in-out infinite; }
+
+@keyframes bpCrane {
+  0%, 100% { transform: translateX(0) scaleX(1); }
+  35% { transform: translateX(-1.4px) scaleX(1.06); }
+  70% { transform: translateX(0.8px) scaleX(0.94); }
+}
+@keyframes bpPlodF {
+  0%, 100% { transform: rotate(0deg); }
+  40% { transform: rotate(-7deg); }
+}
+@keyframes bpPlodB {
+  0%, 100% { transform: rotate(0deg); }
+  60% { transform: rotate(7deg); }
+}
+
+/* ---- the fox's embers drift on three different clocks ---- */
+svg.pet-sprite .bp-mote { animation: bpMote 2.4s ease-in-out infinite; }
+svg.pet-sprite .bp-mote-2 { animation-duration: 3.1s; animation-delay: -0.7s; }
+svg.pet-sprite .bp-mote-3 { animation-duration: 1.9s; animation-delay: -1.3s; }
+@keyframes bpMote {
+  0% { transform: translateY(2px); opacity: 0.25; }
+  40% { transform: translateY(-1px); opacity: 1; }
+  100% { transform: translateY(-4px); opacity: 0; }
+}
+
+/* ---- the lunge: the whole animal commits, then the head bites ----
+   .beast-dash-* is on the wrapper (FightTheatre), so these run on the sprite's
+   parts for exactly one strike. --reach is per beast: a raven crosses more
+   ground than a tortoise. */
+.beast-dash-r svg.pet-sprite .bp-body,
+.beast-dash-l svg.pet-sprite .bp-body {
+  animation: bpPounce 480ms cubic-bezier(0.3, 0.9, 0.3, 1.1);
+}
+.beast-dash-r svg.pet-sprite .bp-head,
+.beast-dash-l svg.pet-sprite .bp-head {
+  animation: bpBite 480ms cubic-bezier(0.25, 0.9, 0.3, 1.2);
+}
+.beast-dash-r svg.pet-sprite .bp-leg-f,
+.beast-dash-l svg.pet-sprite .bp-leg-f {
+  animation: bpKickF 480ms ease-out;
+}
+.beast-dash-r svg.pet-sprite .bp-leg-b,
+.beast-dash-l svg.pet-sprite .bp-leg-b {
+  animation: bpKickB 480ms ease-out;
+}
+.beast-dash-r svg.pet-sprite .bp-tail,
+.beast-dash-l svg.pet-sprite .bp-tail {
+  animation: bpTailWhip 480ms ease-out;
+}
+.beast-dash-r svg.pet-sprite .bp-wing-f,
+.beast-dash-l svg.pet-sprite .bp-wing-f { animation: bpBeatF 480ms ease-out; }
+.beast-dash-r svg.pet-sprite .bp-wing-b,
+.beast-dash-l svg.pet-sprite .bp-wing-b { animation: bpBeatB 480ms ease-out; }
+/* the second and third head of the Hound bite a beat late */
+.beast-dash-r svg.pet-sprite .bp-head-2,
+.beast-dash-l svg.pet-sprite .bp-head-2 { animation-delay: 60ms; }
+.beast-dash-r svg.pet-sprite .bp-head-3,
+.beast-dash-l svg.pet-sprite .bp-head-3 { animation-delay: 120ms; }
+
+@keyframes bpPounce {
+  0% { transform: scaleY(1) scaleX(1) translateY(0); }
+  16% { transform: scaleY(0.82) scaleX(1.14) translateY(1.6px); }
+  46% { transform: scaleY(1.12) scaleX(0.93) translateY(-2px); }
+  74% { transform: scaleY(0.97) scaleX(1.03) translateY(0.4px); }
+  100% { transform: scaleY(1) scaleX(1) translateY(0); }
+}
+/*
+ * The head only ROTATES and dips. The wrapper (.beast-dash-*) is what carries
+ * the animal across the stage — a translateX here as well tore the head off
+ * the neck by a third of the body's length at the peak of the lunge.
+ */
+@keyframes bpBite {
+  0% { transform: rotate(0deg) translateY(0); }
+  16% { transform: rotate(11deg) translateY(1.2px); }
+  40% { transform: rotate(-19deg) translateY(-1.6px); }
+  58% { transform: rotate(4deg) translateY(0.4px); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+@keyframes bpKickF {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(18deg); }
+  48% { transform: rotate(-30deg); }
+  72% { transform: rotate(8deg); }
+}
+@keyframes bpKickB {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-16deg); }
+  48% { transform: rotate(26deg); }
+  72% { transform: rotate(-6deg); }
+}
+@keyframes bpTailWhip {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(24deg); }
+  62% { transform: rotate(-16deg); }
+}
+@keyframes bpBeatF {
+  0%, 100% { transform: rotate(0deg); }
+  35% { transform: rotate(-42deg) scaleY(1.2); }
+}
+@keyframes bpBeatB {
+  0%, 100% { transform: rotate(0deg); }
+  35% { transform: rotate(42deg) scaleY(1.2); }
+}
+
+/* ---- a felled beast holds still, whatever it was doing ---- */
+.pet-holder[style*="rotate"] svg.pet-sprite .bp { animation: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  svg.pet-sprite .bp { animation: none !important; }
+}
+
+/*
+ * The wrapper's shared 1.2s bob is for the tile fallback. A drawn beast has
+ * its own per-part idle on its own clock, and running both put every beast
+ * back on one shared rhythm — the exact thing the rig exists to kill.
+ */
+.beast-idle:has(svg.pet-sprite) { animation: none; }

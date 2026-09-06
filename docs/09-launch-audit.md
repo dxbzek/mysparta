@@ -266,3 +266,36 @@ look at it, fix what does not read.
 **Still open:** the fight stage's paper dolls are the last borrowed idiom.
 Closing it means replacing the fighter rig — bought (£14.95 Brute Knight pack
 has swappable helmet/armour/weapon maps) or drawn with its own frames.
+
+## Fifth pass — the beasts get rigged (2026-09-06)
+
+Zek: *"maybe it can do like an animated one?"*, then *"Like per character one"*.
+
+Every beast is now a puppet rather than a picture. `beastArt.tsx` wraps each
+head, body, leg pair, tail and wing in a `.bp-*` group with its own pivot
+(`transform-box: view-box`, pivots given in the 32-box's own units), and
+`BEAST_MOTION` gives each animal a gait and its own clock:
+
+| gait | beasts | idle |
+| --- | --- | --- |
+| prowl | Wolf, Boar, Guard Dog, Fox, Hound | body breathes, head sniffs, tail sways, a paw shifts |
+| perch | Raven, Firebird | body puffs, wings beat, head SNAPS between angles (`steps(1)`) |
+| plod | Tortoise | neck cranes in and out, legs alternate, everything slow |
+
+On a lunge the animal commits as one: crouch, stretch, head bite, legs kick,
+tail whip — and the Hound's second and third heads bite 60ms and 120ms late.
+
+Two things learned the hard way:
+- **The parts must not translate.** The wrapper (`.beast-dash-*`) already
+  carries the animal across the stage; a `translateX` in `bpBite` as well tore
+  the head a third of a body-length off the neck at the peak. Parts rotate;
+  the wrapper travels.
+- **The old wrapper bob had to go** for drawn beasts
+  (`.beast-idle:has(svg.pet-sprite) { animation: none }`) — running a shared
+  1.2s bob under per-part idles put every beast back on one rhythm, which is
+  the exact fault the rig exists to fix.
+
+**Verifying animation in a hidden Browser pane:** clocks never advance, so
+sampling `getComputedStyle` twice always returns the same matrix. Scrub
+instead — `el.getAnimations().forEach(a => { a.pause(); a.currentTime = t })`,
+then read the transform or screenshot. That is how every pose here was checked.
