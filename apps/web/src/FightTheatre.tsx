@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { BEASTS, FISTS, WEAPONS, type FightResult } from "@agoge/core";
+import { FISTS, WEAPONS, type FightResult } from "@agoge/core";
 import { ImpactBurst, Javelin, Laurel, SlashArc } from "./art.js";
 import { PetSprite } from "./pixelPets.js";
 import { FighterFig, WeatherFx, type FighterAnim } from "./fighters.js";
@@ -8,6 +8,7 @@ import { PixIcon } from "./pixelIcons.js";
 import type { Arena } from "./arenas.js";
 import { CHAR, weaponArtFor, type Look } from "./paperdoll.js";
 import { narrate, type Line } from "./narrate.js";
+import { SkillFx, fxFor } from "./fightFx.js";
 import { sound, type StrikeKind } from "./sound.js";
 
 export interface StageFigure {
@@ -21,11 +22,6 @@ export interface StageFigure {
   weaponId?: string;
   beasts: string[];
 }
-
-const weaponIdByName = new Map<string, string>([
-  [FISTS.name, FISTS.id],
-  ...WEAPONS.map((w) => [w.name, w.id] as const),
-]);
 
 const weaponNameById = new Map<string, string>([
   [FISTS.id, FISTS.name],
@@ -42,8 +38,6 @@ interface Props {
   rewards: { xp: number; kleos: number; drops?: string[] };
   onDone: () => void;
 }
-
-const beastIdByName = new Map(BEASTS.map((b) => [b.name, b.id]));
 
 const disciplineById = new Map<string, string>([
   [FISTS.id, FISTS.discipline],
@@ -82,7 +76,15 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   // re-narrating the whole fight each time would be pure waste.
   const lines = useMemo(() => narrate(result, names), [result, names[0], names[1]]);
   const [shown, setShown] = useState(1);
-  const [speed, setSpeed] = useState<1 | 2>(1);
+  // Remembered like mute: with six banked fights a day, re-tapping 2x every
+  // single bout was the most-repeated dead interaction in the game.
+  const [speed, setSpeed] = useState<1 | 2>(() => {
+    try {
+      return localStorage.getItem("agoge.speed") === "2" ? 2 : 1;
+    } catch {
+      return 1;
+    }
+  });
   const [skipped, setSkipped] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -98,7 +100,13 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   useLayoutEffect(() => {
     const measure = () => {
       const w = stageRef.current?.clientWidth ?? 800;
-      const scale = w < 560 ? 2 : 3;
+      // Scale has to answer to the viewport's HEIGHT as well as its width. On
+      // a landscape phone (667×375) width alone chose 3×, making a 444px stage
+      // for a 375px screen — the fight didn't fit on the fight screen. Take
+      // whichever integer scale fits both, never below 1.
+      const byWidth = w < 560 ? 2 : 3;
+      const byHeight = Math.floor((window.innerHeight * 0.72) / NATIVE_H);
+      const scale = Math.max(1, Math.min(byWidth, byHeight));
       const nativeW = Math.ceil(w / scale);
       setPx({ scale, w: nativeW, h: NATIVE_H });
       const charW = (CHAR.w / CHAR.h) * (CHAR.h * scale);
@@ -110,23 +118,44 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   }, [figures]);
 
   const finished = skipped || shown >= lines.length;
+  // result.ticks is sim time, not a count — "1310 exchanges" was a lie.
+  const blows = useMemo(() => result.events.filter((e) => e.type === "attack").length, [result]);
+
+  /*
+   * Hit-stop. The killing blow used to be paced exactly like the forty before
+   * it — the feed just stopped having more to say. Every fighting game since
+   * Street Fighter II freezes the frame on the blow that ends it, because the
+   * pause is what tells you it was the last one. The beat before the end holds
+   * longer, the stage holds still, and then the verdict.
+   */
+  const kills = lines.length > 1 && shown === lines.length - 1 && result.reason === "ko";
 
   useEffect(() => {
     if (finished) return;
     const line = lines[shown - 1];
-    const hold = (line?.hold ?? 600) / speedRef.current;
+    const hold = ((line?.hold ?? 600) + (kills ? 420 : 0)) / speedRef.current;
     const id = window.setTimeout(() => setShown((s) => s + 1), hold);
     return () => window.clearTimeout(id);
-  }, [shown, finished, lines, speed]);
+  }, [shown, finished, lines, speed, kills]);
 
+  // Instant, not smooth: a new line lands every ~600ms, and a smooth scroll
+  // restarted that often never reached the bottom — the log sat on the bell
+  // while the fight ran twenty lines below the fold.
   useEffect(() => {
-    feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
+    const el = feedRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [shown, skipped]);
 
 
   useEffect(() => {
     if (skipped) sound.fanfare(result.winner === 0);
   }, [skipped, result.winner]);
+
+  // The crowd is present for the whole bout and drains away with the screen.
+  useEffect(() => {
+    sound.arenaIn();
+    return () => sound.arenaOut();
+  }, []);
 
   // Stable per beat. It used to be a fresh slice every render, which made the
   // memos below recompute and — worse — re-ran the sound effect, so toggling
@@ -143,13 +172,12 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   const anim = skipped ? undefined : current?.anim;
   const fx = skipped ? undefined : current?.fx;
 
-  // Beasts that have fallen so far (by display name → id).
+  // Beast ids that have fallen so far.
   const downed: [Set<string>, Set<string>] = useMemo(() => {
     const sets: [Set<string>, Set<string>] = [new Set(), new Set()];
     for (const l of visible) {
       if (l.beastDown) {
-        const id = beastIdByName.get(l.beastDown.beast);
-        if (id) sets[l.beastDown.side].add(id);
+        sets[l.beastDown.side].add(l.beastDown.beast);
       }
     }
     return sets;
@@ -162,7 +190,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       figures[1].weaponId,
     ];
     for (const l of visible) {
-      if (l.drew) held[l.drew.side] = weaponIdByName.get(l.drew.weapon) ?? held[l.drew.side];
+      if (l.drew) held[l.drew.side] = l.drew.weapon;
     }
     return held;
   }, [visible, figures[0].weaponId, figures[1].weaponId]);
@@ -176,6 +204,26 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     [heldWeapon],
   );
 
+  // How many swings each side has thrown so far — the alternation key. Derived
+  // from the beats on screen so a rewind or a skip stays consistent.
+  const swingCount: [number, number] = useMemo(() => {
+    const n: [number, number] = [0, 0];
+    for (const l of visible) {
+      if (l.anim?.striker !== undefined && !l.anim.beastId) n[l.anim.striker]++;
+    }
+    return n;
+  }, [visible]);
+
+  // The same idea for evasions: one dodge shape repeated is as flat as one
+  // swing shape repeated, and defensive beats are half a fight.
+  const dodgeCount: [number, number] = useMemo(() => {
+    const n: [number, number] = [0, 0];
+    for (const l of visible) {
+      if (l.anim?.reaction?.kind === "dodge") n[l.anim.reaction.side]++;
+    }
+    return n;
+  }, [visible]);
+
   const idxRef = useRef(0);
   idxRef.current = idx;
 
@@ -185,10 +233,12 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     const l = lines[shown - 1];
     if (!l) return;
     if (l.kind === "end") {
-      sound.fanfare(l.text.includes(names[0]));
+      // By the result, not by name-substring: "Ajax" losing to "Ajax the Red"
+      // used to hear the victory fanfare.
+      sound.fanfare(result.winner === 0);
       return;
     }
-    if (l.anim?.beastName) sound.beast();
+    if (l.anim?.beastId) sound.beast();
     // Impacts land a beat after the swing; if the beat is cut short (skip,
     // unmount) the pending blow is cancelled rather than firing into silence.
     const pending: number[] = [];
@@ -197,6 +247,10 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     // beat, and the defender's real answer to it.
     const striker = l.anim?.striker;
     const kind = strikeKind(striker === undefined ? undefined : heldWeapon[striker], idxRef.current);
+    // The strike keyframe reaches the foe ~42% into its run (~320ms at 1x),
+    // but impacts used to land at 95ms — the thwack played while the striker
+    // was still mid-sprint, audio leading video by ~200ms on every hit.
+    const contact = Math.round(290 / speedRef.current);
     switch (l.kind) {
       case "info":
         if (l.text.includes("enter the arena")) {
@@ -208,41 +262,78 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       case "crit": {
         const crit = l.kind === "crit";
         // swing first, impact landing a beat later — the gap sells the blow
-        if (l.anim?.thrown) sound.strike("pierce", crit);
+        if (l.anim?.thrown) sound.strike("pierce", crit, l.anim.striker);
         else {
-          sound.swing(kind);
-          land(() => sound.strike(kind, crit), kind === "axe" ? 150 : 95);
+          sound.swing(kind, l.anim?.striker);
+          land(() => sound.strike(kind, crit, l.anim?.striker), kind === "axe" ? Math.round(360 / speedRef.current) : contact);
         }
         break;
       }
       case "defend":
         if (l.fx?.heal) sound.heal();
         else if (l.anim?.reaction?.kind === "block") {
-          sound.swing(kind);
+          sound.swing(kind, l.anim?.striker);
           const guard = l.anim.reaction.side;
-          land(() => sound.block(hasShield[guard]), 95);
+          land(() => sound.block(hasShield[guard]), contact);
         } else if (l.anim?.reaction?.kind === "dodge") {
-          sound.swing(kind);
-          land(() => sound.dodge(), 90);
+          sound.swing(kind, l.anim?.striker);
+          land(() => sound.dodge(), contact);
         } else if (l.anim?.thrown) sound.throwSpear();
-        else sound.swing(kind);
+        else sound.swing(kind, l.anim?.striker);
         break;
       case "trump":
         sound.power();
         break;
     }
     return () => pending.forEach((id) => window.clearTimeout(id));
-  }, [shown, skipped, lines, names, heldWeapon, hasShield]);
+  }, [shown, skipped, lines, names, heldWeapon, hasShield, result.winner]);
+
+  /** who mended on this beat, so their bar flares with the number */
+  const healed = anim?.heal ? anim.striker : undefined;
 
   const slotClass = (side: 0 | 1): string => {
     const cls = ["fig-slot"];
+    const R = side === 0 ? "r" : "l"; // the direction this side attacks toward
+    const S = side === 0 ? "l" : "r"; // the side of the stage they stand on
     if (idx <= 1) cls.push(side === 0 ? "enter-l" : "enter-r");
-    // A chain hit keeps the swing but skips the run-in: they are already close.
-    if (anim?.striker === side && !anim.beastName && !anim.chain) {
-      cls.push(anim.thrown ? (side === 0 ? "throw-r" : "throw-l") : side === 0 ? "strike-r" : "strike-l");
+
+    if (anim?.striker === side && !anim.beastId) {
+      if (anim.heal) {
+        // Mending is a beat of its own: take a knee, tip the flask back, bloom.
+        cls.push(`mend-${S}`);
+      } else if (anim.cast) {
+        // A skill is not a swing: they plant, draw themselves up, and the
+        // power leaves them. Casting used to be a bare caption over an idle.
+        cls.push(`cast-${S}`);
+      } else if (anim.riposte) {
+        // Counters and ripostes are answers, not charges — the foe already
+        // closed the distance. A short pivot on the spot, no sprint.
+        cls.push(`riposte-${R}`);
+      } else if (anim.chain) {
+        // Follow-ups escalate: each one tighter and faster than the last,
+        // rather than replaying the opening swing in place.
+        cls.push(`chain-${R}`, `cx${Math.min(3, anim.chain)}`);
+      } else {
+        cls.push(anim.thrown ? `throw-${R}` : `strike-${R}`);
+        // Three lunge shapes, cycled per-side: every hit used to be the same
+        // full-stage sprint, so a 30-beat fight read as one GIF looping.
+        if (!anim.thrown) cls.push(`sv${swingCount[side] % 3}`);
+        // A critical is the same lunge, further and harder — it should not
+        // look like every other swing when the feed is shouting CRITICAL.
+        if (fx?.crit) cls.push("strike-crit");
+      }
     }
+
+    // A weapon coming up into guard, on the beat it is drawn.
+    if (anim?.ready === side) cls.push(`ready-${S}`);
+
     if (anim?.reaction?.side === side) {
-      cls.push(`${anim.reaction.kind}-${side === 0 ? "l" : "r"}`);
+      cls.push(`${anim.reaction.kind}-${S}`);
+      // Three ways to not be hit: step aside, hop back, duck under. One
+      // shape for every evasion made half the fight look identical.
+      if (anim.reaction.kind === "dodge") cls.push(`dv${dodgeCount[side] % 3}`);
+      // Taking a critical staggers you back rather than rocking you.
+      if (fx?.crit && anim.reaction.kind === "hurt") cls.push("hurt-hard");
     }
     return cls.join(" ");
   };
@@ -253,15 +344,43 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     else if (finished && side === result.winner) cls.push("win");
     else cls.push("idle");
     if (anim?.reaction?.side === side && anim.reaction.kind === "hurt") cls.push("flash");
+    // The skill lights its caster up, so the ring reads as coming FROM them.
+    if (anim?.cast && anim.striker === side) cls.push("channel");
+    if (anim?.heal && anim.striker === side) cls.push("mending");
     return cls.join(" ");
   };
 
-  /** Which sheet animation each fighter plays this beat. */
+  /**
+   * Which sheet animation each fighter plays this beat.
+   *
+   * Every beat used to resolve to one of three poses — attack, hit, stance —
+   * with the swing alternating on the GLOBAL beat index, so both fighters
+   * always threw the same one at the same time and every defensive beat was
+   * the idle guard. The reads now differ: a dodge steps, a block braces, and
+   * the two fighters are on their own swing counts so a long exchange stops
+   * looking like a metronome.
+   */
   const animOf = (side: 0 | 1): FighterAnim => {
     if (finished && side === loser && result.reason === "ko") return "death";
     if (finished) return "stance";
-    if (anim?.reaction?.side === side && anim.reaction.kind === "hurt") return "hit";
-    if (anim?.striker === side && !anim.beastName) return idx % 2 === 0 ? "attack1" : "attack2";
+    const react = anim?.reaction?.side === side ? anim.reaction.kind : undefined;
+    if (react === "hurt") return "hit";
+    // A cast holds the guard while the body channels; the CSS does the lift.
+    if ((anim?.cast || anim?.heal) && anim.striker === side) return "stance";
+    // Drawing steel reads as the wind-up frames, not an idle sway.
+    if (anim?.ready === side) return "attack1";
+    // A dodge is a body moving out of the way; the run frames read as the
+    // quick step the CSS is already sliding them through.
+    if (react === "dodge") return "run";
+    // A block is taken on the guard — the braced stance, not the loose idle.
+    if (react === "block") return "stance";
+    if (anim?.striker === side && !anim.beastId) {
+      // Per-side swing count, so the two fighters are never in lockstep — and
+      // inside a chain the follow-ups alternate against the chain index, so a
+      // three-hit combo is three pictures rather than one repeated.
+      const beat = anim.chain ? swingCount[side] + anim.chain : swingCount[side];
+      return beat % 2 === 0 ? "attack1" : "attack2";
+    }
     return "stance";
   };
 
@@ -270,8 +389,20 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     const showSlash = showBurst && anim?.striker !== undefined && !anim.thrown;
     const label = anim?.label?.side === side ? anim.label.text : undefined;
     const edge = side === 0 ? "on-right" : "on-left";
+    /*
+     * The skill itself, drawn. Thirty skills used to share one gold flare and
+     * a caption, so the biggest thing a fighter can do read as a subtitle.
+     * The effect plays on whoever it happens to: a bolt lands on the target,
+     * a shield closes over the caster.
+     */
+    const spell = anim?.skillId ? fxFor(anim.skillId) : undefined;
+    const spellHere =
+      spell && anim?.striker !== undefined
+        ? (spell.at === "self" ? anim.striker : anim.striker === 0 ? 1 : 0) === side
+        : false;
     return (
       <>
+        {spellHere && spell && <SkillFx kind={spell.fx} />}
         {showSlash && (
           <span className={`slash ${edge}`}>
             <SlashArc size={90} mirror={side === 0} />
@@ -295,18 +426,54 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   const renderBeasts = (side: 0 | 1) => {
     const list = figures[side].beasts;
     if (list.length === 0) return null;
-    const actingId = anim?.beastName ? beastIdByName.get(anim.beastName) : undefined;
+    const actingId = anim?.beastId;
     const actingSide = anim?.striker;
     return (
       <div className={`fig-beasts ${side === 0 ? "beasts-l" : "beasts-r"}`}>
         {list.map((id, i) => {
           const striking = actingSide === side && actingId === id;
+          const summoning = anim?.summon === id && actingSide === side;
+          const falling = current?.beastDown?.side === side && current.beastDown.beast === id;
           return (
             <span
-              key={`${id}${i}${striking ? idx : ""}`}
-              className={striking ? (side === 0 ? "beast-dash-r" : "beast-dash-l") : "beast-idle"}
+              key={`${id}${i}${striking || falling ? idx : ""}`}
+              className={[
+                striking ? (side === 0 ? "beast-dash-r" : "beast-dash-l") : "beast-idle",
+                // Loosed for the first time: it drops in behind its master
+                // instead of having always been standing there.
+                summoning ? "beast-summon" : "",
+                falling ? "beast-fall" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
             >
-              <PetSprite beastId={id} size={54} mirror={side === 1} down={downed[side].has(id)} />
+              <PetSprite
+                beastId={id}
+                /* One tile step below the fighters' own scale: at the 3x stage
+                   the paper dolls stand 156px and a 32px beast was an ant at
+                   their heel — the rival's hound was invisible in play. */
+                size={32 * Math.max(1, px.scale - 1)}
+                /* The tiles are drawn facing LEFT — the wolf's ears are on the
+                   left of its 32px box and the tail sweeps right. So the LEFT
+                   fighter's pack is the one that has to be flipped to look at
+                   the enemy. This was backwards, and every beast in the game
+                   spent the fight staring away from it. */
+                mirror={side === 0}
+                down={downed[side].has(id)}
+              />
+              {falling && (
+                <span className="beast-poof">
+                  <ImpactBurst size={46} crit={false} />
+                </span>
+              )}
+              {/* the bite itself — a beast used to cross the stage and arrive
+                  at nothing, which read as a sprite sliding rather than an
+                  animal landing on someone */}
+              {striking && (
+                <span className="beast-bite">
+                  <ImpactBurst size={40} crit={false} />
+                </span>
+              )}
             </span>
           );
         })}
@@ -315,22 +482,44 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   };
 
   return (
-    <div className="theatre">
+    // --spd compresses the choreography with the clock. At 2x the beats were
+    // halved but the CSS kept its 1x durations, so strikes were killed
+    // mid-sprint and damage numbers lived ~110ms — 2x looked broken rather
+    // than fast, in the mode repeat players live in.
+    <div className="theatre" style={{ "--spd": speed === 2 ? 0.5 : 1 } as React.CSSProperties}>
       <div
-        className={`stage ${fx?.crit && !finished ? "quake" : ""}`}
+        className={`stage ${fx?.crit && !finished ? "quake" : ""}${kills ? " hitstop" : ""}`}
         ref={stageRef}
-        style={{ "--dash": `${dash}px` } as React.CSSProperties}
+        style={
+          {
+            "--dash": `${dash}px`,
+            // The height comes from the scale we actually measured, not from a
+            // media query guessing at it. CSS switched on the VIEWPORT while
+            // this switches on the STAGE's width, so between about 561 and
+            // 587px the backdrop was stretched 3x tall while the fighters were
+            // drawn at 2x — the ground line and the champions came apart.
+            height: px.h * px.scale,
+          } as React.CSSProperties
+        }
       >
         <div
           className="stage-bg"
-          style={{ backgroundImage: `url(${arenaScene(arena, px.w, px.h)})` }}
+          style={{
+            backgroundImage: `url(${arenaScene(arena, px.w, px.h)})`,
+            // Exactly nativeW × scale, not "100% of the stage": ceil(w/scale)
+            // painted back into w stretched the art by a fraction of a pixel
+            // (1.994x at some widths) and smeared the pixel grid. The couple
+            // of surplus pixels vanish under the stage's overflow: hidden.
+            width: px.w * px.scale,
+            height: px.h * px.scale,
+          }}
         />
         {arena.overlay && <div className="stage-wash" style={{ background: arena.overlay }} />}
         {arena.weather && <WeatherFx kind={arena.weather} count={14} />}
         <div className="arena-chip">{arena.name}</div>
         <div className="stage-hp">
-          <HpBar name={names[0]} hp={hp[0]!} max={result.hpMax[0]} mirror={false} />
-          <HpBar name={names[1]} hp={hp[1]!} max={result.hpMax[1]} mirror={true} />
+          <HpBar name={names[0]} hp={hp[0]!} max={result.hpMax[0]} mirror={false} gain={healed === 0} />
+          <HpBar name={names[1]} hp={hp[1]!} max={result.hpMax[1]} mirror={true} gain={healed === 1} />
         </div>
         <div className="vs-badge">VS</div>
 
@@ -409,7 +598,9 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
                   }}
                 />
               ))}
-            <Laurel size={150} color={result.winner === 0 ? "#a78bfa" : "#5b6178"} />
+            {/* Sized to the stage: at 150px on the 2× stage the wreath reached
+                up over the HP bars and read as a purple creature, not a crown. */}
+            <Laurel size={px.scale === 2 ? 92 : 150} color={result.winner === 0 ? "#a78bfa" : "#5b6178"} />
             <div className={`verdict ${result.winner === 0 ? "won" : "lost"}`}>
               {result.winner === 0 ? "VICTORY" : "DEFEAT"}
             </div>
@@ -423,7 +614,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
               ))}
             </div>
             <div className="verdict-sub">
-              {names[result.winner]} · {result.ticks} ticks · sim v{result.simVersion}
+              {names[result.winner]} takes it in {blows} blows
             </div>
           </div>
         )}
@@ -440,7 +631,18 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       <div className="theatre-controls">
         {!finished ? (
           <>
-            <button className="btn ghost" onClick={() => setSpeed(speed === 1 ? 2 : 1)}>
+            <button
+              className="btn ghost"
+              onClick={() => {
+                const next = speed === 1 ? 2 : 1;
+                try {
+                  localStorage.setItem("agoge.speed", String(next));
+                } catch {
+                  /* storage denied — the choice still holds for this fight */
+                }
+                setSpeed(next as 1 | 2);
+              }}
+            >
               {speed === 1 ? "2× speed" : "1× speed"}
             </button>
             <button className="btn ghost" onClick={() => setSkipped(true)}>
@@ -457,14 +659,27 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   );
 }
 
-function HpBar({ name, hp, max, mirror }: { name: string; hp: number; max: number; mirror: boolean }) {
+function HpBar({
+  name,
+  hp,
+  max,
+  mirror,
+  gain,
+}: {
+  name: string;
+  hp: number;
+  max: number;
+  mirror: boolean;
+  /** healed on this beat — the bar flares so the gain is not just a number */
+  gain?: boolean;
+}) {
   const pct = Math.max(0, Math.min(100, Math.round((hp / max) * 100)));
   return (
     <div className={`hpbar ${mirror ? "mirror" : ""}`}>
       <div className="hpbar-name">{name}</div>
       <div className="hpbar-track">
         <div
-          className={`hpbar-fill ${pct <= 20 ? "danger" : pct <= 50 ? "warn" : ""}`}
+          className={`hpbar-fill ${pct <= 20 ? "danger" : pct <= 50 ? "warn" : ""}${gain ? " gain" : ""}`}
           style={{ width: `${pct}%` }}
         />
       </div>

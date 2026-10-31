@@ -5,6 +5,7 @@
  * The text doubles as the screen-reader fight (06-ui-ux.md).
  */
 
+import { beast, weapon } from "@agoge/core";
 import type { FightEvent, FightResult } from "@agoge/core";
 
 export interface Line {
@@ -21,22 +22,40 @@ export interface Line {
   anim?: {
     /** Which champion runs in / attacks this beat. */
     striker?: 0 | 1;
-    /** A chained hit: swing again, but stay in close instead of running in. */
-    chain?: boolean;
+    /** A chained hit: swing again, but stay in close instead of running in.
+     *  Carries the chain position so each follow-up can read faster and
+     *  tighter than the one before it. */
+    chain?: number;
+    /** An answer thrown from where they stand — counters and ripostes never
+     *  cross the arena, they punish someone who already did. */
+    riposte?: boolean;
+    /** A skill going off on the caster: they plant and flare rather than swing. */
+    cast?: boolean;
+    /** Mending: the fighter takes a knee, drinks, and blooms green. Its own
+     *  beat because "recovers 40" was a number with no moment attached. */
+    heal?: boolean;
+    /** A beast arriving for the first time — it pounces in rather than
+     *  appearing fully formed at its master's heel. */
+    summon?: string;
+    /** A weapon being brought up into guard on the beat it is drawn. */
+    ready?: 0 | 1;
     /** Projectile beat instead of a run (thrown weapons). */
     thrown?: boolean;
     /** Defender's response animation. */
     reaction?: { side: 0 | 1; kind: "hurt" | "dodge" | "block" };
     /** A skill going off: the stage announces it and flares the caster. */
     invoke?: { side: 0 | 1; name: string };
+    /** Which skill, so the stage can draw THAT skill rather than a gold flare
+     *  with a caption. See fightFx.tsx. */
+    skillId?: string;
     /** A word floater when no number applies ("Miss!", "Blocked!"). */
     label?: { side: 0 | 1; text: string };
-    /** Acting beast's display name (beast attack beats). */
-    beastName?: string;
+    /** Acting beast's id (beast attack beats). */
+    beastId?: string;
   };
-  /** A beast on `side` was felled this beat. */
+  /** A beast on `side` was felled this beat (beast id). */
   beastDown?: { side: 0 | 1; beast: string };
-  /** `side` drew a new weapon (display name) this beat. */
+  /** `side` drew a new weapon (weapon id) this beat. */
   drew?: { side: 0 | 1; weapon: string };
 }
 
@@ -47,6 +66,9 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
   const hp: [number, number] = [result.hpMax[0], result.hpMax[1]];
   /** The most recent attack event, consumed by its resolution line. */
   let pending: { side: 0 | 1; thrown: boolean } | null = null;
+
+  /** Beasts that have already been seen acting — the first is an arrival. */
+  const arrived = new Set<string>();
 
   for (const e of result.events) {
     const push = (
@@ -131,7 +153,7 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
                 // A chained hit still swings — it just doesn't cross the
                 // arena again, because the fighters are already in close.
                 striker: e.side,
-                chain: e.combo > 0,
+                chain: e.combo,
                 thrown: p?.thrown,
                 reaction: { side: foe(e.side), kind: "hurt" },
               },
@@ -148,31 +170,42 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         hp[foe(e.side)] = Math.max(0, e.targetHp);
         push(e.side, `COUNTER! ${n(e.side)}'s reach punishes the advance — ${e.amount}!`, "crit", 950, {
           fx: { target: foe(e.side), amount: e.amount, crit: true },
-          anim: { striker: e.side, reaction: { side: foe(e.side), kind: "hurt" } },
+          // The foe closed the distance for them: a counter is a weapon put in
+          // the way, never a charge of their own.
+          anim: { striker: e.side, riposte: true, reaction: { side: foe(e.side), kind: "hurt" } },
         });
         break;
       case "riposte":
         hp[foe(e.side)] = Math.max(0, e.targetHp);
         push(e.side, `Riposte! ${n(e.side)} answers for ${e.amount}.`, "hit", 850, {
           fx: { target: foe(e.side), amount: e.amount },
-          anim: { striker: e.side, reaction: { side: foe(e.side), kind: "hurt" } },
+          anim: { striker: e.side, riposte: true, reaction: { side: foe(e.side), kind: "hurt" } },
         });
         break;
       case "disarm":
-        push(e.side, `${n(e.side)}'s ${e.weapon} clatters across the arena floor!`, "trump", 900, {
-          anim: { label: { side: e.side, text: "Disarmed!" } },
+        push(e.side, `${n(e.side)}'s ${weapon(e.weapon).name} clatters across the arena floor!`, "trump", 900, {
+          anim: {
+            label: { side: e.side, text: "Disarmed!" },
+            reaction: { side: e.side, kind: "hurt" },
+          },
         });
         break;
       case "draw":
-        push(e.side, `${n(e.side)} draws ${e.weapon}.`, "info", 500, {
+        push(e.side, `${n(e.side)} draws ${weapon(e.weapon).name}.`, "info", 560, {
           drew: { side: e.side, weapon: e.weapon },
+          // Steel coming up into guard — the sprite used to swap mid-stance
+          // with nothing marking that the fighter had rearmed.
+          anim: { ready: e.side },
         });
         break;
       case "trump":
         push(e.side, `${n(e.side)} unleashes ${prettySkill(e.skill)}!`, "trump", 1300, {
           anim: {
+            cast: true,
+            striker: e.side,
             label: { side: e.side, text: prettySkill(e.skill) },
             invoke: { side: e.side, name: prettySkill(e.skill) },
+            skillId: e.skill,
           },
         });
         break;
@@ -185,29 +218,59 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
           e.amount
             ? {
                 fx: { target: foe(e.side), amount: e.amount },
-                anim: { striker: e.side, reaction: { side: foe(e.side), kind: "hurt" } },
+                anim: {
+                  striker: e.side,
+                  skillId: e.skill,
+                  reaction: { side: foe(e.side), kind: "hurt" },
+                },
               }
-            : { anim: { label: { side: e.side, text: prettySkill(e.skill) } } },
+            : {
+                anim: {
+                  cast: true,
+                  striker: e.side,
+                  skillId: e.skill,
+                  label: { side: e.side, text: prettySkill(e.skill) },
+                },
+              },
         );
         break;
       case "heal":
         hp[e.side] = e.hp;
-        push(e.side, `${n(e.side)} recovers ${e.amount} (${e.source}).`, "defend", 650, {
+        push(e.side, `${n(e.side)} recovers ${e.amount} (${e.source}).`, "defend", 780, {
           fx: { target: e.side, amount: e.amount, heal: true },
+          anim: { heal: true, striker: e.side },
         });
         break;
       case "beastAttack":
         if (e.amount > 0) {
           hp[foe(e.side)] = Math.max(0, e.targetHp);
-          push(e.side, `${n(e.side)}'s ${e.beast} savages for ${e.amount}!`, "hit", 720, {
-            fx: { target: foe(e.side), amount: e.amount },
-            anim: { beastName: e.beast, striker: e.side, reaction: { side: foe(e.side), kind: "hurt" } },
-          });
+          const first = !arrived.has(`${e.side}:${e.beast}`);
+          arrived.add(`${e.side}:${e.beast}`);
+          push(
+            e.side,
+            first
+              ? `${n(e.side)} looses the ${beast(e.beast).name} — it savages for ${e.amount}!`
+              : `${n(e.side)}'s ${beast(e.beast).name} savages for ${e.amount}!`,
+            "hit",
+            first ? 900 : 720,
+            {
+              fx: { target: foe(e.side), amount: e.amount },
+              anim: {
+                beastId: e.beast,
+                striker: e.side,
+                summon: first ? e.beast : undefined,
+                reaction: { side: foe(e.side), kind: "hurt" },
+              },
+            },
+          );
         } else {
-          push(e.side, `${n(e.side)}'s ${e.beast} lunges and misses.`, "defend", 650, {
+          const firstMiss = !arrived.has(`${e.side}:${e.beast}`);
+          arrived.add(`${e.side}:${e.beast}`);
+          push(e.side, `${n(e.side)}'s ${beast(e.beast).name} lunges and misses.`, "defend", 650, {
             anim: {
-              beastName: e.beast,
+              beastId: e.beast,
               striker: e.side,
+              summon: firstMiss ? e.beast : undefined,
               reaction: { side: foe(e.side), kind: "dodge" },
               label: { side: foe(e.side), text: "Miss!" },
             },
@@ -215,8 +278,11 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         }
         break;
       case "beastDown":
-        push(e.side, `${n(e.side)}'s ${e.beast} falls, vanishing in a burst of light.`, "trump", 850, {
+        push(e.side, `${n(e.side)}'s ${beast(e.beast).name} falls, vanishing in a burst of light.`, "trump", 850, {
           beastDown: { side: e.side, beast: e.beast },
+          // The caption promised a burst of light and the stage showed
+          // nothing — the emptiest beat in the theatre.
+          anim: { beastId: e.beast, label: { side: e.side, text: "Down!" } },
         });
         break;
       case "status":

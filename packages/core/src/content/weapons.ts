@@ -19,7 +19,7 @@ export const WEAPONS: WeaponDef[] = [
   // --- Doru: the spear discipline (reach, counter) ---
   {
     id: "doru",
-    name: "Doru",
+    name: "Spear",
     discipline: "doru",
     dmg: 12,
     scaleStat: "might",
@@ -31,7 +31,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "sarissa",
-    name: "Sarissa",
+    name: "Pike",
     discipline: "doru",
     dmg: 15,
     scaleStat: "might",
@@ -71,7 +71,7 @@ export const WEAPONS: WeaponDef[] = [
   // --- Xiphos: the blade discipline (balanced) ---
   {
     id: "xiphos",
-    name: "Xiphos",
+    name: "Shortsword",
     discipline: "xiphos",
     dmg: 11,
     scaleStat: "might",
@@ -83,7 +83,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "kopis",
-    name: "Kopis",
+    name: "Cleaver",
     discipline: "xiphos",
     dmg: 13,
     scaleStat: "might",
@@ -95,7 +95,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "makhaira",
-    name: "Makhaira",
+    name: "Sabre",
     discipline: "xiphos",
     dmg: 12,
     scaleStat: "might",
@@ -107,7 +107,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "twin_xiphoi",
-    name: "Twin Xiphoi",
+    name: "Twin Blades",
     discipline: "xiphos",
     dmg: 8,
     scaleStat: "might",
@@ -122,7 +122,7 @@ export const WEAPONS: WeaponDef[] = [
   // --- Cestus: the fist discipline (fast, combo) ---
   {
     id: "cestus",
-    name: "Cestus",
+    name: "Hand Wraps",
     discipline: "cestus",
     dmg: 7,
     scaleStat: "might",
@@ -134,7 +134,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "iron_cestus",
-    name: "Iron Cestus",
+    name: "Iron Knuckles",
     discipline: "cestus",
     dmg: 9,
     scaleStat: "might",
@@ -146,7 +146,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "sphairai",
-    name: "Sphairai",
+    name: "Spiked Gloves",
     discipline: "cestus",
     dmg: 8,
     scaleStat: "might",
@@ -158,7 +158,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "himantes",
-    name: "Himantes",
+    name: "Battle Straps",
     discipline: "cestus",
     dmg: 6,
     scaleStat: "might",
@@ -172,7 +172,7 @@ export const WEAPONS: WeaponDef[] = [
   // --- Labrys: the great-axe discipline (slow, huge) ---
   {
     id: "labrys",
-    name: "Labrys",
+    name: "Battle Axe",
     discipline: "labrys",
     dmg: 24,
     scaleStat: "might",
@@ -185,7 +185,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "minoan_crusher",
-    name: "Minoan Crusher",
+    name: "Maul",
     discipline: "labrys",
     dmg: 30,
     scaleStat: "might",
@@ -194,11 +194,11 @@ export const WEAPONS: WeaponDef[] = [
     reach: 1,
     twoHanded: true,
     mods: { crit: 12, acc: -15, init: -90 },
-    flavour: "The biggest hit in AGOGE; may never land it.",
+    flavour: "The biggest hit in the game; may never land it.",
   },
   {
     id: "bipennis",
-    name: "Bipennis",
+    name: "Twin Axe",
     discipline: "labrys",
     dmg: 20,
     scaleStat: "might",
@@ -211,7 +211,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "olive_root_club",
-    name: "Olive-Root Club",
+    name: "Club",
     discipline: "labrys",
     dmg: 16,
     scaleStat: "might",
@@ -219,13 +219,13 @@ export const WEAPONS: WeaponDef[] = [
     interval: 340,
     reach: 1,
     special: "critDelay80",
-    flavour: "The only one-handed Labrys — pairs with Aspis.",
+    flavour: "The only one-handed axe — pairs with a shield.",
   },
 
   // --- Akontia: thrown (Grace-scaled, armour-piercing, ammo-limited) ---
   {
     id: "akontion",
-    name: "Akontion",
+    name: "Javelin",
     discipline: "akontia",
     dmg: 10,
     scaleStat: "grace",
@@ -238,7 +238,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "kestros",
-    name: "Kestros",
+    name: "Sling",
     discipline: "akontia",
     dmg: 7,
     scaleStat: "grace",
@@ -264,7 +264,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "peltast_blades",
-    name: "Peltast Blades",
+    name: "Throwing Knives",
     discipline: "akontia",
     dmg: 5,
     scaleStat: "grace",
@@ -279,7 +279,7 @@ export const WEAPONS: WeaponDef[] = [
   // --- Aspis: the shield discipline (off-hand, defence, disarmable) ---
   {
     id: "aspis",
-    name: "Aspis",
+    name: "Round Shield",
     discipline: "aspis",
     dmg: 0,
     scaleStat: "might",
@@ -291,7 +291,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "pelte",
-    name: "Pelte",
+    name: "Buckler",
     discipline: "aspis",
     dmg: 0,
     scaleStat: "might",
@@ -303,7 +303,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "tower_of_dikte",
-    name: "Tower of Dikte",
+    name: "Tower Shield",
     discipline: "aspis",
     dmg: 0,
     scaleStat: "might",
@@ -315,7 +315,7 @@ export const WEAPONS: WeaponDef[] = [
   },
   {
     id: "spiked_aspis",
-    name: "Spiked Aspis",
+    name: "Spiked Shield",
     discipline: "aspis",
     dmg: 0,
     scaleStat: "might",
@@ -332,8 +332,19 @@ const byId = new Map<string, WeaponDef>([
   ...WEAPONS.map((w) => [w.id, w] as const),
 ]);
 
+/*
+ * A save is a string in someone's browser. It can name a weapon we renamed, a
+ * skill we cut, or an omen from a build six months old — and until now any one
+ * of those took the whole Hall down behind the error boundary, which reads to
+ * the player as "my hunter is gone". Unknown ids fall back to the first entry
+ * and the game keeps drawing. The sim still refuses them (see below) so a
+ * corrupt save can never silently change a fight result.
+ */
 export function weapon(id: string): WeaponDef {
   const w = byId.get(id);
-  if (!w) throw new Error(`Unknown weapon: ${id}`);
+  if (!w) {
+    console.warn(`Unknown weapon: ${id}`);
+    return FISTS;
+  }
   return w;
 }

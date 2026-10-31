@@ -1,204 +1,20 @@
 /**
- * Pets, drawn as pixel sprites.
+ * The beasts on the stage and in the UI.
  *
- * The beasts used to be vector shapes, which read as a different game sitting
- * next to the sprite fighters. Each one is now an ASCII grid on the same pixel
- * language as the rest of the art: '#' body, 'o' outline, '*' accent (mane,
- * wing, shell), 'e' eye, '.' empty. Sprites face right; the stage mirrors the
- * right-hand side.
+ * Three sources, in order: the generated art (beastImages.ts — one coherent
+ * set produced in ComfyUI from a single approved reference), the hand-drawn
+ * vector rig (beastArt.tsx) for anything not generated, and the CC0 tile as
+ * the last resort so an unmapped id is never a blank square.
+ *
+ * The generated art is a flat image, so the per-part rig cannot drive it.
+ * It gets the whole-sprite idle instead, still on the beast's own clock from
+ * BEAST_MOTION, so three beasts on a stage do not move as one object.
  */
+import type React from "react";
+import { beastTile } from "./tileArt.js";
+import { beastMotion, drawBeast, hasBeastArt } from "./beastArt.js";
+import { beastImage, hasBeastImage } from "./beastImages.js";
 
-interface PetArt {
-  grid: string[];
-  body: string;
-  dark: string;
-  accent: string;
-  /** size multiplier — a tortoise should not loom like a boar */
-  scale: number;
-}
-
-const PETS: Record<string, PetArt> = {
-  // Ōkami — lean wolf, pricked ears, plumed tail
-  lykos: {
-    grid: [
-      "......................",
-      "..**..............o..o",
-      ".****.............o##o",
-      ".****............o####",
-      "..***ooooooooooooo###e",
-      "...o#################o",
-      "...o#################o",
-      "...o################o.",
-      "....o##############o..",
-      "....o#o..o#o..o#o.....",
-      "....o#o..o#o..o#o.....",
-      "....o#o..o#o..o#o.....",
-      "....ooo..ooo..ooo.....",
-      "......................",
-      "......................",
-      "......................",
-    ],
-    body: "#8e8a7d", dark: "#3b3833", accent: "#b9b3a2", scale: 1,
-  },
-  // Karasu — crow mid-hop, folded wing, long beak
-  stymphal_shrike: {
-    grid: [
-      "......................",
-      "................ooo...",
-      "..............oo###o..",
-      "....oooo.....o#####eo.",
-      "..oo****oo..o#######o.",
-      ".o##*****#oo########oo",
-      ".o##******##########oo",
-      ".o###*****#########o..",
-      "..o###****########o...",
-      "...oo####*#######o....",
-      ".....oo#########o.....",
-      "........o#o.o#o.......",
-      "........o#o.o#o.......",
-      ".........o...o........",
-      "......................",
-      "......................",
-    ],
-    body: "#3a3f52", dark: "#191c26", accent: "#5d6478", scale: 0.9,
-  },
-  // Inoshishi — heavy boar, tusks, bristled spine
-  kalydon_boar: {
-    grid: [
-      "......................",
-      "....*..*..*...........",
-      "...*o*o*o*o...ooo.....",
-      "..oo#########oo###o...",
-      ".o###############eo...",
-      ".o#################o..",
-      "o###################o.",
-      "o###################*.",
-      "o##################o*.",
-      ".o################o.*.",
-      "..oo############oo....",
-      "....o#o..o#o..o#o.....",
-      "....o#o..o#o..o#o.....",
-      "....ooo..ooo..ooo.....",
-      "......................",
-      "......................",
-    ],
-    body: "#6b5342", dark: "#2f251d", accent: "#a08a6d", scale: 1.05,
-  },
-  // Komainu — stocky shrine lion, heavy mane
-  nemean_cub: {
-    grid: [
-      "......................",
-      "..............***.....",
-      "...........*********..",
-      "....o.....***********.",
-      "...oo....****#####****",
-      "..o##oooo***#######***",
-      ".o###############e#***",
-      ".o##################**",
-      ".o#################***",
-      "..o###############***.",
-      "...o#############**...",
-      "....o#o..o#o..o#o.....",
-      "....o#o..o#o..o#o.....",
-      "....ooo..ooo..ooo.....",
-      "......................",
-      "......................",
-    ],
-    body: "#c69a52", dark: "#4a361a", accent: "#f0c878", scale: 1,
-  },
-  // Kitsune — slim fox, huge brush of a tail
-  ember_fox: {
-    grid: [
-      "......................",
-      "..***..............o.o",
-      ".*****.............o#o",
-      "*******............o##",
-      "*******oooooooooooo##e",
-      ".*****o##############o",
-      "..***o###############o",
-      "...o#################o",
-      "....o###############o.",
-      ".....o#############o..",
-      "....o#o..o#o..o#o.....",
-      "....o#o..o#o..o#o.....",
-      "....ooo..ooo..ooo.....",
-      "......................",
-      "......................",
-      "......................",
-    ],
-    body: "#d4722e", dark: "#4a2410", accent: "#f2a552", scale: 0.95,
-  },
-  // Fukurō — perched owl, wide face, tufted brows
-  bronze_owl: {
-    grid: [
-      "......................",
-      ".......*.......*......",
-      "......**.......**.....",
-      ".....oo#########oo....",
-      "....o#############o...",
-      "...o##ooo#####ooo##o..",
-      "...o#oeeo#####oeeo#o..",
-      "...o#oeeo##*##oeeo#o..",
-      "...o##ooo#***#ooo##o..",
-      "....o####**###**##o...",
-      "....o##**#####**##o...",
-      ".....o###########o....",
-      "......o#########o.....",
-      ".......oo#o.o#oo......",
-      ".........o...o........",
-      "......................",
-    ],
-    body: "#9a7b3f", dark: "#3a2c14", accent: "#d8b264", scale: 0.92,
-  },
-  // Oni Pup — twin-headed hound, one horn apiece
-  kerberos_pup: {
-    grid: [
-      "......................",
-      "....o.o...o.o...o.o...",
-      "...o#o#o.o#o#o.o#o#o..",
-      "...o###o.o###o.o###o..",
-      "...o#e#o.o#e#o.o#e#o..",
-      "....o#o...o#o...o#o...",
-      "..ooo#ooooo#ooooo#oo..",
-      ".o##################o.",
-      "*o##################o.",
-      "**##################o.",
-      ".*o################o..",
-      "..o#o..o#o..o#o..o#o..",
-      "..o#o..o#o..o#o..o#o..",
-      "..ooo..ooo..ooo..ooo..",
-      "......................",
-      "......................",
-    ],
-    body: "#5b3a52", dark: "#241621", accent: "#a05f86", scale: 1,
-  },
-  // Kame — domed shell, slow and patient
-  marble_tortoise: {
-    grid: [
-      "......................",
-      "........oooooo........",
-      "......oo******oo......",
-      "....oo**o****o**oo....",
-      "...o***oo****oo***o...",
-      "..o****o######o****o..",
-      ".o******************o.",
-      ".o##################o.",
-      "..oo##############oo.o",
-      "....o#o......o#o...o#e",
-      "....o#o......o#o...o#o",
-      "....ooo......ooo....oo",
-      "......................",
-      "......................",
-      "......................",
-      "......................",
-    ],
-    body: "#7d8a6a", dark: "#2c3323", accent: "#b3c095", scale: 0.9,
-  },
-};
-
-const FALLBACK = PETS.lykos!;
-
-/** A pet on the stage or in a chip — same grid, any size. */
 export function PetSprite({
   beastId,
   size,
@@ -211,53 +27,64 @@ export function PetSprite({
   /** felled: greyed and tipped over */
   down?: boolean;
 }) {
-  const art = PETS[beastId] ?? FALLBACK;
-  const grid = art.grid;
-  const h = grid.length;
-  const w = grid[0]!.length;
-  const colours: Record<string, string> = {
-    "#": art.body,
-    o: art.dark,
-    "*": art.accent,
-    e: "#fdf6dd",
-  };
+  const m = beastMotion(beastId);
+  const art = hasBeastImage(beastId);
+  const drawn = !art && hasBeastArt(beastId);
+  // A tile only scales by whole numbers; art and drawings take any size.
+  const px = art || drawn ? size : 32 * Math.max(1, Math.round(size / 32));
 
-  const cells: React.ReactNode[] = [];
-  grid.forEach((row, y) => {
-    let run = 0;
-    let ch = "";
-    for (let x = 0; x <= w; x++) {
-      const c = row[x] ?? ".";
-      if (c === ch && c !== ".") {
-        run++;
-        continue;
-      }
-      if (run > 0 && ch !== ".") {
-        cells.push(
-          <rect key={`${y}-${x}-${ch}`} x={x - run} y={y} width={run} height={1} fill={colours[ch] ?? art.body} />,
-        );
-      }
-      ch = c;
-      run = c === "." ? 0 : 1;
-    }
-  });
-
-  const px = Math.round(size * art.scale);
-  return (
-    <svg
-      className="pet-sprite"
-      viewBox={`0 0 ${w} ${h}`}
-      width={px}
-      height={Math.round((px * h) / w)}
-      shapeRendering="crispEdges"
-      aria-hidden
-      focusable="false"
+  const holder = (
+    <span
+      className="pet-holder"
       style={{
+        width: px,
+        height: px,
         transform: `${mirror ? "scaleX(-1) " : ""}${down ? "rotate(78deg)" : ""}`,
         filter: down ? "grayscale(0.85) brightness(0.8)" : undefined,
       }}
     >
-      {cells}
-    </svg>
+      {art ? (
+        <img
+          className="pet-sprite pet-art"
+          data-gait={m.gait}
+          data-beast={beastId}
+          style={{ "--idle": m.idle, "--sway": m.sway } as React.CSSProperties}
+          src={beastImage(beastId)}
+          width={px}
+          height={px}
+          alt=""
+          aria-hidden
+          draggable={false}
+        />
+      ) : drawn ? (
+        <svg
+          className="pet-sprite cartoon-art"
+          data-gait={m.gait}
+          data-beast={beastId}
+          style={
+            { "--idle": m.idle, "--sway": m.sway, "--reach": `${m.reach}px` } as React.CSSProperties
+          }
+          viewBox="0 0 32 32"
+          width={px}
+          height={px}
+          aria-hidden
+          focusable="false"
+        >
+          {drawBeast(beastId)}
+        </svg>
+      ) : (
+        <img
+          className="pet-sprite tile-art"
+          src={beastTile(beastId)}
+          width={px}
+          height={px}
+          alt=""
+          aria-hidden
+          draggable={false}
+        />
+      )}
+    </span>
   );
+
+  return holder;
 }

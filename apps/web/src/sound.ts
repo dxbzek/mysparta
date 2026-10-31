@@ -19,6 +19,36 @@ try {
 
 let ctx: AudioContext | null = null;
 let bus: GainNode | null = null;
+/** Send into the arena's reverb. Everything dry goes to `bus`; combat also
+ *  goes here, which is the whole difference between a click and a blow
+ *  landing somewhere. */
+let send: GainNode | null = null;
+/** Where the current cue sits in the stereo field, -1 left to 1 right. */
+let cuePan = 0;
+
+/**
+ * A room, synthesised.
+ *
+ * Every cue in this file was bone dry: a perfectly good layered transient with
+ * no space around it, which is the single loudest "this is a browser toy" tell
+ * there is. This builds a short, dark impulse — a stone bowl with a crowd in
+ * it — and hangs the combat sounds in it. Noise shaped by an exponential decay
+ * with a slight pre-delay bump for the first wall.
+ */
+function impulse(c: AudioContext, seconds: number, decay: number): AudioBuffer {
+  const n = Math.floor(c.sampleRate * seconds);
+  const buf = c.createBuffer(2, n, c.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < n; i++) {
+      const t = i / n;
+      // early reflection cluster, then the tail
+      const early = t < 0.06 ? 1 + Math.sin(t * 220) * 0.6 : 1;
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, decay) * early;
+    }
+  }
+  return buf;
+}
 
 function ac(): AudioContext | null {
   try {
@@ -34,10 +64,36 @@ function ac(): AudioContext | null {
       const shelf = ctx.createBiquadFilter();
       shelf.type = "highshelf";
       shelf.frequency.value = 3200;
-      shelf.gain.value = 4;
+      // +4 dB on top of dry synth transients read as tinny; the reverb below
+      // carries the presence now, so the shelf only has to lift the edge.
+      shelf.gain.value = 2;
+      // Brickwall after the glue: the 5:1 compressor shapes, it does not
+      // cap, and its automatic makeup gain means a crit + drum + fanfare
+      // chord stacking could still push past 0 dBFS and crackle.
+      const limiter = ctx.createDynamicsCompressor();
+      limiter.threshold.value = -1.5;
+      limiter.knee.value = 0;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.001;
+      limiter.release.value = 0.06;
+      const ceiling = ctx.createGain();
+      ceiling.gain.value = 0.95;
       bus = ctx.createGain();
       bus.gain.value = 0.9;
-      bus.connect(shelf).connect(comp).connect(ctx.destination);
+      bus.connect(shelf).connect(comp).connect(limiter).connect(ceiling).connect(ctx.destination);
+
+      // The arena, hung off a send so the dry transient still lands first.
+      const verb = ctx.createConvolver();
+      verb.buffer = impulse(ctx, 1.1, 3.2);
+      // stone, not tile: roll the top off the tail or it hisses
+      const damp = ctx.createBiquadFilter();
+      damp.type = "lowpass";
+      damp.frequency.value = 3400;
+      const preDelay = ctx.createDelay(0.2);
+      preDelay.delayTime.value = 0.018;
+      send = ctx.createGain();
+      send.gain.value = 0.34;
+      send.connect(preDelay).connect(verb).connect(damp).connect(shelf);
     }
     if (ctx.state === "suspended") void ctx.resume();
     return ctx;
@@ -59,6 +115,8 @@ interface ToneOpts {
   filter?: { type: BiquadFilterType; from: number; to?: number; q?: number };
   detune?: number;
   pan?: number;
+  /** Reverb send, 0 dry to 1 full. Melodies pass 0. */
+  wet?: number;
 }
 
 function tone(o: ToneOpts) {
@@ -67,12 +125,12 @@ function tone(o: ToneOpts) {
   try {
     const t0 = c.currentTime + (o.when ?? 0);
     const attack = o.attack ?? 0.003;
-    const gain = o.gain ?? 0.2;
+    const gain = H(o.gain ?? 0.2, 0.14);
     const osc = c.createOscillator();
     osc.type = o.type ?? "sine";
     if (o.detune) osc.detune.value = o.detune;
-    osc.frequency.setValueAtTime(Math.max(20, o.from), t0);
-    osc.frequency.exponentialRampToValueAtTime(Math.max(20, o.to ?? o.from), t0 + o.dur);
+    osc.frequency.setValueAtTime(Math.max(20, H(o.from)), t0);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, H(o.to ?? o.from)), t0 + o.dur);
     const g = c.createGain();
     g.gain.setValueAtTime(0.0001, t0);
     g.gain.linearRampToValueAtTime(gain, t0 + attack);
@@ -87,13 +145,22 @@ function tone(o: ToneOpts) {
       head.connect(f);
       head = f;
     }
-    if (o.pan) {
+    const pan = o.pan ?? cuePan;
+    if (pan) {
       const p = c.createStereoPanner();
-      p.pan.value = o.pan;
+      p.pan.value = pan;
       head.connect(p);
       head = p;
     }
-    head.connect(g).connect(bus);
+    head.connect(g);
+    g.connect(bus);
+    // Combat cues also feed the room. Melodies (fanfare, chime) set wet:0 so
+    // the tune stays in front rather than washing.
+    if (send && o.wet !== 0) {
+      const s = c.createGain();
+      s.gain.value = o.wet ?? 1;
+      g.connect(s).connect(send);
+    }
     osc.start(t0);
     osc.stop(t0 + o.dur + 0.03);
   } catch {
@@ -112,6 +179,7 @@ interface NoiseOpts {
   to?: number;
   q?: number;
   pan?: number;
+  wet?: number;
 }
 
 let noiseBuf: AudioBuffer | null = null;
@@ -134,27 +202,97 @@ function noise(o: NoiseOpts) {
     src.loopEnd = noiseBuf.duration;
     const f = c.createBiquadFilter();
     f.type = o.type ?? "lowpass";
-    f.frequency.setValueAtTime(o.from, t0);
-    if (o.to) f.frequency.exponentialRampToValueAtTime(o.to, t0 + o.dur);
+    f.frequency.setValueAtTime(Math.max(30, H(o.from, 0.07)), t0);
+    if (o.to) f.frequency.exponentialRampToValueAtTime(Math.max(30, H(o.to, 0.07)), t0 + o.dur);
     f.Q.value = o.q ?? 0.8;
     const g = c.createGain();
     const attack = o.attack ?? 0.002;
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.linearRampToValueAtTime(o.gain ?? 0.15, t0 + attack);
+    g.gain.linearRampToValueAtTime(H(o.gain ?? 0.15, 0.14), t0 + attack);
     g.gain.exponentialRampToValueAtTime(0.001, t0 + o.dur);
     let head: AudioNode = f;
-    if (o.pan) {
+    const pan = o.pan ?? cuePan;
+    if (pan) {
       const p = c.createStereoPanner();
-      p.pan.value = o.pan;
+      p.pan.value = pan;
       f.connect(p);
       head = p;
     }
     src.connect(f);
-    head.connect(g).connect(bus);
+    head.connect(g);
+    g.connect(bus);
+    if (send && o.wet !== 0) {
+      const s = c.createGain();
+      s.gain.value = o.wet ?? 1;
+      g.connect(s).connect(send);
+    }
     src.start(t0, Math.random());
     src.stop(t0 + o.dur + 0.03);
   } catch {
     /* ignore */
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Arena ambience — a crowd that is present without ever performing.   */
+/* Looped filtered noise with a slow breathing LFO: felt, not heard.   */
+/* ------------------------------------------------------------------ */
+
+let amb: { src: AudioBufferSourceNode; out: GainNode; lfo: OscillatorNode } | null = null;
+// Whether a fight currently wants ambience — so unmuting mid-bout can bring
+// the crowd back instead of leaving every SFX naked over silence.
+let wantAmbience = false;
+
+function ambienceStart() {
+  const c = ac();
+  if (!c || !bus || amb) return;
+  try {
+    if (!noiseBuf || noiseBuf.sampleRate !== c.sampleRate) {
+      const len = c.sampleRate;
+      noiseBuf = c.createBuffer(1, len, c.sampleRate);
+      const data = noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    }
+    const src = c.createBufferSource();
+    src.buffer = noiseBuf;
+    src.loop = true;
+    // Murmur register: everything above speech rolled away.
+    const f = c.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.value = 420;
+    f.Q.value = 0.4;
+    // The crowd breathes: a ~9s swell of a few dB, never a beat.
+    const depth = c.createGain();
+    depth.gain.value = 1;
+    const lfo = c.createOscillator();
+    lfo.frequency.value = 0.11;
+    const lfoGain = c.createGain();
+    lfoGain.gain.value = 0.28;
+    lfo.connect(lfoGain).connect(depth.gain);
+    const out = c.createGain();
+    out.gain.setValueAtTime(0.0001, c.currentTime);
+    out.gain.linearRampToValueAtTime(0.05, c.currentTime + 1.6);
+    src.connect(f).connect(depth).connect(out).connect(bus);
+    src.start(0, Math.random());
+    lfo.start();
+    amb = { src, out, lfo };
+  } catch {
+    /* never let audio break the game */
+  }
+}
+
+function ambienceStop() {
+  if (!amb || !ctx) return;
+  try {
+    const { src, out, lfo } = amb;
+    amb = null;
+    out.gain.cancelScheduledValues(ctx.currentTime);
+    out.gain.setValueAtTime(out.gain.value, ctx.currentTime);
+    out.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
+    src.stop(ctx.currentTime + 0.8);
+    lfo.stop(ctx.currentTime + 0.8);
+  } catch {
+    amb = null;
   }
 }
 
@@ -180,11 +318,52 @@ function metal(base: number, dur: number, gain: number, when = 0) {
 }
 
 /** A note with a soft echo tail — used by fanfares and level-ups. */
+/** Melodies keep a short tail so they sit in the room without washing. */
 function chime(freq: number, dur: number, gain: number, when: number) {
-  tone({ from: freq, dur, type: "triangle", gain, when, attack: 0.006 });
-  tone({ from: freq * 2, dur: dur * 0.7, type: "sine", gain: gain * 0.4, when, attack: 0.006 });
-  tone({ from: freq * 4, dur: dur * 0.35, type: "sine", gain: gain * 0.12, when, attack: 0.002 });
-  tone({ from: freq, dur: dur * 0.8, type: "triangle", gain: gain * 0.28, when: when + 0.15, attack: 0.01 });
+  tone({ from: freq, dur, type: "triangle", gain, when, attack: 0.006, wet: 0.25 });
+  tone({ from: freq * 2, dur: dur * 0.7, type: "sine", gain: gain * 0.4, when, attack: 0.006, wet: 0.2 });
+  tone({ from: freq * 4, dur: dur * 0.35, type: "sine", gain: gain * 0.12, when, attack: 0.002, wet: 0 });
+  tone({ from: freq, dur: dur * 0.8, type: "triangle", gain: gain * 0.28, when: when + 0.15, attack: 0.01, wet: 0.25 });
+}
+
+/**
+ * Humanising jitter. Every strike used to be built from the same fixed
+ * frequencies and gains — bit-identical blows, ten times a fight, which is
+ * the number-one tell of cheap procedural audio. Frequencies wander a few
+ * percent and gains a shade more; musical cues (fanfare, level-up) do NOT
+ * use this, so melodies stay in tune.
+ */
+function j(v: number, pct = 0.05): number {
+  return v * (1 + (Math.random() * 2 - 1) * pct);
+}
+let humanise = false;
+/** Jitter only while a combat cue is being built. */
+function H(v: number, pct = 0.05): number {
+  return humanise ? j(v, pct) : v;
+}
+/** Run a cue body with humanising on — combat only, never melodies. */
+function rough(fn: () => void): void {
+  humanise = true;
+  try {
+    fn();
+  } finally {
+    humanise = false;
+  }
+}
+
+/**
+ * Place a cue in the arena. The left fighter swings from the left; hearing
+ * that is most of what makes two people in a bowl sound like two people in a
+ * bowl rather than one mono click track.
+ */
+function at(side: 0 | 1 | undefined, fn: () => void): void {
+  const prev = cuePan;
+  cuePan = side === undefined ? 0 : side === 0 ? -0.34 : 0.34;
+  try {
+    fn();
+  } finally {
+    cuePan = prev;
+  }
 }
 
 /** What a blow is made of — chosen from the weapon actually in hand. */
@@ -194,11 +373,23 @@ export const sound = {
   isMuted: () => muted,
   setMuted(m: boolean) {
     muted = m;
+    if (m) ambienceStop();
+    else if (wantAmbience) ambienceStart();
     try {
       localStorage.setItem(KEY, m ? "1" : "0");
     } catch {
       /* ignore */
     }
+  },
+
+  /** The crowd settles in around a fight. Idempotent; ends with arenaOut. */
+  arenaIn() {
+    wantAmbience = true;
+    if (!muted) ambienceStart();
+  },
+  arenaOut() {
+    wantAmbience = false;
+    ambienceStop();
   },
 
   /** Small UI tick for buttons. */
@@ -213,8 +404,13 @@ export const sound = {
    * and flesh for a punch, steel and slice for a sword, wood and pierce for a
    * spear. The crit layer stacks on top rather than replacing the weapon.
    */
-  strike(kind: StrikeKind, crit = false) {
+  strike(kind: StrikeKind, crit = false, side?: 0 | 1) {
     if (muted) return;
+    at(side, () => rough(() => this.strikeRaw(kind, crit)));
+  },
+
+  /** @internal The un-jittered body — always called through strike(). */
+  strikeRaw(kind: StrikeKind, crit = false) {
     switch (kind) {
       case "fist":
         // knuckle snap, then the soft give of a body. No metal anywhere.
@@ -271,9 +467,10 @@ export const sound = {
   },
 
   /** The swing before contact — mass and edge decide how the air moves. */
-  swing(kind: StrikeKind) {
+  swing(kind: StrikeKind, side?: 0 | 1) {
     if (muted) return;
-    switch (kind) {
+    at(side, () => rough(() => {
+      switch (kind) {
       case "fist":
         noise({ dur: 0.11, type: "bandpass", from: 800, to: 2700, q: 2.2, gain: 0.11, attack: 0.035 });
         break;
@@ -293,22 +490,30 @@ export const sound = {
         noise({ dur: 0.25, type: "bandpass", from: 300, to: 1300, q: 1.4, gain: 0.17, attack: 0.1 });
         break;
       case "pierce":
-        noise({ dur: 0.12, type: "bandpass", from: 1200, to: 3600, q: 2.6, gain: 0.12, attack: 0.03 });
-        break;
-    }
+          noise({ dur: 0.12, type: "bandpass", from: 1200, to: 3600, q: 2.6, gain: 0.12, attack: 0.03 });
+          break;
+      }
+    }));
   },
 
   /** Nothing connects: cloth, a shifted foot, air closing where a body was. */
   dodge() {
     if (muted) return;
-    noise({ dur: 0.13, type: "bandpass", from: 1300, to: 2700, q: 1.2, gain: 0.1, attack: 0.045 });
-    noise({ dur: 0.05, type: "lowpass", from: 700, gain: 0.12, when: 0.07, attack: 0.002 });
-    tone({ from: 95, to: 55, dur: 0.06, type: "sine", gain: 0.13, when: 0.07, attack: 0.002 });
+    rough(() => {
+      noise({ dur: 0.13, type: "bandpass", from: 1300, to: 2700, q: 1.2, gain: 0.1, attack: 0.045 });
+      noise({ dur: 0.05, type: "lowpass", from: 700, gain: 0.12, when: 0.07, attack: 0.002 });
+      tone({ from: 95, to: 55, dur: 0.06, type: "sine", gain: 0.13, when: 0.07, attack: 0.002 });
+    });
   },
 
   /** Caught on a shield (dull wood, ringing rim) or turned on a blade. */
   block(onShield = true) {
     if (muted) return;
+    rough(() => this.blockRaw(onShield));
+  },
+
+  /** @internal The un-jittered body — always called through block(). */
+  blockRaw(onShield = true) {
     click(0.24);
     if (onShield) {
       tone({ from: 240, to: 95, dur: 0.09, type: "square", gain: 0.26, attack: 0.001, filter: { type: "lowpass", from: 1900, to: 500 } });

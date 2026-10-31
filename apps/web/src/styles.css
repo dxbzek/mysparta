@@ -1,12 +1,20 @@
 /* RANK ZERO — warm paper theme (MyBrute-era visual language, hand-crafted feel). */
 
 :root {
+  /* text-on-parchment variants of the accent hues — ≥4.5:1 on --panel */
+  --gold-ink: #8a6410;
+  --lapis-ink: #2d5f93;
+  --terracotta-ink: #b03f28;
+  --olive-ink: #55772f;
   --page: #f0e6d2;
   --page-deep: #e5d8bd;
   --panel: #fbf4e4;
   --panel-deep: #f1e6cd;
   --ink: #3d3428;
-  --ink-soft: #86795f;
+  /* Same warm olive family, but dark enough to pass WCAG AA: the old
+     #86795f measured 3.9:1 on --panel and worse on --panel-deep, and nearly
+     every secondary label in the game is set in this at small sizes. */
+  --ink-soft: #6f654f;
   --line: #43382a;
   --gold: #e39a2e;
   --gold-bright: #f3b64e;
@@ -101,11 +109,19 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   box-shadow: var(--shadow);
   padding: 10px 16px;
   margin: 0 2px 18px;
+  /*
+   * The status group is all fixed-width glyphs and cannot give way, so if the
+   * bar is forced to nowrap the group overflows its own box to the *left* and
+   * paints straight over the wordmark. Let the row break instead.
+   */
+  flex-wrap: wrap;
 }
 
 .wordmark {
   background: none;
   border: none;
+  min-width: 0;
+  overflow: hidden;
   white-space: nowrap;
   color: var(--gold-bright);
   text-shadow: 0 2px 0 #0a0c12;
@@ -116,11 +132,111 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   padding: 0;
 }
 
-.topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+/* nowrap so the group's hypothetical width is its real width — a wrapping
+   child container reports max-content to the parent and breaks the bar early. */
+.topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; justify-content: flex-end; flex: 0 0 auto; }
 @media (max-width: 480px) {
   .wordmark { font-size: 1.05rem; letter-spacing: 0.08em; }
-  .pip { width: 7px; height: 13px; }
-  .pips { gap: 2px; }
+  :root { --pip-w: 7px; --pip-h: 13px; --pip-gap: 2px; }
+}
+
+/*
+ * Short screens — a 640-653px phone, or any landscape handset — are their own
+ * axis, and width rules alone never see them. The chrome was taking 119px of a
+ * 480px viewport (the top bar wrapping onto two rows) and the champion card
+ * 519px, so the one button on the Hall sat two screens down. Everything here
+ * buys vertical room and nothing else.
+ */
+@media (max-height: 700px) {
+  :root { --plate-cap: 24svh; }
+  .topbar { padding: 5px 10px; gap: 6px; }
+  .topbar-right { gap: 5px; }
+  .wordmark { font-size: 0.95rem; letter-spacing: 0.06em; }
+  .pill { padding: 2px 7px; font-size: 0.66rem; }
+  .crumbs { display: none; }
+  .content { padding-top: 8px; }
+  .home { gap: 8px; }
+  .champ-card { gap: 8px; }
+  .champ-name { font-size: 0.95rem; }
+  .facts { margin: 4px 0 0; }
+  .card-cta { margin-top: 8px; }
+  /* The big CTA is 75px of chrome around one line; 48px still reads as the
+     hero button and still clears the 44px touch target. */
+  .champ-meta .btn.big.card-cta { font-size: 0.82rem; padding: 9px 12px; min-height: 48px; }
+  .champ-meta .facts dt { font-size: 0.55rem; }
+  .champ-meta > .muted { font-size: 0.72rem; }
+}
+/*
+ * A short screen only earns the single-row bar if it is also wide enough to
+ * hold one — below this the row costs the wordmark, which the group then
+ * overlaps. Vertical room is worth less than a legible title.
+ */
+@media (max-height: 700px) and (min-width: 560px) {
+  .topbar { flex-wrap: nowrap; }
+}
+/*
+ * Under 560px the full wordmark plus the status group needs ~397px of a 342px
+ * row, so the bar breaks in two and eats 107px of a 640px phone. The status
+ * group is the part that carries information; the title becomes a monogram and
+ * keeps its job as the way back to the Hall.
+ */
+@media (max-width: 559px) {
+  .topbar { padding: 8px 12px; gap: 8px; }
+  .topbar-right { margin-left: auto; }
+  .wordmark { font-size: 0; letter-spacing: 0; }
+  .wordmark::before {
+    content: "RZ";
+    font-size: 1.15rem;
+    letter-spacing: 0.1em;
+  }
+}
+@media (max-width: 399px) {
+  .topbar-right { gap: 6px; }
+  .pill { padding: 2px 6px; }
+  :root { --pip-w: 6px; --pip-h: 12px; --pip-gap: 2px; }
+}
+/* At 360px the status group still fits its own row unbroken; below that it is
+   wider than the row, so it breaks internally rather than push the page
+   sideways. Three shallow rows beat a horizontal scrollbar. */
+@media (max-width: 359px) {
+  .topbar-right { flex-wrap: wrap; flex: 0 1 auto; min-width: 0; }
+}
+/* Landscape handsets: the portrait becomes a strip, the verb stays reachable. */
+@media (max-height: 460px) {
+  :root { --plate-cap: 18svh; }
+  .portrait-controls { display: none; }
+  .champ-card .portrait-wrap { margin-bottom: 0; }
+}
+
+/*
+ * Short AND wide — landscape handsets from 620px up, tablets, ultrawide
+ * dragged flat. Stacking wastes the one axis these screens have: at 1280×360
+ * the portrait sat above the details with 1000px of unused width beside it,
+ * pushing the Fight button off a 360px-tall screen. Side by side instead, the
+ * portrait taking a third and bleeding to the card's left edge as it does
+ * everywhere else.
+ */
+@media (max-height: 560px) and (min-width: 620px) {
+  /* .home-scoped so these outrank the stacked defaults further down the sheet */
+  .home .champ-card { flex-direction: row; align-items: stretch; gap: 16px; }
+  .home .champ-card .portrait-wrap {
+    flex: 0 0 34%;
+    align-self: stretch;
+    margin: -14px 0 -14px -16px;
+  }
+  .home .champ-card .portrait {
+    /* fills the stretched column: with aspect-ratio off and nothing in flow
+       inside it, height:auto collapsed the plate to zero */
+    flex: 1 1 auto;
+    height: auto;
+    /* the sprite is ~148px and stands on a ground line ~40px up from the
+       plate's foot, so anything under ~190px crops the champion's head */
+    min-height: 190px;
+    max-height: none;
+    aspect-ratio: auto;
+    border-bottom: 0;
+  }
+  .home .champ-meta { flex: 1; min-width: 0; align-self: center; }
 }
 
 .pill {
@@ -138,9 +254,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   box-shadow: var(--shadow-sm);
 }
 
-.pips { display: inline-flex; gap: 3px; }
+/* Read through custom properties: this base rule sits below the media queries
+   that shrink the pips, so a plain `.pip { width }` override up there loses. */
+.pips { display: inline-flex; gap: var(--pip-gap, 3px); }
 .pip {
-  width: 10px; height: 16px;
+  width: var(--pip-w, 10px); height: var(--pip-h, 16px);
   background: #d8c6a2;
   border: 2px solid var(--line);
   border-radius: 3px;
@@ -195,6 +313,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .btn.big { font-size: 0.96rem; padding: 13px 26px; }
 .btn.tiny { font-size: 0.62rem; min-height: 32px; padding: 4px 10px; border-bottom-width: 4px; }
+/* Small by design, but never smaller than a thumb on a touch screen. */
+@media (pointer: coarse) { .btn.tiny { min-height: 44px; } }
 
 .muted { color: var(--ink-soft); }
 .small { font-size: 0.83rem; }
@@ -246,6 +366,19 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .fineprint { color: var(--ink-soft); font-size: 0.85rem; margin-top: 24px; }
 
+/* ---------- rescue code (restore a hunter from another browser) ---------- */
+.restore-toggle { margin-top: 18px; }
+.restore-row { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; justify-content: center; }
+.forge-input.small {
+  font-size: 0.8rem;
+  letter-spacing: normal;
+  text-transform: none;
+  padding: 10px 12px;
+  flex: 1;
+  min-width: 200px;
+}
+.error-note { flex-basis: 100%; color: var(--red); }
+
 @keyframes pop {
   from { opacity: 0; transform: scale(0.85); }
   to { opacity: 1; transform: scale(1); }
@@ -276,9 +409,9 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 @media (min-width: 640px) {
   .hero-fig { display: block; position: relative; margin: -10px -4px -14px 0; }
 }
-.champ-name { margin: 0; font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; }
+.champ-name { margin: 0; font-family: var(--font-display); font-size: 1.02rem; font-weight: 700; }
 .champ-name.small { font-size: 0.8rem; }
-.epithet { color: var(--terracotta); font-style: italic; font-weight: 600; }
+.epithet { color: var(--terracotta-ink); font-style: italic; font-weight: 600; }
 .statline { color: var(--ink-soft); font-size: 0.92rem; margin-top: 4px; font-weight: 600; }
 
 .xpbar {
@@ -351,6 +484,30 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   position: absolute; inset: 0;
   background: repeating-linear-gradient(90deg, transparent 0 5px, rgb(47 42 34 / 32%) 5px 6px);
 }
+/*
+ * A stat bar that is gold whatever the number tells you nothing at a glance.
+ * Banded: red is a dump stat, orange is thin, gold is solid, green is a
+ * strength. `.over` means the value has run past the bar's scale entirely —
+ * the bar is full and hatched bright, because that is the fact worth showing.
+ */
+.statbar i.s-low { background: linear-gradient(180deg, #e2695c, var(--red)); }
+.statbar i.s-mid { background: linear-gradient(180deg, #e8865f, var(--terracotta)); }
+.statbar i.s-good { background: linear-gradient(180deg, var(--gold-bright), var(--gold)); }
+.statbar i.s-high { background: linear-gradient(180deg, #8fbf58, var(--olive)); }
+.statbar.over i { background: linear-gradient(180deg, #a8dd63, #4e7a26); }
+.statbar.over {
+  border-color: var(--olive);
+  box-shadow: 0 0 0 1px rgb(111 154 62 / 45%);
+}
+.statbar.over::after {
+  background:
+    repeating-linear-gradient(135deg, rgb(255 255 255 / 45%) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(90deg, transparent 0 5px, rgb(47 42 34 / 32%) 5px 6px);
+}
+.stats .num.s-low { color: var(--red); }
+.stats .num.s-mid { color: var(--terracotta-ink); }
+.stats .num.s-good { color: var(--gold-ink); }
+.stats .num.s-high { color: var(--olive-ink); }
 
 .arsenal { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
 .arsenal li {
@@ -398,6 +555,19 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .actions { display: flex; gap: 12px; justify-content: center; margin-top: 6px; flex-wrap: wrap; }
 .devrow { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
 
+/* ?dev=1 playtesting levers — deliberately utilitarian, never shipped copy */
+.devpanel {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 6px 10px; margin-bottom: 12px;
+  border: 2px dashed var(--terracotta);
+  border-radius: var(--radius);
+  background: rgb(217 95 67 / 8%);
+}
+.devpanel-cap {
+  font-family: var(--font-display);
+  font-size: 0.62rem; letter-spacing: 0.14em; color: var(--terracotta);
+}
+
 /* ---------- arena ---------- */
 
 .arena-head {
@@ -409,13 +579,23 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 @media (max-width: 480px) {
   .arena-head h2 { font-size: 1.25rem; }
   .arena-head .btn { font-size: 0.85rem; padding: 6px 10px; }
+  /*
+   * Back, title and "New rivals" do not fit on one 375px line, and nowrap sent
+   * the last button past the right edge — which scrolled the whole page
+   * sideways. The title takes the full first row; the two buttons share the
+   * second, where both keep a thumb-sized target.
+   */
+  .arena-head { flex-wrap: wrap; justify-content: flex-start; }
+  .arena-head h2 { order: -1; flex: 1 0 100%; white-space: normal; }
+  .arena-head .btn { flex: 0 1 auto; min-width: 0; }
+  .arena-head > :last-child:not(h2) { margin-left: auto; }
 }
 
 .rivals { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
 .rival { display: flex; flex-direction: column; gap: 6px; }
 .rival-top { display: flex; align-items: center; gap: 10px; }
 .rival-top .champ-name { flex: 1; }
-.lastseen { color: var(--lapis); font-style: italic; font-weight: 700; }
+.lastseen { color: var(--lapis-ink); font-style: italic; font-weight: 700; }
 .rival .btn { margin-top: 8px; }
 
 /* ---------- battle plan ---------- */
@@ -469,10 +649,9 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   overflow: hidden;
   /* painted arena scene set inline; gradient is the loading fallback */
   background: linear-gradient(180deg, #252d4a 0%, #1b2136 58%, #151a29 72%);
+  /* Fallback only — FightTheatre sets the real height from the scale it
+     measured, so the backdrop and the fighters can never disagree. */
   height: 444px;
-}
-@media (max-width: 560px) {
-  .stage { height: 296px; }
 }
 /*
  * The arena painting. It is generated at exactly the stage's native pixel
@@ -481,7 +660,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
  */
 .stage-bg {
   position: absolute;
-  inset: 0;
+  /* top-left anchored; FightTheatre sets the exact integer-scaled size so the
+     painting lands on the same pixel grid as the fighters (no inset: 0 —
+     right/bottom would fight the inline width and re-stretch it). */
+  top: 0;
+  left: 0;
   background-size: 100% 100%;
   background-repeat: no-repeat;
   image-rendering: pixelated;
@@ -613,8 +796,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 
 /* --- the run-in strike: sprint, wind up, SWING, run back --- */
-.strike-r { animation: strikeR 760ms ease-in-out; z-index: 4; }
-.strike-l { animation: strikeL 760ms ease-in-out; z-index: 4; }
+.strike-r { animation: strikeR calc(760ms * var(--spd, 1)) ease-in-out; z-index: 4; }
+.strike-l { animation: strikeL calc(760ms * var(--spd, 1)) ease-in-out; z-index: 4; }
 @keyframes strikeR {
   0%   { transform: translateX(0); }
   11%  { transform: translateX(calc(var(--dash) * 0.25)) translateY(-7px) rotate(-4deg); }
@@ -638,9 +821,54 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   100% { transform: translateX(0); }
 }
 
+/*
+ * Lunge variants. Every non-chain hit used to play the identical sprint —
+ * over a 30-beat fight the eye reads one GIF looping. sv1 is a low, flat
+ * rush with an overshoot skid; sv2 hops in with a higher arc and drops the
+ * blow from above. The theatre cycles sv0/sv1/sv2 on each side's own count.
+ */
+.strike-r.sv1 { animation-name: strikeRb; }
+.strike-l.sv1 { animation-name: strikeLb; }
+.strike-r.sv2 { animation-name: strikeRc; }
+.strike-l.sv2 { animation-name: strikeLc; }
+@keyframes strikeRb {
+  0%   { transform: translateX(0); }
+  30%  { transform: translateX(calc(var(--dash) * 0.7)) translateY(2px) rotate(2deg); }
+  44%  { transform: translateX(calc(var(--dash) + 26px)) translateY(2px) rotate(-19deg); }
+  56%  { transform: translateX(calc(var(--dash) + 6px)) rotate(9deg); }
+  70%  { transform: translateX(var(--dash)) rotate(0deg); }
+  100% { transform: translateX(0); }
+}
+@keyframes strikeLb {
+  0%   { transform: translateX(0); }
+  30%  { transform: translateX(calc(var(--dash) * -0.7)) translateY(2px) rotate(-2deg); }
+  44%  { transform: translateX(calc(var(--dash) * -1 - 26px)) translateY(2px) rotate(19deg); }
+  56%  { transform: translateX(calc(var(--dash) * -1 - 6px)) rotate(-9deg); }
+  70%  { transform: translateX(calc(var(--dash) * -1)) rotate(0deg); }
+  100% { transform: translateX(0); }
+}
+@keyframes strikeRc {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(calc(var(--dash) * 0.35)) translateY(-16px) rotate(-6deg); }
+  38%  { transform: translateX(calc(var(--dash) * 0.8)) translateY(-22px) rotate(-9deg); }
+  50%  { transform: translateX(var(--dash)) translateY(0) rotate(-18deg); }
+  60%  { transform: translateX(calc(var(--dash) + 12px)) rotate(11deg); }
+  76%  { transform: translateX(calc(var(--dash) * 0.5)) translateY(-8px); }
+  100% { transform: translateX(0); }
+}
+@keyframes strikeLc {
+  0%   { transform: translateX(0); }
+  20%  { transform: translateX(calc(var(--dash) * -0.35)) translateY(-16px) rotate(6deg); }
+  38%  { transform: translateX(calc(var(--dash) * -0.8)) translateY(-22px) rotate(9deg); }
+  50%  { transform: translateX(calc(var(--dash) * -1)) translateY(0) rotate(18deg); }
+  60%  { transform: translateX(calc(var(--dash) * -1 - 12px)) rotate(-11deg); }
+  76%  { transform: translateX(calc(var(--dash) * -0.5)) translateY(-8px); }
+  100% { transform: translateX(0); }
+}
+
 /* --- thrown attack: plant, wind, hurl --- */
-.throw-r { animation: throwR 620ms ease; }
-.throw-l { animation: throwL 620ms ease; }
+.throw-r { animation: throwR calc(620ms * var(--spd, 1)) ease; }
+.throw-l { animation: throwL calc(620ms * var(--spd, 1)) ease; }
 @keyframes throwR {
   30% { transform: rotate(-13deg) translateX(-10px); }
   55% { transform: rotate(13deg) translateX(12px); }
@@ -653,8 +881,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 
 /* --- reactions, delayed to land at the moment of contact --- */
-.hurt-l { animation: hurtL 460ms ease 280ms; }
-.hurt-r { animation: hurtR 460ms ease 280ms; }
+.hurt-l { animation: hurtL calc(460ms * var(--spd, 1)) ease calc(280ms * var(--spd, 1)); }
+.hurt-r { animation: hurtR calc(460ms * var(--spd, 1)) ease calc(280ms * var(--spd, 1)); }
 @keyframes hurtL {
   25% { transform: translateX(-24px) rotate(-7deg); }
   55% { transform: translateX(8px); }
@@ -666,8 +894,15 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   100% { transform: none; }
 }
 
-.dodge-l { animation: dodgeL 540ms ease 230ms; }
-.dodge-r { animation: dodgeR 540ms ease 230ms; }
+/*
+ * Three ways not to be hit. Half of every fight is defensive beats, and they
+ * all played one shape: lean back and away. Now the evasion cycles per side
+ * (dv0/dv1/dv2) — a side-step out of the line, a hop clean backwards, and a
+ * duck under the swing — so a long exchange reads as a fighter reacting
+ * rather than a sprite playing its one animation.
+ */
+.dodge-l { animation: dodgeL calc(540ms * var(--spd, 1)) ease calc(230ms * var(--spd, 1)); }
+.dodge-r { animation: dodgeR calc(540ms * var(--spd, 1)) ease calc(230ms * var(--spd, 1)); }
 @keyframes dodgeL {
   30% { transform: translateX(-44px) translateY(-16px) rotate(6deg); }
   70% { transform: translateX(-32px); }
@@ -678,14 +913,234 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   70% { transform: translateX(32px); }
   100% { transform: none; }
 }
+/* dv1 — a side-step: out of the line of the blow, not away from it. */
+.dodge-l.dv1 { animation-name: sidestepL; }
+.dodge-r.dv1 { animation-name: sidestepR; }
+@keyframes sidestepL {
+  25% { transform: translateX(-10px) translateY(-26px) rotate(-9deg); }
+  55% { transform: translateX(-16px) translateY(-4px) rotate(4deg); }
+  100% { transform: none; }
+}
+@keyframes sidestepR {
+  25% { transform: translateX(10px) translateY(-26px) rotate(9deg); }
+  55% { transform: translateX(16px) translateY(-4px) rotate(-4deg); }
+  100% { transform: none; }
+}
+/* dv2 — a duck: drop under the arc and come straight back up. */
+.dodge-l.dv2 { animation-name: duckL; }
+.dodge-r.dv2 { animation-name: duckR; }
+@keyframes duckL {
+  22% { transform: translateY(11px) translateX(-8px) scaleY(0.82); }
+  48% { transform: translateY(6px) translateX(-14px) scaleY(0.92); }
+  100% { transform: none; }
+}
+@keyframes duckR {
+  22% { transform: translateY(11px) translateX(8px) scaleY(0.82); }
+  48% { transform: translateY(6px) translateX(14px) scaleY(0.92); }
+  100% { transform: none; }
+}
 
-.block-l { animation: blockL 460ms ease 230ms; }
-.block-r { animation: blockR 460ms ease 230ms; }
+/*
+ * Follow-up attacks. A combo used to replay the opening swing in place, so a
+ * three-hit chain looked like the same blow stuttering. Each link now cuts in
+ * tighter and quicker than the last (cx1/cx2/cx3 shorten the beat), which is
+ * what makes a chain feel like it is accelerating rather than repeating.
+ */
+.chain-r { animation: chainR calc(360ms * var(--spd, 1)) cubic-bezier(0.3, 0, 0.2, 1); z-index: 4; }
+.chain-l { animation: chainL calc(360ms * var(--spd, 1)) cubic-bezier(0.3, 0, 0.2, 1); z-index: 4; }
+.chain-r.cx2, .chain-l.cx2 { animation-duration: calc(310ms * var(--spd, 1)); }
+.chain-r.cx3, .chain-l.cx3 { animation-duration: calc(260ms * var(--spd, 1)); }
+@keyframes chainR {
+  0%   { transform: translateX(var(--dash)) rotate(0deg); }
+  30%  { transform: translateX(calc(var(--dash) - 14px)) rotate(-13deg); }
+  55%  { transform: translateX(calc(var(--dash) + 20px)) rotate(15deg); }
+  100% { transform: translateX(var(--dash)) rotate(0deg); }
+}
+@keyframes chainL {
+  0%   { transform: translateX(calc(var(--dash) * -1)) rotate(0deg); }
+  30%  { transform: translateX(calc(var(--dash) * -1 + 14px)) rotate(13deg); }
+  55%  { transform: translateX(calc(var(--dash) * -1 - 20px)) rotate(-15deg); }
+  100% { transform: translateX(calc(var(--dash) * -1)) rotate(0deg); }
+}
+
+/*
+ * Counters and ripostes: an answer, not a charge. The foe crossed the arena
+ * to get here — punishing them with an identical full-stage sprint made the
+ * defender look like the aggressor. A short pivot and a thrust on the spot.
+ */
+.riposte-r { animation: riposteR calc(420ms * var(--spd, 1)) ease-out; z-index: 5; }
+.riposte-l { animation: riposteL calc(420ms * var(--spd, 1)) ease-out; z-index: 5; }
+@keyframes riposteR {
+  0%   { transform: translateX(0) rotate(0deg); }
+  28%  { transform: translateX(-12px) rotate(7deg); }
+  52%  { transform: translateX(42px) rotate(-17deg); }
+  74%  { transform: translateX(16px) rotate(-4deg); }
+  100% { transform: none; }
+}
+@keyframes riposteL {
+  0%   { transform: translateX(0) rotate(0deg); }
+  28%  { transform: translateX(12px) rotate(-7deg); }
+  52%  { transform: translateX(-42px) rotate(17deg); }
+  74%  { transform: translateX(-16px) rotate(4deg); }
+  100% { transform: none; }
+}
+
+/*
+ * A skill going off. The ring and the name were already there; the fighter
+ * casting them stood in idle, so the power appeared to come from the stage
+ * rather than from them. They plant, draw up, and settle.
+ */
+.cast-l { animation: castL calc(900ms * var(--spd, 1)) ease-out; z-index: 5; }
+.cast-r { animation: castR calc(900ms * var(--spd, 1)) ease-out; z-index: 5; }
+@keyframes castL {
+  18% { transform: translateY(5px) scaleY(0.94); }
+  42% { transform: translateY(-16px) scaleY(1.06) rotate(-3deg); }
+  70% { transform: translateY(-6px); }
+  100% { transform: none; }
+}
+@keyframes castR {
+  18% { transform: translateY(5px) scaleY(0.94); }
+  42% { transform: translateY(-16px) scaleY(1.06) rotate(3deg); }
+  70% { transform: translateY(-6px); }
+  100% { transform: none; }
+}
+/* the caster lights up, so the ring reads as leaving their body */
+.fig-inner.channel > svg, .fig-inner.channel .hero-sprite, .fig-inner.channel .strip {
+  animation: channelGlow calc(900ms * var(--spd, 1)) ease-out;
+}
+@keyframes channelGlow {
+  35% { filter: brightness(1.5) saturate(1.3) drop-shadow(0 0 10px var(--gold-bright)); }
+  100% { filter: none; }
+}
+
+/*
+ * Mending. "Nyx recovers 40" was a green number floating over an idle sway —
+ * the single most consequential thing a fighter can do and it had no body to
+ * it. They drop their weight, tip back to drink, and come up green.
+ */
+.mend-l { animation: mendL calc(980ms * var(--spd, 1)) ease-out; z-index: 5; }
+.mend-r { animation: mendR calc(980ms * var(--spd, 1)) ease-out; z-index: 5; }
+@keyframes mendL {
+  22% { transform: translateY(7px) scaleY(0.9); }
+  46% { transform: translateY(2px) scaleY(1.02) rotate(-7deg); }
+  64% { transform: translateY(-9px) scaleY(1.05) rotate(-2deg); }
+  100% { transform: none; }
+}
+@keyframes mendR {
+  22% { transform: translateY(7px) scaleY(0.9); }
+  46% { transform: translateY(2px) scaleY(1.02) rotate(7deg); }
+  64% { transform: translateY(-9px) scaleY(1.05) rotate(-2deg); }
+  100% { transform: none; }
+}
+.fig-inner.mending > svg, .fig-inner.mending .hero-sprite, .fig-inner.mending .strip {
+  animation: mendGlow calc(980ms * var(--spd, 1)) ease-out;
+}
+@keyframes mendGlow {
+  0% { filter: none; }
+  55% { filter: brightness(1.2) saturate(0.9) drop-shadow(0 0 3px #8fe08a); }
+  75% { filter: brightness(1.45) saturate(1.15) drop-shadow(0 0 14px #64d46a); }
+  100% { filter: none; }
+}
+/* motes rising off them as it takes */
+.fig-inner.mending::after {
+  content: "";
+  position: absolute; inset: -8% -22% 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 22% 78%, #8fe08a 0 2px, transparent 3px),
+    radial-gradient(circle at 52% 88%, #b6f0a8 0 3px, transparent 4px),
+    radial-gradient(circle at 76% 72%, #64d46a 0 2px, transparent 3px);
+  animation: mendMotes calc(980ms * var(--spd, 1)) ease-out;
+  opacity: 0;
+}
+@keyframes mendMotes {
+  20% { opacity: 0; transform: translateY(6px); }
+  55% { opacity: 0.95; }
+  100% { opacity: 0; transform: translateY(-26px); }
+}
+/* the bar it filled says so too */
+.hpbar-fill.gain { animation: hpGain calc(700ms * var(--spd, 1)) ease-out; }
+@keyframes hpGain {
+  30% { filter: brightness(1.6) saturate(1.3); }
+  100% { filter: none; }
+}
+
+/*
+ * Steel coming up into guard on the beat it is drawn — the sprite used to
+ * swap weapons mid-stance with nothing marking that the fighter rearmed.
+ */
+.ready-l { animation: readyL calc(460ms * var(--spd, 1)) ease-out; }
+.ready-r { animation: readyR calc(460ms * var(--spd, 1)) ease-out; }
+@keyframes readyL {
+  25% { transform: translateY(4px) rotate(-8deg); }
+  60% { transform: translateY(-7px) rotate(5deg); }
+  100% { transform: none; }
+}
+@keyframes readyR {
+  25% { transform: translateY(4px) rotate(8deg); }
+  60% { transform: translateY(-7px) rotate(-5deg); }
+  100% { transform: none; }
+}
+
+/*
+ * Beasts arriving and leaving. A loosed beast used to have simply always
+ * been standing at its master's heel, and a felled one vanished with the
+ * caption still promising "a burst of light".
+ */
+.beast-summon { animation: beastSummon calc(620ms * var(--spd, 1)) cubic-bezier(0.2, 1.5, 0.4, 1); }
+@keyframes beastSummon {
+  0%   { transform: translateY(-40px) scale(0.4); opacity: 0; }
+  55%  { transform: translateY(4px) scale(1.12); opacity: 1; }
+  100% { transform: none; }
+}
+.beast-fall { animation: beastFall calc(700ms * var(--spd, 1)) ease-in forwards; }
+@keyframes beastFall {
+  0%   { transform: none; opacity: 1; }
+  40%  { transform: translateY(-8px) scale(1.1); opacity: 0.9; }
+  100% { transform: translateY(6px) scale(0.7); opacity: 0; }
+}
+.beast-poof {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: beastPoof calc(620ms * var(--spd, 1)) ease-out both;
+}
+@keyframes beastPoof {
+  0%   { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  30%  { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+.block-l { animation: blockL calc(460ms * var(--spd, 1)) ease calc(230ms * var(--spd, 1)); }
+.block-r { animation: blockR calc(460ms * var(--spd, 1)) ease calc(230ms * var(--spd, 1)); }
 @keyframes blockL { 35% { transform: translateX(-8px) rotate(7deg); } 100% { transform: none; } }
 @keyframes blockR { 35% { transform: translateX(8px) rotate(-7deg); } 100% { transform: none; } }
 
 /* white-hot flash on the struck body */
-.fig-inner.flash > svg, .fig-inner.flash .hero-sprite { animation: flash 420ms ease 300ms; }
+.fig-inner.flash > svg, .fig-inner.flash .hero-sprite { animation: flash calc(420ms * var(--spd, 1)) ease calc(300ms * var(--spd, 1)); }
+/*
+ * A critical reads differently from a jab: the lunge goes further and lands
+ * heavier, and the fighter taking it is knocked back rather than rocked.
+ * Both ride on top of the normal strike/hurt animations.
+ */
+.strike-crit { animation-duration: calc(900ms * var(--spd, 1)) !important; }
+.fig-slot.strike-crit { --dash-boost: 1.12; }
+.hurt-hard { animation-duration: calc(620ms * var(--spd, 1)) !important; }
+.hurt-l.hurt-hard { animation-name: hurtHardL !important; }
+.hurt-r.hurt-hard { animation-name: hurtHardR !important; }
+@keyframes hurtHardL {
+  25% { transform: translateX(-26px) rotate(-11deg); }
+  60% { transform: translateX(-10px) rotate(-4deg); }
+  100% { transform: none; }
+}
+@keyframes hurtHardR {
+  25% { transform: translateX(26px) rotate(11deg); }
+  60% { transform: translateX(10px) rotate(4deg); }
+  100% { transform: none; }
+}
+
 @keyframes flash { 30% { filter: brightness(1.9) saturate(0.5); } }
 
 /* --- painted hero sprites --- */
@@ -778,12 +1233,13 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   white-space: nowrap;
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--ink);
+  color: #fdf6dd;
   background: rgba(14, 17, 28, 0.82);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 2px 10px;
   z-index: 3;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 70%);
 }
 
 /* knocked out — the death sheet plays the fall; we just drain the colour */
@@ -793,11 +1249,27 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   transition: filter 700ms ease 400ms;
 }
 
-/* --- beasts at their master's side --- */
-.fig-beasts { position: absolute; bottom: -6px; display: flex; gap: 2px; z-index: 1; }
-.beasts-l { right: calc(100% - 30px); }
-.beasts-r { left: calc(100% - 30px); flex-direction: row-reverse; }
+/*
+ * --- beasts at their master's side ---
+ * A flat row of three put 190px of animal beside a 50px fighter and shoved
+ * the pack off the stage. They overlap into a rank instead, each one a little
+ * further back and a little lower, and each breathing on its own clock so
+ * three of the same beast do not move as one object.
+ */
+.fig-beasts { position: absolute; bottom: -6px; display: flex; z-index: 1; }
+.fig-beasts > span + span { margin-left: -10px; }
+.beasts-r > span + span { margin-left: 0; margin-right: -10px; }
+/* margins, not transforms: .beast-idle and .beast-dash-* animate transform on
+   these same spans and would overwrite it */
+.fig-beasts > span:nth-child(2) { margin-bottom: -3px; z-index: -1; }
+.fig-beasts > span:nth-child(3) { margin-bottom: -6px; z-index: -2; }
+.beasts-l { right: calc(100% - 58px); }
+.beasts-r { left: calc(100% - 58px); flex-direction: row-reverse; }
 .beast-idle { display: inline-block; animation: idle 1.2s ease-in-out infinite alternate; }
+.fig-beasts > span:nth-child(2) .pet-sprite { animation-delay: -0.8s; }
+.fig-beasts > span:nth-child(3) .pet-sprite { animation-delay: -1.6s; }
+/* the death burst is positioned against its own beast, not the whole rank */
+.fig-beasts > span { position: relative; }
 .beast-dash-r { display: inline-block; animation: beastR 720ms ease-in-out; z-index: 4; position: relative; }
 .beast-dash-l { display: inline-block; animation: beastL 720ms ease-in-out; z-index: 4; position: relative; }
 @keyframes beastR {
@@ -892,7 +1364,10 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   font-weight: 800;
   font-size: 0.95rem;
   margin-bottom: 3px;
-  text-shadow: 0 1px 0 #ffffff77;
+  /* Sits over arena skies, six of which are near-black — parchment ink with
+     a white shadow was unreadable there. Light ink, dark halo, all 14 skies. */
+  color: #fdf6dd;
+  text-shadow: 0 1px 0 var(--line), 0 0 3px rgb(0 0 0 / 60%);
 }
 .hpbar.mirror .hpbar-name, .hpbar.mirror .hpbar-num { text-align: right; }
 .hpbar-track {
@@ -910,7 +1385,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .hpbar-fill.warn { background: linear-gradient(180deg, var(--gold-bright), var(--gold)); }
 .hpbar-fill.danger { background: linear-gradient(180deg, #d96a4f, var(--red)); }
-.hpbar-num { font-size: 0.8rem; font-weight: 700; color: var(--ink-soft); margin-top: 2px; }
+.hpbar-num { font-size: 0.8rem; font-weight: 700; color: #fdf6dd; text-shadow: 0 1px 0 var(--line), 0 0 3px rgb(0 0 0 / 60%); margin-top: 2px; }
 
 .vs-badge {
   position: absolute;
@@ -937,6 +1412,12 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   gap: 2px;
   background: rgb(0 0 0 / 45%);
   animation: pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  /*
+   * The fighters are painted after this overlay, so with auto stacking they
+   * came out on top of it — the champion's head sat over the V of VICTORY
+   * while the scrim dimmed everything else. The result banner wins.
+   */
+  z-index: 3;
 }
 .verdict {
   font-family: var(--font-display);
@@ -951,6 +1432,10 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .verdict.won { color: #f4c94e; }
 .verdict.lost { color: var(--red); }
+/* At 2.6rem plus letter-spacing, VICTORY filled a 347px stage edge to edge. */
+@media (max-width: 560px) {
+  .verdict { font-size: 1.9rem; padding: 2px 16px; letter-spacing: 0.1em; }
+}
 .verdict-sub {
   margin-top: 6px;
   font-size: 0.75rem;
@@ -974,9 +1459,9 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .line.mine { color: var(--ink); }
 .line.theirs { color: #6d5f49; }
 .line.mid { color: var(--ink-soft); font-style: italic; }
-.line-crit { color: var(--terracotta); font-weight: 800; }
-.line-trump { color: #f4c94e; font-weight: 800; }
-.line-defend { color: var(--lapis); }
+.line-crit { color: var(--terracotta-ink); font-weight: 800; }
+.line-trump { color: var(--gold-ink); font-weight: 800; }
+.line-defend { color: var(--lapis-ink); }
 .line-end { font-weight: 800; }
 
 @keyframes rise {
@@ -986,6 +1471,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 @media (prefers-reduced-motion: reduce) {
   .hero-anim, .hero-anim::after, .spark, .wpart, .strip, .weather-storm::after,
   .line, .fig-slot, .fig-inner, .fig-inner > svg, .beast-idle, .beast-dash-r, .beast-dash-l,
+  .beast-summon, .beast-fall, .beast-poof, .chain-r, .chain-l, .riposte-r, .riposte-l,
+  .cast-l, .cast-r, .mend-l, .mend-r, .ready-l, .ready-r,
   .burst, .slash, .missile, .floater, .verdict-wrap, .forge-preview {
     animation: none !important;
   }
@@ -1007,12 +1494,45 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   z-index: 20;
 }
 .draft { max-width: 700px; width: 100%; text-align: center; animation: pop 300ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+/* A checked-not-lived-beside panel: opens over the Hall, closes on the scrim. */
+.popover {
+  max-width: 460px; width: 100%;
+  max-height: calc(100dvh - 36px); overflow-y: auto;
+  animation: pop 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.popover h3 { display: flex; align-items: center; gap: 8px; }
+.popover h3 .rack-close { margin-left: auto; }
 .draft h2 { margin: 4px 0 2px; font-weight: 800; font-size: 1.7rem; }
 .fate-row {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
   margin: 18px 0 16px;
 }
 @media (max-width: 620px) { .fate-row { grid-template-columns: 1fr; } }
+/*
+ * On a phone the stacked reward cards filled the entire screen for what is a
+ * two-fact announcement (the roll, the drop). Everything compresses: tighter
+ * card padding, one size down on the names, the flavour lines fold away, and
+ * the modal scrolls internally instead of growing past the viewport.
+ */
+@media (max-width: 560px) {
+  .overlay { padding: 12px; }
+  .draft { max-height: calc(100dvh - 24px); overflow-y: auto; padding: 12px 14px; }
+  .draft h2 { font-size: 1.2rem; margin: 0; }
+  .draft > .muted { font-size: 0.78rem; margin: 4px 0 0; }
+  .draft .fate-row { gap: 6px; margin: 10px 0 10px; }
+  .draft .fate-card { padding: 8px 10px; min-height: 0; gap: 3px; border-bottom-width: 4px; border-radius: 10px; }
+  .draft .fate-card b { font-size: 0.9rem; }
+  .draft .fate-detail { display: none; }
+  /* the art is a garnish here, not the hero — the name is */
+  .draft .offer-art { margin: 0 auto; }
+  .draft .offer-art .pix-icon { width: 22px; height: 22px; }
+  .draft .offer-art svg { width: 34px; height: auto; }
+  .draft .offer-art.pet-tile { padding: 4px; }
+  /* A new pet is a reveal and keeps its art; "+3 Agility" is just news. */
+  .draft .offer-art.stat-tile { display: none; }
+  .draft .fate-stats { font-size: 0.72rem; padding: 3px 6px; }
+  .draft .btn.big { min-height: 46px; padding: 8px 22px; margin-top: 2px; }
+}
 .fate-card {
   font-family: var(--font-body);
   background: linear-gradient(180deg, var(--panel), var(--panel-deep));
@@ -1152,7 +1672,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* ---------- screen shake ---------- */
 
-.stage.quake { animation: quake 300ms ease; }
+.stage.quake { animation: quake calc(300ms * var(--spd, 1)) ease calc(320ms * var(--spd, 1)) backwards; }
 @keyframes quake {
   20% { transform: translate(-4px, 2px) rotate(-0.3deg); }
   40% { transform: translate(4px, -2px) rotate(0.3deg); }
@@ -1180,8 +1700,23 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   100% { opacity: 0.9; transform: translateY(320px) rotate(260deg); }
 }
 
-.reward-chips { display: flex; gap: 10px; margin-top: 10px; z-index: 2; }
-.reward-chips .pill { font-size: 1rem; }
+/*
+ * XP, rating and any drop, on one row inside the stage. A gear name like
+ * "Mosswalker's Rig" made that row 467px wide in a 347px stage, so the XP chip
+ * and half the drop were clipped off both edges — the reward for the fight was
+ * the one thing you could not read. They wrap and stay inside the stage now.
+ */
+.reward-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  max-width: 100%;
+  padding: 0 10px;
+  z-index: 2;
+}
+.reward-chips .pill { font-size: 1rem; max-width: 100%; }
 /* these sit over a night arena, so they carry their own light background */
 .reward-chips .pill { background: var(--panel); color: var(--ink); }
 .reward-chips .pill.gain { background: #cfe0b6; color: #2f3d20; }
@@ -1203,6 +1738,16 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 .league-pill { color: #0d0f16; }
 .sound-toggle { cursor: pointer; font-family: inherit; }
+/*
+ * The two things in the top bar you can actually press were 22-24px tall,
+ * sat against the screen edge, and are the way back to the Hall and the way
+ * to silence the game mid-fight. Touch pointers get a real target; the bar
+ * looks the same on a mouse.
+ */
+@media (pointer: coarse) {
+  .sound-toggle { min-width: 44px; min-height: 44px; justify-content: center; }
+  .wordmark { min-height: 44px; }
+}
 
 .quests h3 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .qlist { list-style: none; margin: 0; padding: 0; }
@@ -1232,6 +1777,10 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
  * On a phone it falls back to preview-then-choices.
  */
 .styler { display: grid; grid-template-columns: 1fr; gap: 14px; max-width: 1180px; margin: 0 auto; text-align: left; }
+/* Grid items are min-width:auto, so the creator card's min-content — five
+   nowrap tabs plus a 210px picker — was setting the track and taking the whole
+   forge 38px past a 375px phone. The card gives way before the viewport does. */
+.styler > * { min-width: 0; }
 @media (min-width: 860px) {
   .styler { grid-template-columns: minmax(240px, 320px) 1fr; align-items: start; }
   .styler-stage { position: sticky; top: 12px; }
@@ -1249,6 +1798,62 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   padding: 18px 12px 12px;
   overflow: hidden;
 }
+/*
+ * One column means the stage is above the pickers, so by the time you reach
+ * "Top colour" the hunter you are colouring has scrolled off the top of the
+ * screen — you are choosing blind. It pins instead, compact, and the options
+ * scroll under it. Wide screens already had this via the two-column rule.
+ */
+@media (max-width: 859px) {
+  /*
+   * The screen is one thing: a hunter you are dressing. So the hunter holds
+   * still and the options move under them. The whole styler is one viewport
+   * tall, the stage takes a fixed slice of it, and the picker list is what
+   * scrolls — nothing pins, nothing slides over anything, and the figure never
+   * leaves the screen while you are choosing their colours.
+   */
+  .styler {
+    height: calc(100svh - 96px);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 10px;
+  }
+  .styler-stage {
+    height: 30svh;
+    min-height: 150px;
+    padding: 8px 10px 6px;
+  }
+  .styler-stage .fighter-fig { transform: scale(0.78); transform-origin: bottom center; }
+  .styler-stage .hero-caption .muted { display: none; }
+  .styler > .card.creator {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* the page itself no longer scrolls — the sheet does */
+  .forge { display: flex; flex-direction: column; }
+  .forge-title { font-size: 1.15rem; margin: 4px 0 2px; }
+  .forge-sub { display: none; }
+  /* one colour rail, not a wrapped grid that pushes the list twice as long */
+  .swatch-picker .swatches {
+    flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px;
+    scrollbar-width: none; min-width: 0;
+  }
+  .swatch-picker .swatches::-webkit-scrollbar { display: none; }
+  .swatch-picker .swatch { flex: 0 0 auto; }
+  .picker { flex-wrap: nowrap; }
+  .picker-label { flex: 0 0 84px; }
+  /* the tab rail stays put at the top of the list it controls */
+  .creator .tabs {
+    position: sticky; top: 0; z-index: 2;
+    margin: 0 -14px 6px; padding: 0 14px 6px;
+    background: var(--panel);
+  }
+  /* the two verbs stay reachable without scrolling the list to the end */
+  .forge .styler ~ .actions,
+  .styler > .actions { position: sticky; bottom: 0; }
+}
+
 .hero-caption { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; color: var(--ink); }
 .styler-stage .muted { color: var(--ink-soft); }
 .hero-caption b { font-family: var(--font-display); font-size: 0.82rem; }
@@ -1305,6 +1910,9 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   box-shadow: var(--shadow-sm), inset 0 0 0 1px rgb(255 255 255 / 60%);
 }
 .hero-bust img { position: absolute; left: 50%; user-select: none; -webkit-user-drag: none; }
+/* The strip is parked so the face fills the tile; the tile clips the rest. */
+.fighter-bust { line-height: 0; }
+.bust-strip { position: absolute; }
 
 /* ---------- wardrobe & random rewards ---------- */
 
@@ -1374,6 +1982,18 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .pick-row .opt-row, .pick-row .swatches { flex: 1; min-width: 0; }
 .opt-row.wrap .opt { font-size: 0.8rem; padding: 4px 9px; min-height: 34px; }
 .creator .swatch { width: 28px; height: 28px; border-width: 2.5px; }
+/*
+ * The Forge is the first screen a phone player ever touches, and it is almost
+ * entirely small controls: a dozen 28px colour chips per row, five tabs, and
+ * the part arrows. They stay compact for the mouse and grow for the thumb —
+ * the swatch rows simply wrap onto another line at the larger size.
+ */
+@media (pointer: coarse) {
+  .creator .swatch { width: 44px; height: 44px; }
+  .creator .tab { min-height: 44px; padding: 7px 14px; }
+  .creator .nudge { width: 44px; min-height: 44px; }
+  .picker-ctl select { min-height: 44px; }
+}
 @media (max-width: 560px) {
   .pick-row { flex-direction: column; gap: 4px; }
   .pick-row h4 { width: auto; flex-direction: row; gap: 6px; align-items: baseline; }
@@ -1466,6 +2086,15 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 /* a pet chip carries its sprite, not just its name */
 .pet-chip { display: inline-flex; align-items: center; gap: 7px; padding-left: 7px; }
 .pet-sprite { display: block; }
+/* Facing and felled sit here; the breathing loop sits on the sprite inside. */
+.pet-holder { display: inline-block; line-height: 0; }
+/* Real 32px tiles, blown up by whole numbers only — no smoothing, ever. */
+.tile-art {
+  display: block;
+  image-rendering: pixelated;
+  user-select: none;
+  -webkit-user-drag: none;
+}
 
 /* ---------- character creator: tabs + steppers ---------- */
 
@@ -1522,6 +2151,36 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   font-weight: 700;
   color: var(--ink-soft);
 }
+/*
+ * Options as a rail, not a dropdown. Every choice is on screen and one tap
+ * away — trying them all is the whole point of the screen, and a <select>
+ * made that a sequence of taps through a list you cannot see.
+ */
+.opt-rail {
+  display: flex; gap: 6px; flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.opt-rail::-webkit-scrollbar { display: none; }
+.opt-chip {
+  flex: 0 0 auto;
+  min-height: 40px; padding: 7px 12px;
+  font-family: var(--font-display); font-size: 0.62rem; letter-spacing: 0.04em;
+  color: var(--ink); background: var(--panel);
+  border: 2.5px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+.opt-chip.picked {
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  color: #2b2007;
+  box-shadow: inset 0 2px 0 rgb(255 255 255 / 45%), var(--shadow-sm);
+}
+@media (pointer: coarse) { .opt-chip { min-height: 44px; } }
+
 .picker-ctl { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 210px; }
 .picker-ctl select {
   flex: 1;
@@ -1570,19 +2229,29 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* ---------- pets: idle breath and a lunge on the attack ---------- */
 
-.pet-sprite { animation: petBreath 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.pet-sprite { animation: petBreath 2.9s ease-in-out infinite; transform-origin: 50% 100%; }
+/*
+ * A 4% squash on a 54px sprite was already subtle; at 32px it is one pixel,
+ * which is indistinguishable from a still image. An animal waiting to be set
+ * on someone shifts its weight — so: a real bob, a breath, and a tail-end
+ * settle, at an amplitude you can actually see at 32px.
+ */
 @keyframes petBreath {
-  0%, 100% { transform: translateY(0) scaleY(1); }
-  50% { transform: translateY(-1px) scaleY(1.045); }
+  0% { transform: translateY(0) scaleY(1) scaleX(1); }
+  28% { transform: translateY(-2.5px) scaleY(1.06) scaleX(0.98); }
+  52% { transform: translateY(0) scaleY(0.97) scaleX(1.03); }
+  76% { transform: translateY(-1px) scaleY(1.02) scaleX(0.99); }
+  100% { transform: translateY(0) scaleY(1) scaleX(1); }
 }
 /* a felled pet holds still */
-.beast-idle .pet-sprite[style*="rotate"] { animation: none; }
+.pet-holder[style*="rotate"] .pet-sprite { animation: none; }
 .beast-dash-r .pet-sprite, .beast-dash-l .pet-sprite { animation: petLunge 480ms ease-out; }
 @keyframes petLunge {
-  0% { transform: translateY(0) scaleX(1); }
-  30% { transform: translateY(-3px) scaleX(1.08); }
-  60% { transform: translateY(0) scaleX(0.96); }
-  100% { transform: translateY(0) scaleX(1); }
+  0% { transform: translateY(0) scale(1); }
+  18% { transform: translateY(2px) scaleY(0.86) scaleX(1.14); }
+  46% { transform: translateY(-7px) scaleY(1.14) scaleX(0.92); }
+  72% { transform: translateY(1px) scaleY(0.94) scaleX(1.06); }
+  100% { transform: translateY(0) scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
   .pet-sprite { animation: none; }
@@ -1662,7 +2331,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .threat-even { background: #ecd9a8; }
 .threat-hard { background: #eab4a4; }
 
-.rival-kit { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0 4px; }
+.rival-kit { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 4px; }
 .kit-chip {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 0.74rem; font-weight: 700;
@@ -1828,6 +2497,24 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 }
 .wager-side.win { background: #cfe0b6; color: #2f3d20; }
 .wager-side.lose { background: #eab4a4; color: #4a1d14; }
+/*
+ * On a phone the rival card read as four storeys — big bust, chip row, two
+ * wager slabs, then a tall Fight bar (player call: "should not be that
+ * big"). The wager folds onto the Fight row: stakes left, verb right, one
+ * line. The bust and paddings come down a step to match. Desktop keeps the
+ * stacked layout — the wrapper dissolves via display: contents.
+ */
+.rival-action { display: contents; }
+@media (max-width: 560px) {
+  .rival { gap: 4px; }
+  /* the tile shrinks in React (see RIVAL_BUST) so the fighter shrinks with it;
+     a CSS-only override here would clip the head against overflow: hidden */
+  .rival-action { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .rival-action .wager { flex: 0 1 auto; gap: 4px; }
+  .wager-side { flex-direction: row; gap: 4px; padding: 4px 7px; box-shadow: none; }
+  .wager-side em { display: none; }
+  .rival .btn { margin-top: 0; flex: 1; min-height: 44px; }
+}
 
 /* the drop tells you what it is worth, not only what it is called */
 .fate-stats {
@@ -1913,7 +2600,11 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 /* slot groups sit side by side, so a short wardrobe still fills its card */
 .wardrobe {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(236px, 1fr));
+  /* min(236px, 100%): on a 280px fold the fixed 236px track plus card padding
+     was 274px of min-content, and since every Hall card shares one grid track
+     that single number pushed the whole page — champion card included — off
+     the right edge. The track gives way before the viewport does. */
+  grid-template-columns: repeat(auto-fit, minmax(min(236px, 100%), 1fr));
   gap: 4px 18px;
   align-content: start;
 }
@@ -1921,40 +2612,89 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .wardrobe .chips { grid-template-columns: 1fr; }
 .wardrobe .wardrobe-row { margin-bottom: 4px; }
 
-/* the Hall's standings panel is a column card like the rest */
-.home > .standings { margin-bottom: 0; }
+/*
+ * Standings owns its row. It used to take one track of the two-column grid,
+ * and until the hunter owns a skill or pet there is no card to sit beside it
+ * — half the row was raw parchment. Full width, with the five names flowing
+ * down two internal columns so the card stays short.
+ */
+.home > .standings { margin-bottom: 0; grid-column: 1 / -1; }
+@media (min-width: 700px) {
+  .standings .ladder {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(3, auto);
+    column-gap: 18px;
+  }
+}
 
 /* ---------- the champion, big enough to look at ---------- */
 
-.champ-card { gap: 22px; }
+.champ-card { gap: 16px; }
+/* Legacy of the side-by-side card; the stacked full-bleed layout replaced it. */
 .hero-fig { display: none; }
-@media (min-width: 720px) {
-  /* the whole point of a paper doll is seeing it */
-  .hero-fig {
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    position: relative;
-    min-width: 150px;
-    /* sits on the card's floor and grows upward inside it, never clipped */
-    margin: 0 0 -14px 6px;
-  }
-  .champ-card { align-items: flex-end; min-height: 216px; }
-  .champ-meta { align-self: center; }
-}
 
 /*
- * On a phone the portrait is a fixed 234px plate that will not shrink, which
- * left the name column about 70px wide — "Kassia the Poised" ran off the side
- * and took the whole page's horizontal scroll with it. Below that width the
- * card stacks: plate on top, the champion's details full-width underneath.
+ * The portrait is the best thing on the card, so it runs full bleed at every
+ * width (player call): edge to edge of the card, details underneath. The
+ * negative margins cancel the card's own padding and the frame drops the
+ * borders it would draw against nothing. Height follows the plate's aspect
+ * ratio, capped so the Fight button stays reachable; the scene is cropped
+ * from the top, never stretched, and the champion's ground line is measured
+ * in plate-widths (--ground-cqw) so it stands on the horizon at any size.
  */
-@media (max-width: 560px) {
-  .champ-card { flex-direction: column; align-items: stretch; }
-  .champ-card .portrait-wrap { align-self: center; }
+.champ-card { flex-direction: column; align-items: stretch; }
+.champ-card .portrait-wrap { align-self: stretch; align-items: stretch; margin: -14px -16px 0; }
+.champ-card .portrait {
+  width: 100%;
+  height: auto;
+  aspect-ratio: var(--plate-w) / var(--plate-h);
+  max-height: var(--plate-cap, min(42svh, 380px));
+  container-type: inline-size;
+  background-size: cover;
+  background-position: center bottom;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
 }
+/*
+ * The ground line used to be measured in plate-WIDTHS and clamped to 22% of
+ * the height, from back when the scene was one fixed painting cropped to fit.
+ * It is repainted for the box it actually gets now (see ChampionPortrait), so
+ * the horizon always lands at the arena's own fraction of the plate's HEIGHT —
+ * which is what --ground-pct is. The old clamp was holding the champion 38px
+ * above the sand on a full-bleed plate. It stands on the base rule's value.
+ */
+.champ-card .portrait-figure { bottom: min(var(--ground-pct), 40%); }
+/* The pose and backdrop steppers: arrows hugging their label, a clear breath
+   between the two groups. Wrap stays on — at fold widths (280px) the pair
+   drops into two centred rows instead of shoving the card sideways. */
+.champ-card .portrait-controls { padding: 2px 12px 0; }
+.champ-card .portrait-controls { gap: 6px 14px; }
 /* No name, however long, may push the page sideways. */
 .champ-name { overflow-wrap: anywhere; }
+
+/*
+ * Phones get the short copy. Everything marked .say-more is an aside — a
+ * parenthetical, a second sentence restating the rule, colour — and the
+ * sentence still reads without it. The Hall was three screens of scrolling on
+ * a 375px phone with a paragraph above the champion; this is the difference
+ * between a game and a manual.
+ */
+@media (max-width: 560px) {
+  .say-more { display: none; }
+  /*
+   * The champion is the reason to open the Hall — the primer follows them.
+   * .grid-2 is display:contents, so its cards are grid items too and need the
+   * same default, or they sort ahead of the primer.
+   */
+  .home > *, .grid-2 > * { order: 2; }
+  .home > .champ-card { order: 0; }
+  .home > .hint { order: 1; }
+  /* The bars and numbers already say which stat is which. */
+  .stat-does { display: none; }
+}
 
 /* ---------- tasks as a strip, not a column ---------- */
 
@@ -1967,6 +2707,13 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 @media (max-width: 620px) {
   .quests-strip { gap: 8px; }
   .quests-strip .qlist { gap: 6px 14px; }
+  /*
+   * The heading and the footnote were nowrap, which gave this strip a
+   * min-content width of 361px. Every card on the Hall shares one grid track,
+   * so on a 320px phone that one line pushed the whole page sideways. They
+   * wrap here; the strip still reads as a strip on anything wider.
+   */
+  .quests-strip h3, .quests-strip .note { white-space: normal; }
 }
 
 /* ---------- Hall portrait ---------- */
@@ -1974,6 +2721,10 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .portrait-wrap { display: flex; flex-direction: column; gap: 8px; align-items: center; flex-shrink: 0; }
 .portrait {
   position: relative;
+  /* natural plate size, handed over from ChampionPortrait as bare numbers so
+     the phone rule below can re-derive an aspect ratio from them */
+  width: calc(var(--plate-w) * 1px);
+  height: calc(var(--plate-h) * 1px);
   border: var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm), inset 0 0 0 2px rgb(255 255 255 / 25%);
@@ -1982,9 +2733,21 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   image-rendering: pixelated;
   overflow: hidden;
 }
-.portrait-figure { position: absolute; left: 50%; transform: translateX(-50%); }
-.portrait-controls { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.portrait-figure { position: absolute; left: 50%; bottom: var(--ground-pct); transform: translateX(-50%); }
+.portrait-controls { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; justify-content: center; }
+/* A stepper is one control: arrows and the value they change never split. */
+.stepper { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+/*
+ * The arrows were 26×28 — under the 44px a thumb actually needs, and the one
+ * control on this card a touch player uses repeatedly. The glyph stays small;
+ * the tappable box around it grows, on touch pointers only, so the desktop
+ * card keeps its tight proportions.
+ */
 .portrait-controls .nudge { width: 26px; min-height: 28px; }
+@media (pointer: coarse) {
+  .portrait-controls .nudge { width: 44px; min-height: 44px; }
+  .portrait-controls { gap: 6px; }
+}
 .portrait-label {
   font-family: var(--font-display);
   font-size: 0.56rem;
@@ -1996,6 +2759,22 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 /* the XP gauge is a gauge, not a ruler across the whole card */
 .xpbar.short { max-width: 340px; }
+/* A sentence, with one word in it that goes somewhere. */
+.linkish {
+  background: none; border: none; padding: 0;
+  font: inherit; color: var(--terracotta); font-weight: 800;
+  text-decoration: underline; cursor: pointer;
+}
+.capped-note { margin-top: 6px; }
+/* The roster's active hunter, and its empty chairs. */
+.rival.on { outline: 3px solid var(--gold); outline-offset: 2px; }
+.empty-slot .slot-frame { width: 64px; height: 64px; flex: 0 0 auto; }
+.empty-slot { opacity: 0.85; }
+/* Capped out: the meter stops being a progress bar and becomes a laurel. */
+.xpbar.maxed .xpbar-fill {
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold));
+  animation: none;
+}
 
 /*
  * The champion card spanned the whole row from when the figure was large and
@@ -2053,6 +2832,133 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   border-color: #38220f;
   padding: 3px;
 }
+/*
+ * The weapon rack as a board: every weapon a tile, in draw order, with the
+ * detail on tap. One row per weapon meant six rows of name-plus-three-bars to
+ * tell you what you only want while you are deciding.
+ */
+/* One board, weapons laid on it — not a grid of little wooden boxes. */
+.rack-board {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-top: 2px; padding: 8px;
+  border: 3px solid #38220f; border-radius: var(--radius);
+  background:
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 8%) 0 1px, transparent 1px 11px),
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 5%) 0 2px, transparent 2px 26px),
+    linear-gradient(#9c6b38, #6f4622);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 18%),
+    inset 0 -6px 0 rgb(0 0 0 / 16%),
+    var(--shadow-sm);
+}
+/* The weapon sits ON the board: no plaque of its own, just a slot that lights
+   when you pick it. Shadow under the art so it reads as an object, not a sticker. */
+.rack-board .rack-tile {
+  width: 48px; height: 48px;
+  background: none; border-color: transparent; box-shadow: none;
+  padding: 0;
+  border-radius: var(--radius);
+}
+.rack-pick {
+  position: relative;
+  cursor: pointer;
+  font: inherit;
+  transition: transform 120ms ease, background 120ms ease;
+}
+.rack-pick .tile-art { filter: drop-shadow(2px 3px 0 rgb(0 0 0 / 32%)); }
+.rack-pick:hover { transform: translateY(-2px); background: rgb(255 255 255 / 10%); }
+.rack-pick.picked {
+  background: rgb(243 182 78 / 26%);
+  box-shadow: inset 0 0 0 2px var(--gold-bright);
+}
+.rack-fists { opacity: 0.55; }
+.rack-detail {
+  margin-top: 10px; padding: 9px 10px;
+  border: 2px dashed rgb(67 56 42 / 32%); border-radius: var(--radius);
+  background: rgb(255 255 255 / 34%);
+}
+.rack-detail-head { display: flex; align-items: center; gap: 8px; }
+.rack-detail-head b { font-family: var(--font-display); font-size: 0.82rem; }
+.rack-detail p { margin: 6px 0 0; }
+.rack-close {
+  margin-left: auto;
+  min-width: 28px; min-height: 28px;
+  background: none; border: 2px solid rgb(67 56 42 / 32%);
+  border-radius: var(--radius);
+  font-size: 1rem; line-height: 1; color: var(--ink-soft); cursor: pointer;
+}
+.rack-move { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.rack-move .btn { padding: 4px 9px; font-size: 0.66rem; }
+.rack-move > .muted { margin-right: auto; }
+
+/* The wardrobe is the same board as the weapons: one square per slot, wearing
+   what you have on, with the rail of options on tap. */
+.wardrobe-board { gap: 8px; }
+/* scoped past `.rack-board .rack-tile`, which is more specific than a bare
+   `.slot-tile` and was quietly holding these at 48px */
+.rack-board .slot-tile {
+  width: 64px; height: 64px;
+  flex-direction: column; gap: 2px;
+  padding: 3px 0 2px;
+}
+.slot-tile em {
+  font-family: var(--font-display); font-style: normal;
+  font-size: 0.46rem; letter-spacing: 0.05em; text-transform: uppercase;
+  color: #f4e6c8; text-shadow: 0 1px 0 rgb(0 0 0 / 55%);
+}
+.slot-tile .hero-bust { width: 42px !important; height: 42px !important; border-width: 2px; }
+.slot-glyph {
+  width: 42px; height: 42px;
+  border: 2px dashed rgb(255 255 255 / 34%); border-radius: var(--radius);
+}
+.slot-tile.worn { background: rgb(243 182 78 / 14%); }
+.rack-detail .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+
+/* Hall: the one line that says what you have on, and the way to the closet. */
+.worn-board {
+  width: 100%;
+  align-items: center;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.worn-board:hover { filter: brightness(1.06); }
+.worn-go {
+  margin-left: auto; padding: 6px 10px;
+  font-family: var(--font-display); font-size: 0.6rem; letter-spacing: 0.05em;
+  color: #f4e6c8; text-transform: uppercase;
+  border: 2px solid rgb(255 255 255 / 28%); border-radius: var(--radius);
+}
+
+/* ---------- the closet ---------- */
+.closet-grid { display: grid; gap: 10px; margin-top: 10px; }
+@media (min-width: 620px) { .closet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.closet-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; text-align: left;
+  cursor: pointer; font: inherit; color: var(--ink);
+  min-height: 88px;
+}
+.closet-card.worn { border-color: var(--gold-bright); box-shadow: 0 0 0 2px var(--gold-bright), var(--shadow-sm); }
+.closet-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.closet-body b { font-family: var(--font-display); font-size: 0.8rem; }
+.closet-body em { font-style: italic; }
+.closet-state {
+  flex: 0 0 auto; padding: 6px 10px;
+  font-family: var(--font-display); font-size: 0.6rem; text-transform: uppercase;
+  border: 2px solid var(--line); border-radius: var(--radius);
+  background: var(--panel-deep); color: var(--ink-soft);
+}
+.closet-state.on { background: var(--gold); color: #2b2007; border-color: var(--line); }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .pet-tile {
   background: linear-gradient(#a99266, #7c6741);
   border-color: #33291a;
@@ -2088,6 +2994,41 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 
 .kit-chip .skill-tile { box-shadow: inset 0 0 0 1px rgb(255 255 255 / 25%); border-width: 1px; }
 .kit-chip.skill { background: rgb(184 172 72 / 22%); }
+/* The tail of the kit: present, countable, and not competing with the five
+   chips that are actually legible at a glance. */
+.kit-chip.kit-more {
+  background: none;
+  border-style: dashed;
+  border-color: rgb(67 56 42 / 32%);
+  color: var(--ink-soft);
+  cursor: default;
+}
+/*
+ * The board is a glance, so a rival's kit reads as a row of icons: the name
+ * lives on the tooltip and in the accessibility tree, not on the card. The
+ * tile is 40px (32px of icon + 2px border + 2px air) so the 16px pixel grid
+ * still lands on whole pixels.
+ */
+.kit-chip.kit-icon {
+  /* 32px of art + 2px border a side + 1px air: any wider and the seventh
+     chip wrapped, putting a second row on every card in the board */
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  gap: 0;
+  justify-content: center;
+  cursor: help;
+}
+.kit-chip.kit-icon > em {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.kit-chip.kit-icon > :first-child { flex: 0 0 auto; }
+.rival-kit .kit-more { align-self: center; height: 38px; padding: 3px 6px; }
 
 @media (max-width: 560px) {
   .plaque { width: 62px; }
@@ -2113,12 +3054,12 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
    columns of mostly air. The card's empty right half is the Fight button now. */
 .facts {
   display: grid; grid-template-columns: repeat(2, minmax(0, max-content));
-  gap: 8px 34px; margin: 10px 0 0; padding: 0;
+  gap: 4px 28px; margin: 6px 0 0; padding: 0;
 }
 .facts > div { min-width: 0; }
 
 /* The Hall's one action, on the champion it belongs to. */
-.card-cta { margin-top: 16px; }
+.card-cta { margin-top: 10px; }
 @media (max-width: 560px) { .card-cta { width: 100%; } }
 /*
  * Out of fights, this is not the hero of the card any more. Half-opacity white
@@ -2140,12 +3081,25 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
  * let the rows share the height they are given.
  */
 .stats-card { display: flex; flex-direction: column; }
+/*
+ * Four stacked rows put 196px of card on screen to say four numbers. Two
+ * columns halves that without shrinking anything you have to read — the bar
+ * is still a bar, the value is still Silkscreen. One column only below 360px,
+ * where a label plus a bar plus a value genuinely needs the width.
+ */
 .stats-card .stats {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-evenly;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 16px;
+  align-content: space-evenly;
 }
+@media (max-width: 359px) {
+  .stats-card .stats { grid-template-columns: 1fr; }
+}
+.stats-card .stats li { padding: 4px 0; gap: 8px; }
+.stats-card .stats li b { flex: 0 0 66px; font-size: 0.86rem; }
+.stats-card .stats .statbar { height: 10px; }
 .facts dt {
   font-size: 0.62rem; font-weight: 800; letter-spacing: 0.07em;
   text-transform: uppercase; color: var(--ink-soft);
@@ -2241,9 +3195,616 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
 .codex-tile > .pet-tile .pet-sprite { max-width: 100%; max-height: 100%; }
 
 /* The pet tiles are wider than they are tall, so they need their own track. */
-.codex-case:last-of-type .codex-grid { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
+/* :last-of-type used to mean "pets"; with one shelf on screen at a time it
+   meant every shelf, which cost the weapon grid a whole column on a phone. */
+.codex-case.wide .codex-grid { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
 
 @media (max-width: 560px) {
   .codex-grid { grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); }
   .codex-tile em { font-size: 0.6rem; }
 }
+
+/* Codex tap-to-inspect: the tile grid's detail strip (title never fires on touch). */
+.codex-detail { margin: 0 0 8px; }
+.codex-tile { background: none; border: none; font: inherit; cursor: pointer; text-align: center; }
+
+/* The rescue code, visible and selectable when the clipboard is denied —
+   which is exactly the sandboxed embeds rescue codes exist for. */
+.rescue-out {
+  width: 100%;
+  min-height: 74px;
+  margin-top: 8px;
+  font-family: monospace;
+  font-size: 0.7rem;
+  background: #fdf6dd;
+  color: var(--ink);
+  border: 2.5px solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+  word-break: break-all;
+}
+
+/* Backup and destruction should not be adjacent tiny buttons. */
+.devrow-delete { margin-left: auto; }
+
+/* Claim and the Favour reroll share a row; Claim stays the hero. */
+.draft-actions { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; }
+
+
+/* ==================================================================== *
+ * Mobile layout pass
+ *
+ * Adopted from the mobile design handoff, which was drawn at 390px against
+ * these same tokens — so this is a density and reach pass, not a restyle.
+ * What it buys, in the design's own terms: thumb-sized targets everywhere
+ * (52-56px on the primary verb, 44px on everything else), a 12px page
+ * rhythm, type floors so nothing shrinks past reading size, and horizontal
+ * rails instead of wrapping grids where a wrap was costing three screens of
+ * scroll. Below 480px only: the desktop layout is untouched.
+ * ==================================================================== */
+
+@media (max-width: 480px) {
+  /* --- rhythm: one page padding, one card gap, everywhere --- */
+  .content { padding-left: 12px; padding-right: 12px; }
+  .home { gap: 12px; }
+  .card { padding: 12px 14px; }
+
+  /*
+   * Grid items default to min-width:auto, so ONE card's min-content sets the
+   * shared track — and with it the width of every other card and the page.
+   * That single rule is what let a nowrap footnote, and then a scroll rail,
+   * push the whole Hall sideways. Cards give way before the viewport does.
+   */
+  .home > *,
+  .grid-2 > * { min-width: 0; }
+  .wardrobe-row,
+  .wardrobe .chips,
+  .plaques { min-width: 0; }
+
+  /* --- reach: the verb is 56px, everything you can press is 44px --- */
+  .champ-meta .btn.big.card-cta { min-height: 56px; font-size: 0.9rem; }
+  .btn { min-height: 44px; }
+  .btn.primary { min-height: 52px; }
+  /*
+   * Five full-width 52px slabs was 300px of Hall for five links you take once
+   * a session. Two columns, 44px — still a real tap target, a third of the
+   * height, and they read as a nav block instead of five equal decisions.
+   */
+  .actions.secondary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .actions.secondary .btn { min-height: 44px; width: 100%; font-size: 0.7rem; padding: 6px 8px; }
+  .rival-action .btn.primary { min-height: 52px; }
+
+  /* --- type floors: Silkscreen never under .6rem, Karla never under .7 --- */
+  .pill,
+  .fate-kind,
+  .wtag,
+  .portrait-label { font-size: 0.62rem; }
+  .muted.small,
+  .note,
+  .codex-tile em,
+  .kit-chip { font-size: 0.72rem; }
+
+  /*
+   * --- rails ---
+   * Skills, pets and gear wrapped into ever-taller grids: the wardrobe alone
+   * could run past a phone screen once a few pieces dropped, pushing the
+   * standings and nav off the bottom. A rail keeps each shelf one row tall
+   * and makes "there is more" a swipe rather than a scroll.
+   */
+  .plaques,
+  .wardrobe .chips,
+  .tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 10px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    /* A rail must never widen its card. Every Hall card shares one grid track,
+       so an edge-bleed here (negative margins) pushed the whole page 31px
+       sideways — the same class of bug the height pass already paid for once.
+       min-width:0 lets the flex row scroll instead of demanding its content
+       width from the layout. */
+    min-width: 0;
+  }
+  .plaques::-webkit-scrollbar,
+  .wardrobe .chips::-webkit-scrollbar,
+  .tabs::-webkit-scrollbar { display: none; }
+  .plaques > *,
+  .wardrobe .chips > * { flex: 0 0 auto; }
+  .wardrobe .gear-chip { width: auto; min-width: 168px; }
+  .wardrobe { display: block; }
+  .tabs { border-bottom: none; padding-bottom: 8px; }
+  .tab { flex: 0 0 auto; min-height: 44px; }
+
+  /* --- weapon rows read as tiles, not a text list --- */
+  .arsenal.rack li { gap: 12px; }
+  /* 64px wood tile per the mobile spec, and an integer 2x home for the 32px
+     icon inside it. 56 was neither. */
+  .arsenal .rack-tile { width: 64px; height: 64px; }
+  .reorder button { min-width: 42px; min-height: 34px; }
+  .shell { padding-left: 12px; padding-right: 12px; }
+  /* character creation: the label stops reserving 108px it does not need, and
+     the control stops demanding 210 it cannot have */
+  .picker { gap: 8px; }
+  .picker-label,
+  .swatch-picker .picker-label { flex: 0 0 auto; }
+  .picker-ctl { min-width: 0; flex: 1 1 auto; }
+  .creator .tabs { margin-inline: 0; }
+}
+/*
+ * Full bleed, but not the whole phone. At 390x844 the plate took 354px and the
+ * card around it 622 — 74% of the screen before a single stat. Capped so the
+ * portrait still leads and the Fight button, the tasks and the stats are all
+ * above the fold. Guarded on height so a landscape handset keeps its own,
+ * smaller cap from the short-screen rules above.
+ */
+@media (max-width: 560px) and (min-height: 620px) {
+  :root { --plate-cap: min(32svh, 240px); }
+}
+
+/*
+ * Vigor as pips: six squares that drain is a glanceable read of the day's
+ * budget, where "6 fights" is a number you have to think about. Past the
+ * daily six (banked fights go to 12) the pill keeps the count, because
+ * twelve pips is a bar chart, not a glance.
+ */
+.vigor-pips { display: inline-flex; align-items: center; gap: 5px; }
+
+/*
+ * Hit-stop. On the blow that ends it the stage stops dead for a beat — every
+ * running animation frozen, the colour pushed, a hard white flash — and then
+ * lets go. It is the difference between a fight ending and a fight stopping.
+ */
+.stage.hitstop { animation: hitstopFlash 420ms steps(1, end); }
+.stage.hitstop *,
+.stage.hitstop *::before,
+.stage.hitstop *::after { animation-play-state: paused !important; }
+@keyframes hitstopFlash {
+  0% { filter: brightness(2.2) contrast(1.3) saturate(0.2); }
+  14% { filter: brightness(1.05) contrast(1.08); }
+  100% { filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage.hitstop { animation: none; }
+  .stage.hitstop * { animation-play-state: running !important; }
+}
+/* the pace of the climb, next to how far along it you are */
+.xp-pace {
+  font-family: var(--font-display);
+  font-size: 0.56rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+  cursor: help;
+}
+
+/* Vector arsenal: crisp at any size, so no pixel snapping and no smoothing
+   hacks — the outline is part of the drawing. */
+.cartoon-art { display: block; overflow: visible; }
+
+/* ---------- skill effects ----------
+ * One box per fighter, centred on them, sized to the stage scale. Each kind
+ * gets its own motion: a bolt drops, a dome closes, speed streaks past. All
+ * CSS, so a skill firing costs a compositor pass.
+ */
+.skill-fx {
+  position: absolute;
+  left: 50%; bottom: 0;
+  width: 190%; height: 190%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 6;
+}
+.skill-fx svg { display: block; overflow: visible; }
+
+.fx-bolt { animation: fxBolt calc(620ms * var(--spd, 1)) cubic-bezier(0.2, 0.9, 0.3, 1); }
+@keyframes fxBolt {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-40%) scaleY(0.4); }
+  22% { opacity: 1; transform: translateX(-50%) translateY(0) scaleY(1.1); }
+  60% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) scale(1.06); }
+}
+.fx-flame { animation: fxRise calc(700ms * var(--spd, 1)) ease-out; }
+@keyframes fxRise {
+  0% { opacity: 0; transform: translateX(-50%) translateY(14%) scale(0.7); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-16%) scale(1.12); }
+}
+.fx-dome, .fx-guard { animation: fxClose calc(800ms * var(--spd, 1)) ease-out; }
+@keyframes fxClose {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.5); }
+  30% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+  70% { opacity: 0.9; transform: translateX(-50%) scale(1); }
+  100% { opacity: 0; transform: translateX(-50%) scale(1.02); }
+}
+.fx-roar, .fx-rage { animation: fxPulse calc(760ms * var(--spd, 1)) ease-out; }
+@keyframes fxPulse {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.35); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) scale(1.5); }
+}
+.fx-chains { animation: fxSnap calc(720ms * var(--spd, 1)) cubic-bezier(0.3, 1.6, 0.4, 1); }
+@keyframes fxSnap {
+  0% { opacity: 0; transform: translateX(-90%) scaleX(0.3); }
+  30% { opacity: 1; transform: translateX(-50%) scaleX(1); }
+  100% { opacity: 0; transform: translateX(-50%) scaleX(1); }
+}
+.fx-leap { animation: fxDrop calc(680ms * var(--spd, 1)) cubic-bezier(0.4, 0, 0.2, 1); }
+@keyframes fxDrop {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-55%); }
+  40% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(4%) scale(1.1); }
+}
+.fx-speed { animation: fxStreak calc(560ms * var(--spd, 1)) ease-out; }
+@keyframes fxStreak {
+  0% { opacity: 0; transform: translateX(-70%); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-28%); }
+}
+.fx-fear { animation: fxCreep calc(880ms * var(--spd, 1)) ease-in-out; }
+@keyframes fxCreep {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.8) rotate(-4deg); }
+  40% { opacity: 1; transform: translateX(-50%) scale(1.04) rotate(3deg); }
+  100% { opacity: 0; transform: translateX(-50%) scale(1.1) rotate(-2deg); }
+}
+.fx-quake { animation: fxShock calc(640ms * var(--spd, 1)) ease-out; }
+@keyframes fxShock {
+  0% { opacity: 0; transform: translateX(-50%) scaleY(0.4); }
+  25% { opacity: 1; transform: translateX(-50%) scaleY(1.15); }
+  100% { opacity: 0; transform: translateX(-50%) scaleY(1); }
+}
+.fx-blades { animation: fxSpin calc(700ms * var(--spd, 1)) linear; }
+@keyframes fxSpin {
+  0% { opacity: 0; transform: translateX(-50%) rotate(-40deg) scale(0.7); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(-50%) rotate(150deg) scale(1.15); }
+}
+.fx-thread { animation: fxDraw calc(900ms * var(--spd, 1)) ease-in-out; }
+@keyframes fxDraw {
+  0% { opacity: 0; transform: translateX(-50%) scaleX(0.2); }
+  35% { opacity: 1; transform: translateX(-50%) scaleX(1); }
+  100% { opacity: 0; }
+}
+
+/* a beast arriving on someone */
+.beast-bite { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; z-index: 5; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skill-fx { animation: fxHold 500ms ease-out !important; }
+  @keyframes fxHold { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+}
+
+/*
+ * Three-column Hall: the champion takes two tracks and Stats took the third
+ * — stretched to the champion's 536px with four numbers spread evenly down
+ * it, while Weapons dropped to the next row. The third column is a stack
+ * now: Stats at its own height, Weapons filling what is left beside the
+ * champion. Below 1100px the grid has two tracks and display:contents keeps
+ * the two cards side by side under the full-width champion.
+ */
+@media (min-width: 1100px) {
+  .home > .grid-2 { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .home > .grid-2 > .card { flex: 0 0 auto; min-width: 0; }
+  .home > .grid-2 > .card:last-child { flex: 1 1 auto; }
+  .stats-card .stats { flex: 0 0 auto; grid-template-columns: 1fr; gap: 0; align-content: start; }
+  .stats-card .stats li { padding: 5px 0; }
+}
+
+/* Gear icons sit on the same plank as the weapons and get the same shadow. */
+.gear-icon { display: block; overflow: visible; }
+.slot-tile .gear-icon { filter: drop-shadow(2px 3px 0 rgb(0 0 0 / 32%)); }
+.closet-art {
+  flex: 0 0 auto; display: grid; place-items: center;
+  width: 64px; height: 64px; border-radius: var(--radius);
+  border: 3px solid #38220f;
+  background:
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 8%) 0 1px, transparent 1px 11px),
+    linear-gradient(#9c6b38, #6f4622);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 18%), inset 0 -4px 0 rgb(0 0 0 / 16%);
+}
+.closet-art .gear-icon { filter: drop-shadow(2px 3px 0 rgb(0 0 0 / 32%)); }
+
+/*
+ * The pack stands in a rank BESIDE its hunter, not in a heap under them: the
+ * -10px overlap that stacked three 32px tiles into one grey blob made 64px
+ * beasts eat the fighter's legs. Each further beast steps back a little, and
+ * the rank starts clear of the doll's feet.
+ */
+.fig-beasts > span + span { margin-left: 4px; }
+.beasts-r > span + span { margin-left: 0; margin-right: 4px; }
+.fig-beasts > span:nth-child(2) { margin-bottom: 0; }
+.fig-beasts > span:nth-child(3) { margin-bottom: 0; }
+.beasts-l { right: calc(100% - 26px); }
+.beasts-r { left: calc(100% - 26px); }
+/* The pack leads: it stands between its hunter and the enemy, the first beast
+   at the hunter's heel and the rest fanned toward the centre, overlapping a
+   third so three read as one pack. Outward-facing ranks clipped off the stage
+   edge as soon as a hunter owned two. */
+.beasts-l { right: auto; left: calc(100% - 22px); flex-direction: row; }
+.beasts-r { left: auto; right: calc(100% - 22px); flex-direction: row-reverse; }
+.fig-beasts > span + span { margin-left: -22px; }
+.beasts-r > span + span { margin-left: 0; margin-right: -22px; }
+.fig-beasts > span:nth-child(2) { z-index: -1; }
+.fig-beasts > span:nth-child(3) { z-index: -2; }
+
+/*
+ * Phone topbar: once Favour shows its pill the row is RZ + four pills =
+ * 349px, and a 375px screen minus padding is 323px, so the pills dropped to
+ * a second line and the header stood 115px tall over the Hall. Tighter
+ * padding and 8px pips bring the row back under 320px.
+ */
+@media (max-width: 419px) {
+  .topbar { gap: 6px; }
+  .topbar-right { gap: 6px; }
+  .topbar-right .pill { padding: 3px 7px; font-size: 0.62rem; }
+  .topbar-right .pips { --pip-w: 7px; --pip-h: 13px; --pip-gap: 2px; }
+  .topbar-right .sound-toggle { width: 38px; min-width: 38px; }
+}
+@media (max-width: 419px) {
+  /* the bar is inset 14px a side, so its inner width at 375px is 302px */
+  .topbar { padding: 8px 8px; }
+  .topbar-right { gap: 4px; }
+  .topbar-right .pill { padding: 3px 5px; }
+  .topbar-right .sound-toggle { width: 34px; min-width: 34px; }
+}
+@media (max-width: 369px) {
+  .topbar-right .pill { font-size: 0.58rem; padding: 3px 4px; }
+  .topbar-right { gap: 3px; }
+}
+
+/* The drawn beasts are vector: no pixel snapping, and the outline needs room. */
+svg.pet-sprite { overflow: visible; }
+
+/* Drawn skill art: vector, so it needs outline room and no pixel snapping. */
+.skill-art { display: block; overflow: visible; }
+
+/* =============== rigged beasts: one animal, many parts ===============
+   Every beast is an SVG whose head, body, legs, tail and wings are their own
+   `.bp-*` groups with their own pivots (beastArt.tsx). The old animation moved
+   the WHOLE sprite with one shared `petBreath`, which is why three beasts on a
+   stage looked like three copies of one object. Now each part moves, and each
+   animal keeps its own clock: --idle, --sway and --reach come from
+   BEAST_MOTION via the sprite's style attribute.
+
+   transform-box: view-box is what makes the pivots in beastArt (given in the
+   32-box's own units) mean anything at all. */
+svg.pet-sprite { animation: none; }
+svg.pet-sprite .bp {
+  transform-box: view-box;
+  animation-fill-mode: both;
+}
+
+/* ---- idle: prowl (four legs on the ground) ---- */
+svg.pet-sprite[data-gait="prowl"] .bp-body { animation: bpBreathe var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="prowl"] .bp-head { animation: bpSniff var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="prowl"] .bp-tail { animation: bpSway var(--sway) ease-in-out infinite alternate; }
+svg.pet-sprite[data-gait="prowl"] .bp-leg-f { animation: bpPawF var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="prowl"] .bp-leg-b { animation: bpPawB var(--idle) ease-in-out infinite; }
+
+@keyframes bpBreathe {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  40% { transform: translateY(-0.6px) scaleY(1.05); }
+  70% { transform: translateY(0.2px) scaleY(0.98); }
+}
+@keyframes bpSniff {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  22% { transform: translateY(-1.1px) rotate(-4deg); }
+  55% { transform: translateY(0.6px) rotate(3deg); }
+  78% { transform: translateY(-0.4px) rotate(-1deg); }
+}
+@keyframes bpSway {
+  from { transform: rotate(-13deg); }
+  to { transform: rotate(15deg); }
+}
+@keyframes bpPawF {
+  0%, 62%, 100% { transform: rotate(0deg); }
+  74% { transform: rotate(-9deg) translateY(-1px); }
+  86% { transform: rotate(4deg); }
+}
+@keyframes bpPawB {
+  0%, 30%, 100% { transform: rotate(0deg); }
+  42% { transform: rotate(6deg); }
+  54% { transform: rotate(-2deg); }
+}
+
+/* ---- idle: perch (birds — the body barely moves, the wings do) ---- */
+svg.pet-sprite[data-gait="perch"] .bp-body { animation: bpPuff var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="perch"] .bp-head { animation: bpPeer var(--idle) steps(1, end) infinite; }
+svg.pet-sprite[data-gait="perch"] .bp-wing-f { animation: bpFlapF var(--sway) ease-in-out infinite; }
+svg.pet-sprite[data-gait="perch"] .bp-wing-b { animation: bpFlapB var(--sway) ease-in-out infinite; }
+svg.pet-sprite[data-gait="perch"] .bp-tail { animation: bpSway calc(var(--sway) * 2) ease-in-out infinite alternate; }
+
+@keyframes bpPuff {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.04, 1.03); }
+}
+/* A bird's head snaps between positions, it does not glide: steps(1) is the
+   entire point of this one. */
+@keyframes bpPeer {
+  0%, 44% { transform: rotate(0deg); }
+  45%, 68% { transform: rotate(-7deg) translateX(-0.6px); }
+  69%, 88% { transform: rotate(5deg); }
+  89%, 100% { transform: rotate(0deg); }
+}
+@keyframes bpFlapF {
+  0%, 100% { transform: rotate(0deg) scaleY(1); }
+  50% { transform: rotate(-11deg) scaleY(1.08); }
+}
+@keyframes bpFlapB {
+  0%, 100% { transform: rotate(0deg) scaleY(1); }
+  50% { transform: rotate(11deg) scaleY(1.08); }
+}
+
+/* ---- idle: plod (the tortoise: everything slow, the neck the only life) ---- */
+svg.pet-sprite[data-gait="plod"] .bp-body { animation: bpBreathe var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="plod"] .bp-head { animation: bpCrane var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="plod"] .bp-tail { animation: bpSway calc(var(--sway) * 1.6) ease-in-out infinite alternate; }
+svg.pet-sprite[data-gait="plod"] .bp-leg-f { animation: bpPlodF var(--idle) ease-in-out infinite; }
+svg.pet-sprite[data-gait="plod"] .bp-leg-b { animation: bpPlodB var(--idle) ease-in-out infinite; }
+
+@keyframes bpCrane {
+  0%, 100% { transform: translateX(0) scaleX(1); }
+  35% { transform: translateX(-1.4px) scaleX(1.06); }
+  70% { transform: translateX(0.8px) scaleX(0.94); }
+}
+@keyframes bpPlodF {
+  0%, 100% { transform: rotate(0deg); }
+  40% { transform: rotate(-7deg); }
+}
+@keyframes bpPlodB {
+  0%, 100% { transform: rotate(0deg); }
+  60% { transform: rotate(7deg); }
+}
+
+/* ---- the fox's embers drift on three different clocks ---- */
+svg.pet-sprite .bp-mote { animation: bpMote 2.4s ease-in-out infinite; }
+svg.pet-sprite .bp-mote-2 { animation-duration: 3.1s; animation-delay: -0.7s; }
+svg.pet-sprite .bp-mote-3 { animation-duration: 1.9s; animation-delay: -1.3s; }
+@keyframes bpMote {
+  0% { transform: translateY(2px); opacity: 0.25; }
+  40% { transform: translateY(-1px); opacity: 1; }
+  100% { transform: translateY(-4px); opacity: 0; }
+}
+
+/* ---- the lunge: the whole animal commits, then the head bites ----
+   .beast-dash-* is on the wrapper (FightTheatre), so these run on the sprite's
+   parts for exactly one strike. --reach is per beast: a raven crosses more
+   ground than a tortoise. */
+.beast-dash-r svg.pet-sprite .bp-body,
+.beast-dash-l svg.pet-sprite .bp-body {
+  animation: bpPounce 480ms cubic-bezier(0.3, 0.9, 0.3, 1.1);
+}
+.beast-dash-r svg.pet-sprite .bp-head,
+.beast-dash-l svg.pet-sprite .bp-head {
+  animation: bpBite 480ms cubic-bezier(0.25, 0.9, 0.3, 1.2);
+}
+.beast-dash-r svg.pet-sprite .bp-leg-f,
+.beast-dash-l svg.pet-sprite .bp-leg-f {
+  animation: bpKickF 480ms ease-out;
+}
+.beast-dash-r svg.pet-sprite .bp-leg-b,
+.beast-dash-l svg.pet-sprite .bp-leg-b {
+  animation: bpKickB 480ms ease-out;
+}
+.beast-dash-r svg.pet-sprite .bp-tail,
+.beast-dash-l svg.pet-sprite .bp-tail {
+  animation: bpTailWhip 480ms ease-out;
+}
+.beast-dash-r svg.pet-sprite .bp-wing-f,
+.beast-dash-l svg.pet-sprite .bp-wing-f { animation: bpBeatF 480ms ease-out; }
+.beast-dash-r svg.pet-sprite .bp-wing-b,
+.beast-dash-l svg.pet-sprite .bp-wing-b { animation: bpBeatB 480ms ease-out; }
+/* the second and third head of the Hound bite a beat late */
+.beast-dash-r svg.pet-sprite .bp-head-2,
+.beast-dash-l svg.pet-sprite .bp-head-2 { animation-delay: 60ms; }
+.beast-dash-r svg.pet-sprite .bp-head-3,
+.beast-dash-l svg.pet-sprite .bp-head-3 { animation-delay: 120ms; }
+
+@keyframes bpPounce {
+  0% { transform: scaleY(1) scaleX(1) translateY(0); }
+  16% { transform: scaleY(0.82) scaleX(1.14) translateY(1.6px); }
+  46% { transform: scaleY(1.12) scaleX(0.93) translateY(-2px); }
+  74% { transform: scaleY(0.97) scaleX(1.03) translateY(0.4px); }
+  100% { transform: scaleY(1) scaleX(1) translateY(0); }
+}
+/*
+ * The head only ROTATES and dips. The wrapper (.beast-dash-*) is what carries
+ * the animal across the stage — a translateX here as well tore the head off
+ * the neck by a third of the body's length at the peak of the lunge.
+ */
+@keyframes bpBite {
+  0% { transform: rotate(0deg) translateY(0); }
+  16% { transform: rotate(11deg) translateY(1.2px); }
+  40% { transform: rotate(-19deg) translateY(-1.6px); }
+  58% { transform: rotate(4deg) translateY(0.4px); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+@keyframes bpKickF {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(18deg); }
+  48% { transform: rotate(-30deg); }
+  72% { transform: rotate(8deg); }
+}
+@keyframes bpKickB {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-16deg); }
+  48% { transform: rotate(26deg); }
+  72% { transform: rotate(-6deg); }
+}
+@keyframes bpTailWhip {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(24deg); }
+  62% { transform: rotate(-16deg); }
+}
+@keyframes bpBeatF {
+  0%, 100% { transform: rotate(0deg); }
+  35% { transform: rotate(-42deg) scaleY(1.2); }
+}
+@keyframes bpBeatB {
+  0%, 100% { transform: rotate(0deg); }
+  35% { transform: rotate(42deg) scaleY(1.2); }
+}
+
+/* ---- a felled beast holds still, whatever it was doing ---- */
+.pet-holder[style*="rotate"] svg.pet-sprite .bp { animation: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  svg.pet-sprite .bp { animation: none !important; }
+}
+
+/*
+ * The wrapper's shared 1.2s bob is for the tile fallback. A drawn beast has
+ * its own per-part idle on its own clock, and running both put every beast
+ * back on one shared rhythm — the exact thing the rig exists to kill.
+ */
+.beast-idle:has(svg.pet-sprite) { animation: none; }
+
+/* =============== generated beast art ===============
+   The drawn beasts are a part rig; the generated ones are flat images, so
+   they take a whole-sprite idle instead. Still per-beast: --idle and --sway
+   come from BEAST_MOTION, so a wolf and a tortoise never breathe together,
+   which is the whole point of the rig in the first place. */
+img.pet-art {
+  display: block;
+  transform-origin: 50% 100%;
+}
+img.pet-art[data-gait="prowl"] { animation: artProwl var(--idle) ease-in-out infinite; }
+img.pet-art[data-gait="perch"] { animation: artPerch var(--idle) ease-in-out infinite; }
+img.pet-art[data-gait="plod"] { animation: artPlod var(--idle) ease-in-out infinite; }
+
+@keyframes artProwl {
+  0%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
+  30% { transform: translateY(-2px) scaleY(1.03) scaleX(0.99); }
+  62% { transform: translateY(0.4px) scaleY(0.98) scaleX(1.02); }
+}
+@keyframes artPerch {
+  0%, 100% { transform: translateY(0) scale(1); }
+  24% { transform: translateY(-1px) scale(1.03, 1.02); }
+  48% { transform: translateY(0) scale(0.99, 1.01); }
+  72% { transform: translateY(-0.6px) scale(1.02, 1); }
+}
+@keyframes artPlod {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  45% { transform: translateY(-1px) scaleY(1.02); }
+}
+
+/* The lunge: the wrapper already carries the beast across the stage, so the
+   sprite only crouches and stretches into it. */
+.beast-dash-r img.pet-art,
+.beast-dash-l img.pet-art { animation: artPounce 480ms cubic-bezier(0.3, 0.9, 0.3, 1.1); }
+@keyframes artPounce {
+  0% { transform: scaleY(1) scaleX(1) translateY(0); }
+  16% { transform: scaleY(0.84) scaleX(1.12) translateY(2px); }
+  46% { transform: scaleY(1.1) scaleX(0.94) translateY(-3px); }
+  74% { transform: scaleY(0.98) scaleX(1.02) translateY(0.5px); }
+  100% { transform: scaleY(1) scaleX(1) translateY(0); }
+}
+
+/* A felled beast holds still. */
+.pet-holder[style*="rotate"] img.pet-art { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { img.pet-art { animation: none !important; } }

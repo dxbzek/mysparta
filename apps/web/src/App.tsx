@@ -1,24 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  BEASTS,
-  BOONS,
-  STAT_LABEL,
-  TECHNIQUES,
-  TRUMPS,
-  WEAPONS,
   applyDraft,
-  arenaBoard,
-  beast,
   combineSeed,
   costToNext,
-  createChampion,
-  describeOffer,
   fightXp,
   generateDraft,
   kleosDelta,
   makeRng,
-  maxHp,
-  omen,
   simulateFight,
   skill,
   snapshot,
@@ -33,36 +21,18 @@ import {
   type TrumpTrigger,
 } from "@agoge/core";
 import { FightTheatre, type StageFigure } from "./FightTheatre.js";
-import { PetSprite } from "./pixelPets.js";
-import { WeaponIcon } from "./weaponIcons.js";
-import { SkillIcon, type SkillKind } from "./skillIcons.js";
 import { PixIcon } from "./pixelIcons.js";
-import { AURAS, AuraSparks, FighterBust, FighterFig, lookFor, rivalLook, type FighterAnim } from "./fighters.js";
-import { ARENAS, arenaForFight, type Arena as ArenaDef } from "./arenas.js";
-import { arenaScene } from "./arenaArt.js";
-import {
-  BEARDS,
-  BUILDS,
-  CLOTH_COLORS,
-  EYE_COLORS,
-  FEET,
-  HAIRS,
-  HAIR_COLORS,
-  HEADS,
-  LEGS,
-  SKINS,
-  TORSOS,
-  normaliseLook,
-  randomLook,
-  torsosFor,
-  type Look,
-  type Part,
-  type Tone,
-} from "./paperdoll.js";
-import { gearDetail, gearItem, gearPool, gearStatLine, gearStats, lookWithGear, resolveExtras, rollGearDrop, type Equipped, type GearItem, type GearSlot } from "./gear.js";
+import { lookFor, rivalLook } from "./fighters.js";
+import { arenaForFight, type Arena as ArenaDef } from "./arenas.js";
+import { gearStats, lookWithGear, resolveExtras, rollGearDrop, type GearItem, type GearSlot } from "./gear.js";
 import {
   applyDailyReset,
+  activeSlot,
+  firstFreeSlot,
   freshQuests,
+  questsComplete,
+  rosterSummary,
+  setActiveSlot,
   load,
   newSave,
   persist,
@@ -70,9 +40,21 @@ import {
   wipe,
   type SaveV1,
   VIGOR_CAP,
+  VIGOR_DAILY,
 } from "./save.js";
 import { sound } from "./sound.js";
-import { ladder, standing } from "./ladder.js";
+import { queueCloudPush } from "./cloud.js";
+import { Shell } from "./Shell.js";
+import { league } from "./ui.js";
+import { Forge } from "./screens/Forge.js";
+import { Home } from "./screens/Home.js";
+import { Arena } from "./screens/Arena.js";
+import { Ladder } from "./screens/Ladder.js";
+import { History } from "./screens/History.js";
+import { Codex } from "./screens/Codex.js";
+import { Closet } from "./screens/Closet.js";
+import { Roster } from "./screens/Roster.js";
+import { RewardModal } from "./screens/RewardModal.js";
 
 type Screen =
   | { s: "forge" }
@@ -84,10 +66,14 @@ type Screen =
       rival: Rival;
       arena: ArenaDef;
       rewards: { xp: number; kleos: number; drops: string[] };
+      /** Rating as it stood when the bell rang — the header shows this until the verdict is left. */
+      kleosBefore: number;
     }
   | { s: "history" }
   | { s: "ladder" }
-  | { s: "codex" };
+  | { s: "codex" }
+  | { s: "roster" }
+  | { s: "closet" };
 
 /** Screens that live at their own URL, so back/forward and refresh work. */
 const ROUTES: Record<string, string> = {
@@ -96,7 +82,14 @@ const ROUTES: Record<string, string> = {
   history: "history",
   ladder: "ladder",
   codex: "codex",
+  roster: "hunters",
+  closet: "closet",
   forge: "new",
+  // The fight gets a URL of its own so it is a real history entry. Without
+  // one, starting a fight from #/arena left the address bar on #/arena — so
+  // navigating "back to the arena" changed nothing, fired no hashchange, and
+  // the player sat on the stage with no way out but finishing it.
+  fight: "fight",
 };
 const BREADCRUMB: Record<string, string> = {
   home: "Hall",
@@ -104,25 +97,18 @@ const BREADCRUMB: Record<string, string> = {
   history: "Hall / Level-Up History",
   ladder: "Hall / Ladder",
   codex: "Hall / Codex",
+  roster: "Your Hunters",
+  closet: "Hall / Closet",
   forge: "New Hunter",
   fight: "Hall / Arena / Fight",
 };
 
 function routeOf(hash: string): Screen["s"] | null {
   const want = hash.replace(/^#\/?/, "");
+  // A bare "#/" is the front door, not nowhere.
+  if (want === "") return "home";
   const hit = Object.entries(ROUTES).find(([, path]) => path === want);
   return (hit?.[0] as Screen["s"]) ?? null;
-}
-
-/** League tiers give the rating number meaning (03-gdd-systems.md §1.4). */
-function league(kleos: number): { name: string; color: string } {
-  // Tiers sit in the parchment palette — imported neon reads as a different app.
-  if (kleos >= 1950) return { name: "S-Rank", color: "#e39a2e" };
-  if (kleos >= 1850) return { name: "A-Rank", color: "#d95f43" };
-  if (kleos >= 1750) return { name: "B-Rank", color: "#8a6bb5" };
-  if (kleos >= 1650) return { name: "C-Rank", color: "#3f83c6" };
-  if (kleos >= 1550) return { name: "D-Rank", color: "#6f9a3e" };
-  return { name: "E-Rank", color: "#9a8c74" };
 }
 
 /**
@@ -154,6 +140,44 @@ function heldWeaponId(weapons: string[]): string | undefined {
   return weapons.find((id) => weapon(id).discipline !== "aspis");
 }
 
+/** Dev tools live behind ?dev=1 — playtesting levers, never player-facing. */
+const DEV = new URLSearchParams(location.search).has("dev");
+
+function DevPanel({ save, update }: { save: SaveV1; update: (s: SaveV1) => void }) {
+  const c = save.champion;
+  const give = (xp: number) => {
+    const champion = structuredClone(c);
+    champion.xp += xp;
+    update({ ...save, champion });
+  };
+  return (
+    <div className="devpanel" role="group" aria-label="Dev tools">
+      <span className="devpanel-cap">DEV</span>
+      <button className="btn tiny" onClick={() => give(costToNext(c.level) - c.xp)}>Level up</button>
+      <button className="btn tiny" onClick={() => give(1)}>+1 XP</button>
+      <button className="btn tiny" onClick={() => update({ ...save, vigor: VIGOR_CAP })}>Refill fights</button>
+      <button
+        className="btn tiny"
+        onClick={() => {
+          const drop = rollGearDrop(save.gear ?? [], combineSeed(c.seed, "dev", (save.gear ?? []).length));
+          if (!drop) return;
+          const equipped = { ...(save.equipped ?? {}) };
+          if (!equipped[drop.slot]) equipped[drop.slot] = drop.id;
+          update({ ...save, gear: [...(save.gear ?? []), drop.id], equipped });
+        }}
+      >
+        Drop gear
+      </button>
+      <button
+        className="btn tiny"
+        onClick={() => update({ ...save, vigorDate: "2020-01-01", quests: undefined })}
+      >
+        Rewind day
+      </button>
+    </div>
+  );
+}
+
 export function App() {
   const [save, setSave] = useState<SaveV1 | null>(() => load());
   const [screen, setScreen] = useState<Screen>(() => {
@@ -161,7 +185,7 @@ export function App() {
     if (!save) return { s: "forge" };
     return wanted && wanted !== "fight" ? ({ s: wanted } as Screen) : { s: "home" };
   });
-  const [draft, setDraft] = useState<{ offers: FateOffer[]; pick: number; drop?: GearItem } | null>(null);
+  const [draft, setDraft] = useState<{ offers: FateOffer[]; pick: number; drop?: GearItem; nonce: number } | null>(null);
 
   // The address bar follows the screen, so refresh and the back button land
   // where the player expects instead of dumping them at the Hall.
@@ -180,7 +204,13 @@ export function App() {
   useEffect(() => {
     const onNav = () => {
       const s = routeOf(location.hash);
-      if (s && s !== "fight") setScreen({ s } as Screen);
+      // A fight cannot be entered from a URL — its result lives in memory, not
+      // the address bar — so a forward button onto #/fight lands in the Arena.
+      if (s === "fight") {
+        setScreen({ s: "arena" });
+        return;
+      }
+      if (s) setScreen({ s } as Screen);
     };
     window.addEventListener("popstate", onNav);
     window.addEventListener("hashchange", onNav);
@@ -190,10 +220,44 @@ export function App() {
     };
   }, []);
 
+  // A due level-up must survive a refresh. Only fights and claims used to
+  // roll the modal, so reloading (or restoring a rescue code) with unclaimed
+  // XP left the hunter stuck at a full bar until their next fight ended.
+  useEffect(() => {
+    // Only when no draft is open: this watchdog exists for refresh/restore
+    // with unclaimed XP, and without the guard it re-rolled an OPEN draft
+    // back to nonce 0 — instantly undoing a Favour reroll it had just paid for.
+    if (save && screen.s !== "fight" && !draft) openDraftIfDue(save);
+    // Keyed on the screen too: walking out of a fight with the back button
+    // skips onDone, and without this a level earned in that fight would sit
+    // unclaimed behind a full XP bar until the next one ended.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [save, screen.s]);
+
+  const [muted, setMuted] = useState(() => sound.isMuted());
+
+  // Another tab writing the same slot must not be clobbered by this one's
+  // stale copy: rebase on the stored save whenever it changes elsewhere.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key && (e.key.startsWith("agoge.save") || e.key.startsWith("agoge.roster"))) {
+        setSave(load());
+        setDraft(null);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   // One crisp tick for every button in the game.
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if ((e.target as HTMLElement | null)?.closest("button")) sound.click();
+      const t = e.target as HTMLElement | null;
+      // The mute button manages its own confirmation sound — a capture-phase
+      // tick here fired BEFORE the flag flipped, so muting beeped and
+      // unmuting was silent: inverted feedback on the one audio button.
+      if (t?.closest("[data-nosfx]")) return;
+      if (t?.closest("button")) sound.click();
     };
     document.addEventListener("click", onClick, true);
     return () => document.removeEventListener("click", onClick, true);
@@ -202,6 +266,10 @@ export function App() {
   const update = (next: SaveV1) => {
     persist(next);
     setSave(next);
+    // Fire-and-forget: the local save is already written and authoritative,
+    // so a sync that fails, conflicts or is switched off changes nothing the
+    // player can see. Debounced because a fight writes several times in a row.
+    queueCloudPush(next);
   };
 
   /**
@@ -209,16 +277,56 @@ export function App() {
    * offers and one themed gear drop — the player only claims, never chooses.
    * Seeded from the champion, so the same hunter always rolls the same fate.
    */
+  /*
+   * The core guarantees a WEAPON is offered at level 5 and a SKILL at 10 —
+   * but the pick was a flat roll across all three offers, so the guarantee
+   * only landed a third of the time. A full day of play reached level 6
+   * with no weapon, no skill and no pet: five level-ups of pure stats, in
+   * a game whose whole pitch is what the Rift hands you.
+   *
+   * The roll stays random everywhere else. On a milestone, if the hunter
+   * still owns nothing of the promised kind, the promise is kept — and a
+   * Favour reroll re-rolls under the same promise.
+   */
+  const rollDraft = (c: Champion, next: number, nonce: number) => {
+    const offers = generateDraft(c, next, nonce);
+    let pick = makeRng(combineSeed(c.seed, "roll", next, nonce)).int(offers.length);
+    const forced =
+      next === 5 && c.weapons.length === 0
+        ? offers.findIndex((o) => o.kind === "weapon")
+        : next === 10 && c.skills.length === 0
+          ? offers.findIndex((o) => o.kind === "skill")
+          : -1;
+    if (forced >= 0) pick = forced;
+    return { offers, pick };
+  };
+
   const openDraftIfDue = (s: SaveV1) => {
     const c = s.champion;
     if (c.level < 50 && c.xp >= costToNext(c.level)) {
-      const offers = generateDraft(c, c.level + 1, 0);
-      const pick = makeRng(combineSeed(c.seed, "roll", c.level + 1)).int(offers.length);
-      const drop = rollGearDrop(s.gear ?? [], combineSeed(c.seed, "gear", c.level + 1));
-      setDraft({ offers, pick, drop });
+      const next = c.level + 1;
+      const drop = rollGearDrop(s.gear ?? [], combineSeed(c.seed, "gear", next));
+      setDraft({ ...rollDraft(c, next, 0), drop, nonce: 0 });
     } else {
       setDraft(null);
     }
+  };
+
+  /*
+   * The Favour reroll — the currency's first and only sink. Favour has been
+   * accruing (+1 per milestone, cap 6) since the sim was written, synced and
+   * rescue-coded, and the client never showed or spent it: a fully dead
+   * currency. Spending is final (draft.ts: redraw is final) and paid up
+   * front; the gear drop is not rerolled, only the Rift's offer.
+   */
+  const rerollDraft = () => {
+    if (!draft || !save || save.champion.favour <= 0) return;
+    const champion = structuredClone(save.champion);
+    champion.favour -= 1;
+    const next = champion.level + 1;
+    update({ ...save, champion });
+    sound.power();
+    setDraft({ ...rollDraft(champion, next, draft.nonce + 1), drop: draft.drop, nonce: draft.nonce + 1 });
   };
 
   if (!save || screen.s === "forge") {
@@ -226,8 +334,26 @@ export function App() {
       <Shell>
         <Forge
           onForge={(champion, look, aura) => {
+            // A new hunter takes the first free slot and becomes the one being
+            // played; without this the Forge would write over whoever is
+            // already in the active slot.
+            const target = firstFreeSlot() ?? activeSlot();
+            setActiveSlot(target);
             const s = newSave(champion, { stance: "measured", gambit: "close_the_gap" }, look, aura);
             update(s);
+            setScreen({ s: "home" });
+          }}
+          onRestore={(restored) => {
+            // A restored code lands in a FREE slot when one exists. It used to
+            // write into the active slot — so pasting a rescue code with a
+            // hunter already loaded silently destroyed that hunter, making the
+            // backup mechanism the game's one data-loss path.
+            const target = firstFreeSlot() ?? activeSlot();
+            setActiveSlot(target);
+            // Persist, then re-read through load() so the code gets the same
+            // migrations an old localStorage save would.
+            persist(restored, target);
+            setSave(load());
             setScreen({ s: "home" });
           }}
         />
@@ -263,18 +389,37 @@ export function App() {
     let gear = fresh.gear ?? [];
     const equipped = { ...(fresh.equipped ?? {}) };
     const drops: string[] = [];
+    // Once the wardrobe is complete (46 pieces, done by the mid-20s levels)
+    // rollGearDrop returns undefined — and the daily board and win loot used
+    // to silently pay nothing for the rest of a fifty-level career. The
+    // fallback bounty keeps the promise that finishing the tasks pays.
     const addDrop = (item?: GearItem) => {
-      if (!item) return;
+      if (!item) {
+        champion.xp += 2;
+        drops.push("Rift bounty — +2 XP");
+        return;
+      }
       gear = [...gear, item.id];
       if (!equipped[item.slot]) equipped[item.slot] = item.id;
       drops.push(item.name);
     };
 
     const q = fresh.quests?.day === todayKey() ? { ...fresh.quests } : freshQuests();
+    // Older saves predate the blocks/streak tallies the rotating tasks read.
+    q.blocks ??= 0;
+    q.streak ??= 0;
+    q.run ??= 0;
     q.fights += 1;
     if (won) q.wins += 1;
     if (result.events.some((e) => e.type === "hit" && e.side === 0 && e.crit)) q.crits += 1;
-    if (!q.claimed && q.fights >= 3 && q.wins >= 2 && q.crits >= 1) {
+    q.blocks += result.events.filter(
+      (e) => (e.type === "block" || e.type === "evade") && e.side === 0,
+    ).length;
+    // `streak` is the best run of the day, so a loss does not erase what the
+    // player already earned — it just stops the current run growing.
+    q.run = won ? q.run + 1 : 0;
+    q.streak = Math.max(q.streak, q.run);
+    if (!q.claimed && questsComplete(q)) {
       q.claimed = true;
       addDrop(rollGearDrop(gear, combineSeed(seed, "questdrop")));
     }
@@ -303,6 +448,7 @@ export function App() {
       rival,
       arena: arenaForFight(seed),
       rewards: { xp: xpGain, kleos: kd, drops },
+      kleosBefore: fresh.kleos,
     });
   };
 
@@ -310,14 +456,21 @@ export function App() {
     if (!draft) return;
     const champion = structuredClone(save.champion);
     champion.xp -= costToNext(champion.level);
-    applyDraft(champion, draft.offers, draft.pick, false);
+    applyDraft(champion, draft.offers, draft.pick, draft.nonce > 0);
     const gear = [...(save.gear ?? []), ...(draft.drop ? [draft.drop.id] : [])];
     const equipped = { ...(save.equipped ?? {}) };
     if (draft.drop && !equipped[draft.drop.slot]) equipped[draft.drop.slot] = draft.drop.id;
+    if (draft.drop) sound.drop();
     const next = { ...save, champion, gear, equipped };
     update(next);
     openDraftIfDue(next);
   };
+
+  // The result is written to the save the moment a fight starts (so a refresh
+  // mid-bout cannot dodge a loss), which meant the header announced the new
+  // rating while the first blow was still landing. The theatre keeps the old
+  // number until the player walks out of it.
+  const shownKleos = screen.s === "fight" ? screen.kleosBefore : save.kleos;
 
   return (
     <Shell
@@ -330,28 +483,54 @@ export function App() {
           <div className="topbar-right">
             <span
               className="pill league-pill"
-              style={{ background: league(save.kleos).color }}
-              title={`Rating ${save.kleos} — ${league(save.kleos).name} league`}
+              style={{ background: league(shownKleos).color }}
+              title={`Rating ${shownKleos} — ${league(shownKleos).name} league`}
             >
-              {league(save.kleos).name} {save.kleos}
+              {league(shownKleos).name} {shownKleos}
             </span>
-            <span className="pill" title={`Fights refill daily (+6, up to ${VIGOR_CAP})`}>
-              <PixIcon name="bolt" size={13} className="icon-gold" /> {save.vigor} fights
+            <span
+              className="pill vigor-pips"
+              title={`Fights refill daily (+${VIGOR_DAILY}, banked up to ${VIGOR_CAP})`}
+            >
+              <PixIcon name="bolt" size={13} className="icon-gold" />
+              {/* Six pips drain as the day is spent — a glance, not a number.
+                  Banked fights past the daily six stay a count, because twelve
+                  pips stops being glanceable and becomes a bar chart. */}
+              {save.vigor <= VIGOR_DAILY ? (
+                <span className="pips" aria-label={`${save.vigor} of ${VIGOR_DAILY} fights left today`}>
+                  {Array.from({ length: VIGOR_DAILY }, (_, i) => (
+                    <i key={i} className={`pip${i < save.vigor ? " on" : ""}`} />
+                  ))}
+                </span>
+              ) : (
+                <>{save.vigor} fights</>
+              )}
             </span>
+            {save.champion.favour > 0 && (
+              <span className="pill" title="Favour — spend it to reroll a level-up reward">
+                <PixIcon name="dice" size={13} className="icon-gold" /> {save.champion.favour}
+              </span>
+            )}
             <button
               className="pill sound-toggle"
+              data-nosfx
               onClick={() => {
+                // Local state only. This used to call update({...save}) — a
+                // full persist + cloud push + app re-render to flip a flag
+                // that does not even live in the save.
                 sound.setMuted(!sound.isMuted());
-                update({ ...save });
+                if (!sound.isMuted()) sound.click();
+                setMuted(sound.isMuted());
               }}
-              title={sound.isMuted() ? "Sound is off" : "Sound is on"}
+              title={muted ? "Sound is off" : "Sound is on"}
             >
-              <PixIcon name={sound.isMuted() ? "speakerOff" : "speaker"} size={13} />
+              <PixIcon name={muted ? "speakerOff" : "speaker"} size={13} />
             </button>
           </div>
         </header>
       }
     >
+      {DEV && screen.s === "home" && <DevPanel save={save} update={update} />}
       {screen.s === "home" && (
         <Home
           save={save}
@@ -359,6 +538,8 @@ export function App() {
           onHistory={() => setScreen({ s: "history" })}
           onCodex={() => setScreen({ s: "codex" })}
           onLadder={() => setScreen({ s: "ladder" })}
+          onRoster={() => setScreen({ s: "roster" })}
+          onCloset={() => setScreen({ s: "closet" })}
           onReorder={(from, to) => {
             const champion = structuredClone(c);
             const [moved] = champion.weapons.splice(from, 1);
@@ -421,14 +602,59 @@ export function App() {
         <Ladder save={save} onBack={() => setScreen({ s: "home" })} />
       )}
 
+      {screen.s === "roster" && (
+        <Roster
+          slots={rosterSummary()}
+          active={activeSlot()}
+          onBack={() => setScreen({ s: "home" })}
+          onPlay={(slot) => {
+            setActiveSlot(slot);
+            setSave(load());
+            setDraft(null);
+            setScreen({ s: "home" });
+          }}
+          onNew={(slot) => {
+            setActiveSlot(slot);
+            setSave(null);
+            setDraft(null);
+            setScreen({ s: "forge" });
+          }}
+          onRetire={(slot) => {
+            wipe(slot);
+            // Retiring the hunter you are playing drops you onto whoever is
+            // left, or to the Forge if that was the last one.
+            if (slot === activeSlot()) {
+              const next = rosterSummary().find((r) => r !== null);
+              if (next) {
+                setActiveSlot(next.slot);
+                setSave(load());
+                setScreen({ s: "home" });
+              } else {
+                setSave(null);
+                setScreen({ s: "forge" });
+              }
+            } else {
+              setSave((v) => (v ? { ...v } : v));
+            }
+            setDraft(null);
+          }}
+        />
+      )}
+
       {screen.s === "history" && <History champion={c} onBack={() => setScreen({ s: "home" })} />}
       {screen.s === "codex" && <Codex champion={c} onBack={() => setScreen({ s: "home" })} />}
+      {screen.s === "closet" && (
+        <Closet save={save} onBack={() => setScreen({ s: "home" })} onEquip={(slot, id) => update({ ...save, equipped: { ...save.equipped, [slot]: id } })} />
+      )}
 
       {draft && (
         <RewardModal
           level={c.level + 1}
           offer={draft.offers[draft.pick]!}
           drop={draft.drop}
+          favour={c.favour}
+          rerolled={draft.nonce > 0}
+          onReroll={rerollDraft}
           onClaim={claimReward}
         />
       )}
@@ -436,1143 +662,3 @@ export function App() {
   );
 }
 
-/* ================= shell ================= */
-
-function Shell({
-  children,
-  header,
-  crumb,
-}: {
-  children: React.ReactNode;
-  header?: React.ReactNode;
-  /** where you are, e.g. "Hall / Arena" */
-  crumb?: string;
-}) {
-  return (
-    <div className="shell">
-      {header}
-      {crumb && (
-        <nav className="crumbs" aria-label="Breadcrumb">
-          {crumb.split(" / ").map((part, i, all) => (
-            <span key={part}>
-              {i > 0 && <span className="crumb-sep">/</span>}
-              <span className={i === all.length - 1 ? "crumb on" : "crumb"}>{part}</span>
-            </span>
-          ))}
-        </nav>
-      )}
-      <main className="content">{children}</main>
-      <footer className="foot">
-        RANK ZERO prototype — deterministic sim v1 · your progress is saved in this browser
-        <br />
-        characters and weapons from the LPC universal sprite set (CC BY-SA 3.0 / GPL 3.0) ·
-        arenas, icons and pets drawn in-engine
-      </footer>
-    </div>
-  );
-}
-
-/* ================= forge (2 steps: name → appearance) ================= */
-
-function Forge({
-  onForge,
-}: {
-  onForge: (c: Champion, look: Look, aura: number) => void;
-}) {
-  const [name, setName] = useState("");
-  const [champ, setChamp] = useState<Champion | null>(null);
-  const [look, setLook] = useState<Look | null>(null);
-  const [aura, setAura] = useState(0);
-  const [previewPose, setPreviewPose] = useState<"idle" | "attack1">("idle");
-  const [tab, setTab] = useState<CreatorTab>("body");
-  const preview = useMemo(() => {
-    const trimmed = name.trim();
-    if (trimmed.length < 2) return null;
-    try {
-      return createChampion(trimmed);
-    } catch {
-      return null;
-    }
-  }, [name]);
-
-  if (!champ) {
-    return (
-      <div className="forge">
-        <h1 className="forge-title">Enter your name.</h1>
-        <p className="forge-sub">Every name awakens a different hunter — same name, same hunter, always.</p>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (preview) {
-              setChamp(preview);
-              setLook(lookFor(preview.displayName));
-            }
-          }}
-        >
-          <input
-            className="forge-input"
-            value={name}
-            maxLength={24}
-            placeholder="e.g. Kassia"
-            autoFocus
-            onChange={(e) => setName(e.target.value)}
-            aria-label="Champion name"
-          />
-          {preview && (
-            <div className="forge-preview card">
-              <FighterBust look={lookFor(preview.displayName)} size={72} />
-              <div>
-                <div className="champ-name">
-                  {preview.displayName} <span className="epithet">{preview.epithet}</span>
-                </div>
-                <div className="muted">{omen(preview.omen).name}</div>
-                <div className="statline">
-                  {STAT_LABEL.might} {preview.stats.might} · {STAT_LABEL.grace} {preview.stats.grace} ·{" "}
-                  {STAT_LABEL.tempo} {preview.stats.tempo} · {STAT_LABEL.grit} {preview.stats.grit}
-                </div>
-              </div>
-            </div>
-          )}
-          <button className="btn primary big" type="submit" disabled={!preview}>
-            Awaken my Hunter
-          </button>
-        </form>
-        <p className="fineprint">Next: make them look like you want. Weapons, stats and skills are all found as you level.</p>
-      </div>
-    );
-  }
-
-  const me = normaliseLook(look ?? lookFor(champ.displayName));
-  const c2 = champ;
-  const set = (patch: Partial<Look>) => setLook(normaliseLook({ ...me, ...patch }));
-
-  const tone = (label: string, tones: Tone[], value: number, key: keyof Look) => (
-    <div className="picker swatch-picker">
-      <span className="picker-label">
-        {label}
-        <em>{tones[value]!.name}</em>
-      </span>
-      <div className="swatches">
-        {tones.map((t, i) => (
-          <button
-            key={t.name}
-            className={`swatch ${value === i ? "picked" : ""}`}
-            style={{ background: t.css }}
-            onClick={() => set({ [key]: i } as Partial<Look>)}
-            aria-label={`${t.name} ${label.toLowerCase()}`}
-            title={t.name}
-          />
-        ))}
-      </div>
-    </div>
-  );
-
-  const part = (
-    label: string,
-    parts: Array<{ name: string }>,
-    value: number,
-    key: keyof Look,
-    allowed?: number[],
-  ) => (
-    <PartPicker
-      label={label}
-      parts={parts}
-      value={value}
-      allowed={allowed}
-      onPick={(i) => set({ [key]: i } as Partial<Look>)}
-    />
-  );
-
-  return (
-    <div className="forge">
-      <h1 className="forge-title">Make them yours.</h1>
-      <p className="forge-sub">
-        {c2.displayName} <span className="epithet">{c2.epithet}</span> — this is just how you look.
-        Weapons, stats and skills are found in the Rift as you level.
-      </p>
-      <div className="styler">
-        <div
-          className="styler-stage"
-          onPointerDown={() => setPreviewPose("attack1")}
-          onPointerUp={() => setPreviewPose("idle")}
-          onPointerLeave={() => setPreviewPose("idle")}
-          title="Hold to see the attack"
-        >
-          <AuraSparks aura={aura} />
-          <FighterFig look={me} height={170} anim={previewPose} aura={aura} />
-          <div className="hero-caption">
-            <b>{BUILDS[me.build]!.name} · {HEADS[me.head]!.name}</b>
-            <span className="muted small">
-              {BUILDS[me.build]!.blurb} <em>(hold to preview the attack)</em>
-            </span>
-          </div>
-        </div>
-
-        <div className="card creator">
-          {/* One category at a time, the way a console creator does it — the
-              whole sheet used to be on screen at once and read as a wall. */}
-          <div className="tabs" role="tablist">
-            {CREATOR_TABS.map(([id, name]) => (
-              <button
-                key={id}
-                role="tab"
-                aria-selected={tab === id}
-                className={`tab ${tab === id ? "on" : ""}`}
-                onClick={() => setTab(id)}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-
-          {tab === "body" && (
-            <>
-              {part("Build", BUILDS, me.build, "build")}
-              {tone("Skin", SKINS, me.skin, "skin")}
-            </>
-          )}
-          {tab === "face" && (
-            <>
-              {part("Shape", HEADS, me.head, "head")}
-              {part("Facial hair", BEARDS, me.beard, "beard")}
-              {tone("Eyes", EYE_COLORS, me.eyes, "eyes")}
-            </>
-          )}
-          {tab === "hair" && (
-            <>
-              {part("Style", HAIRS, me.hair, "hair")}
-              {tone("Colour", HAIR_COLORS, me.hairColor, "hairColor")}
-            </>
-          )}
-          {tab === "clothes" && (
-            <>
-              {part("Top", TORSOS, me.torso, "torso", torsosFor(me.build))}
-              {tone("Top colour", CLOTH_COLORS, me.torsoColor, "torsoColor")}
-              {part("Legs", LEGS, me.legs, "legs")}
-              {tone("Leg colour", CLOTH_COLORS, me.legsColor, "legsColor")}
-              {part("Feet", FEET, me.feet, "feet")}
-              {tone("Feet colour", CLOTH_COLORS, me.feetColor, "feetColor")}
-            </>
-          )}
-          {tab === "aura" && (
-            <div className="picker swatch-picker">
-              <span className="picker-label">
-                Glow<em>{AURAS[aura]!.name}</em>
-              </span>
-              <div className="swatches">
-                {AURAS.map((a, i) => (
-                  <button
-                    key={a.name}
-                    className={`swatch ${aura === i ? "picked" : ""}`}
-                    style={{ background: a.color, boxShadow: `0 0 10px ${a.color}88` }}
-                    onClick={() => setAura(i)}
-                    aria-label={`${a.name} aura`}
-                    title={a.name}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="actions">
-          <button
-            className="btn big"
-            onClick={() => {
-              setLook(randomLook(Math.random));
-              setAura(Math.floor(Math.random() * AURAS.length));
-            }}
-          >
-            <PixIcon name="dice" size={14} /> Randomize
-          </button>
-          <button className="btn primary big" onClick={() => onForge(c2, me, aura)}>
-            Start Hunting
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-const CREATOR_TABS = [
-  ["body", "Body"],
-  ["face", "Face"],
-  ["hair", "Hair"],
-  ["clothes", "Clothes"],
-  ["aura", "Aura"],
-] as const;
-
-type CreatorTab = (typeof CREATOR_TABS)[number][0];
-
-/**
- * A long list of parts, browsed the way console creators do it: arrows to
- * step one at a time, a list to jump straight to one. Two dozen options fit
- * on a single row instead of filling the screen with chips.
- */
-function PartPicker({
-  label,
-  parts,
-  value,
-  allowed,
-  onPick,
-}: {
-  label: string;
-  parts: Array<{ name: string }>;
-  value: number;
-  allowed?: number[];
-  onPick: (i: number) => void;
-}) {
-  const list = allowed ?? parts.map((_, i) => i);
-  const at = Math.max(0, list.indexOf(value));
-  const step = (d: number) => onPick(list[(at + d + list.length) % list.length]!);
-  return (
-    <div className="picker">
-      <span className="picker-label">
-        {label}
-        <em>{parts[value]!.name}</em>
-      </span>
-      <div className="picker-ctl">
-        <button className="nudge" onClick={() => step(-1)} aria-label={`Previous ${label}`}>
-          <PixIcon name="arrowLeft" size={9} />
-        </button>
-        <select
-          value={value}
-          onChange={(e) => onPick(Number(e.target.value))}
-          aria-label={label}
-        >
-          {list.map((i) => (
-            <option key={parts[i]!.name} value={i}>
-              {parts[i]!.name}
-            </option>
-          ))}
-        </select>
-        <button className="nudge flip" onClick={() => step(1)} aria-label={`Next ${label}`}>
-          <PixIcon name="arrowLeft" size={9} />
-        </button>
-        <span className="picker-count">
-          {at + 1}/{list.length}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-
-/** Poses the champion can hold for their portrait. */
-const PORTRAIT_POSES: Array<{ id: FighterAnim; name: string }> = [
-  { id: "stance", name: "Guard" },
-  { id: "idle", name: "At ease" },
-  { id: "attack1", name: "Strike" },
-  { id: "attack2", name: "Thrust" },
-  { id: "run", name: "Charge" },
-];
-
-/**
- * The Hall portrait: a framed plate with a painted arena behind the champion,
- * who stands on its ground line. Both the pose and the backdrop are the
- * player's to choose — this is the picture of their hunter.
- */
-function ChampionPortrait({
-  look,
-  aura,
-  particles,
-  portrait,
-  onChange,
-}: {
-  look: Look;
-  aura: number;
-  particles?: string;
-  portrait: { arena: number; pose: string };
-  onChange: (p: { arena: number; pose: string }) => void;
-}) {
-  const SCALE = 3;
-  const NW = 78;
-  const NH = 82;
-  const arena = ARENAS[portrait.arena % ARENAS.length]!;
-  const pose = (PORTRAIT_POSES.find((p) => p.id === portrait.pose) ?? PORTRAIT_POSES[0]!).id;
-  const poseAt = PORTRAIT_POSES.findIndex((p) => p.id === pose);
-  const step = (d: number) =>
-    onChange({ ...portrait, pose: PORTRAIT_POSES[(poseAt + d + PORTRAIT_POSES.length) % PORTRAIT_POSES.length]!.id });
-  const shift = (d: number) =>
-    onChange({ ...portrait, arena: (portrait.arena + d + ARENAS.length) % ARENAS.length });
-
-  return (
-    <div className="portrait-wrap">
-      <div
-        className="portrait"
-        style={{
-          width: NW * SCALE,
-          height: NH * SCALE,
-          backgroundImage: `url(${arenaScene(arena, NW, NH)})`,
-        }}
-      >
-        <AuraSparks aura={aura} />
-        <span
-          className="portrait-figure"
-          style={{ bottom: Math.round(NH * (1 - arena.horizon) * SCALE) - SCALE }}
-        >
-          <FighterFig look={look} height={48 * SCALE} anim={pose} aura={aura} particles={particles} />
-        </span>
-      </div>
-      <div className="portrait-controls">
-        <button className="nudge" onClick={() => step(-1)} aria-label="Previous pose">
-          <PixIcon name="arrowLeft" size={9} />
-        </button>
-        <span className="portrait-label">{PORTRAIT_POSES[poseAt]!.name}</span>
-        <button className="nudge flip" onClick={() => step(1)} aria-label="Next pose">
-          <PixIcon name="arrowLeft" size={9} />
-        </button>
-        <button className="nudge" onClick={() => shift(-1)} aria-label="Previous backdrop">
-          <PixIcon name="arrowLeft" size={9} />
-        </button>
-        <span className="portrait-label wide">{arena.name}</span>
-        <button className="nudge flip" onClick={() => shift(1)} aria-label="Next backdrop">
-          <PixIcon name="arrowLeft" size={9} />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** A compact standings line so the Arena page shows where you stand. */
-function StandingsStrip({ save }: { save: SaveV1 }) {
-  const rows = useMemo(
-    () => ladder(save.champion.displayName, save.champion.level, save.kleos),
-    [save.champion.displayName, save.champion.level, save.kleos],
-  );
-  const me = standing(rows);
-  const near = rows.slice(Math.max(0, me.rank - 3), me.rank + 2);
-  return (
-    <section className="card standings">
-      <h3>
-        Standings <span className="muted small">you are #{me.rank} of {me.of}</span>
-      </h3>
-      <ol className="ladder tight">
-        {near.map((r) => (
-          <li key={r.name} className={`ladder-row ${r.you ? "you" : ""}`}>
-            <span className="lrank">{r.rank}</span>
-            <span className="lname">{r.name}</span>
-            <span className="lrating">
-              <PixIcon name="star" size={9} className="icon-gold" /> {r.rating}
-            </span>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-/* ================= ladder ================= */
-
-/**
- * Standings for the realm. Every other name is generated from the realm seed,
- * so the table is stable — passing someone means you climbed, not that the
- * board reshuffled.
- */
-function Ladder({ save, onBack }: { save: SaveV1; onBack: () => void }) {
-  const rows = useMemo(
-    () => ladder(save.champion.displayName, save.champion.level, save.kleos),
-    [save.champion.displayName, save.champion.level, save.kleos],
-  );
-  const me = standing(rows);
-  return (
-    <div className="arena">
-      <div className="arena-head">
-        <button className="btn ghost" onClick={onBack}>
-          <PixIcon name="arrowLeft" size={11} /> Hall
-        </button>
-        <h2>The Ladder</h2>
-        <span className="pill">
-          #{me.rank} of {me.of}
-        </span>
-      </div>
-      {me.ahead && (
-        <p className="notice">
-          <b>{me.ahead.name}</b> is {me.ahead.rating - save.kleos} rating ahead of you at #{me.rank - 1}.
-          Beat someone stronger to take the place.
-        </p>
-      )}
-      <ol className="ladder">
-        {rows.map((r) => (
-          <li key={r.name} className={`ladder-row ${r.you ? "you" : ""}`}>
-            <span className="lrank">{r.rank}</span>
-            <span className="lname">{r.name}</span>
-            <span className="llevel muted small">Lv {r.level}</span>
-            <span className="lrating">
-              <PixIcon name="star" size={9} className="icon-gold" /> {r.rating}
-            </span>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-/** How dangerous a rival looks next to your own rating. */
-function threatOf(mine: number, theirs: number): "easy" | "even" | "hard" {
-  if (theirs < mine - 40) return "easy";
-  if (theirs > mine + 40) return "hard";
-  return "even";
-}
-
-const THREAT_LABEL: Record<string, string> = { easy: "Weaker", even: "Even", hard: "Stronger" };
-
-/** One stat, shown as a gauge rather than a number on a dotted line. */
-/** What each stat actually buys, so the Stats card teaches instead of
- *  listing four numbers and leaving the rest of the panel empty. */
-const STAT_DOES: Record<string, string> = {
-  Strength: "damage on every hit",
-  Agility: "evasion, blocks and ripostes",
-  Speed: "how often you act",
-  Endurance: "health, and how many pets you can keep",
-};
-
-function StatRow({ label, value, teach }: { label: string; value: number; teach: boolean }) {
-  // 24 is comfortably past a maxed early-game stat, so the bar keeps meaning
-  const pct = Math.max(4, Math.min(100, (value / 24) * 100));
-  return (
-    // What the stat buys is worth saying once, while the player is learning.
-    // Kept on every row forever it was four lines of noise that doubled the
-    // card's height, so after the first few fights it lives on the tooltip.
-    <li title={`${label} — ${STAT_DOES[label]}`}>
-      <b>{label}</b>
-      <span className="statbar"><i style={{ width: `${pct}%` }} /></span>
-      <span className="num">{value}</span>
-      {teach && <em className="stat-does">{STAT_DOES[label]}</em>}
-    </li>
-  );
-}
-
-function Quest({ at, of, children }: { at: number; of: number; children: React.ReactNode }) {
-  const done = at >= of;
-  return (
-    <li className={done ? "qdone" : ""}>
-      <span className="qbox">{done && <PixIcon name="check" size={9} />}</span>
-      <span className="qbody">
-        <span className="qtext">{children}</span>
-        <span className="qbar">
-          <span className="qbar-fill" style={{ width: `${Math.min(100, (at / of) * 100)}%` }} />
-        </span>
-      </span>
-      <span className="qcount">{Math.min(at, of)}/{of}</span>
-    </li>
-  );
-}
-
-/** Plain names for the disciplines, so a tag reads instead of decodes. */
-const DISCIPLINE_NAME: Record<string, string> = {
-  xiphos: "Blade",
-  doru: "Spear",
-  labrys: "Axe",
-  cestus: "Fist",
-  akontia: "Thrown",
-  aspis: "Shield",
-};
-
-/**
- * A weapon's character at a glance: how hard it hits, how often, how far it
- * reaches. Bars beat "dmg 10 · steady" because two weapons can be compared
- * without doing arithmetic.
- */
-function WeaponBars({ w }: { w: ReturnType<typeof weapon> }) {
-  if (w.discipline === "aspis") {
-    return <div className="muted small">Raised to turn blows aside — never swung.</div>;
-  }
-  // 900ms is about the slowest swing in the game; invert so faster reads fuller
-  const speed = Math.max(6, Math.min(100, ((450 - w.interval) / 270) * 100));
-  const rows: Array<[string, number]> = [
-    ["Damage", Math.min(100, (w.dmg / 22) * 100)],
-    ["Speed", speed],
-    ["Reach", Math.min(100, ((w.reach + 1) / 4) * 100)],
-  ];
-  return (
-    <div className="wbars">
-      {rows.map(([label, pct]) => (
-        <div className="wbar-row" key={label}>
-          <span>{label}</span>
-          <span className="statbar"><i style={{ width: `${pct}%` }} /></span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ================= home ================= */
-
-function Home(props: {
-  save: SaveV1;
-  onArena: () => void;
-  onHistory: () => void;
-  onCodex: () => void;
-  onLadder: () => void;
-  onReorder: (from: number, to: number) => void;
-  onDelete: () => void;
-  onEquip: (slot: GearSlot, id: string | undefined) => void;
-  onPortrait: (p: { arena: number; pose: string }) => void;
-}) {
-  const { save } = props;
-  const c = save.champion;
-  const baseLook = save.look ?? lookFor(c.displayName);
-  const worn = lookWithGear(baseLook, save.equipped);
-  const extras = resolveExtras(save.aura ?? 0, save.equipped);
-  const ownedGear = (save.gear ?? []).map((id) => gearItem(id)).filter((g): g is GearItem => !!g);
-  const need = costToNext(c.level);
-  const hpNow = maxHp(c.level, c.stats.grit, c.beasts, c.skills.includes("beast_bond"));
-  /** The first few fights are the only time the Hall explains itself. */
-  const teaching = save.totalFights < 3;
-  const [armDelete, setArmDelete] = useState(false);
-  useEffect(() => {
-    if (!armDelete) return;
-    const t = window.setTimeout(() => setArmDelete(false), 4000);
-    return () => window.clearTimeout(t);
-  }, [armDelete]);
-
-  return (
-    <div className="home">
-      {teaching && (
-        <section className="card hint span-all">
-          <p>
-            <b>How it plays:</b> fight rivals → earn XP → level up → the Rift rolls your reward
-            (stats, weapons, skills, pets or gear — always a surprise). You get <b>6 fights a day</b>{" "}
-            (they bank up to 12). <span className="muted">Your name set your awakening — the Rift decides the rest.</span>
-          </p>
-        </section>
-      )}
-
-      <section className="card champ-card">
-        {/* a framed portrait: the champion standing in an arena of their choosing */}
-        <ChampionPortrait
-          look={worn}
-          aura={extras.aura}
-          particles={extras.particles}
-          portrait={save.portrait ?? { arena: 0, pose: "stance" }}
-          onChange={(p) => props.onPortrait(p)}
-        />
-        <div className="champ-meta">
-          <h2 className="champ-name">
-            {c.displayName} <span className="epithet">{extras.title ?? c.epithet}</span>
-          </h2>
-          <div className="muted">
-            {omen(c.omen).name} · Level {c.level}
-          </div>
-          {/* XP is a labelled meter with its number on it, not a rule drawn
-              across the card with the reading stranded on the line below. */}
-          <div className="xp-row">
-            <span className="xp-cap">XP</span>
-            <div className="xpbar" title={`XP toward level ${c.level + 1}`}>
-              <div className="xpbar-fill" style={{ width: `${Math.min(100, (c.xp / need) * 100)}%` }} />
-            </div>
-            <span className="xp-num">{c.xp}/{need}</span>
-          </div>
-          {/* Two facts, not four. "Gear" repeated the Wardrobe's own counter and
-              "Fights left" repeated the top bar, so half this row was an echo —
-              which is what made it read as filler rather than information. */}
-          <dl className="facts">
-            <div>
-              <dt>Record</dt>
-              <dd>{save.wins}W – {save.losses}L</dd>
-            </div>
-            <div>
-              <dt>Health</dt>
-              <dd>{hpNow}</dd>
-            </div>
-          </dl>
-          {/* The one verb in the game belongs next to the champion, not at the
-              bottom of the page under the wardrobe. */}
-          <button className="btn primary big card-cta" onClick={props.onArena} disabled={save.vigor <= 0}>
-            <PixIcon name="swords" size={15} />{" "}
-            {save.vigor > 0 ? `Fight in the Arena (${save.vigor} left)` : "No fights left today"}
-          </button>
-        </div>
-      </section>
-
-      <section className="grid-2">
-        <div className="card stats-card">
-          <h3>Stats</h3>
-          <ul className="stats">
-            <StatRow label={STAT_LABEL.might} value={c.stats.might} teach={teaching} />
-            <StatRow label={STAT_LABEL.grace} value={c.stats.grace} teach={teaching} />
-            <StatRow label={STAT_LABEL.tempo} value={c.stats.tempo} teach={teaching} />
-            <StatRow label={STAT_LABEL.grit} value={c.stats.grit} teach={teaching} />
-          </ul>
-        </div>
-        <div className="card">
-          <h3>Weapons <span className="muted small">(drawn in this order)</span></h3>
-          <ul className="arsenal rack">
-            {c.weapons.map((id, i) => (
-              <li key={id}>
-                <span className="rack-tile">
-                  <WeaponIcon d={id} size={32} />
-                </span>
-                <div className="wbody">
-                  <div className="wtop">
-                    <b>{weapon(id).name}</b>
-                    <span className="wtag">{DISCIPLINE_NAME[weapon(id).discipline] ?? weapon(id).discipline}</span>
-                  </div>
-                  <WeaponBars w={weapon(id)} />
-                </div>
-                <span className="reorder">
-                  <button aria-label="draw earlier" disabled={i === 0} onClick={() => props.onReorder(i, i - 1)}><PixIcon name="chevronUp" size={7} /></button>
-                  <button aria-label="draw later" disabled={i === c.weapons.length - 1} onClick={() => props.onReorder(i, i + 1)}><PixIcon name="chevronDown" size={7} /></button>
-                </span>
-              </li>
-            ))}
-            <li className="muted">
-              <span className="rack-tile">
-                <WeaponIcon d="fists" size={32} />
-              </span>
-              <div className="wbody">
-                <div className="wtop"><b>Fists</b><span className="wtag">always last</span></div>
-                <div className="muted small">What is left when the steel is gone.</div>
-              </div>
-            </li>
-          </ul>
-          {/* An empty rack should say how it gets filled, not just sit there. */}
-          {c.weapons.length === 0 && (
-            <p className="muted small note">
-              No steel yet. Weapons drop from the Rift when you level — once you hold more than
-              one, this is where you set which comes out first.
-            </p>
-          )}
-        </div>
-      </section>
-
-      <section className="card quests quests-strip span-all">
-        <h3>Today's Tasks {save.quests?.claimed && <span className="owned-badge">DONE — gear dropped!</span>}</h3>
-        <ul className="qlist">
-          <Quest at={save.quests?.fights ?? 0} of={3}>Fight three times</Quest>
-          <Quest at={save.quests?.wins ?? 0} of={2}>Win two fights</Quest>
-          <Quest at={save.quests?.crits ?? 0} of={1}>Land a critical hit</Quest>
-        </ul>
-        <p className="muted small note">Complete all three for a bonus gear drop. Resets daily.</p>
-      </section>
-
-      {(c.skills.length > 0 || c.beasts.length > 0) && (
-        <section className="card">
-          <h3>Skills & Pets</h3>
-          <div className="plaques">
-            {c.skills.map((s) => (
-              <span key={s} className="plaque" title={skill(s).text}>
-                <SkillIcon id={s} kind={skill(s).kind as SkillKind} size={40} />
-                <em>{skill(s).name}</em>
-              </span>
-            ))}
-            {c.beasts.map((b, i) => (
-              <span key={`${b}${i}`} className="plaque" title={beast(b).flavour}>
-                <span className="pet-tile">
-                  <PetSprite beastId={b} size={44} />
-                </span>
-                <em>{beast(b).name}</em>
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <StandingsStrip save={save} />
-
-      <section className="card wardrobe span-all">
-        <h3>
-          Wardrobe{" "}
-          <span className="muted small">
-            {ownedGear.length}/{gearPool().length} found — drops are random, wear what you own
-          </span>
-        </h3>
-        {ownedGear.length === 0 ? (
-          <div className="wardrobe-empty">
-            {(["Armor", "Helm", "Cloak", "Trinket", "Title"] as const).map((label) => (
-              <span className="slot-empty" key={label}>
-                <span className="slot-frame" />
-                <em>{label}</em>
-              </span>
-            ))}
-            <p className="muted small">
-              Nothing yet — every level up (and some victories) drops a random piece of gear.
-            </p>
-          </div>
-        ) : (
-          (["body", "helm", "cloak", "trinket", "title"] as GearSlot[]).map((slot) => {
-            const items = ownedGear.filter((g) => g.slot === slot);
-            if (items.length === 0) return null;
-            const labels: Record<GearSlot, string> = {
-              body: "Armor",
-              helm: "Helm",
-              cloak: "Cloak",
-              trinket: "Trinket",
-              title: "Title",
-            };
-            return (
-              <div key={slot} className="wardrobe-row">
-                <h4 className="slot-label">{labels[slot]}</h4>
-                <div className="chips">
-                  {items.map((g) => {
-                    const worn = save.equipped?.[slot] === g.id;
-                    return (
-                      <button
-                        key={g.id}
-                        className={`chip gear-chip ${worn ? "worn" : ""}`}
-                        title={g.flavour}
-                        onClick={() => props.onEquip(slot, worn ? undefined : g.id)}
-                      >
-                        {/* worn by your own hunter, so you see it before choosing */}
-                        <FighterBust look={lookWithGear(baseLook, { [slot]: g.id })} size={46} />
-                        <span className="gear-text">
-                          <b>{g.name}</b>
-                          <span className="gear-stat">{gearStatLine(g) || gearDetail(g)}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })
-        )}
-      </section>
-
-      {/* Reference screens, not actions — the action lives on the champion card. */}
-      <div className="actions secondary">
-        <button className="btn ghost" onClick={props.onHistory}>
-          Level-Up History ({c.tapestry.length})
-        </button>
-        <button className="btn ghost" onClick={props.onLadder}>
-          Ladder
-        </button>
-        <button className="btn ghost" onClick={props.onCodex}>
-          Codex
-        </button>
-      </div>
-
-      <div className="devrow">
-        <button
-          className={`btn tiny danger ${armDelete ? "armed" : ""}`}
-          onClick={() => (armDelete ? props.onDelete() : setArmDelete(true))}
-        >
-          {armDelete ? "Tap again — deletes forever!" : "Delete Hunter"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ================= arena ================= */
-
-function Arena(props: {
-  save: SaveV1;
-  onBack: () => void;
-  onRefresh: () => void;
-  onFight: (r: Rival) => void;
-}) {
-  const { save } = props;
-  const board = useMemo(
-    () => arenaBoard(save.champion, todayKey(), save.boardRefresh),
-    [save.champion, save.boardRefresh],
-  );
-  return (
-    <div className="arena">
-      <div className="arena-head">
-        <button className="btn ghost" onClick={props.onBack}><PixIcon name="arrowLeft" size={11} /> Hall</button>
-        <h2>The Arena</h2>
-        <button className="btn ghost" onClick={props.onRefresh}>New rivals</button>
-      </div>
-      {save.vigor <= 0 && (
-        <p className="notice">
-          You're out of fights for today — 6 more arrive at the daily reset (midnight UTC),
-          and they bank up to {VIGOR_CAP}. Your Hall is still yours to tinker with: reorder your
-          draw, change what you wear, study the Codex.
-        </p>
-      )}
-      <StandingsStrip save={save} />
-
-      <div className="rivals">
-        {board.map((r, i) => {
-          return (
-            <div className="card rival" key={r.snapshot.name} style={{ animationDelay: `${i * 55}ms` }}>
-              <div className="rival-top">
-                <FighterBust look={rivalLook(r.snapshot.name).look} size={64} mirror />
-                <div className="rival-id">
-                  <span className="champ-name small">{r.snapshot.name}</span>
-                  <span className="muted small">
-                    Lv {r.snapshot.level} ·{" "}
-                    <PixIcon name="star" size={9} className="icon-gold" /> {r.kleos}
-                  </span>
-                </div>
-                <span className={`threat threat-${threatOf(save.kleos, r.kleos)}`}>
-                  {THREAT_LABEL[threatOf(save.kleos, r.kleos)]}
-                </span>
-              </div>
-
-              {/* what they carry, at a glance */}
-              <div className="rival-kit">
-                {r.snapshot.weapons.length > 0 ? (
-                  r.snapshot.weapons.map((w) => (
-                    <span className="kit-chip" key={w} title={weapon(w).flavour}>
-                      <WeaponIcon d={w} size={15} /> {weapon(w).name}
-                    </span>
-                  ))
-                ) : (
-                  <span className="kit-chip">
-                    <WeaponIcon d="fists" size={15} /> Bare-handed
-                  </span>
-                )}
-                {r.snapshot.skills.map((s) => (
-                  <span className="kit-chip skill" key={s} title={skill(s).text}>
-                    <SkillIcon id={s} kind={skill(s).kind as SkillKind} size={17} /> {skill(s).name}
-                  </span>
-                ))}
-                {r.snapshot.beasts.map((b, bi) => (
-                  <span className="kit-chip pet" key={`${b}${bi}`}>
-                    <PetSprite beastId={b} size={16} /> {beast(b).name}
-                  </span>
-                ))}
-              </div>
-
-              {/* the wager, so picking an opponent is a decision */}
-              <div className="wager">
-                <span className="wager-side win">
-                  <b>+{kleosDelta(true, save.kleos, r.kleos)}</b>
-                  <em>win</em>
-                </span>
-                <span className="wager-side lose">
-                  <b>{kleosDelta(false, save.kleos, r.kleos)}</b>
-                  <em>lose</em>
-                </span>
-              </div>
-
-              <button className="btn primary" disabled={save.vigor <= 0} onClick={() => props.onFight(r)}>
-                <span className="btn-label">Fight (1 <PixIcon name="bolt" size={11} />)</span>
-              </button>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/* ================= level-up reward (random — no choices) ================= */
-
-function RewardModal(props: {
-  level: number;
-  offer: FateOffer;
-  drop?: GearItem;
-  onClaim: () => void;
-}) {
-  const { offer, drop } = props;
-  const claimRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    sound.levelUp();
-    // A modal that announces itself as one should also take the focus, or a
-    // keyboard player is left tabbing the Hall behind it looking for Claim.
-    claimRef.current?.focus();
-  }, []);
-  return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-label="Level up">
-      <div className="draft card">
-        <h2>Level {props.level}!</h2>
-        <p className="muted">The Rift decides what you find — no choices, no rerolls.</p>
-        <div className="fate-row">
-          <div className="fate-card rolled">
-            <span className="fate-kind">
-              {offer.kind.startsWith("stat") ? "Stats" : offer.kind === "weapon" ? "New weapon" : offer.kind === "skill" ? "New skill" : "New pet"}
-            </span>
-            <OfferArt offer={offer} />
-            <b>{describeOffer(offer)}</b>
-            <span className="fate-detail">{offerDetail(offer)}</span>
-          </div>
-          {drop && (
-            <div className="fate-card rolled gear-card">
-              <span className="fate-kind">
-                <PixIcon name="loot" size={11} /> Gear drop — {drop.slot}
-              </span>
-              <b>{drop.name}</b>
-              {/* what it is worth, not just what it is called */}
-              {gearStatLine(drop) && <span className="fate-stats">{gearStatLine(drop)}</span>}
-              <span className="fate-detail">{drop.flavour}</span>
-            </div>
-          )}
-        </div>
-        <button className="btn primary big" ref={claimRef} onClick={props.onClaim}>
-          Claim
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** A level-up reward should be a thing you can see, not just a line of text. */
-function OfferArt({ offer }: { offer: FateOffer }) {
-  if (offer.kind === "skill")
-    return <SkillIcon id={offer.skill} kind={skill(offer.skill).kind as SkillKind} size={62} />;
-  if (offer.kind === "weapon")
-    return (
-      <span className="offer-art rack-tile">
-        <WeaponIcon d={offer.weapon} size={48} />
-      </span>
-    );
-  if (offer.kind === "beast")
-    return (
-      <span className="offer-art pet-tile">
-        <PetSprite beastId={offer.beast} size={56} />
-      </span>
-    );
-  return (
-    <span className="offer-art stat-tile">
-      <PixIcon name="star" size={34} />
-    </span>
-  );
-}
-
-function offerDetail(o: FateOffer): string {
-  if (o.kind === "weapon") return weapon(o.weapon).flavour;
-  if (o.kind === "skill") return skill(o.skill).text;
-  if (o.kind === "beast") return `${beast(o.beast).flavour} Costs ${beast(o.beast).gritTax} Endurance while it fights for you.`;
-  return "Reliable. Permanent. Yours.";
-}
-
-/* ================= history (the Tapestry) ================= */
-
-function History({ champion, onBack }: { champion: Champion; onBack: () => void }) {
-  return (
-    <div className="tapestry">
-      <div className="arena-head">
-        <button className="btn ghost" onClick={onBack}><PixIcon name="arrowLeft" size={11} /> Hall</button>
-        <h2>Level-Up History</h2>
-        <span />
-      </div>
-      <p className="muted">
-        Everything the Rift has rolled for {champion.displayName} — what landed is highlighted, what the fates passed over is struck through.
-      </p>
-      {champion.tapestry.length === 0 && <p className="muted">Nothing yet — win fights to level up.</p>}
-      <ol className="bands">
-        {[...champion.tapestry].reverse().map((band, i) => (
-          <li key={i} className="card band">
-            <span className="pill">Lv {band.level}</span>
-            {band.offers.map((o, j) => (
-              <span key={j} className={`thread ${j === band.picked ? "kept" : ""}`}>
-                {describeOffer(o)}
-              </span>
-            ))}
-            {band.rerolled && <span className="muted small">(rerolled)</span>}
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
-/* ================= codex ================= */
-
-function Codex({ champion, onBack }: { champion: Champion; onBack: () => void }) {
-  const found = WEAPONS.filter((w) => champion.weapons.includes(w.id)).length;
-  return (
-    <div className="codex">
-      <div className="arena-head">
-        <button className="btn ghost" onClick={onBack}><PixIcon name="arrowLeft" size={11} /> Hall</button>
-        <h2>Codex</h2>
-        <span />
-      </div>
-      <p className="muted">
-        Everything the Rift can give you, laid out in full. What you have found is in colour;
-        the rest is greyed until it drops. Hover any of them for what it does.
-      </p>
-
-      <CodexCase title="Weapons" have={found} all={WEAPONS.length}>
-        {WEAPONS.map((w) => (
-          <CodexTile
-            key={w.id}
-            name={w.name}
-            owned={champion.weapons.includes(w.id)}
-            detail={`${DISCIPLINE_NAME[w.discipline] ?? w.discipline}${w.ammo ? ` · ${w.ammo} throws` : ""}${w.twoHanded ? " · two-handed" : ""} — ${w.flavour}`}
-          >
-            <span className="rack-tile">
-              <WeaponIcon d={w.id} size={40} />
-            </span>
-          </CodexTile>
-        ))}
-      </CodexCase>
-
-      {[
-        { title: "Boons", note: "always-on passives", list: BOONS },
-        { title: "Techniques", note: "trigger on their own", list: TECHNIQUES },
-        { title: "Trumps", note: "big moves that fire on instinct", list: TRUMPS },
-      ].map((group) => (
-        <CodexCase
-          key={group.title}
-          title={group.title}
-          note={group.note}
-          have={group.list.filter((s) => champion.skills.includes(s.id)).length}
-          all={group.list.length}
-        >
-          {group.list.map((s) => (
-            <CodexTile key={s.id} name={s.name} owned={champion.skills.includes(s.id)} detail={s.text}>
-              <SkillIcon id={s.id} kind={s.kind as SkillKind} size={46} />
-            </CodexTile>
-          ))}
-        </CodexCase>
-      ))}
-
-      <CodexCase title="Pets" have={champion.beasts.length} all={BEASTS.length}>
-        {BEASTS.map((b) => (
-          <CodexTile
-            key={b.id}
-            name={b.name}
-            owned={champion.beasts.includes(b.id)}
-            detail={`HP ${b.hpBase}+level · hits ${b.dmgMin}–${b.dmgMax} · costs ${b.gritTax} Endurance — ${b.flavour}`}
-          >
-            <span className="pet-tile">
-              <PetSprite beastId={b.id} size={56} />
-            </span>
-          </CodexTile>
-        ))}
-      </CodexCase>
-    </div>
-  );
-}
-
-/** One shelf of the Codex, with how much of it you have found. */
-function CodexCase({
-  title,
-  note,
-  have,
-  all,
-  children,
-}: {
-  title: string;
-  note?: string;
-  have: number;
-  all: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="card codex-case">
-      <h3>
-        {title}{" "}
-        <span className="muted small">
-          {note ? `${note} — ` : ""}{have}/{all} found
-        </span>
-      </h3>
-      <div className="codex-grid">{children}</div>
-    </section>
-  );
-}
-
-/** A found thing is in colour. An unfound one is the same art, drained. */
-function CodexTile({
-  name,
-  owned,
-  detail,
-  children,
-}: {
-  name: string;
-  owned: boolean;
-  detail: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <span className={`codex-tile ${owned ? "" : "locked"}`} title={`${name} — ${detail}`}>
-      {children}
-      <em>{name}</em>
-    </span>
-  );
-}

@@ -145,11 +145,12 @@ export type Side = 0 | 1;
 export type FightEvent =
   | { t: number; type: "start"; init: [number, number] }
   | { t: number; type: "gambit"; side: Side; gambit: GambitId }
-  | { t: number; type: "draw"; side: Side; weapon: string }
+  | { t: number; type: "draw"; side: Side; weapon: string } // weapon id
   | {
       t: number;
       type: "attack";
       side: Side;
+      /** Weapon id — the log stores ids; display names are a render concern. */
       weapon: string;
       thrown?: boolean;
       /** Target: champion or a beast index on the defending side. */
@@ -170,12 +171,12 @@ export type FightEvent =
     }
   | { t: number; type: "counter"; side: Side; amount: number; targetHp: number }
   | { t: number; type: "riposte"; side: Side; amount: number; targetHp: number }
-  | { t: number; type: "disarm"; side: Side; weapon: string }
+  | { t: number; type: "disarm"; side: Side; weapon: string } // weapon id
   | { t: number; type: "trump"; side: Side; skill: string; trigger: TrumpTrigger }
   | { t: number; type: "technique"; side: Side; skill: string; amount?: number }
   | { t: number; type: "heal"; side: Side; amount: number; source: string; hp: number }
-  | { t: number; type: "beastAttack"; side: Side; beast: string; amount: number; targetHp: number }
-  | { t: number; type: "beastDown"; side: Side; beast: string }
+  | { t: number; type: "beastAttack"; side: Side; beast: string; amount: number; targetHp: number } // beast id
+  | { t: number; type: "beastDown"; side: Side; beast: string } // beast id
   | { t: number; type: "status"; side: Side; what: string }
   | { t: number; type: "end"; winner: Side; reason: "ko" | "cap" };
 

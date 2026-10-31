@@ -215,6 +215,14 @@ export function WeatherFx({ kind, count }: { kind: string; count: number }) {
 }
 
 /** Circular bust: a live mini idle loop framed in a ring. */
+/**
+ * A bust is a portrait, not a shrunken full body. Measured across the rival
+ * looks: hair inks from row 10-17 and the neck narrows at 31-34, so rows 10-39
+ * put the eye line at ~40% with real air under the chin instead of the jaw
+ * sitting on the tile's bottom edge. 29 rows is also exactly 2x in a 64px tile.
+ */
+const BUST = { top: 10, rows: 29 };
+
 export function FighterBust({
   look,
   size,
@@ -224,11 +232,25 @@ export function FighterBust({
   size: number;
   mirror?: boolean;
 }) {
+  const src = useLookStrip(look);
+  // The tile's border eats 3px a side; everything below is in inner pixels.
+  const inner = size - 6;
+  const scale = inner / BUST.rows;
+  const w = FRAME * scale;
   return (
     <span className="hero-bust fighter-bust" style={{ width: size, height: size }} aria-hidden>
-      <span style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: size * 0.06 }}>
-        <FighterFig look={look} height={size * 0.82} mirror={mirror} />
-      </span>
+      <span
+        className="strip bust-strip"
+        style={{
+          width: w,
+          height: w,
+          backgroundImage: src ? `url(${src})` : undefined,
+          backgroundSize: `${w * STRIP_FRAMES}px ${w}px`,
+          transform: mirror ? "scaleX(-1)" : undefined,
+          left: inner / 2 - CHAR.cx * scale,
+          top: -BUST.top * scale,
+        }}
+      />
     </span>
   );
 }

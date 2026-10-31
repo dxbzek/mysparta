@@ -4,7 +4,7 @@ import type { BeastDef } from "../types.js";
 export const BEASTS: BeastDef[] = [
   {
     id: "lykos",
-    name: "Ōkami",
+    name: "Wolf",
     gritTax: 2,
     hpBase: 16,
     dmgMin: 4,
@@ -13,11 +13,11 @@ export const BEASTS: BeastDef[] = [
     evasion: 15,
     armour: 0,
     init: 0,
-    flavour: "An ash-grey wolf that runs at its hunter's heel. Pack instinct: each extra Ōkami grants the pack +5% damage.",
+    flavour: "An ash-grey wolf that runs at its hunter's heel. Pack instinct: each extra Wolf grants the pack +5% damage.",
   },
   {
     id: "stymphal_shrike",
-    name: "Karasu",
+    name: "Raven",
     gritTax: 4,
     hpBase: 22,
     dmgMin: 5,
@@ -30,7 +30,7 @@ export const BEASTS: BeastDef[] = [
   },
   {
     id: "kalydon_boar",
-    name: "Inoshishi",
+    name: "Boar",
     gritTax: 5,
     hpBase: 45,
     dmgMin: 10,
@@ -43,7 +43,7 @@ export const BEASTS: BeastDef[] = [
   },
   {
     id: "nemean_cub",
-    name: "Komainu",
+    name: "Guard Dog",
     gritTax: 6,
     hpBase: 70,
     dmgMin: 8,
@@ -56,7 +56,7 @@ export const BEASTS: BeastDef[] = [
   },
   {
     id: "ember_fox",
-    name: "Kitsune",
+    name: "Fox",
     gritTax: 3,
     hpBase: 18,
     dmgMin: 5,
@@ -69,7 +69,7 @@ export const BEASTS: BeastDef[] = [
   },
   {
     id: "bronze_owl",
-    name: "Fukurō",
+    name: "Firebird",
     gritTax: 3,
     hpBase: 14,
     dmgMin: 3,
@@ -82,7 +82,7 @@ export const BEASTS: BeastDef[] = [
   },
   {
     id: "kerberos_pup",
-    name: "Oni Pup",
+    name: "Hound",
     gritTax: 5,
     hpBase: 34,
     dmgMin: 8,
@@ -95,7 +95,7 @@ export const BEASTS: BeastDef[] = [
   },
   {
     id: "marble_tortoise",
-    name: "Kame",
+    name: "Tortoise",
     gritTax: 4,
     hpBase: 60,
     dmgMin: 4,
@@ -112,7 +112,10 @@ const byId = new Map(BEASTS.map((b) => [b.id, b] as const));
 
 export function beast(id: string): BeastDef {
   const b = byId.get(id);
-  if (!b) throw new Error(`Unknown beast: ${id}`);
+  if (!b) {
+    console.warn(`Unknown beast: ${id}`);
+    return BEASTS[0]!;
+  }
   return b;
 }
 
