@@ -299,3 +299,60 @@ Two things learned the hard way:
 sampling `getComputedStyle` twice always returns the same matrix. Scrub
 instead — `el.getAnimations().forEach(a => { a.pause(); a.currentTime = t })`,
 then read the transform or screenshot. That is how every pose here was checked.
+
+## Sixth pass — the icons stay drawn
+
+The beasts are generated art now. The weapons and skills are not, and this
+records why, so the attempt is not repeated from scratch.
+
+Six generation rounds, ~170 renders, on the same four or five test subjects
+before the full run:
+
+| # | Setup | What came back |
+|---|---|---|
+| 1 | Paraphrased style, wolf reference, img2img 0.85 | Ornate engraved chrome weapons standing in grass |
+| 2 | Wolf's style string verbatim, wolf reference | A Spartan warrior **holding** every weapon, all six renders |
+| 3 | txt2img, "character art" removed | Objects at last — inside laurel wreaths, with gradients; the sling was a handbag |
+| 4 | 640px, "die-cut sticker" framing | The model drew the white sticker border as part of the picture |
+| 5 | IconsRedmond / CuteCartoon SDXL LoRA | Style solved: flat, single object, clean outline |
+| 6 | LoRA + diagonal pose + reworded subjects, 25+25 × 3 seeds | ~80% of weapons and ~60% of skills are the right object |
+
+Two findings, in order of how much they cost to learn.
+
+**The style lock was never the reference image.** Every early attempt fed
+objects through img2img off the approved wolf, because that is how the beasts
+were style-locked. But the wolf itself was txt2img: the prompt was the style,
+and the reference only ever contributed composition. A quadruped is a bad
+composition for a shield, which is why rounds 1 and 2 failed — and why the
+phrase "character art", copied in faithfully from the beasts' prompt, put a
+warrior in frame holding each weapon.
+
+**A LoRA fixed the style and could not fix the rest.** IconsRedmond V2 (SDXL,
+in `models/loras`) produced flat single objects immediately, where four rounds
+of prompt wording had not. What it did not give was *one* look across fifty
+assets: hot-pink lungs beside a gold 3D sun beside a grey brick photo beside
+flat black glyphs. Nor subject reliability — Titan Grip came back a
+bodybuilder, Gorgon's Glare a cartoon frog, Hermes' Rush a women's high-heeled
+sandal, the maul a stone face in all three seeds.
+
+So the generated icons are not shipped. `cartoonArt.tsx` and `skillArt.tsx`
+stay: they are one hand, drawn from a shared parts vocabulary, and at the
+32–64px these render at, a drawn silhouette reads better than a 640px raster
+reduced to a thumbnail. The split that remains is deliberate — beasts are
+generated because they are large on the stage and an animal is a dense prior;
+icons are drawn because they are small and specific.
+
+The renders and a per-subject picks file are kept in the session scratchpad
+rather than the repo. If this is revisited, the lever not yet pulled is the
+beasts' own trick applied to icons: approve one, then img2img the other
+forty-nine off it to force a single palette and line weight — at the cost of
+subject accuracy, which is already the weaker half.
+
+**Two machine-level traps, both of which cost a run:**
+- ComfyUI's desktop install runs from its own venv
+  (`ComfyUI-Installs/ComfyUI/ComfyUI/.venv/Scripts/python.exe`); the
+  `standalone-env` python next to it has no torch.
+- Another Claude session on this machine runs its own ComfyUI on **8188**.
+  When ours died, that one took the port, and every request then failed
+  validation against *its* model paths, which have no LoRAs — presenting as a
+  flat `HTTP 400` with no obvious cause. Ours runs on 8289 now.
