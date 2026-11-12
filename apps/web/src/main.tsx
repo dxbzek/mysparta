@@ -61,7 +61,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
                 className="btn tiny danger"
                 onClick={() => {
                   // Explicit last resort — only after the code above is theirs.
-                  // Even then the bytes are copied aside first (save.ts `.bak`).
+                  // Even then the bytes are copied aside first (save.ts: `.prev`
+                  // for a save that reads, `.bak` for one that does not).
                   backupSlot();
                   wipe();
                   location.reload();

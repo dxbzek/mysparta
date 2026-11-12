@@ -11,7 +11,7 @@ export const LEVEL_CAP = 50;
  * and a wall that appears in a single step reads as the game breaking rather
  * than the climb steepening.
  *
- * The band ramps instead of stepping. 29→30 now costs 33 against the 31
+ * The band ramps instead of stepping. 30→31 now costs 33 against the 31
  * before it, and the curve keeps rising to 71 at the cap, so the top of the
  * ladder is still the hard part — it just gets hard gradually. The whole climb
  * to 50 is 1,524 XP against the old 1,674, about 9% shorter.

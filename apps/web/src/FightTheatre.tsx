@@ -10,7 +10,17 @@ import { CHAR, weaponArtFor, type Look } from "./paperdoll.js";
 import { narrate, type Line } from "./narrate.js";
 import { SkillFx, fxFor } from "./fightFx.js";
 import { sound, type StrikeKind } from "./sound.js";
-import { HITSTOP_MS, MISSILE_FLIGHT_MS, MISSILE_LAUNCH_MS, THROWN_CONTACT_MS, contactMs, koSchedule } from "./beats.js";
+import {
+  MISSILE_FLIGHT_MS,
+  MISSILE_LAUNCH_MS,
+  THROWN_CONTACT_MS,
+  beatHoldMs,
+  contactMs,
+  effectDelayMs,
+  impactSoundMs,
+  killBeat,
+  koSchedule,
+} from "./beats.js";
 
 export interface StageFigure {
   /** The fighter's full appearance (paperdoll.ts). */
@@ -135,7 +145,11 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
    * blow nobody saw. The beat now plays up to contact, stops dead there with
    * the thud, then lets go: the stage lurches and the body takes it.
    */
-  const kills = lines.length > 1 && shown === lines.length - 1 && result.reason === "ko" && !skipped;
+  // Which line that is comes from what the lines DO, not where they sit: the
+  // core can announce a drawn weapon or a critical's rider after the blow
+  // that ended it (beats.ts `killBeat`).
+  const koIdx = useMemo(() => killBeat(lines, result), [lines, result]);
+  const kills = koIdx >= 0 && shown - 1 === koIdx && !skipped;
   const [ko, setKo] = useState<"none" | "freeze" | "release">("none");
 
   useEffect(() => {
@@ -144,7 +158,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       return;
     }
     // Read the speed once: toggling 2x mid-beat must not restart the freeze.
-    const plan = koSchedule(lines[shown - 1], speedRef.current);
+    const plan = koSchedule(lines[koIdx], speedRef.current);
     const freeze = window.setTimeout(() => {
       setKo("freeze");
       // Heard on the frozen frame, where the fallen fighter stands.
@@ -155,12 +169,12 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       window.clearTimeout(freeze);
       window.clearTimeout(release);
     };
-  }, [kills, lines, shown, result.winner]);
+  }, [kills, lines, koIdx, result.winner]);
 
   useEffect(() => {
     if (finished) return;
     const line = lines[shown - 1];
-    const hold = ((line?.hold ?? 600) + (kills ? HITSTOP_MS : 0)) / speedRef.current;
+    const hold = beatHoldMs(line, kills) / speedRef.current;
     const id = window.setTimeout(() => setShown((s) => s + 1), hold);
     return () => window.clearTimeout(id);
   }, [shown, finished, lines, speed, kills]);
@@ -196,7 +210,26 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   );
   const idx = visible.length;
   const current = visible[visible.length - 1];
-  const hp = current?.hp ?? [result.hpMax[0], result.hpMax[1]];
+
+  /*
+   * A thrown blow's consequences wait for the javelin. The recoil, burst and
+   * number already did (the stylesheet's `thrown-beat` block); the HP bar and
+   * the struck pose started on the beat's first frame, so the bar had drained
+   * — and on a thrown KO read 0 — before the spear left the hand. Until the
+   * flight ends the stage shows the health and the stance of the beat before.
+   */
+  const [landed, setLanded] = useState(0);
+  const wait = skipped ? 0 : effectDelayMs(current);
+  useEffect(() => {
+    if (wait === 0) return;
+    // Read the speed once, like the freeze: the missile is already in the air.
+    const id = window.setTimeout(() => setLanded(shown), wait / speedRef.current);
+    return () => window.clearTimeout(id);
+  }, [shown, wait]);
+  const airborne = wait > 0 && landed !== shown;
+
+  const hp =
+    (airborne ? visible[visible.length - 2]?.hp : current?.hp) ?? [result.hpMax[0], result.hpMax[1]];
   const loser: 0 | 1 = result.winner === 0 ? 1 : 0;
 
   const anim = skipped ? undefined : current?.anim;
@@ -285,6 +318,11 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     // in the air.
     const thrown = !!l.anim?.thrown;
     const contact = Math.round(contactMs(l) / speedRef.current);
+    // The weapon's own impact: at contact, except an axe's late chop — and
+    // not even that on the blow the stage freezes on (beats.ts).
+    const impact = Math.round(
+      impactSoundMs(l, { axe: kind === "axe", kills: shown - 1 === koIdx }) / speedRef.current,
+    );
     /** The wind-up you hear: a swing through the air, or a release and flight. */
     const windUp = () => (thrown ? sound.throwSpear() : sound.swing(kind, striker));
     switch (l.kind) {
@@ -300,7 +338,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
         // swing first, impact landing a beat later — the gap sells the blow
         windUp();
         if (thrown) land(() => sound.strike("pierce", crit, striker), contact);
-        else land(() => sound.strike(kind, crit, striker), kind === "axe" ? Math.round(360 / speedRef.current) : contact);
+        else land(() => sound.strike(kind, crit, striker), impact);
         break;
       }
       case "defend":
@@ -319,7 +357,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
         break;
     }
     return () => pending.forEach((id) => window.clearTimeout(id));
-  }, [shown, skipped, lines, names, heldWeapon, hasShield, result.winner]);
+  }, [shown, skipped, lines, names, heldWeapon, hasShield, result.winner, koIdx]);
 
   /** who mended on this beat, so their bar flares with the number */
   const healed = anim?.heal ? anim.striker : undefined;
@@ -396,7 +434,8 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   const animOf = (side: 0 | 1): FighterAnim => {
     if (finished && side === loser && result.reason === "ko") return "death";
     if (finished) return "stance";
-    const react = anim?.reaction?.side === side ? anim.reaction.kind : undefined;
+    // Nobody flinches, steps or braces at a javelin still in the thrower's hand.
+    const react = !airborne && anim?.reaction?.side === side ? anim.reaction.kind : undefined;
     if (react === "hurt") return "hit";
     // A cast holds the guard while the body channels; the CSS does the lift.
     if ((anim?.cast || anim?.heal) && anim.striker === side) return "stance";

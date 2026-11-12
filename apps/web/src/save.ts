@@ -132,6 +132,35 @@ export function questsComplete(q: DailyQuests | undefined, defs = questsForDay()
 /** What one finished task pays on its own, before the all-three drop. */
 export const TASK_XP = 1;
 
+const QUEST_METRICS: readonly QuestMetric[] = ["fights", "wins", "crits", "blocks", "streak"];
+
+/** `quests.paid` as it must be: known metrics, once each. Anything else is none. */
+function paidList(x: unknown): QuestMetric[] {
+  if (!Array.isArray(x)) return [];
+  return QUEST_METRICS.filter((m) => x.includes(m));
+}
+
+/** A rescue code's `quests`, rebuilt field by field. Undefined when it is not a board. */
+function cleanQuests(x: unknown): DailyQuests | undefined {
+  if (typeof x !== "object" || x === null) return undefined;
+  const q = x as Record<string, unknown>;
+  if (typeof q.day !== "string" || !q.day) return undefined;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? Math.min(1e6, Math.max(0, Math.floor(v))) : 0);
+  const out: DailyQuests = {
+    day: q.day.slice(0, 10),
+    fights: n(q.fights),
+    wins: n(q.wins),
+    crits: n(q.crits),
+    blocks: n(q.blocks),
+    streak: n(q.streak),
+    run: n(q.run),
+    claimed: q.claimed === true,
+  };
+  // Absent stays absent: that is how a board from before tasks paid singly reads.
+  if (q.paid !== undefined) out.paid = paidList(q.paid);
+  return out;
+}
+
 /**
  * Pay out what the board owes after a fight's tallies are in.
  *
@@ -145,7 +174,9 @@ export function settleQuests(
   q: DailyQuests,
   defs: QuestDef[] = questsForDay(q.day),
 ): { quests: DailyQuests; taskXp: number; newlyDone: QuestDef[]; boardCleared: boolean } {
-  const paid = [...(q.paid ?? [])];
+  // Not `[...(q.paid ?? [])]`: a pasted rescue code can carry any JSON here,
+  // and spreading a number threw on every fight until the day rolled over.
+  const paid = paidList(q.paid);
   const newlyDone = defs.filter((d) => questProgress(q, d) >= d.need && !paid.includes(d.metric));
   for (const d of newlyDone) paid.push(d.metric);
   const boardCleared = !q.claimed && questsComplete(q, defs);
@@ -155,6 +186,25 @@ export function settleQuests(
     newlyDone,
     boardCleared,
   };
+}
+
+/**
+ * Back pay for a board from before tasks paid singly.
+ *
+ * Such a board has no `paid` list, so the first settle after the update pays
+ * every task it had already finished — deliberately, once. But that settle
+ * ran after the fight's tallies were added, so the verdict read "3 tasks
+ * done" on a fight that finished none of them. Settled here, BEFORE the
+ * tallies, what was earned earlier is paid as that, and the fight is then
+ * credited only with what it finished. The drop is left to settleQuests.
+ */
+export function settleBackPay(
+  q: DailyQuests,
+  defs: QuestDef[] = questsForDay(q.day),
+): { quests: DailyQuests; taskXp: number } {
+  if (q.paid !== undefined) return { quests: q, taskXp: 0 };
+  const owed = settleQuests(q, defs);
+  return { quests: { ...q, paid: owed.quests.paid }, taskXp: owed.taskXp };
 }
 
 const KEY = "agoge.save.v1";
@@ -175,6 +225,21 @@ export const ROSTER_MAX = 3;
 const slotKey = (slot: number) => (slot === 0 ? KEY : `${KEY}.${slot}`);
 /** Where a slot's unreadable bytes are kept, verbatim. */
 const bakKey = (slot: number) => `${slotKey(slot)}.bak`;
+/**
+ * A slot can be damaged more than once (freed, reused, damaged again), and
+ * each rescue is somebody's hunter. They are kept side by side — `.bak`,
+ * `.bak.1`, … — and none is ever written over. Past this many the slot simply
+ * cannot be rescued again, and refuses to be freed or replaced (below).
+ */
+const BACKUP_MAX = 8;
+const bakKeys = (slot: number) =>
+  Array.from({ length: BACKUP_MAX }, (_, n) => (n === 0 ? bakKey(slot) : `${bakKey(slot)}.${n}`));
+/**
+ * Where a READABLE save is copied before a deliberate reset. Its own key: it
+ * used to share `.bak`, so resetting a healthy hunter replaced the rescued
+ * bytes of the damaged one that had the slot before them.
+ */
+const prevKey = (slot: number) => `${slotKey(slot)}.prev`;
 
 /**
  * Empty is not the same as unreadable.
@@ -229,13 +294,23 @@ function rawSlot(slot: number): string | null {
   }
 }
 
-/** Copy bytes into the slot's `.bak`, verbatim. True when they are safe. */
+/**
+ * Copy unreadable bytes aside, verbatim. True only when a copy of exactly
+ * these bytes exists afterwards — callers that are about to destroy the
+ * original must not go on when this says false.
+ */
 function keepBackup(slot: number, raw: string): boolean {
   try {
-    if (localStorage.getItem(bakKey(slot)) !== raw) localStorage.setItem(bakKey(slot), raw);
+    const keys = bakKeys(slot);
+    const held = keys.map((k) => localStorage.getItem(k));
+    if (held.includes(raw)) return true;
+    // The first key nothing is in. A different rescue is never replaced.
+    const free = held.findIndex((h) => h === null);
+    if (free === -1) return false;
+    localStorage.setItem(keys[free]!, raw);
     return true;
   } catch {
-    return false; // storage full or denied — nothing more we can do here
+    return false; // storage full or denied — the caller decides what that costs
   }
 }
 
@@ -251,22 +326,46 @@ export function slotStates(): SlotState[] {
   return Array.from({ length: ROSTER_MAX }, (_, i) => slotState(i));
 }
 
+/** Every set of unreadable bytes rescued from this slot, oldest first. */
+export function slotBackups(slot: number): string[] {
+  try {
+    return bakKeys(slot)
+      .map((k) => localStorage.getItem(k))
+      .filter((v): v is string => v !== null);
+  } catch {
+    return [];
+  }
+}
+
 /** The unreadable bytes last rescued from this slot, if any. */
 export function slotBackup(slot: number): string | null {
-  try {
-    return localStorage.getItem(bakKey(slot));
-  } catch {
-    return null;
-  }
+  return slotBackups(slot).at(-1) ?? null;
+}
+
+/**
+ * True when the bytes in this slot right now also exist in a rescue copy —
+ * what the Hunters screen must check before it says "a copy is kept".
+ */
+export function slotIsBackedUp(slot: number): boolean {
+  const raw = rawSlot(slot);
+  return !!raw && slotBackups(slot).includes(raw);
 }
 
 /**
  * Keep a verbatim copy of whatever the slot holds right now — for the paths
  * that are about to destroy it on purpose (the error boundary's reset).
+ * Unreadable bytes join the rescues; a readable save goes to `.prev`.
  */
 export function backupSlot(slot = activeSlot()): boolean {
   const raw = rawSlot(slot);
-  return raw ? keepBackup(slot, raw) : false;
+  if (!raw) return false;
+  if (!parseSave(raw)) return keepBackup(slot, raw);
+  try {
+    localStorage.setItem(prevKey(slot), raw);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 interface RosterState {
@@ -402,6 +501,24 @@ export function load(): SaveV1 | null {
   return loadSlot(activeSlot());
 }
 
+/**
+ * The hunter to play: the active slot's, or — when that slot is empty or will
+ * not read — the first one that will, which then becomes the active slot.
+ *
+ * Only a damaged active slot used to fall through like this. An EMPTY one
+ * (the hunter being played was deleted; "Awaken a hunter" was opened and the
+ * page reloaded) loaded as nothing, and the Forge that followed has no way to
+ * the Hunters screen — every other hunter sat behind a throwaway one.
+ */
+export function loadPlayable(): SaveV1 | null {
+  const active = load();
+  if (active) return active;
+  const other = rosterSummary().find((r) => r !== null);
+  if (!other) return null;
+  setActiveSlot(other.slot);
+  return load();
+}
+
 /** Read one slot, applying every migration and the daily reset. */
 export function loadSlot(slot: number): SaveV1 | null {
   const raw = rawSlot(slot);
@@ -416,17 +533,24 @@ export function loadSlot(slot: number): SaveV1 | null {
   return applyDailyReset(parsed);
 }
 
-export function persist(save: SaveV1, slot = activeSlot()): void {
+/** False when nothing was written. */
+export function persist(save: SaveV1, slot = activeSlot()): boolean {
   try {
     // The last guard. Every caller is meant to avoid a corrupt slot, but if
     // one is ever written to (a full roster, a future code path), the bytes
     // it held are copied out first — a write never destroys what it replaces
     // unless that was a save we could read.
+    //
+    // And if they cannot be copied (storage full: the copy fails, while the
+    // smaller new save over the existing key would fit), the write does not
+    // happen. The result of keepBackup used to be ignored here.
     const before = localStorage.getItem(slotKey(slot));
-    if (before && !parseSave(before)) keepBackup(slot, before);
+    if (before && !parseSave(before) && !keepBackup(slot, before)) return false;
     localStorage.setItem(slotKey(slot), JSON.stringify(save));
+    return true;
   } catch {
     // Sandboxed embeds may deny storage — the session still plays, unsaved.
+    return false;
   }
 }
 
@@ -498,21 +622,29 @@ export function decodeSave(code: string): SaveV1 | null {
       totalFights: num(p.totalFights, 0, 1e6, 0),
       boardRefresh: num(p.boardRefresh, 0, 99, 0),
       gear: list(p.gear, 64),
+      // Read on every fight (settleQuests), so it is rebuilt like the rest.
+      quests: cleanQuests(p.quests),
     };
   } catch {
     return null;
   }
 }
 
-export function wipe(slot = activeSlot()): void {
+/**
+ * Empty a slot. False only when it REFUSED: the slot holds bytes that will
+ * not read and no copy of them could be kept, so removing them would be the
+ * end of them (removeItem never fails on a full disk; the copy does).
+ */
+export function wipe(slot = activeSlot()): boolean {
   try {
     // Discarding a damaged slot frees it; the bytes stay in its `.bak`.
     const before = localStorage.getItem(slotKey(slot));
-    if (before && !parseSave(before)) keepBackup(slot, before);
+    if (before && !parseSave(before) && !keepBackup(slot, before)) return false;
     localStorage.removeItem(slotKey(slot));
   } catch {
-    // ignore
+    // storage denied — nothing is stored, so there is nothing to protect
   }
+  return true;
 }
 
 /** True when at least one slot is still free for a new hunter. */
@@ -527,4 +659,25 @@ export function hasFreeSlot(): boolean {
 export function firstFreeSlot(): number | null {
   const i = slotStates().findIndex((s) => s === "empty");
   return i === -1 ? null : i;
+}
+
+/**
+ * Where the Forge may write a new or restored hunter, or null when it may not
+ * write at all.
+ *
+ * It used to be `firstFreeSlot() ?? activeSlot()`: with no empty slot left the
+ * new hunter was written over the one being played, and because that save
+ * parsed, nothing copied it aside first. The Forge is reachable with a full
+ * roster (the #/new address, or Back after the last hunter is made), so that
+ * was a healthy hunter gone for typing a name.
+ *
+ * A readable hunter is never a target. With no empty slot, the only slot that
+ * may be written is an active one that will not read — the Forge's "damaged"
+ * path, where persist() keeps the old bytes in `.bak` first.
+ */
+export function forgeSlot(): number | null {
+  const free = firstFreeSlot();
+  if (free !== null) return free;
+  const active = activeSlot();
+  return slotState(active) === "ok" ? null : active;
 }

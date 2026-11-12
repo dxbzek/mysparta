@@ -298,13 +298,69 @@ describe("scouting a rival you have fought", () => {
     }
   });
 
-  it("matches what the fight actually announced", () => {
-    const r = simulateFight({
-      seed: 7,
-      attacker: snapshot(grown("Scout", 6), PLAN),
-      defender: snapshot(grown("Scouted", 6), { stance: "guarded", gambit: "hold_ground" }),
-    });
-    const opener = narrate(r, ["Scout", "Scouted"]).find((l) => l.side === 1 && l.text.includes("opens with"));
-    expect(opener?.text).toContain("hold ground");
+  /** What the fight log said the defender opened with, in the log's own words. */
+  const announced = (attacker: ReturnType<typeof snapshot>, defender: ReturnType<typeof snapshot>, seed: number) => {
+    const r = simulateFight({ seed, attacker, defender });
+    const opener = narrate(r, ["Scout", defender.name]).find((l) => l.side === 1 && l.text.includes("opens with"));
+    expect(opener, `${defender.name} announced no opening`).toBeDefined();
+    return /opens with (.+)\.$/.exec(opener!.text)![1]!;
+  };
+
+  it("matches what the fight actually announced, for every opening and stance", async () => {
+    const { scoutNote } = await import("../src/narrate.js");
+    const gambits = ["hurl_first", "close_the_gap", "hold_ground", "feint", "loose_the_beast", "test_the_shield", "war_cry"] as const;
+    const stances = ["aggressive", "measured", "guarded"] as const;
+    const me = snapshot(grown("Scout", 6), PLAN);
+    let seed = 7;
+    for (const gambit of gambits) {
+      for (const stance of stances) {
+        const plan: BattlePlan = { stance, gambit };
+        const said = announced(me, snapshot(grown("Scouted", 6), plan), seed++);
+        // The card's line is built from the stored plan; the log's from the
+        // fight's events. They must name the same opening the same way.
+        expect(scoutNote(plan)).toBe(`Fought before — last opened with ${said}, ${stance}.`);
+      }
+    }
+  });
+
+  it("the board reads back exactly what the fight wrote, and only for rivals fought", async () => {
+    const { arenaBoard } = await import("@agoge/core");
+    const { rememberPlan, scoutFor, scoutNote } = await import("../src/narrate.js");
+    const champion = grown("Scout", 6);
+    const me = snapshot(champion, PLAN);
+    const board = arenaBoard(champion, "2026-11-12", 0);
+    expect(board).toHaveLength(6);
+    // What App's startFight keeps in the save, fight after fight.
+    let seen: Record<string, BattlePlan> | undefined = undefined;
+    const fought = board.filter((_, i) => i % 2 === 0);
+    for (const [i, rival] of fought.entries()) {
+      // A stranger until the bout is over.
+      expect(scoutFor(seen, rival)).toBeNull();
+      const said = announced(me, rival.snapshot, 100 + i);
+      seen = rememberPlan(seen, rival);
+      // What the Arena card shows next time: their plan, as the log said it.
+      expect(scoutFor(seen, rival)).toBe(scoutNote(rival.snapshot.plan));
+      expect(scoutFor(seen, rival)).toBe(
+        `Fought before — last opened with ${said}, ${rival.snapshot.plan.stance}.`,
+      );
+    }
+    // Remembering one rival neither forgets the others nor invents any.
+    for (const rival of board) {
+      expect(scoutFor(seen, rival) !== null, rival.snapshot.name).toBe(fought.includes(rival));
+    }
+    expect(Object.keys(seen!).sort()).toEqual(fought.map((r) => r.snapshot.name).sort());
+    // It survives the save's own round trip (JSON), which is where it lives.
+    const stored = JSON.parse(JSON.stringify({ seenPlans: seen })) as { seenPlans: Record<string, BattlePlan> };
+    for (const rival of fought) expect(scoutFor(stored.seenPlans, rival)).toBe(scoutFor(seen, rival));
+  });
+
+  it("App and the Arena card go through those two helpers", async () => {
+    const { readFileSync } = await import("node:fs");
+    const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+    const arena = readFileSync(new URL("../src/screens/Arena.tsx", import.meta.url), "utf8");
+    expect(app).toContain("seenPlans: rememberPlan(fresh.seenPlans, rival)");
+    expect(arena).toContain("scoutFor(save.seenPlans, r)");
+    // No second spelling of the key anywhere in either file.
+    expect(app + arena).not.toMatch(/seenPlans\??\.?\[/);
   });
 });
