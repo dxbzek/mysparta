@@ -3853,7 +3853,14 @@ img.pet-art[data-gait="plod"] { animation: artPlod var(--idle) ease-in-out infin
 .stage.thrown-beat .floater:not(.heal) {
   animation-delay: calc((var(--land, 470ms) + 20ms) * var(--spd, 1));
 }
-.stage.thrown-beat.quake {
+/*
+ * Only the quake itself waits. Unguarded, this three-class selector outranked
+ * `.stage.hitstop` and `.stage.ko-shake` (two classes each) wherever it sat in
+ * the file, so on a thrown critical KO its delay was applied to THEIR
+ * animations: the freeze flash never painted and the lurch started half a
+ * second late and was cut off. Specificity, not source order — keep the :not.
+ */
+.stage.thrown-beat.quake:not(.hitstop):not(.ko-shake) {
   animation-delay: calc((var(--land, 470ms) + 30ms) * var(--spd, 1));
 }
 
