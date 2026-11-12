@@ -274,3 +274,37 @@ describe("every skill has a picture", () => {
     expect(Object.keys(SKILL_FX).filter((k) => !ids.has(k))).toEqual([]);
   });
 });
+
+describe("scouting a rival you have fought", () => {
+  it("says nothing about a stranger", async () => {
+    const { scoutNote } = await import("../src/narrate.js");
+    expect(scoutNote(undefined)).toBeNull();
+    expect(scoutNote({} as never)).toBeNull();
+  });
+
+  it("reads back the plan they used, in the log's own words", async () => {
+    const { scoutNote } = await import("../src/narrate.js");
+    expect(scoutNote({ stance: "guarded", gambit: "war_cry" })).toBe(
+      "Fought before — last opened with war cry, guarded.",
+    );
+    // A plan from an old save may have no stance; the gambit still reads.
+    expect(scoutNote({ gambit: "close_the_gap" })).toBe("Fought before — last opened with close the gap.");
+  });
+
+  it("names every gambit a rival can open with, no raw ids", async () => {
+    const { scoutNote } = await import("../src/narrate.js");
+    for (const g of ["hurl_first", "close_the_gap", "hold_ground", "feint", "loose_the_beast", "test_the_shield", "war_cry"]) {
+      expect(scoutNote({ stance: "measured", gambit: g })).not.toContain("_");
+    }
+  });
+
+  it("matches what the fight actually announced", () => {
+    const r = simulateFight({
+      seed: 7,
+      attacker: snapshot(grown("Scout", 6), PLAN),
+      defender: snapshot(grown("Scouted", 6), { stance: "guarded", gambit: "hold_ground" }),
+    });
+    const opener = narrate(r, ["Scout", "Scouted"]).find((l) => l.side === 1 && l.text.includes("opens with"));
+    expect(opener?.text).toContain("hold ground");
+  });
+});

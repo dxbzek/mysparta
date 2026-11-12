@@ -60,6 +60,25 @@ export interface Line {
   drew?: { side: 0 | 1; weapon: string };
 }
 
+/** A gambit's id as the fight log and the scout line say it. */
+export function gambitName(id: string): string {
+  return id.replace(/_/g, " ");
+}
+
+/**
+ * What the board remembers about a rival you have already fought: the plan
+ * they used that time (02-gdd-core.md, "last-known Battle Plan"). `seenPlans`
+ * has been written after every fight since the roster existed and read
+ * nowhere, so fighting someone twice taught the player nothing. It is the
+ * LAST plan, not a promise — rivals re-plan with every board — and the line
+ * says so.
+ */
+export function scoutNote(plan: { stance?: string; gambit?: string } | undefined): string | null {
+  if (!plan || typeof plan.gambit !== "string" || !plan.gambit) return null;
+  const stance = typeof plan.stance === "string" && plan.stance ? `, ${plan.stance}` : "";
+  return `Fought before — last opened with ${gambitName(plan.gambit)}${stance}.`;
+}
+
 export function narrate(result: FightResult, names: [string, string]): Line[] {
   const n = (s: 0 | 1) => names[s];
   const foe = (s: 0 | 1): 0 | 1 => (s === 0 ? 1 : 0);
@@ -97,7 +116,7 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
         push(-1, `The bell rings! ${names[0]} and ${names[1]} enter the arena!`, "info", 1100);
         break;
       case "gambit": {
-        const g = e.gambit.replace(/_/g, " ");
+        const g = gambitName(e.gambit);
         push(e.side, `${n(e.side)} opens with ${g}.`, "info", 450);
         break;
       }

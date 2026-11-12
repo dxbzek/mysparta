@@ -3819,8 +3819,8 @@ img.pet-art[data-gait="plod"] { animation: artPlod var(--idle) ease-in-out infin
  * causes waits for `--land`, the moment its flight ends (beats.ts sets all
  * three variables, so the stylesheet and the SFX read one clock).
  *
- * This block must stay at the END of the file: it overrides the delays set by
- * the base rules, and a rule above its base loses silently.
+ * This block must stay BELOW every base rule it overrides (it lives at the
+ * end of the file for that reason): a rule above its base loses silently.
  */
 .missile-r,
 .missile-l {
@@ -3867,4 +3867,16 @@ img.pet-art[data-gait="plod"] { animation: artPlod var(--idle) ease-in-out infin
 @media (prefers-reduced-motion: reduce) {
   /* no freeze-flash and no lurch; the longer hold and the thud still mark it */
   .stage.ko-shake { animation: none; }
+}
+
+/* the last-known plan of a rival already fought — one quiet line on the card */
+.rival-scout {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--lapis-ink);
+  /* a long gambit name wraps inside the card rather than widening the grid */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
