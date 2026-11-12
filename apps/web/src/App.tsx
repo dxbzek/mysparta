@@ -28,7 +28,7 @@ import { gearStats, lookWithGear, resolveExtras, rollGearDrop, type GearItem, ty
 import {
   applyDailyReset,
   activeSlot,
-  firstFreeSlot,
+  forgeSlot,
   freshQuests,
   settleQuests,
   rosterSummary,
@@ -199,6 +199,9 @@ export function App() {
   const [screen, setScreen] = useState<Screen>(() => {
     const wanted = routeOf(location.hash);
     if (!save) return { s: "forge" };
+    // #/new with nowhere to put a new hunter is the Hunters screen, where the
+    // full roster is shown — never a Forge that can only write over someone.
+    if (wanted === "forge" && forgeSlot() === null) return { s: "roster" };
     return wanted && wanted !== "fight" ? ({ s: wanted } as Screen) : { s: "home" };
   });
   const [draft, setDraft] = useState<{ offers: FateOffer[]; pick: number; drop?: GearItem; nonce: number } | null>(null);
@@ -224,6 +227,15 @@ export function App() {
       // the address bar — so a forward button onto #/fight lands in the Arena.
       if (s === "fight") {
         setScreen({ s: "arena" });
+        return;
+      }
+      // Back onto #/new after the roster filled (the entry is left behind by
+      // making the last hunter) must not reopen the Forge. Read from storage,
+      // not from state: this listener is bound once. The entry is replaced,
+      // not pushed, or Back would bounce off it forever.
+      if (s === "forge" && forgeSlot() === null) {
+        history.replaceState(null, "", `#/${ROUTES.roster}`);
+        setScreen({ s: "roster" });
         return;
       }
       if (s) setScreen({ s } as Screen);
@@ -345,6 +357,13 @@ export function App() {
     setDraft({ ...rollDraft(champion, next, draft.nonce + 1), drop: draft.drop, nonce: draft.nonce + 1 });
   };
 
+  /** The Forge was open with nowhere to write: show the roster instead. */
+  const closeForge = () => {
+    setSave(load());
+    setDraft(null);
+    setScreen({ s: "roster" });
+  };
+
   if (!save || screen.s === "forge") {
     return (
       <Shell>
@@ -354,9 +373,10 @@ export function App() {
           damaged={!save && slotState(activeSlot()) === "corrupt"}
           onForge={(champion, look, aura) => {
             // A new hunter takes the first free slot and becomes the one being
-            // played; without this the Forge would write over whoever is
-            // already in the active slot.
-            const target = firstFreeSlot() ?? activeSlot();
+            // played. With no slot to take, nothing is written: the fallback
+            // used to be the active slot, which replaced a healthy hunter.
+            const target = forgeSlot();
+            if (target === null) return closeForge();
             setActiveSlot(target);
             const s = newSave(champion, { stance: "measured", gambit: "close_the_gap" }, look, aura);
             update(s);
@@ -367,7 +387,9 @@ export function App() {
             // write into the active slot — so pasting a rescue code with a
             // hunter already loaded silently destroyed that hunter, making the
             // backup mechanism the game's one data-loss path.
-            const target = firstFreeSlot() ?? activeSlot();
+            // With a full roster it lands nowhere, for the same reason.
+            const target = forgeSlot();
+            if (target === null) return closeForge();
             setActiveSlot(target);
             // Persist, then re-read through load() so the code gets the same
             // migrations an old localStorage save would.

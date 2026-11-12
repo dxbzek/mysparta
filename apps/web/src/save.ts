@@ -528,3 +528,24 @@ export function firstFreeSlot(): number | null {
   const i = slotStates().findIndex((s) => s === "empty");
   return i === -1 ? null : i;
 }
+
+/**
+ * Where the Forge may write a new or restored hunter, or null when it may not
+ * write at all.
+ *
+ * It used to be `firstFreeSlot() ?? activeSlot()`: with no empty slot left the
+ * new hunter was written over the one being played, and because that save
+ * parsed, nothing copied it aside first. The Forge is reachable with a full
+ * roster (the #/new address, or Back after the last hunter is made), so that
+ * was a healthy hunter gone for typing a name.
+ *
+ * A readable hunter is never a target. With no empty slot, the only slot that
+ * may be written is an active one that will not read — the Forge's "damaged"
+ * path, where persist() keeps the old bytes in `.bak` first.
+ */
+export function forgeSlot(): number | null {
+  const free = firstFreeSlot();
+  if (free !== null) return free;
+  const active = activeSlot();
+  return slotState(active) === "ok" ? null : active;
+}

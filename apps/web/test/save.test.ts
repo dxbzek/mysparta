@@ -430,3 +430,58 @@ describe("daily tasks pay as they are finished", () => {
     expect(settleQuests(out.quests, defs).taskXp).toBe(0);
   });
 });
+
+describe("where the Forge may write", () => {
+  const JUNK = '{"v":1,"champion":{"displayName":"Hal';
+
+  it("takes the first empty slot, whoever is being played", async () => {
+    const { forgeSlot } = await import("../src/save.js");
+    expect(forgeSlot()).toBe(0);
+    persist(fresh(), 0);
+    setActive(0);
+    expect(forgeSlot()).toBe(1);
+  });
+
+  it("has nowhere to write when three healthy hunters fill the roster", async () => {
+    const { forgeSlot } = await import("../src/save.js");
+    for (let i = 0; i < 3; i++) persist({ ...fresh(), kleos: 1500 + i }, i);
+    for (let active = 0; active < 3; active++) {
+      setActive(active);
+      // It used to answer `active`, and the Forge wrote over that hunter.
+      expect(forgeSlot()).toBeNull();
+    }
+  });
+
+  it("has nowhere to write with two healthy hunters and one damaged slot", async () => {
+    const { forgeSlot } = await import("../src/save.js");
+    persist(fresh(), 0);
+    localStorage.setItem("agoge.save.v1.1", JUNK);
+    persist(fresh(), 2);
+    for (const active of [0, 2]) {
+      setActive(active);
+      expect(forgeSlot()).toBeNull();
+    }
+  });
+
+  it("offers a damaged active slot only when nothing is empty", async () => {
+    const { forgeSlot } = await import("../src/save.js");
+    for (let i = 0; i < 3; i++) localStorage.setItem(i === 0 ? "agoge.save.v1" : `agoge.save.v1.${i}`, JUNK);
+    setActive(1);
+    // The Forge's "damaged" path: persist() copies the old bytes aside first.
+    expect(forgeSlot()).toBe(1);
+    localStorage.removeItem("agoge.save.v1.2");
+    expect(forgeSlot()).toBe(2);
+  });
+
+  it("a full roster survives the Forge's own write path byte for byte", async () => {
+    const { forgeSlot } = await import("../src/save.js");
+    for (let i = 0; i < 3; i++) persist({ ...fresh(), kleos: 1500 + i }, i);
+    setActive(1);
+    const before = [0, 1, 2].map((i) => localStorage.getItem(i === 0 ? "agoge.save.v1" : `agoge.save.v1.${i}`));
+    // What App's onForge / onRestore do: ask for a target, write only if given one.
+    const target = forgeSlot();
+    if (target !== null) persist(fresh(), target);
+    const after = [0, 1, 2].map((i) => localStorage.getItem(i === 0 ? "agoge.save.v1" : `agoge.save.v1.${i}`));
+    expect(after).toEqual(before);
+  });
+});
