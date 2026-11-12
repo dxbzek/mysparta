@@ -704,3 +704,55 @@ describe("a rescue code's task board is pasted text too", () => {
     expect("paid" in (await withQuests(old))!.quests!).toBe(false);
   });
 });
+
+describe("back pay on a board from before tasks paid singly", () => {
+  const legacy = async (n: number) => {
+    const { questsForDay, freshQuests } = await import("../src/save.js");
+    const day = todayKey();
+    const defs = questsForDay(day);
+    const q = { ...freshQuests(), claimed: n === 3 } as Record<string, unknown>;
+    for (const d of defs.slice(0, n)) q[d.metric] = d.need;
+    delete q.paid;
+    return { defs, q: q as never as import("../src/save.js").DailyQuests };
+  };
+
+  it("pays what was finished earlier, before the fight is counted", async () => {
+    const { settleBackPay, settleQuests, TASK_XP } = await import("../src/save.js");
+    for (const n of [0, 1, 2, 3]) {
+      const { defs, q } = await legacy(n);
+      const back = settleBackPay(q, defs);
+      expect(back.taskXp, `${n} done`).toBe(n * TASK_XP);
+      expect(back.quests.paid).toHaveLength(n);
+      // The drop is not its business.
+      expect(back.quests.claimed).toBe(q.claimed);
+      // A fight that finishes nothing more is now credited with nothing —
+      // it used to be handed all of them ("3 tasks done").
+      const after = settleQuests(back.quests, defs);
+      expect(after.newlyDone, `${n} done`).toEqual([]);
+      expect(after.taskXp).toBe(0);
+    }
+  });
+
+  it("the fight is credited with exactly the task it finished", async () => {
+    const { settleBackPay, settleQuests, TASK_XP } = await import("../src/save.js");
+    const { defs, q } = await legacy(2);
+    const back = settleBackPay(q, defs);
+    const third = defs[2]!;
+    const fought = { ...back.quests, [third.metric]: third.need };
+    const out = settleQuests(fought, defs);
+    expect(out.newlyDone).toEqual([third]);
+    expect(out.taskXp).toBe(TASK_XP);
+    expect(out.boardCleared).toBe(true);
+    // Three tasks, three XP across the two payments: the total is unchanged.
+    expect(back.taskXp + out.taskXp).toBe(3 * TASK_XP);
+  });
+
+  it("is nothing at all on a board that already keeps a list", async () => {
+    const { settleBackPay, freshQuests, questsForDay } = await import("../src/save.js");
+    const defs = questsForDay(todayKey());
+    const q = { ...freshQuests(), [defs[0]!.metric]: defs[0]!.need };
+    const back = settleBackPay(q, defs);
+    expect(back.taskXp).toBe(0);
+    expect(back.quests).toBe(q);
+  });
+});

@@ -188,6 +188,25 @@ export function settleQuests(
   };
 }
 
+/**
+ * Back pay for a board from before tasks paid singly.
+ *
+ * Such a board has no `paid` list, so the first settle after the update pays
+ * every task it had already finished — deliberately, once. But that settle
+ * ran after the fight's tallies were added, so the verdict read "3 tasks
+ * done" on a fight that finished none of them. Settled here, BEFORE the
+ * tallies, what was earned earlier is paid as that, and the fight is then
+ * credited only with what it finished. The drop is left to settleQuests.
+ */
+export function settleBackPay(
+  q: DailyQuests,
+  defs: QuestDef[] = questsForDay(q.day),
+): { quests: DailyQuests; taskXp: number } {
+  if (q.paid !== undefined) return { quests: q, taskXp: 0 };
+  const owed = settleQuests(q, defs);
+  return { quests: { ...q, paid: owed.quests.paid }, taskXp: owed.taskXp };
+}
+
 const KEY = "agoge.save.v1";
 const ROSTER_KEY = "agoge.roster.v1";
 

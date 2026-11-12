@@ -30,6 +30,7 @@ import {
   activeSlot,
   forgeSlot,
   freshQuests,
+  settleBackPay,
   settleQuests,
   rosterSummary,
   setActiveSlot,
@@ -439,7 +440,14 @@ export function App() {
       drops.push(item.name);
     };
 
-    const q = fresh.quests?.day === todayKey() ? { ...fresh.quests } : freshQuests();
+    // Tasks a same-day board from an older build had already finished are
+    // paid as that, not passed off as this fight's work (save.ts).
+    const carried = fresh.quests?.day === todayKey() ? settleBackPay(fresh.quests) : null;
+    if (carried && carried.taskXp > 0) {
+      champion.xp += carried.taskXp;
+      drops.push(`Tasks from earlier today — +${carried.taskXp} XP`);
+    }
+    const q = carried ? { ...carried.quests } : freshQuests();
     // Older saves predate the blocks/streak tallies the rotating tasks read.
     q.blocks ??= 0;
     q.streak ??= 0;
