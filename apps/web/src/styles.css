@@ -669,8 +669,16 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   background-repeat: no-repeat;
   image-rendering: pixelated;
 }
-/* per-arena light wash over the painting */
-.stage-wash { position: absolute; inset: 0; pointer-events: none; }
+/*
+ * Per-arena light wash. It sits OVER the fighters and their beasts (stage-figs
+ * and weather are z-index 1) and under the HUD (the HP bars are also 2 but
+ * come later in the stage, the arena chip is 3). With no z-index it painted
+ * straight after the backdrop, so the scene was lit and the people standing in
+ * it were not. The order is right now; the EFFECT is small, because every wash
+ * in arenas.ts fades out above the fighters' heads — lighting the figures for
+ * real means stronger or lower washes, which is an art call, not a z-index.
+ */
+.stage-wash { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
 .arena-chip {
   position: absolute;
   top: 8px;
@@ -1399,6 +1407,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   border-radius: 10px;
   padding: 1px 10px;
   box-shadow: 0 2px 0 rgb(0 0 0 / 50%);
+  /* HUD, like the HP bars: above the arena wash, which now covers the figures */
+  z-index: 2;
 }
 
 /* verdict banner over the stage */
