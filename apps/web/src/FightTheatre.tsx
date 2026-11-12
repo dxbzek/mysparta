@@ -5,11 +5,12 @@ import { PetSprite } from "./pixelPets.js";
 import { FighterFig, WeatherFx, type FighterAnim } from "./fighters.js";
 import { arenaScene } from "./arenaArt.js";
 import { PixIcon } from "./pixelIcons.js";
-import type { Arena } from "./arenas.js";
+import { ambienceFor, type Arena } from "./arenas.js";
 import { CHAR, weaponArtFor, type Look } from "./paperdoll.js";
 import { narrate, type Line } from "./narrate.js";
 import { SkillFx, fxFor } from "./fightFx.js";
 import { sound, type StrikeKind } from "./sound.js";
+import { HITSTOP_MS, MISSILE_FLIGHT_MS, MISSILE_LAUNCH_MS, THROWN_CONTACT_MS, contactMs, koSchedule } from "./beats.js";
 
 export interface StageFigure {
   /** The fighter's full appearance (paperdoll.ts). */
@@ -127,13 +128,39 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
    * Street Fighter II freezes the frame on the blow that ends it, because the
    * pause is what tells you it was the last one. The beat before the end holds
    * longer, the stage holds still, and then the verdict.
+   *
+   * The freeze belongs to the moment of CONTACT. It used to be applied for the
+   * whole beat, from its first frame — so the swing that ended the fight was
+   * paused before it was thrown, and the biggest blow of the bout was the one
+   * blow nobody saw. The beat now plays up to contact, stops dead there with
+   * the thud, then lets go: the stage lurches and the body takes it.
    */
-  const kills = lines.length > 1 && shown === lines.length - 1 && result.reason === "ko";
+  const kills = lines.length > 1 && shown === lines.length - 1 && result.reason === "ko" && !skipped;
+  const [ko, setKo] = useState<"none" | "freeze" | "release">("none");
+
+  useEffect(() => {
+    if (!kills) {
+      setKo("none");
+      return;
+    }
+    // Read the speed once: toggling 2x mid-beat must not restart the freeze.
+    const plan = koSchedule(lines[shown - 1], speedRef.current);
+    const freeze = window.setTimeout(() => {
+      setKo("freeze");
+      // Heard on the frozen frame, where the fallen fighter stands.
+      sound.ko(result.winner === 0 ? 1 : 0);
+    }, plan.freezeAt);
+    const release = window.setTimeout(() => setKo("release"), plan.releaseAt);
+    return () => {
+      window.clearTimeout(freeze);
+      window.clearTimeout(release);
+    };
+  }, [kills, lines, shown, result.winner]);
 
   useEffect(() => {
     if (finished) return;
     const line = lines[shown - 1];
-    const hold = ((line?.hold ?? 600) + (kills ? 420 : 0)) / speedRef.current;
+    const hold = ((line?.hold ?? 600) + (kills ? HITSTOP_MS : 0)) / speedRef.current;
     const id = window.setTimeout(() => setShown((s) => s + 1), hold);
     return () => window.clearTimeout(id);
   }, [shown, finished, lines, speed, kills]);
@@ -153,8 +180,11 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
 
   // The crowd is present for the whole bout and drains away with the screen.
   useEffect(() => {
-    sound.arenaIn();
+    // ...and the place has its own air: wind on the ridge, a sub under the
+    // volcano, thinner voices and night-song in the hollow (arenas.ts).
+    sound.arenaIn(ambienceFor(arena));
     return () => sound.arenaOut();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Stable per beat. It used to be a fresh slice every render, which made the
@@ -250,7 +280,13 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     // The strike keyframe reaches the foe ~42% into its run (~320ms at 1x),
     // but impacts used to land at 95ms — the thwack played while the striker
     // was still mid-sprint, audio leading video by ~200ms on every hit.
-    const contact = Math.round(290 / speedRef.current);
+    // A thrown weapon lands when its flight ends, not on the melee clock: the
+    // impact used to sound (and the target recoil) while the javelin was still
+    // in the air.
+    const thrown = !!l.anim?.thrown;
+    const contact = Math.round(contactMs(l) / speedRef.current);
+    /** The wind-up you hear: a swing through the air, or a release and flight. */
+    const windUp = () => (thrown ? sound.throwSpear() : sound.swing(kind, striker));
     switch (l.kind) {
       case "info":
         if (l.text.includes("enter the arena")) {
@@ -262,24 +298,21 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       case "crit": {
         const crit = l.kind === "crit";
         // swing first, impact landing a beat later — the gap sells the blow
-        if (l.anim?.thrown) sound.strike("pierce", crit, l.anim.striker);
-        else {
-          sound.swing(kind, l.anim?.striker);
-          land(() => sound.strike(kind, crit, l.anim?.striker), kind === "axe" ? Math.round(360 / speedRef.current) : contact);
-        }
+        windUp();
+        if (thrown) land(() => sound.strike("pierce", crit, striker), contact);
+        else land(() => sound.strike(kind, crit, striker), kind === "axe" ? Math.round(360 / speedRef.current) : contact);
         break;
       }
       case "defend":
         if (l.fx?.heal) sound.heal();
         else if (l.anim?.reaction?.kind === "block") {
-          sound.swing(kind, l.anim?.striker);
+          windUp();
           const guard = l.anim.reaction.side;
           land(() => sound.block(hasShield[guard]), contact);
         } else if (l.anim?.reaction?.kind === "dodge") {
-          sound.swing(kind, l.anim?.striker);
+          windUp();
           land(() => sound.dodge(), contact);
-        } else if (l.anim?.thrown) sound.throwSpear();
-        else sound.swing(kind, l.anim?.striker);
+        } else windUp();
         break;
       case "trump":
         sound.power();
@@ -488,11 +521,19 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     // than fast, in the mode repeat players live in.
     <div className="theatre" style={{ "--spd": speed === 2 ? 0.5 : 1 } as React.CSSProperties}>
       <div
-        className={`stage ${fx?.crit && !finished ? "quake" : ""}${kills ? " hitstop" : ""}`}
+        className={`stage ${fx?.crit && !finished ? "quake" : ""}${
+          ko === "freeze" ? " hitstop" : ko === "release" ? " ko-shake" : ""
+        }${
+          anim?.thrown && anim.striker !== undefined ? " thrown-beat" : ""
+        }`}
         ref={stageRef}
         style={
           {
             "--dash": `${dash}px`,
+            // One clock for the javelin and everything it causes (beats.ts).
+            "--missile-wait": `${MISSILE_LAUNCH_MS}ms`,
+            "--missile-fly": `${MISSILE_FLIGHT_MS}ms`,
+            "--land": `${THROWN_CONTACT_MS}ms`,
             // The height comes from the scale we actually measured, not from a
             // media query guessing at it. CSS switched on the VIEWPORT while
             // this switches on the STAGE's width, so between about 561 and

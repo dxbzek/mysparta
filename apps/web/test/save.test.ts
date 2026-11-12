@@ -6,6 +6,7 @@ import {
   load,
   newSave,
   persist,
+  setActiveSlot as setActive,
   todayKey,
   wipe,
   type SaveV1,
@@ -126,6 +127,7 @@ describe("daily reset", () => {
       day: todayKey(),
       fights: 0, wins: 0, crits: 0, blocks: 0, streak: 0, run: 0,
       claimed: false,
+      paid: [],
     });
   });
 });
@@ -275,5 +277,156 @@ describe("rotating daily tasks", () => {
     expect(questsComplete(q, defs)).toBe(true);
     for (const d of defs) expect(questProgress(q, d)).toBe(d.need);
     expect(questsComplete(freshQuests(), defs)).toBe(false);
+  });
+});
+
+describe("a save that will not read", () => {
+  const JUNK = '{"v":1,"champion":{"displayName":"Zek","level":31,"xp":'; // a write cut short
+
+  it("is corrupt, not empty — and an absent one is empty, not corrupt", async () => {
+    const { slotState, persist } = await import("../src/save.js");
+    expect(slotState(0)).toBe("empty");
+    localStorage.setItem("agoge.save.v1", JUNK);
+    expect(slotState(0)).toBe("corrupt");
+    localStorage.setItem("agoge.save.v1.1", JSON.stringify({ v: 99, from: "the future" }));
+    expect(slotState(1)).toBe("corrupt");
+    persist(fresh(), 2);
+    expect(slotState(2)).toBe("ok");
+  });
+
+  it("is never offered as a free slot", async () => {
+    const { firstFreeSlot, hasFreeSlot, persist } = await import("../src/save.js");
+    localStorage.setItem("agoge.save.v1", JUNK);
+    // The Forge writes to firstFreeSlot(): it must walk past the damaged one.
+    expect(firstFreeSlot()).toBe(1);
+    persist(fresh(), 1);
+    persist(fresh(), 2);
+    expect(hasFreeSlot()).toBe(false);
+    expect(firstFreeSlot()).toBeNull();
+    expect(localStorage.getItem("agoge.save.v1")).toBe(JUNK);
+  });
+
+  it("has its bytes copied to .bak the first time it is read, slot untouched", async () => {
+    const { slotBackup } = await import("../src/save.js");
+    localStorage.setItem("agoge.save.v1.2", JUNK);
+    expect(slotBackup(2)).toBeNull();
+    setActive(2);
+    expect(load()).toBeNull();
+    expect(localStorage.getItem("agoge.save.v1.2.bak")).toBe(JUNK);
+    expect(slotBackup(2)).toBe(JUNK);
+    expect(localStorage.getItem("agoge.save.v1.2")).toBe(JUNK);
+  });
+
+  it("keeps the bytes even when a new hunter is written straight over it", async () => {
+    const { slotBackup, slotState } = await import("../src/save.js");
+    localStorage.setItem("agoge.save.v1", JUNK);
+    // No read first: the write itself must be the guard.
+    persist(fresh(), 0);
+    expect(slotState(0)).toBe("ok");
+    expect(slotBackup(0)).toBe(JUNK);
+  });
+
+  it("keeps the bytes when the damaged slot is freed", async () => {
+    const { slotBackup, slotState } = await import("../src/save.js");
+    localStorage.setItem("agoge.save.v1.1", JUNK);
+    wipe(1);
+    expect(slotState(1)).toBe("empty");
+    expect(slotBackup(1)).toBe(JUNK);
+  });
+
+  it("does not back up a healthy save on every write, or when it is deleted", async () => {
+    const { slotBackup, backupSlot } = await import("../src/save.js");
+    persist(fresh(), 0);
+    persist({ ...fresh(), kleos: 1600 }, 0);
+    expect(slotBackup(0)).toBeNull();
+    wipe(0);
+    expect(slotBackup(0)).toBeNull();
+    // ...unless asked to: the error boundary's reset copies first.
+    persist(fresh(), 0);
+    expect(backupSlot(0)).toBe(true);
+    expect(slotBackup(0)).toBe(localStorage.getItem("agoge.save.v1"));
+  });
+
+  it("a save missing its champion is unreadable rather than a crash", async () => {
+    const { slotState } = await import("../src/save.js");
+    localStorage.setItem("agoge.save.v1", JSON.stringify({ v: 1 }));
+    expect(load()).toBeNull();
+    expect(slotState(0)).toBe("corrupt");
+    localStorage.setItem("agoge.save.v1", JSON.stringify({ v: 1, champion: {} }));
+    expect(load()).toBeNull();
+    expect(slotState(0)).toBe("corrupt");
+  });
+});
+
+describe("daily tasks pay as they are finished", () => {
+  const DAY = "2026-08-05";
+  const board = async () => {
+    const { questsForDay, freshQuests, settleQuests, TASK_XP } = await import("../src/save.js");
+    const defs = questsForDay(DAY);
+    const blank = { ...freshQuests(), day: DAY };
+    const done = (n: number) => {
+      const q = { ...blank };
+      for (const d of defs.slice(0, n)) (q[d.metric] as number) = d.need;
+      return q;
+    };
+    return { defs, blank, done, settleQuests, TASK_XP };
+  };
+
+  it("pays nothing for nothing", async () => {
+    const { blank, defs, settleQuests } = await board();
+    const out = settleQuests(blank, defs);
+    expect(out.taskXp).toBe(0);
+    expect(out.boardCleared).toBe(false);
+    expect(out.quests.claimed).toBe(false);
+  });
+
+  it("one task done pays +1 XP on its own — two of three is no longer zero", async () => {
+    const { defs, done, settleQuests, TASK_XP } = await board();
+    const one = settleQuests(done(1), defs);
+    expect(one.taskXp).toBe(TASK_XP);
+    expect(one.boardCleared).toBe(false);
+    const two = settleQuests(done(2), defs);
+    expect(two.taskXp).toBe(2 * TASK_XP);
+    expect(two.boardCleared).toBe(false);
+    expect(two.quests.claimed).toBe(false);
+  });
+
+  it("never pays the same task twice, however many fights follow", async () => {
+    const { defs, done, settleQuests } = await board();
+    let q = settleQuests(done(2), defs).quests;
+    for (let fight = 0; fight < 5; fight++) {
+      const again = settleQuests({ ...q, fights: q.fights + 1 }, defs);
+      // fights may itself be a task finishing later; only already-paid ones are barred
+      expect(again.newlyDone.every((d) => !q.paid!.includes(d.metric))).toBe(true);
+      q = again.quests;
+    }
+    expect(new Set(q.paid).size).toBe(q.paid!.length);
+    expect(q.paid!.length).toBeLessThanOrEqual(3);
+  });
+
+  it("all three pays the third task AND the drop, once", async () => {
+    const { defs, done, settleQuests, TASK_XP } = await board();
+    const afterTwo = settleQuests(done(2), defs).quests;
+    const full = { ...done(3), paid: afterTwo.paid };
+    const out = settleQuests(full, defs);
+    expect(out.taskXp).toBe(TASK_XP);
+    expect(out.boardCleared).toBe(true);
+    expect(out.quests.claimed).toBe(true);
+    const next = settleQuests(out.quests, defs);
+    expect(next.taskXp).toBe(0);
+    expect(next.boardCleared).toBe(false);
+    // 3 XP across the day from tasks, never more
+    expect(out.quests.paid).toHaveLength(3);
+  });
+
+  it("a save from before tasks paid singly is settled, not crashed", async () => {
+    const { defs, done, settleQuests, TASK_XP } = await board();
+    const old = { ...done(3), claimed: true } as Record<string, unknown>;
+    delete old.paid;
+    const out = settleQuests(old as never, defs);
+    // The drop was already taken; the three tasks are honoured once.
+    expect(out.boardCleared).toBe(false);
+    expect(out.taskXp).toBe(3 * TASK_XP);
+    expect(settleQuests(out.quests, defs).taskXp).toBe(0);
   });
 });

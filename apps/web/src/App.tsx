@@ -30,9 +30,11 @@ import {
   activeSlot,
   firstFreeSlot,
   freshQuests,
-  questsComplete,
+  settleQuests,
   rosterSummary,
   setActiveSlot,
+  slotState,
+  slotStates,
   load,
   newSave,
   persist,
@@ -179,7 +181,21 @@ function DevPanel({ save, update }: { save: SaveV1; update: (s: SaveV1) => void 
 }
 
 export function App() {
-  const [save, setSave] = useState<SaveV1 | null>(() => load());
+  const [save, setSave] = useState<SaveV1 | null>(() => {
+    const active = load();
+    if (active) return active;
+    // The slot being played will not read, but another hunter will: land on
+    // them rather than on a Forge that hides the whole roster. The damaged
+    // slot is untouched and shows as damaged on the Hunters screen.
+    if (slotState(activeSlot()) === "corrupt") {
+      const other = rosterSummary().find((r) => r !== null);
+      if (other) {
+        setActiveSlot(other.slot);
+        return load();
+      }
+    }
+    return null;
+  });
   const [screen, setScreen] = useState<Screen>(() => {
     const wanted = routeOf(location.hash);
     if (!save) return { s: "forge" };
@@ -333,6 +349,9 @@ export function App() {
     return (
       <Shell>
         <Forge
+          // Null because nothing is saved, or null because what is saved will
+          // not read — the player is owed the difference.
+          damaged={!save && slotState(activeSlot()) === "corrupt"}
           onForge={(champion, look, aura) => {
             // A new hunter takes the first free slot and becomes the one being
             // played; without this the Forge would write over whoever is
@@ -419,8 +438,15 @@ export function App() {
     // player already earned — it just stops the current run growing.
     q.run = won ? q.run + 1 : 0;
     q.streak = Math.max(q.streak, q.run);
-    if (!q.claimed && questsComplete(q)) {
-      q.claimed = true;
+    // Each task pays on its own the moment it is done; all three still pays
+    // the drop on top. (It was all-or-nothing: two of three paid nothing.)
+    const settled = settleQuests(q);
+    if (settled.taskXp > 0) {
+      champion.xp += settled.taskXp;
+      const n = settled.newlyDone.length;
+      drops.push(n === 1 ? `Task done — +${settled.taskXp} XP` : `${n} tasks done — +${settled.taskXp} XP`);
+    }
+    if (settled.boardCleared) {
       addDrop(rollGearDrop(gear, combineSeed(seed, "questdrop")));
     }
     if (won && makeRng(combineSeed(seed, "loot")).pct(25)) {
@@ -439,7 +465,7 @@ export function App() {
       kleos: Math.max(1000, fresh.kleos + kd),
       plan,
       seenPlans: { ...fresh.seenPlans, [rival.snapshot.name]: rival.snapshot.plan },
-      quests: q,
+      quests: settled.quests,
     };
     update(next);
     setScreen({
@@ -605,6 +631,7 @@ export function App() {
       {screen.s === "roster" && (
         <Roster
           slots={rosterSummary()}
+          states={slotStates()}
           active={activeSlot()}
           onBack={() => setScreen({ s: "home" })}
           onPlay={(slot) => {

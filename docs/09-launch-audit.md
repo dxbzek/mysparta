@@ -88,24 +88,22 @@ Technical
 
 ## Backlog (verified, unimplemented — priority order)
 
+Items keep their original numbers so older notes still point at the right
+thing. 2–7, 9 and 14 shipped in the seventh pass (below).
+
 P1 — next session
 1. Level-30 XP cliff: +61 % cost step, 71 % of the curve in the last 20
    levels (`xp.ts`). **Needs design sign-off** — rewrites GDD §6.2 canon.
-2. Thrown beats play effect-before-cause (target recoils ~250 ms before the
-   javelin arrives).
-3. KO blow has no hit-stop/thud — the biggest moment weighs less than a crit.
-4. Surface `seenPlans` scouting on rival cards ("Fought before — opens with…").
-5. Per-arena ambience flavours (wind/rumble/night layers, zero bytes).
-6. Daily tasks pay nothing partial — per-task +1 XP, all-three keeps the drop.
-7. Corrupt-save slot reads as empty and gets overwritten by the Forge
-   (distinguish empty/corrupt, `.bak` the bytes).
+   *Seventh-pass note:* not touched in this pass, but `xp.ts` no longer
+   matches this entry — commit `8d0e8ee` ("Take the cliff out of the XP
+   curve") already ramps the third band (29→30 costs 33, not 50). What is
+   left is the decision: sign that curve off and update GDD §6.2, or restore
+   `level + 20`.
 
 P2
 8. Pixel-art fight effects (burst/slash/javelin/laurel are smooth vector SVG
    over a pixel stage) → then delete the ~600-line retired cartoon system in
    `art.tsx`.
-9. Arena wash renders behind the fighters (sprites ignore scene lighting) —
-   one z-index.
 10. Layer-recolour cache + LRU for `lookStrip`/`stripCache`/`arenaScene`
     (100–400 ms main-thread bursts on board mounts; unbounded memory).
 11. Integer-snap PixIcon/WeaponIcon/SkillIcon/PetSprite/FighterBust cells.
@@ -114,9 +112,17 @@ P2
     silencing on Skip.
 13. Free unlimited "New rivals" refresh is refresh-scummable — 1 Favour after
     the first daily refresh (second Favour sink).
-14. Forge step 2 has no way back to change the name.
 15. Stances/gambits never explained — display names in narration + a Codex
     "How a fight works" case.
+16. *(found in the seventh pass)* The struck-body flash is dead CSS:
+    `.fig-inner.flash > svg, .fig-inner.flash .hero-sprite` matches nothing,
+    because the paper-doll fighter renders neither. Retarget it at
+    `.fighter-fig` or delete it.
+17. *(found in the seventh pass)* Arena washes are layered correctly now but
+    fade out above the fighters' heads, so the figures still read as unlit.
+    Stronger or lower washes are an art call.
+18. *(found in the seventh pass)* Per-arena ambience and the KO thud have not
+    been listened to — levels and filters need an ear before launch.
 
 P3 / roadmap
 - Comeback mechanic after consecutive-loss days (design call).
@@ -356,3 +362,108 @@ subject accuracy, which is already the weaker half.
   When ours died, that one took the port, and every request then failed
   validation against *its* model paths, which have no LoRAs — presenting as a
   flat `HTTP 400` with no obvious cause. Ours runs on 8289 now.
+
+## Seventh pass (2026-11-12)
+
+The P1 backlog that needed no design sign-off, plus two one-line P2s. One
+commit per item on `feat/launch-backlog-p1`. Each was driven in headless
+Chrome (playwright-core against `pnpm dev`, 390px unless said otherwise) as
+well as unit-tested; where something was not verified, it says so.
+
+**P1 #2 — the javelin lands before anyone flinches.** On a thrown beat the
+target recoiled, the burst popped and the number floated on the melee clock
+(~280ms) while the javelin flew until 530ms; the impact *sound* fired at 0ms.
+The moment of contact now lives in `beats.ts`: a thrown beat lands when the
+flight ends (210ms launch + 260ms in the air = 470ms), the stage carries
+`thrown-beat`, and the reaction, burst, number, quake and impact sound all
+wait for it. The flight follows 2× speed (it did not), and a thrown line holds
+180ms longer so the later reaction is not cut by the next beat.
+*Verified:* `beats.test.ts` (contact per beat, hold, and that the CSS
+overrides sit below their base rules). In Chrome, computed delays on a live
+thrown beat read missile 0.21s + 0.26s, reaction/burst 0.47s, number 0.49s;
+scrubbing the beat to 300ms and 460ms showed the target's transform still
+`none` with the javelin mid-flight, and recoiling at 560ms.
+
+**P1 #3 — the killing blow.** The second pass's hit-stop was applied for the
+*whole* killing beat: measured in Chrome, `hitstop` went on at 0ms with every
+fighter `animation-play-state: paused` — the swing that ended the fight never
+played. The beat now runs to contact, freezes there for 420ms with the flash,
+then releases into one heavy lurch of the stage (`ko-shake`, wider and slower
+than a crit's quake). `sound.ko()` lands on the frozen frame: a falling sub, a
+dull body thud, the room a beat late, the crowd's intake of breath — layered
+over the weapon's own impact. Reduced motion keeps the hold and the sound and
+drops the flash, freeze and lurch.
+*Verified:* `koSchedule` tests (contact, release, 2×). In Chrome on a real KO:
+`hitstop` at ~300ms into the beat, `ko-shake` at ~725ms, fighters running
+again. **Not verified:** how the thud sounds — nobody has listened to it.
+
+**P1 #7 — a save that will not read is not an empty slot.** A slot is now
+`empty`, `ok` or `corrupt` (`slotState`), and `firstFreeSlot` only hands out
+`empty`. The first read of a corrupt slot copies its bytes verbatim to
+`<slot key>.bak` and leaves the slot alone; `persist()` and `wipe()` copy
+unreadable bytes aside before replacing them; the error boundary's reset
+copies before it wipes. The Forge says the saved hunter could not be read; the
+Hunters screen shows a "Damaged save" card with a two-tap "Free this slot";
+and a damaged active slot no longer hides a healthy hunter behind the Forge.
+*Verified:* seven tests in `save.test.ts` ("a save that will not read").
+Played in Chrome: forged a hunter, truncated `agoge.save.v1` to half its
+bytes, reloaded, forged a second hunter — it went to `agoge.save.v1.1`, and
+slot 0 and `agoge.save.v1.bak` both still held the truncated bytes; freeing
+the slot kept the `.bak`.
+
+**P1 #6 — two tasks out of three is worth something.** Each daily task pays
++1 XP once, the moment it is finished; all three still drops the gear on top.
+`settleQuests()` is pure; paid tasks are remembered by metric in
+`quests.paid`. A same-day save from before this change has no `paid` list and
+is paid once for whatever it had already finished.
+*Verified:* five tests ("daily tasks pay as they are finished"). Played in
+Chrome twice: a fresh hunter through all twelve day-one fights, reading
+`agoge.save.v1` after every bout and every level-up claim — XP gained matched
+the verdict pills on every fight, `paid` grew 1 → 2 → 3 without repeating, the
+drop landed with the third, and claims left total XP unchanged.
+
+**P1 #4 — the board remembers who you have fought.** A rival already fought
+carries one line: "Fought before — last opened with war cry, guarded." It says
+*last* because rivals re-plan with every board; the tooltip says so too.
+*Verified:* four tests ("scouting a rival you have fought"). In Chrome at 390
+and 1280: fought two of six rivals; exactly those two cards carried the line,
+matching the log and `save.seenPlans`; no horizontal scroll.
+
+**P2 #9 — the wash is above the figures.** `.stage-wash` is `z-index: 2`
+(over fighters and weather, under the HP bars and arena chip). The VS badge
+had no z-index and went dull under the lifted wash, so it joins the HUD at 2.
+*Verified:* looked at before/after captures on Ember Hollow and Midnight
+Hollow. Honest result: the order is right and the HUD is unchanged, but the
+fighters look the same, because every wash fades out above head height
+(backlog 17).
+
+**P2 #14 — a way back to the name.** "Change name" on Forge step two returns
+to the name field with the name in it. Same name back keeps the styling;
+a different name starts from that hunter's own look.
+*Verified:* played in Chrome — styled, went back, same name (aura kept),
+back again, corrected the name (fresh look), started, read the save: one
+hunter under the corrected name. No unit test (screen state only).
+
+**P1 #5 — fourteen arenas stop sharing one room.** `ambienceFor(arena)` reads
+a flavour off the arena's own weather, ground and skyline — storm, rumble,
+wind, night, water, stands, or the original crowd — and `sound.arenaIn`
+lays one to three extra beds of the shared noise loop under the crowd, each
+on its own slow clock. Unmuting mid-fight restores the arena's flavour.
+*Verified:* `ambience.test.ts` (mapping, ≥5 flavours in use, every bed
+≤0.06 gain, swells cannot flip phase). In Chrome each flavour was started and
+stopped and its looped sources and LFOs counted against the table, and a full
+unmuted fight ran to the verdict with no errors. **Not verified:** the sound
+itself — it has not been listened to (backlog 18).
+
+### Suite
+
+106 web/core/api tests before this pass on a fresh install (65 + 22 + 19, one
+skipped in each of web and core); 134 after (93 + 22 + 19). `pnpm typecheck`
+and `pnpm build` clean after every commit.
+
+### Method note
+
+`playwright-core` is already a root dev dependency and the machine's own
+Chrome runs it headless (`chromium.launch({ channel: "chrome" })`), so nothing
+was installed. Screenshots taken straight after a navigation catch the
+`cardRise` fade-in and look washed out — wait ~800ms first.

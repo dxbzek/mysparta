@@ -11,10 +11,12 @@ import { PixIcon } from "../pixelIcons.js";
 import { FighterBust } from "../fighters.js";
 import { lookWithGear } from "../gear.js";
 import { league } from "../ui.js";
-import { ROSTER_MAX, type SlotSummary } from "../save.js";
+import { ROSTER_MAX, type SlotState, type SlotSummary } from "../save.js";
 
 export function Roster(props: {
   slots: Array<SlotSummary | null>;
+  /** Empty is not unreadable: a damaged slot is shown as what it is. */
+  states?: SlotState[];
   active: number;
   onPlay: (slot: number) => void;
   onNew: (slot: number) => void;
@@ -95,6 +97,33 @@ export function Roster(props: {
                   }}
                 >
                   {i === active ? "Playing" : "Play"}
+                </button>
+              </div>
+            </div>
+          ) : props.states?.[i] === "corrupt" ? (
+            // Bytes are here but will not read. It used to look exactly like
+            // the empty card below, with a button that wrote over it.
+            <div className="card rival empty-slot" key={i}>
+              <div className="rival-top">
+                <span className="slot-frame" />
+                <div className="rival-id">
+                  <span className="champ-name small">Damaged save</span>
+                  <span className="muted small">
+                    This hunter's save can't be read. A copy of it is kept on this device.
+                  </span>
+                </div>
+              </div>
+              <div className="rival-action">
+                <button
+                  className={`btn tiny${armed === i ? " danger" : " ghost"}`}
+                  onClick={() => {
+                    if (armed === i) {
+                      props.onRetire(i);
+                      setArmed(null);
+                    } else setArmed(i);
+                  }}
+                >
+                  {armed === i ? "Free this slot — tap again" : "Free this slot"}
                 </button>
               </div>
             </div>

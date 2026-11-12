@@ -669,8 +669,16 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   background-repeat: no-repeat;
   image-rendering: pixelated;
 }
-/* per-arena light wash over the painting */
-.stage-wash { position: absolute; inset: 0; pointer-events: none; }
+/*
+ * Per-arena light wash. It sits OVER the fighters and their beasts (stage-figs
+ * and weather are z-index 1) and under the HUD (the HP bars are also 2 but
+ * come later in the stage, the arena chip is 3). With no z-index it painted
+ * straight after the backdrop, so the scene was lit and the people standing in
+ * it were not. The order is right now; the EFFECT is small, because every wash
+ * in arenas.ts fades out above the fighters' heads — lighting the figures for
+ * real means stronger or lower washes, which is an art call, not a z-index.
+ */
+.stage-wash { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
 .arena-chip {
   position: absolute;
   top: 8px;
@@ -1399,6 +1407,8 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
   border-radius: 10px;
   padding: 1px 10px;
   box-shadow: 0 2px 0 rgb(0 0 0 / 50%);
+  /* HUD, like the HP bars: above the arena wash, which now covers the figures */
+  z-index: 2;
 }
 
 /* verdict banner over the stage */
@@ -3361,7 +3371,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
  * running animation frozen, the colour pushed, a hard white flash — and then
  * lets go. It is the difference between a fight ending and a fight stopping.
  */
-.stage.hitstop { animation: hitstopFlash 420ms steps(1, end); }
+.stage.hitstop { animation: hitstopFlash calc(420ms * var(--spd, 1)) steps(1, end); }
 .stage.hitstop *,
 .stage.hitstop *::before,
 .stage.hitstop *::after { animation-play-state: paused !important; }
@@ -3808,3 +3818,78 @@ img.pet-art[data-gait="plod"] { animation: artPlod var(--idle) ease-in-out infin
 /* A felled beast holds still. */
 .pet-holder[style*="rotate"] img.pet-art { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { img.pet-art { animation: none !important; } }
+
+/*
+ * Thrown beats: cause, then effect.
+ *
+ * Every reaction above is delayed to the MELEE contact (~280ms), but a javelin
+ * was in the air until 530ms — so the target recoiled, the burst popped and
+ * the number floated a quarter of a second before anything reached them. On a
+ * thrown beat the stage carries `thrown-beat` and everything the missile
+ * causes waits for `--land`, the moment its flight ends (beats.ts sets all
+ * three variables, so the stylesheet and the SFX read one clock).
+ *
+ * This block must stay BELOW every base rule it overrides (it lives at the
+ * end of the file for that reason): a rule above its base loses silently.
+ */
+.missile-r,
+.missile-l {
+  /* the flight follows 2x speed like the rest of the choreography */
+  animation-duration: calc(var(--missile-fly, 260ms) * var(--spd, 1));
+  animation-delay: calc(var(--missile-wait, 210ms) * var(--spd, 1));
+}
+.stage.thrown-beat .burst,
+.stage.thrown-beat .hurt-l,
+.stage.thrown-beat .hurt-r {
+  animation-delay: calc(var(--land, 470ms) * var(--spd, 1));
+}
+/* a guard or a step aside starts just before the point arrives */
+.stage.thrown-beat .dodge-l,
+.stage.thrown-beat .dodge-r,
+.stage.thrown-beat .block-l,
+.stage.thrown-beat .block-r {
+  animation-delay: calc((var(--land, 470ms) - 60ms) * var(--spd, 1));
+}
+.stage.thrown-beat .floater:not(.heal) {
+  animation-delay: calc((var(--land, 470ms) + 20ms) * var(--spd, 1));
+}
+.stage.thrown-beat.quake {
+  animation-delay: calc((var(--land, 470ms) + 30ms) * var(--spd, 1));
+}
+
+/*
+ * The killing blow, after the freeze lets go. A crit shakes the stage 4px for
+ * 300ms; the blow that ends the fight has to outweigh that — a single heavy
+ * lurch downward and a slower, wider settle. (The freeze itself is `.hitstop`
+ * above; FightTheatre applies it at contact and swaps to this on release.)
+ * Declared after `.stage.quake` so a critical KO takes this, not the quake.
+ */
+.stage.ko-shake { animation: koShake calc(520ms * var(--spd, 1)) cubic-bezier(0.2, 0.7, 0.2, 1); }
+@keyframes koShake {
+  0% { transform: translate(0, 0); }
+  10% { transform: translate(-9px, 7px) rotate(-0.7deg); }
+  24% { transform: translate(8px, -4px) rotate(0.6deg); }
+  40% { transform: translate(-6px, 3px) rotate(-0.4deg); }
+  58% { transform: translate(4px, -2px) rotate(0.2deg); }
+  78% { transform: translate(-2px, 1px); }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* no freeze-flash and no lurch; the longer hold and the thud still mark it */
+  .stage.ko-shake { animation: none; }
+}
+
+/* the last-known plan of a rival already fought — one quiet line on the card */
+.rival-scout {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--lapis-ink);
+  /* a long gambit name wraps inside the card rather than widening the grid */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Forge step two: the way back to the name, between the subtitle and the stage */
+.forge-back { margin: 0 auto 12px; }

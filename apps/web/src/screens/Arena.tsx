@@ -8,6 +8,7 @@ import { PetSprite } from "../pixelPets.js";
 import { SkillIcon, type SkillKind } from "../skillIcons.js";
 import { todayKey, untilReset, VIGOR_CAP, VIGOR_DAILY, type SaveV1 } from "../save.js";
 import { StandingsStrip } from "../ui.js";
+import { scoutNote } from "../narrate.js";
 /** How dangerous a rival looks next to your own rating. */
 
 function threatOf(mine: number, theirs: number): "easy" | "even" | "hard" {
@@ -129,6 +130,16 @@ export function Arena(props: {
                   {THREAT_LABEL[threatOf(save.kleos, r.kleos)]}
                 </span>
               </div>
+
+              {/* what you learned the last time you met them */}
+              {scoutNote(save.seenPlans?.[r.snapshot.name]) && (
+                <p
+                  className="rival-scout"
+                  title="The plan they used the last time you fought. They may have changed it since."
+                >
+                  {scoutNote(save.seenPlans?.[r.snapshot.name])}
+                </p>
+              )}
 
               {/* what they carry, at a glance */}
               {(() => {

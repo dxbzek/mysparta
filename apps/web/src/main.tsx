@@ -1,7 +1,7 @@
 import { Component, StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.js";
-import { activeSlot, encodeSave, loadSlot, wipe } from "./save.js";
+import { activeSlot, backupSlot, encodeSave, loadSlot, wipe } from "./save.js";
 import "./fonts.css";
 import "./styles.css";
 
@@ -61,6 +61,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
                 className="btn tiny danger"
                 onClick={() => {
                   // Explicit last resort — only after the code above is theirs.
+                  // Even then the bytes are copied aside first (save.ts `.bak`).
+                  backupSlot();
                   wipe();
                   location.reload();
                 }}

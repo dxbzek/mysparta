@@ -29,7 +29,10 @@ import {
 export function Forge({
   onForge,
   onRestore,
+  damaged,
 }: {
+  /** The slot being played holds a save that would not read (save.ts). */
+  damaged?: boolean;
   onForge: (c: Champion, look: Look, aura: number) => void;
   /** A pasted rescue code checked out as a full save (save.ts). */
   onRestore: (save: SaveV1) => void;
@@ -37,6 +40,9 @@ export function Forge({
   const [name, setName] = useState("");
   const [champ, setChamp] = useState<Champion | null>(null);
   const [look, setLook] = useState<Look | null>(null);
+  /** Whose look is in `look` — so going back to fix a typo keeps the styling
+   *  when the name comes back the same, and re-rolls it when it does not. */
+  const [styledFor, setStyledFor] = useState<string | null>(null);
   const [aura, setAura] = useState(0);
   const [previewPose, setPreviewPose] = useState<"idle" | "attack1">("idle");
   const [tab, setTab] = useState<CreatorTab>("body");
@@ -58,12 +64,22 @@ export function Forge({
       <div className="forge">
         <h1 className="forge-title">Enter your name.</h1>
         <p className="forge-sub">Every name awakens a different hunter — same name, same hunter, always.</p>
+        {damaged && (
+          <p className="notice" role="status">
+            Your saved hunter couldn't be read. A copy of that save is kept on this device —
+            starting a new hunter will not erase it.
+          </p>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
             if (preview) {
               setChamp(preview);
-              setLook(lookFor(preview.displayName));
+              if (styledFor !== preview.displayName) {
+                setLook(lookFor(preview.displayName));
+                setAura(0);
+              }
+              setStyledFor(preview.displayName);
             }
           }}
         >
@@ -180,6 +196,11 @@ export function Forge({
         {c2.displayName} <span className="epithet">{c2.epithet}</span> — this is just how you look.
         Weapons, stats and skills are found in the Rift as you level.
       </p>
+      {/* The way back. Step two had none: a typo in the name — which decides
+          the whole hunter — could only be fixed by reloading the page. */}
+      <button className="btn ghost tiny forge-back" onClick={() => setChamp(null)}>
+        <PixIcon name="arrowLeft" size={11} /> Change name
+      </button>
       <div className="styler">
         <div
           className="styler-stage"
