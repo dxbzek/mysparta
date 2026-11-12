@@ -96,7 +96,8 @@ P1 — next session
    levels (`xp.ts`). **Needs design sign-off** — rewrites GDD §6.2 canon.
    *Seventh-pass note:* not touched in this pass, but `xp.ts` no longer
    matches this entry — commit `8d0e8ee` ("Take the cliff out of the XP
-   curve") already ramps the third band (29→30 costs 33, not 50). What is
+   curve") already ramps the third band (30→31 costs 33, not 50; 29→30
+   costs 31 under both curves). What is
    left is the decision: sign that curve off and update GDD §6.2, or restore
    `level + 20`.
 
@@ -118,9 +119,12 @@ P2
     `.fig-inner.flash > svg, .fig-inner.flash .hero-sprite` matches nothing,
     because the paper-doll fighter renders neither. Retarget it at
     `.fighter-fig` or delete it.
-17. *(found in the seventh pass)* Arena washes are layered correctly now but
-    fade out above the fighters' heads, so the figures still read as unlit.
-    Stronger or lower washes are an art call.
+17. *(found in the seventh pass)* Arena washes are layered correctly now, but
+    12 of the 14 start at the top and are gone by about head height, so on
+    those arenas the figures still read as unlit. The other two — Sunken Mist
+    and Ember Hollow — are anchored at the bottom of the stage and do tint the
+    fighters' lower bodies, the held-weapon chips and the damage numbers (at
+    most 0.16 alpha). Stronger or lower washes are an art call.
 18. *(found in the seventh pass)* Per-arena ambience and the KO thud have not
     been listened to — levels and filters need an ear before launch.
 
@@ -433,9 +437,14 @@ matching the log and `save.seenPlans`; no horizontal scroll.
 (over fighters and weather, under the HP bars and arena chip). The VS badge
 had no z-index and went dull under the lifted wash, so it joins the HUD at 2.
 *Verified:* looked at before/after captures on Ember Hollow and Midnight
-Hollow. Honest result: the order is right and the HUD is unchanged, but the
-fighters look the same, because every wash fades out above head height
-(backlog 17).
+Hollow. Honest result: the order is right and the HUD is unchanged, and on 12
+of the 14 arenas the fighters look the same, because the wash starts at the
+top and is gone by about head height (backlog 17). Sunken Mist and Ember
+Hollow are the exception: their washes are strongest at ground level
+(`arenas.ts`), so since this change they lie over the fighters' legs, the
+held-weapon chips and the damage numbers.
+*Corrected in the eighth pass* — this note first said every wash ends above
+head height, and named Ember Hollow as a capture that showed no change.
 
 **P2 #14 — a way back to the name.** "Change name" on Forge step two returns
 to the name field with the name in it. Same name back keeps the styling;

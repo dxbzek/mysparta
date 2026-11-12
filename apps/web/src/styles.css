@@ -674,9 +674,13 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
  * and weather are z-index 1) and under the HUD (the HP bars are also 2 but
  * come later in the stage, the arena chip is 3). With no z-index it painted
  * straight after the backdrop, so the scene was lit and the people standing in
- * it were not. The order is right now; the EFFECT is small, because every wash
- * in arenas.ts fades out above the fighters' heads — lighting the figures for
- * real means stronger or lower washes, which is an art call, not a z-index.
+ * it were not. The order is right now; the EFFECT is small on 12 of the 14
+ * arenas, whose washes start at the top and are gone by about head height
+ * (50–62% down the stage; a fighter's box starts at ~48%) — lighting those
+ * figures for real means stronger or lower washes, which is an art call, not
+ * a z-index. Sunken Mist and Ember Hollow are the other two: their washes are
+ * anchored at the BOTTOM (arenas.ts), so they do lie over the fighters' lower
+ * bodies, the held-weapon chips and the damage numbers.
  */
 .stage-wash { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
 .arena-chip {

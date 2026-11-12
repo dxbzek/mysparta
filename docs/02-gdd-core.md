@@ -481,7 +481,9 @@ There are no rarities. All 24 weapons, 30 skills and 4 beasts sit in one flat po
 
 ### 6.1 XP and pace
 
-Canonical (`00-vision.md`): **2 XP per win, 1 per loss, +1 bonus for beating a higher-rated opponent**; only initiated fights earn XP (§4.8). At 6 Vigor/day fully spent and a 50% win rate, expected pace is **9 XP/day** (bonus XP and win streaks push real pace 10–20% higher; the table below uses the conservative 9).
+Canonical (`00-vision.md`): **2 XP per win, 1 per loss, +1 bonus for beating a higher-rated opponent**; only initiated fights earn fight XP (§4.8). At 6 Vigor/day fully spent and a 50% win rate, expected pace is **9 XP/day** from fights (bonus XP and win streaks push real pace 10–20% higher; the table below uses the conservative 9).
+
+*Prototype note (2026-11-12):* the client also pays XP outside fights. Each of the three daily tasks pays **+1 XP** the moment it is finished (`TASK_XP`, up to +3/day), and once the wardrobe is complete a gear drop that has nothing left to give pays a **+2 XP Rift bounty** instead. A day with the board cleared is therefore about 12 XP, not 9, so the **Day** column in §6.2 is the fights-only floor: a player who clears the board daily reaches each level roughly a quarter sooner than the table says. The table has not been recomputed — that belongs with the §6.2 curve sign-off (`09-launch-audit.md`, backlog 1), since `xp.ts` also ramps the third band where this section still says `level + 20`.
 
 Level-up frequency is tuned to the ritual: a draft **every day** in week one, every 2–3 days through the teens, roughly weekly in the 40s — the reveal stays an event, never wallpaper.
 
