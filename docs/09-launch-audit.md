@@ -476,3 +476,138 @@ and `pnpm build` clean after every commit.
 Chrome runs it headless (`chromium.launch({ channel: "chrome" })`), so nothing
 was installed. Screenshots taken straight after a navigation catch the
 `cardRise` fade-in and look washed out — wait ~800ms first.
+
+## Eighth pass (2026-11-12) — review fixes
+
+A multi-agent review of the seventh pass (PR #3) confirmed seventeen findings:
+one high, sixteen low. All seventeen are addressed here — thirteen in code or
+tests, four as corrections to this document, the GDD and two comments.
+Nothing in art direction, layout, naming or balance changed.
+
+"Control" below means the same browser script was also run against the code
+as it stood before the fix, to show the script can see the fault.
+
+### Shipped
+
+**The Forge cannot write over a hunter** *(finding 1, high)*. With no empty
+slot the Forge's target was `firstFreeSlot() ?? activeSlot()`, and the Forge
+was still reachable — the `#/new` address, or Back after making the last
+hunter. `forgeSlot()` now answers "where may a new hunter go": an empty slot,
+or an active slot that will not read, otherwise nowhere. The route (first
+load, popstate, hashchange) lands on Your Hunters when there is nowhere, and
+`onForge` / `onRestore` write nothing without a target.
+*Verified:* five tests ("where the Forge may write"). In Chrome: made three
+hunters through the UI, pressed Back, set the hash to `#/new`, and cold-loaded
+`#/new` — Your Hunters each time, no Forge, the three saves unchanged, and
+Back still walks the history instead of bouncing. Control: the same script
+replaced the third hunter three times. Repeated with two hunters and one
+damaged slot: same result.
+
+**The freeze lands on the blow that ended it** *(findings 9, 13)*. The theatre
+took "the line before the end" as the kill; the core keeps talking after it
+(a drawn weapon, a critical's Hamstring or Staggered rider). `killBeat()` in
+`beats.ts` picks the line that takes the loser's last health.
+*Verified:* "is the line that takes the loser's last health, in every real
+knockout" over 650 simulated fights. In Chrome, 30 real fights with a
+high-crit axe and Hamstring: five knockouts were followed by "— Hamstring."
+and all five froze on the "CRITICAL!" line (one of the 30 was not observed —
+the recorder attached late). Control, 16 fights: both such knockouts froze on
+the Hamstring caption. **Not verified in a browser:** the thrown-weapon
+variant (a draw after a thrown kill) and the Staggered rider — those are
+covered by the simulated logs only. The fallen fighter still stands through
+a trailing caption until the verdict; that was left alone.
+
+**A thrown critical KO keeps its flash and its lurch** *(finding 10)*.
+`.stage.thrown-beat.quake` outranked `.stage.hitstop` / `.stage.ko-shake` on
+specificity, so its `animation-delay` applied to them. The selector excludes
+both.
+*Verified:* computed style on the real stage element in Chrome —
+`stage quake thrown-beat hitstop` reads `hitstopFlash`, delay `0s`;
+`… ko-shake` reads `koShake`, delay `0s`; the plain thrown quake still waits
+`0.5s`. Control: both read `0.5s`. A test now fails any stage-level
+`animation-delay` that does not exclude the two. **Not verified:** no real
+thrown critical KO was watched; the classes were set by hand.
+
+**The HP bar and the struck pose wait for the javelin** *(finding 11)*. On a
+thrown beat the stage shows the previous beat's health and stance until the
+flight ends (`effectDelayMs`); the number beside the bar waits with it.
+*Verified:* in Chrome the target's bar moved 485–489ms into every thrown
+beat (0ms on melee beats), the hit pose started with it, and a thrown KO
+froze at 487ms, the bar starting down to 0 at the same moment. Control: 0ms.
+
+**The axe's last chop is on the beat** *(finding 14)*. The bare `360` is
+`AXE_IMPACT_LAG_MS` in `beats.ts`, and is skipped on the killing blow.
+*Verified:* unit test only. **Not verified:** not listened to (backlog 18).
+
+**Tests that test what their names say** *(findings 12, 17)*.
+`beats.test.ts` runs the theatre's own helpers over real `narrate()` logs
+instead of hand-built lines; the scouting test compares `scoutNote` with the
+narrated opener for every gambit and stance, and round-trips the `seenPlans`
+write and read (`rememberPlan`, `scoutFor`, now used by App and the Arena
+card) over a real board.
+*Verified:* by breaking the code — a positional kill rule fails three tests,
+a mismatched `seenPlans` key fails one.
+
+**A save is not destroyed for want of somewhere to put the copy**
+*(findings 2, 3, 4, 7)*.
+- `persist()` and `wipe()` refuse to replace or remove unreadable bytes when
+  the copy could not be made. The Hunters card says "A copy of it is kept"
+  only when one is (`slotIsBackedUp`); otherwise it says so and "Free this
+  slot" is disabled. The Forge's damaged notice makes the same distinction.
+- Rescues are kept side by side (`.bak`, `.bak.1`, … up to eight) and never
+  overwritten; a readable save copied before a reset goes to `.prev`. With
+  all eight taken, a ninth damaged save cannot be freed or replaced.
+- `loadPlayable()`: an empty or unreadable active slot lands on the first
+  hunter who is there — at load, after Delete Hunter, after Retire.
+- `decodeSave` rebuilds `quests`; `settleQuests` no longer spreads `paid`.
+
+*Verified:* fifteen tests across "a rescued copy is never the price of the
+next one", "when the copy cannot be written", "an active slot with nobody in
+it" and "a rescue code's task board is pasted text too". In Chrome, through
+the UI: (a) a damaged slot with a copy — card says so, freeing empties the
+slot and keeps the `.bak`; (b) with `setItem` refusing `.bak` keys — card
+says no copy could be kept, the button is disabled, forced clicks change
+nothing; (c) freed a damaged slot, made a hunter in it, poisoned that save
+into the error boundary and pressed "Reset this hunter" — `.bak` still held
+the first rescue, the new save was in `.prev`, and the game landed on the
+other hunter; (d) Delete Hunter on the one being played landed on the other
+hunter's Hall, not the Forge; (e) a rescue code with `quests.paid: 5`
+restored with `paid: []` and its first fight started and saved.
+**Known remainder:** reloading *inside* the Forge after "Awaken a hunter"
+loads the existing hunter but still shows the Forge, because the address is
+`#/new` and a slot is free; Back leaves it. A storage event from another tab
+can still put this tab on the Forge. The "storage full" case was simulated
+by refusing `.bak` writes, not by filling a real quota.
+
+**Tasks finished before the bell are not this fight's work** *(finding 8)*.
+A same-day board from before tasks paid singly was credited to its next
+fight ("3 tasks done"). `settleBackPay()` pays it first, as "Tasks from
+earlier today"; the XP is the same.
+*Verified:* three tests. In Chrome with such a board injected: the verdict
+read "Tasks from earlier today — +3 XP" and the save gained 5 XP (2 + 3).
+Control: "3 tasks done — +3 XP", also 5 XP.
+
+**Four statements corrected** *(findings 5, 6, 15, 16)*. The XP step label
+(30→31 costs 33; 29→30 is 31 under both curves) here and in `xp.ts`; the
+wash claim (12 of 14, with Sunken Mist and Ember Hollow bottom-anchored)
+here and in `styles.css`; GDD §6.1's "only fights earn XP".
+*Verified:* arithmetic against `costToNext`; gradients read from
+`arenas.ts`; fighter position measured in Chrome at 1280 and 390 wide (box
+top ≈48% down the stage, top-anchored washes end at 50–62%). **Not
+verified:** nobody looked at Sunken Mist or Ember Hollow for the tint.
+
+### Suite
+
+139 passing before this pass (98 web + 22 core + 19 api; one skipped in each
+of web and core); 166 after (125 + 22 + 19). `pnpm typecheck`, `pnpm test` and
+`pnpm build` were run after every commit.
+
+### Method note
+
+This machine was running other jobs (a render, another headless browser)
+throughout. Under that load the suite's default five-second test timeout
+failed twice on untouched tests (`anims.test.ts`, core `invariants.test.ts`)
+and passed on the re-run; browser timings wandered by tens of milliseconds
+and one Playwright launch timed out. `beats.test.ts` sets a thirty-second
+timeout for itself. A red run on a loaded machine is worth one re-run before
+it is believed.
