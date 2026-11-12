@@ -21,6 +21,11 @@ export interface DailyQuests {
   /** The run currently going — reset by a loss, never shown. */
   run: number;
   claimed: boolean;
+  /**
+   * Tasks whose own +1 XP has been paid today, by metric (a day never asks
+   * for the same metric twice). Absent on saves from before tasks paid singly.
+   */
+  paid?: QuestMetric[];
 }
 
 export interface SaveV1 {
@@ -110,7 +115,7 @@ export function questsForDay(day = todayKey()): QuestDef[] {
 }
 
 export function freshQuests(): DailyQuests {
-  return { day: todayKey(), fights: 0, wins: 0, crits: 0, blocks: 0, streak: 0, run: 0, claimed: false };
+  return { day: todayKey(), fights: 0, wins: 0, crits: 0, blocks: 0, streak: 0, run: 0, claimed: false, paid: [] };
 }
 
 /** Progress on one task, clamped to what it asks for. */
@@ -122,6 +127,34 @@ export function questProgress(q: DailyQuests | undefined, def: QuestDef): number
 /** True when every one of the day's tasks is done. */
 export function questsComplete(q: DailyQuests | undefined, defs = questsForDay()): boolean {
   return !!q && defs.every((d) => questProgress(q, d) >= d.need);
+}
+
+/** What one finished task pays on its own, before the all-three drop. */
+export const TASK_XP = 1;
+
+/**
+ * Pay out what the board owes after a fight's tallies are in.
+ *
+ * The board used to be all or nothing: two tasks done and a third out of
+ * reach paid exactly what zero tasks paid, so a day that went badly early
+ * gave no reason to look at the board again. Each task now pays TASK_XP the
+ * moment it completes, once; clearing all three still pays the drop on top,
+ * once. Pure — the caller adds the XP and rolls the drop.
+ */
+export function settleQuests(
+  q: DailyQuests,
+  defs: QuestDef[] = questsForDay(q.day),
+): { quests: DailyQuests; taskXp: number; newlyDone: QuestDef[]; boardCleared: boolean } {
+  const paid = [...(q.paid ?? [])];
+  const newlyDone = defs.filter((d) => questProgress(q, d) >= d.need && !paid.includes(d.metric));
+  for (const d of newlyDone) paid.push(d.metric);
+  const boardCleared = !q.claimed && questsComplete(q, defs);
+  return {
+    quests: { ...q, paid, claimed: q.claimed || boardCleared },
+    taskXp: newlyDone.length * TASK_XP,
+    newlyDone,
+    boardCleared,
+  };
 }
 
 const KEY = "agoge.save.v1";

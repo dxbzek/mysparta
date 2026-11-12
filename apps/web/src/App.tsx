@@ -30,7 +30,7 @@ import {
   activeSlot,
   firstFreeSlot,
   freshQuests,
-  questsComplete,
+  settleQuests,
   rosterSummary,
   setActiveSlot,
   slotState,
@@ -438,8 +438,15 @@ export function App() {
     // player already earned — it just stops the current run growing.
     q.run = won ? q.run + 1 : 0;
     q.streak = Math.max(q.streak, q.run);
-    if (!q.claimed && questsComplete(q)) {
-      q.claimed = true;
+    // Each task pays on its own the moment it is done; all three still pays
+    // the drop on top. (It was all-or-nothing: two of three paid nothing.)
+    const settled = settleQuests(q);
+    if (settled.taskXp > 0) {
+      champion.xp += settled.taskXp;
+      const n = settled.newlyDone.length;
+      drops.push(n === 1 ? `Task done — +${settled.taskXp} XP` : `${n} tasks done — +${settled.taskXp} XP`);
+    }
+    if (settled.boardCleared) {
       addDrop(rollGearDrop(gear, combineSeed(seed, "questdrop")));
     }
     if (won && makeRng(combineSeed(seed, "loot")).pct(25)) {
@@ -458,7 +465,7 @@ export function App() {
       kleos: Math.max(1000, fresh.kleos + kd),
       plan,
       seenPlans: { ...fresh.seenPlans, [rival.snapshot.name]: rival.snapshot.plan },
-      quests: q,
+      quests: settled.quests,
     };
     update(next);
     setScreen({

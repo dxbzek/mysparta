@@ -19,7 +19,7 @@ import { AuraSparks, FighterBust, FighterFig, lookFor, type FighterAnim } from "
 import { ARENAS } from "../arenas.js";
 import { arenaScene } from "../arenaArt.js";
 import { gearDetail, gearItem, gearPool, gearStatLine, lookWithGear, resolveExtras, type GearItem, type GearSlot } from "../gear.js";
-import { encodeSave, questProgress, questsForDay, untilReset, VIGOR_CAP, VIGOR_DAILY, type SaveV1 } from "../save.js";
+import { encodeSave, questProgress, questsForDay, TASK_XP, untilReset, VIGOR_CAP, VIGOR_DAILY, type SaveV1 } from "../save.js";
 import { CHAR, type Look } from "../paperdoll.js";
 import { DISCIPLINE_NAME, StandingsStrip, WeaponBars } from "../ui.js";
 
@@ -521,7 +521,9 @@ export function Home(props: {
                 </Quest>
               ))}
             </ul>
-            <p className="muted small note">Complete all three for a bonus drop. Resets daily.</p>
+            <p className="muted small note">
+              Each task pays +{TASK_XP} XP when you finish it. Complete all three for a bonus drop. Resets daily.
+            </p>
           </section>
         </div>
       )}

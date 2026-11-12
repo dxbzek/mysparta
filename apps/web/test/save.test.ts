@@ -127,6 +127,7 @@ describe("daily reset", () => {
       day: todayKey(),
       fights: 0, wins: 0, crits: 0, blocks: 0, streak: 0, run: 0,
       claimed: false,
+      paid: [],
     });
   });
 });
@@ -354,5 +355,78 @@ describe("a save that will not read", () => {
     localStorage.setItem("agoge.save.v1", JSON.stringify({ v: 1, champion: {} }));
     expect(load()).toBeNull();
     expect(slotState(0)).toBe("corrupt");
+  });
+});
+
+describe("daily tasks pay as they are finished", () => {
+  const DAY = "2026-08-05";
+  const board = async () => {
+    const { questsForDay, freshQuests, settleQuests, TASK_XP } = await import("../src/save.js");
+    const defs = questsForDay(DAY);
+    const blank = { ...freshQuests(), day: DAY };
+    const done = (n: number) => {
+      const q = { ...blank };
+      for (const d of defs.slice(0, n)) (q[d.metric] as number) = d.need;
+      return q;
+    };
+    return { defs, blank, done, settleQuests, TASK_XP };
+  };
+
+  it("pays nothing for nothing", async () => {
+    const { blank, defs, settleQuests } = await board();
+    const out = settleQuests(blank, defs);
+    expect(out.taskXp).toBe(0);
+    expect(out.boardCleared).toBe(false);
+    expect(out.quests.claimed).toBe(false);
+  });
+
+  it("one task done pays +1 XP on its own — two of three is no longer zero", async () => {
+    const { defs, done, settleQuests, TASK_XP } = await board();
+    const one = settleQuests(done(1), defs);
+    expect(one.taskXp).toBe(TASK_XP);
+    expect(one.boardCleared).toBe(false);
+    const two = settleQuests(done(2), defs);
+    expect(two.taskXp).toBe(2 * TASK_XP);
+    expect(two.boardCleared).toBe(false);
+    expect(two.quests.claimed).toBe(false);
+  });
+
+  it("never pays the same task twice, however many fights follow", async () => {
+    const { defs, done, settleQuests } = await board();
+    let q = settleQuests(done(2), defs).quests;
+    for (let fight = 0; fight < 5; fight++) {
+      const again = settleQuests({ ...q, fights: q.fights + 1 }, defs);
+      // fights may itself be a task finishing later; only already-paid ones are barred
+      expect(again.newlyDone.every((d) => !q.paid!.includes(d.metric))).toBe(true);
+      q = again.quests;
+    }
+    expect(new Set(q.paid).size).toBe(q.paid!.length);
+    expect(q.paid!.length).toBeLessThanOrEqual(3);
+  });
+
+  it("all three pays the third task AND the drop, once", async () => {
+    const { defs, done, settleQuests, TASK_XP } = await board();
+    const afterTwo = settleQuests(done(2), defs).quests;
+    const full = { ...done(3), paid: afterTwo.paid };
+    const out = settleQuests(full, defs);
+    expect(out.taskXp).toBe(TASK_XP);
+    expect(out.boardCleared).toBe(true);
+    expect(out.quests.claimed).toBe(true);
+    const next = settleQuests(out.quests, defs);
+    expect(next.taskXp).toBe(0);
+    expect(next.boardCleared).toBe(false);
+    // 3 XP across the day from tasks, never more
+    expect(out.quests.paid).toHaveLength(3);
+  });
+
+  it("a save from before tasks paid singly is settled, not crashed", async () => {
+    const { defs, done, settleQuests, TASK_XP } = await board();
+    const old = { ...done(3), claimed: true } as Record<string, unknown>;
+    delete old.paid;
+    const out = settleQuests(old as never, defs);
+    // The drop was already taken; the three tasks are honoured once.
+    expect(out.boardCleared).toBe(false);
+    expect(out.taskXp).toBe(3 * TASK_XP);
+    expect(settleQuests(out.quests, defs).taskXp).toBe(0);
   });
 });
