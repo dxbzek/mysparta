@@ -7,6 +7,7 @@
 
 import { beast, weapon } from "@agoge/core";
 import type { FightEvent, FightResult } from "@agoge/core";
+import { THROWN_HOLD_EXTRA_MS } from "./beats.js";
 
 export interface Line {
   t: number;
@@ -77,7 +78,19 @@ export function narrate(result: FightResult, names: [string, string]): Line[] {
       kind: Line["kind"],
       hold = 550,
       extra?: Partial<Pick<Line, "fx" | "anim" | "beastDown" | "drew">>,
-    ) => lines.push({ t: e.t, side, text, kind, hold, hp: [hp[0], hp[1]], ...extra });
+    ) =>
+      lines.push({
+        t: e.t,
+        side,
+        text,
+        kind,
+        // A thrown weapon lands later than a swing does (beats.ts), so its
+        // beat holds longer by the same amount — otherwise the reaction that
+        // now waits for the javelin would be cut off by the next line.
+        hold: extra?.anim?.thrown ? hold + THROWN_HOLD_EXTRA_MS : hold,
+        hp: [hp[0], hp[1]],
+        ...extra,
+      });
 
     switch (e.type) {
       case "start":

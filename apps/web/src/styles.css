@@ -3808,3 +3808,41 @@ img.pet-art[data-gait="plod"] { animation: artPlod var(--idle) ease-in-out infin
 /* A felled beast holds still. */
 .pet-holder[style*="rotate"] img.pet-art { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { img.pet-art { animation: none !important; } }
+
+/*
+ * Thrown beats: cause, then effect.
+ *
+ * Every reaction above is delayed to the MELEE contact (~280ms), but a javelin
+ * was in the air until 530ms — so the target recoiled, the burst popped and
+ * the number floated a quarter of a second before anything reached them. On a
+ * thrown beat the stage carries `thrown-beat` and everything the missile
+ * causes waits for `--land`, the moment its flight ends (beats.ts sets all
+ * three variables, so the stylesheet and the SFX read one clock).
+ *
+ * This block must stay at the END of the file: it overrides the delays set by
+ * the base rules, and a rule above its base loses silently.
+ */
+.missile-r,
+.missile-l {
+  /* the flight follows 2x speed like the rest of the choreography */
+  animation-duration: calc(var(--missile-fly, 260ms) * var(--spd, 1));
+  animation-delay: calc(var(--missile-wait, 210ms) * var(--spd, 1));
+}
+.stage.thrown-beat .burst,
+.stage.thrown-beat .hurt-l,
+.stage.thrown-beat .hurt-r {
+  animation-delay: calc(var(--land, 470ms) * var(--spd, 1));
+}
+/* a guard or a step aside starts just before the point arrives */
+.stage.thrown-beat .dodge-l,
+.stage.thrown-beat .dodge-r,
+.stage.thrown-beat .block-l,
+.stage.thrown-beat .block-r {
+  animation-delay: calc((var(--land, 470ms) - 60ms) * var(--spd, 1));
+}
+.stage.thrown-beat .floater:not(.heal) {
+  animation-delay: calc((var(--land, 470ms) + 20ms) * var(--spd, 1));
+}
+.stage.thrown-beat.quake {
+  animation-delay: calc((var(--land, 470ms) + 30ms) * var(--spd, 1));
+}
