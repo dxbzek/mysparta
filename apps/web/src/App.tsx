@@ -44,6 +44,7 @@ import {
   VIGOR_CAP,
   VIGOR_DAILY,
 } from "./save.js";
+import { rememberPlan } from "./narrate.js";
 import { sound } from "./sound.js";
 import { queueCloudPush } from "./cloud.js";
 import { Shell } from "./Shell.js";
@@ -486,7 +487,7 @@ export function App() {
       losses: fresh.losses + (won ? 0 : 1),
       kleos: Math.max(1000, fresh.kleos + kd),
       plan,
-      seenPlans: { ...fresh.seenPlans, [rival.snapshot.name]: rival.snapshot.plan },
+      seenPlans: rememberPlan(fresh.seenPlans, rival),
       quests: settled.quests,
     };
     update(next);

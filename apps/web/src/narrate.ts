@@ -6,7 +6,7 @@
  */
 
 import { beast, weapon } from "@agoge/core";
-import type { FightEvent, FightResult } from "@agoge/core";
+import type { BattlePlan, FightEvent, FightResult } from "@agoge/core";
 import { THROWN_HOLD_EXTRA_MS } from "./beats.js";
 
 export interface Line {
@@ -77,6 +77,27 @@ export function scoutNote(plan: { stance?: string; gambit?: string } | undefined
   if (!plan || typeof plan.gambit !== "string" || !plan.gambit) return null;
   const stance = typeof plan.stance === "string" && plan.stance ? `, ${plan.stance}` : "";
   return `Fought before — last opened with ${gambitName(plan.gambit)}${stance}.`;
+}
+
+/*
+ * The write and the read of `seenPlans`, side by side. They lived in two
+ * files (App writes after a fight, the Arena card reads), each spelling the
+ * key for itself — and nothing checked that the two spellings agreed, or that
+ * the plan stored was the one the rival fought with.
+ */
+type Scouted = { snapshot: { name: string; plan: BattlePlan } };
+
+/** After a fight: remember the plan this rival used. Returns the new record. */
+export function rememberPlan(
+  seen: Record<string, BattlePlan> | undefined,
+  rival: Scouted,
+): Record<string, BattlePlan> {
+  return { ...seen, [rival.snapshot.name]: rival.snapshot.plan };
+}
+
+/** On the board: the scout line for this rival, or null for a stranger. */
+export function scoutFor(seen: Record<string, BattlePlan> | undefined, rival: Scouted): string | null {
+  return scoutNote(seen?.[rival.snapshot.name]);
 }
 
 export function narrate(result: FightResult, names: [string, string]): Line[] {
