@@ -33,6 +33,8 @@ import {
   questsComplete,
   rosterSummary,
   setActiveSlot,
+  slotState,
+  slotStates,
   load,
   newSave,
   persist,
@@ -179,7 +181,21 @@ function DevPanel({ save, update }: { save: SaveV1; update: (s: SaveV1) => void 
 }
 
 export function App() {
-  const [save, setSave] = useState<SaveV1 | null>(() => load());
+  const [save, setSave] = useState<SaveV1 | null>(() => {
+    const active = load();
+    if (active) return active;
+    // The slot being played will not read, but another hunter will: land on
+    // them rather than on a Forge that hides the whole roster. The damaged
+    // slot is untouched and shows as damaged on the Hunters screen.
+    if (slotState(activeSlot()) === "corrupt") {
+      const other = rosterSummary().find((r) => r !== null);
+      if (other) {
+        setActiveSlot(other.slot);
+        return load();
+      }
+    }
+    return null;
+  });
   const [screen, setScreen] = useState<Screen>(() => {
     const wanted = routeOf(location.hash);
     if (!save) return { s: "forge" };
@@ -333,6 +349,9 @@ export function App() {
     return (
       <Shell>
         <Forge
+          // Null because nothing is saved, or null because what is saved will
+          // not read — the player is owed the difference.
+          damaged={!save && slotState(activeSlot()) === "corrupt"}
           onForge={(champion, look, aura) => {
             // A new hunter takes the first free slot and becomes the one being
             // played; without this the Forge would write over whoever is
@@ -605,6 +624,7 @@ export function App() {
       {screen.s === "roster" && (
         <Roster
           slots={rosterSummary()}
+          states={slotStates()}
           active={activeSlot()}
           onBack={() => setScreen({ s: "home" })}
           onPlay={(slot) => {

@@ -6,6 +6,7 @@ import {
   load,
   newSave,
   persist,
+  setActiveSlot as setActive,
   todayKey,
   wipe,
   type SaveV1,
@@ -275,5 +276,83 @@ describe("rotating daily tasks", () => {
     expect(questsComplete(q, defs)).toBe(true);
     for (const d of defs) expect(questProgress(q, d)).toBe(d.need);
     expect(questsComplete(freshQuests(), defs)).toBe(false);
+  });
+});
+
+describe("a save that will not read", () => {
+  const JUNK = '{"v":1,"champion":{"displayName":"Zek","level":31,"xp":'; // a write cut short
+
+  it("is corrupt, not empty — and an absent one is empty, not corrupt", async () => {
+    const { slotState, persist } = await import("../src/save.js");
+    expect(slotState(0)).toBe("empty");
+    localStorage.setItem("agoge.save.v1", JUNK);
+    expect(slotState(0)).toBe("corrupt");
+    localStorage.setItem("agoge.save.v1.1", JSON.stringify({ v: 99, from: "the future" }));
+    expect(slotState(1)).toBe("corrupt");
+    persist(fresh(), 2);
+    expect(slotState(2)).toBe("ok");
+  });
+
+  it("is never offered as a free slot", async () => {
+    const { firstFreeSlot, hasFreeSlot, persist } = await import("../src/save.js");
+    localStorage.setItem("agoge.save.v1", JUNK);
+    // The Forge writes to firstFreeSlot(): it must walk past the damaged one.
+    expect(firstFreeSlot()).toBe(1);
+    persist(fresh(), 1);
+    persist(fresh(), 2);
+    expect(hasFreeSlot()).toBe(false);
+    expect(firstFreeSlot()).toBeNull();
+    expect(localStorage.getItem("agoge.save.v1")).toBe(JUNK);
+  });
+
+  it("has its bytes copied to .bak the first time it is read, slot untouched", async () => {
+    const { slotBackup } = await import("../src/save.js");
+    localStorage.setItem("agoge.save.v1.2", JUNK);
+    expect(slotBackup(2)).toBeNull();
+    setActive(2);
+    expect(load()).toBeNull();
+    expect(localStorage.getItem("agoge.save.v1.2.bak")).toBe(JUNK);
+    expect(slotBackup(2)).toBe(JUNK);
+    expect(localStorage.getItem("agoge.save.v1.2")).toBe(JUNK);
+  });
+
+  it("keeps the bytes even when a new hunter is written straight over it", async () => {
+    const { slotBackup, slotState } = await import("../src/save.js");
+    localStorage.setItem("agoge.save.v1", JUNK);
+    // No read first: the write itself must be the guard.
+    persist(fresh(), 0);
+    expect(slotState(0)).toBe("ok");
+    expect(slotBackup(0)).toBe(JUNK);
+  });
+
+  it("keeps the bytes when the damaged slot is freed", async () => {
+    const { slotBackup, slotState } = await import("../src/save.js");
+    localStorage.setItem("agoge.save.v1.1", JUNK);
+    wipe(1);
+    expect(slotState(1)).toBe("empty");
+    expect(slotBackup(1)).toBe(JUNK);
+  });
+
+  it("does not back up a healthy save on every write, or when it is deleted", async () => {
+    const { slotBackup, backupSlot } = await import("../src/save.js");
+    persist(fresh(), 0);
+    persist({ ...fresh(), kleos: 1600 }, 0);
+    expect(slotBackup(0)).toBeNull();
+    wipe(0);
+    expect(slotBackup(0)).toBeNull();
+    // ...unless asked to: the error boundary's reset copies first.
+    persist(fresh(), 0);
+    expect(backupSlot(0)).toBe(true);
+    expect(slotBackup(0)).toBe(localStorage.getItem("agoge.save.v1"));
+  });
+
+  it("a save missing its champion is unreadable rather than a crash", async () => {
+    const { slotState } = await import("../src/save.js");
+    localStorage.setItem("agoge.save.v1", JSON.stringify({ v: 1 }));
+    expect(load()).toBeNull();
+    expect(slotState(0)).toBe("corrupt");
+    localStorage.setItem("agoge.save.v1", JSON.stringify({ v: 1, champion: {} }));
+    expect(load()).toBeNull();
+    expect(slotState(0)).toBe("corrupt");
   });
 });
