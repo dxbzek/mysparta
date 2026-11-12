@@ -466,6 +466,29 @@ export const sound = {
     }
   },
 
+  /**
+   * The blow that ends it. A crit is bright — shing, crack, slap. This is the
+   * opposite: everything above the chest of the sound drops away and what is
+   * left is weight — a sub that falls through the floor, a body's worth of
+   * dull thud, the room answering late, and the crowd catching its breath.
+   * Layered over the weapon's own impact, which still plays.
+   */
+  ko(side?: 0 | 1) {
+    if (muted) return;
+    at(side, () => {
+      // the drop: felt more than heard
+      tone({ from: 92, to: 24, dur: 0.62, type: "sine", gain: 0.72, attack: 0.002 });
+      tone({ from: 138, to: 36, dur: 0.34, type: "triangle", gain: 0.34, attack: 0.001 });
+      // the body of it — closed, no edge
+      noise({ dur: 0.16, type: "lowpass", from: 520, to: 110, gain: 0.42, attack: 0.001 });
+      click(0.2);
+      // the room, a beat behind
+      noise({ dur: 0.5, type: "lowpass", from: 260, to: 70, gain: 0.16, when: 0.07, attack: 0.03 });
+    });
+    // the crowd's intake of breath, centred — it is the whole bowl, not a side
+    noise({ dur: 0.55, type: "bandpass", from: 520, to: 1500, q: 0.6, gain: 0.07, when: 0.12, attack: 0.22, pan: 0 });
+  },
+
   /** The swing before contact — mass and edge decide how the air moves. */
   swing(kind: StrikeKind, side?: 0 | 1) {
     if (muted) return;

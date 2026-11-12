@@ -10,7 +10,7 @@ import { CHAR, weaponArtFor, type Look } from "./paperdoll.js";
 import { narrate, type Line } from "./narrate.js";
 import { SkillFx, fxFor } from "./fightFx.js";
 import { sound, type StrikeKind } from "./sound.js";
-import { MISSILE_FLIGHT_MS, MISSILE_LAUNCH_MS, THROWN_CONTACT_MS, contactMs } from "./beats.js";
+import { HITSTOP_MS, MISSILE_FLIGHT_MS, MISSILE_LAUNCH_MS, THROWN_CONTACT_MS, contactMs, koSchedule } from "./beats.js";
 
 export interface StageFigure {
   /** The fighter's full appearance (paperdoll.ts). */
@@ -128,13 +128,39 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
    * Street Fighter II freezes the frame on the blow that ends it, because the
    * pause is what tells you it was the last one. The beat before the end holds
    * longer, the stage holds still, and then the verdict.
+   *
+   * The freeze belongs to the moment of CONTACT. It used to be applied for the
+   * whole beat, from its first frame — so the swing that ended the fight was
+   * paused before it was thrown, and the biggest blow of the bout was the one
+   * blow nobody saw. The beat now plays up to contact, stops dead there with
+   * the thud, then lets go: the stage lurches and the body takes it.
    */
-  const kills = lines.length > 1 && shown === lines.length - 1 && result.reason === "ko";
+  const kills = lines.length > 1 && shown === lines.length - 1 && result.reason === "ko" && !skipped;
+  const [ko, setKo] = useState<"none" | "freeze" | "release">("none");
+
+  useEffect(() => {
+    if (!kills) {
+      setKo("none");
+      return;
+    }
+    // Read the speed once: toggling 2x mid-beat must not restart the freeze.
+    const plan = koSchedule(lines[shown - 1], speedRef.current);
+    const freeze = window.setTimeout(() => {
+      setKo("freeze");
+      // Heard on the frozen frame, where the fallen fighter stands.
+      sound.ko(result.winner === 0 ? 1 : 0);
+    }, plan.freezeAt);
+    const release = window.setTimeout(() => setKo("release"), plan.releaseAt);
+    return () => {
+      window.clearTimeout(freeze);
+      window.clearTimeout(release);
+    };
+  }, [kills, lines, shown, result.winner]);
 
   useEffect(() => {
     if (finished) return;
     const line = lines[shown - 1];
-    const hold = ((line?.hold ?? 600) + (kills ? 420 : 0)) / speedRef.current;
+    const hold = ((line?.hold ?? 600) + (kills ? HITSTOP_MS : 0)) / speedRef.current;
     const id = window.setTimeout(() => setShown((s) => s + 1), hold);
     return () => window.clearTimeout(id);
   }, [shown, finished, lines, speed, kills]);
@@ -492,7 +518,9 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     // than fast, in the mode repeat players live in.
     <div className="theatre" style={{ "--spd": speed === 2 ? 0.5 : 1 } as React.CSSProperties}>
       <div
-        className={`stage ${fx?.crit && !finished ? "quake" : ""}${kills ? " hitstop" : ""}${
+        className={`stage ${fx?.crit && !finished ? "quake" : ""}${
+          ko === "freeze" ? " hitstop" : ko === "release" ? " ko-shake" : ""
+        }${
           anim?.thrown && anim.striker !== undefined ? " thrown-beat" : ""
         }`}
         ref={stageRef}

@@ -3361,7 +3361,7 @@ h1, h2, h3, .btn, .wordmark, .pill { font-family: var(--font-display); }
  * running animation frozen, the colour pushed, a hard white flash — and then
  * lets go. It is the difference between a fight ending and a fight stopping.
  */
-.stage.hitstop { animation: hitstopFlash 420ms steps(1, end); }
+.stage.hitstop { animation: hitstopFlash calc(420ms * var(--spd, 1)) steps(1, end); }
 .stage.hitstop *,
 .stage.hitstop *::before,
 .stage.hitstop *::after { animation-play-state: paused !important; }
@@ -3845,4 +3845,26 @@ img.pet-art[data-gait="plod"] { animation: artPlod var(--idle) ease-in-out infin
 }
 .stage.thrown-beat.quake {
   animation-delay: calc((var(--land, 470ms) + 30ms) * var(--spd, 1));
+}
+
+/*
+ * The killing blow, after the freeze lets go. A crit shakes the stage 4px for
+ * 300ms; the blow that ends the fight has to outweigh that — a single heavy
+ * lurch downward and a slower, wider settle. (The freeze itself is `.hitstop`
+ * above; FightTheatre applies it at contact and swaps to this on release.)
+ * Declared after `.stage.quake` so a critical KO takes this, not the quake.
+ */
+.stage.ko-shake { animation: koShake calc(520ms * var(--spd, 1)) cubic-bezier(0.2, 0.7, 0.2, 1); }
+@keyframes koShake {
+  0% { transform: translate(0, 0); }
+  10% { transform: translate(-9px, 7px) rotate(-0.7deg); }
+  24% { transform: translate(8px, -4px) rotate(0.6deg); }
+  40% { transform: translate(-6px, 3px) rotate(-0.4deg); }
+  58% { transform: translate(4px, -2px) rotate(0.2deg); }
+  78% { transform: translate(-2px, 1px); }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* no freeze-flash and no lurch; the longer hold and the thud still mark it */
+  .stage.ko-shake { animation: none; }
 }

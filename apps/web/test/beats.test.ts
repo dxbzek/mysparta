@@ -4,11 +4,13 @@ import { applyDraft, createChampion, generateDraft, simulateFight, snapshot } fr
 import { combineSeed, makeRng } from "@agoge/core";
 import { narrate, type Line } from "../src/narrate.js";
 import {
+  HITSTOP_MS,
   MELEE_CONTACT_MS,
   MISSILE_FLIGHT_MS,
   MISSILE_LAUNCH_MS,
   THROWN_CONTACT_MS,
   contactMs,
+  koSchedule,
 } from "../src/beats.js";
 import type { BattlePlan } from "@agoge/core";
 
@@ -75,5 +77,31 @@ describe("thrown beats: cause before effect", () => {
       expect(css.lastIndexOf(base), base).toBeGreaterThan(-1);
       expect(css.lastIndexOf(base), base).toBeLessThan(override);
     }
+  });
+});
+
+describe("the killing blow's hit-stop", () => {
+  const hit = { hold: 820, anim: { striker: 0 as const } };
+  const javelin = { hold: 1000, anim: { striker: 0 as const, thrown: true } };
+
+  it("freezes at contact, not at the first frame of the beat", () => {
+    expect(koSchedule(hit, 1).freezeAt).toBe(MELEE_CONTACT_MS);
+    expect(koSchedule(javelin, 1).freezeAt).toBe(THROWN_CONTACT_MS);
+    expect(koSchedule(hit, 1).freezeAt).toBeGreaterThan(0);
+  });
+
+  it("lets go before the verdict, with room for the body to react", () => {
+    for (const l of [hit, javelin]) {
+      const s = koSchedule(l, 1);
+      expect(s.releaseAt - s.freezeAt).toBe(HITSTOP_MS);
+      expect(s.hold - s.releaseAt).toBeGreaterThanOrEqual(400);
+    }
+  });
+
+  it("compresses with 2x speed like the rest of the stage", () => {
+    const one = koSchedule(hit, 1);
+    const two = koSchedule(hit, 2);
+    expect(two.freezeAt).toBe(Math.round(one.freezeAt / 2));
+    expect(two.hold).toBe(Math.round(one.hold / 2));
   });
 });
