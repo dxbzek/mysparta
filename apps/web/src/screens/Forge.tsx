@@ -40,6 +40,9 @@ export function Forge({
   const [name, setName] = useState("");
   const [champ, setChamp] = useState<Champion | null>(null);
   const [look, setLook] = useState<Look | null>(null);
+  /** Whose look is in `look` — so going back to fix a typo keeps the styling
+   *  when the name comes back the same, and re-rolls it when it does not. */
+  const [styledFor, setStyledFor] = useState<string | null>(null);
   const [aura, setAura] = useState(0);
   const [previewPose, setPreviewPose] = useState<"idle" | "attack1">("idle");
   const [tab, setTab] = useState<CreatorTab>("body");
@@ -72,7 +75,11 @@ export function Forge({
             e.preventDefault();
             if (preview) {
               setChamp(preview);
-              setLook(lookFor(preview.displayName));
+              if (styledFor !== preview.displayName) {
+                setLook(lookFor(preview.displayName));
+                setAura(0);
+              }
+              setStyledFor(preview.displayName);
             }
           }}
         >
@@ -189,6 +196,11 @@ export function Forge({
         {c2.displayName} <span className="epithet">{c2.epithet}</span> — this is just how you look.
         Weapons, stats and skills are found in the Rift as you level.
       </p>
+      {/* The way back. Step two had none: a typo in the name — which decides
+          the whole hunter — could only be fixed by reloading the page. */}
+      <button className="btn ghost tiny forge-back" onClick={() => setChamp(null)}>
+        <PixIcon name="arrowLeft" size={11} /> Change name
+      </button>
       <div className="styler">
         <div
           className="styler-stage"

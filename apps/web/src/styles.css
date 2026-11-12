@@ -3890,3 +3890,6 @@ img.pet-art[data-gait="plod"] { animation: artPlod var(--idle) ease-in-out infin
   min-width: 0;
   overflow-wrap: anywhere;
 }
+
+/* Forge step two: the way back to the name, between the subtitle and the stage */
+.forge-back { margin: 0 auto 12px; }
