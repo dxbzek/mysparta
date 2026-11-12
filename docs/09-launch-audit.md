@@ -457,7 +457,7 @@ itself — it has not been listened to (backlog 18).
 
 ### Suite
 
-114 web/core/api tests before this pass on a fresh install (65 + 22 + 19, one
+106 web/core/api tests before this pass on a fresh install (65 + 22 + 19, one
 skipped in each of web and core); 134 after (93 + 22 + 19). `pnpm typecheck`
 and `pnpm build` clean after every commit.
 
