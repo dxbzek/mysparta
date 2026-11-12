@@ -238,14 +238,126 @@ function noise(o: NoiseOpts) {
 /* Looped filtered noise with a slow breathing LFO: felt, not heard.   */
 /* ------------------------------------------------------------------ */
 
-let amb: { src: AudioBufferSourceNode; out: GainNode; lfo: OscillatorNode } | null = null;
-// Whether a fight currently wants ambience — so unmuting mid-bout can bring
-// the crowd back instead of leaving every SFX naked over silence.
-let wantAmbience = false;
+/**
+ * Where the fight is, as sound. Fourteen arenas shared one murmur, so a
+ * blizzard, a volcano and a moonlit hollow were the same room with different
+ * wallpaper. Each flavour keeps the crowd (it is still an arena) at its own
+ * level and lays one to three more beds of the same looped noise under it —
+ * filtered, slowly breathing, never a beat. No samples: zero bytes.
+ */
+export type AmbienceFlavour = "crowd" | "wind" | "storm" | "rumble" | "night" | "water" | "stands";
 
-function ambienceStart() {
+export interface AmbienceLayer {
+  type: BiquadFilterType;
+  /** Filter centre / cutoff, Hz. */
+  freq: number;
+  q: number;
+  /** Bed level. Kept tiny: ambience is felt, not heard. */
+  gain: number;
+  /** Swell rate in Hz and depth 0-1 (how much of the level the swell moves). */
+  rate: number;
+  depth: number;
+  /** A second, slower sweep of the filter itself — what makes wind gust. */
+  sweep?: { rate: number; hz: number };
+}
+
+export const AMBIENCE: Record<AmbienceFlavour, { crowd: number; layers: AmbienceLayer[] }> = {
+  // the original room: a crowd and nothing else
+  crowd: { crowd: 0.05, layers: [] },
+  // a full bowl — more people, and the brighter chatter of the upper tiers
+  stands: {
+    crowd: 0.062,
+    layers: [{ type: "bandpass", freq: 1100, q: 0.5, gain: 0.014, rate: 0.17, depth: 0.45 }],
+  },
+  // open ground: air moving across it in gusts, the crowd thinned by distance
+  wind: {
+    crowd: 0.034,
+    layers: [
+      { type: "bandpass", freq: 620, q: 1.6, gain: 0.03, rate: 0.13, depth: 0.7, sweep: { rate: 0.07, hz: 260 } },
+      { type: "highpass", freq: 3600, q: 0.5, gain: 0.006, rate: 0.21, depth: 0.8 },
+    ],
+  },
+  // wind with weight in it, and thunder that never quite arrives
+  storm: {
+    crowd: 0.03,
+    layers: [
+      { type: "bandpass", freq: 480, q: 1.3, gain: 0.034, rate: 0.19, depth: 0.75, sweep: { rate: 0.11, hz: 240 } },
+      { type: "lowpass", freq: 90, q: 0.7, gain: 0.05, rate: 0.05, depth: 0.85 },
+      { type: "highpass", freq: 5200, q: 0.5, gain: 0.007, rate: 0.9, depth: 0.5 },
+    ],
+  },
+  // the ground itself: a sub you notice when it stops, and a dry hiss of heat
+  rumble: {
+    crowd: 0.036,
+    layers: [
+      { type: "lowpass", freq: 70, q: 0.9, gain: 0.06, rate: 0.08, depth: 0.6 },
+      { type: "bandpass", freq: 2400, q: 2.2, gain: 0.006, rate: 1.7, depth: 0.9 },
+    ],
+  },
+  // fewer voices, and the thin high shimmer of things that sing after dark
+  night: {
+    crowd: 0.026,
+    layers: [
+      { type: "bandpass", freq: 4300, q: 9, gain: 0.007, rate: 5.5, depth: 0.95 },
+      { type: "bandpass", freq: 300, q: 0.8, gain: 0.014, rate: 0.06, depth: 0.5 },
+    ],
+  },
+  // standing water: a soft lapping wash under a hushed crowd
+  water: {
+    crowd: 0.03,
+    layers: [
+      { type: "bandpass", freq: 900, q: 0.7, gain: 0.02, rate: 0.31, depth: 0.85 },
+      { type: "lowpass", freq: 200, q: 0.5, gain: 0.02, rate: 0.09, depth: 0.4 },
+    ],
+  },
+};
+
+interface AmbienceVoice {
+  src: AudioBufferSourceNode;
+  lfos: OscillatorNode[];
+}
+let amb: { out: GainNode; voices: AmbienceVoice[] } | null = null;
+// Which ambience a fight currently wants, if any — so unmuting mid-bout can
+// bring the place back instead of leaving every SFX naked over silence.
+let wantAmbience: AmbienceFlavour | null = null;
+
+/** One more bed of the shared noise loop, breathing on its own clock. */
+function ambienceLayer(c: AudioContext, out: GainNode, l: AmbienceLayer): AmbienceVoice {
+  const src = c.createBufferSource();
+  src.buffer = noiseBuf;
+  src.loop = true;
+  const f = c.createBiquadFilter();
+  f.type = l.type;
+  f.frequency.value = l.freq;
+  f.Q.value = l.q;
+  const level = c.createGain();
+  level.gain.value = l.gain;
+  const lfos: OscillatorNode[] = [];
+  const swell = c.createOscillator();
+  swell.frequency.value = l.rate;
+  const swellDepth = c.createGain();
+  swellDepth.gain.value = l.gain * l.depth;
+  swell.connect(swellDepth).connect(level.gain);
+  lfos.push(swell);
+  if (l.sweep) {
+    const gust = c.createOscillator();
+    gust.frequency.value = l.sweep.rate;
+    const gustDepth = c.createGain();
+    gustDepth.gain.value = l.sweep.hz;
+    gust.connect(gustDepth).connect(f.frequency);
+    lfos.push(gust);
+  }
+  src.connect(f).connect(level).connect(out);
+  // every bed starts somewhere else in the loop, or they phase into one sound
+  src.start(0, Math.random());
+  lfos.forEach((o) => o.start());
+  return { src, lfos };
+}
+
+function ambienceStart(flavour: AmbienceFlavour = "crowd") {
   const c = ac();
   if (!c || !bus || amb) return;
+  const spec = AMBIENCE[flavour] ?? AMBIENCE.crowd;
   try {
     if (!noiseBuf || noiseBuf.sampleRate !== c.sampleRate) {
       const len = c.sampleRate;
@@ -269,13 +381,19 @@ function ambienceStart() {
     const lfoGain = c.createGain();
     lfoGain.gain.value = 0.28;
     lfo.connect(lfoGain).connect(depth.gain);
+    // `out` is the master fade for the whole place; the crowd's own level
+    // sits in front of it so each bed can have its own.
+    const crowd = c.createGain();
+    crowd.gain.value = spec.crowd;
     const out = c.createGain();
     out.gain.setValueAtTime(0.0001, c.currentTime);
-    out.gain.linearRampToValueAtTime(0.05, c.currentTime + 1.6);
-    src.connect(f).connect(depth).connect(out).connect(bus);
+    out.gain.linearRampToValueAtTime(1, c.currentTime + 1.6);
+    src.connect(f).connect(depth).connect(crowd).connect(out).connect(bus);
     src.start(0, Math.random());
     lfo.start();
-    amb = { src, out, lfo };
+    const voices: AmbienceVoice[] = [{ src, lfos: [lfo] }];
+    amb = { out, voices };
+    for (const l of spec.layers) voices.push(ambienceLayer(c, out, l));
   } catch {
     /* never let audio break the game */
   }
@@ -284,13 +402,16 @@ function ambienceStart() {
 function ambienceStop() {
   if (!amb || !ctx) return;
   try {
-    const { src, out, lfo } = amb;
+    const { out, voices } = amb;
     amb = null;
+    const stopAt = ctx.currentTime + 0.8;
     out.gain.cancelScheduledValues(ctx.currentTime);
-    out.gain.setValueAtTime(out.gain.value, ctx.currentTime);
+    out.gain.setValueAtTime(Math.max(0.0001, out.gain.value), ctx.currentTime);
     out.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
-    src.stop(ctx.currentTime + 0.8);
-    lfo.stop(ctx.currentTime + 0.8);
+    for (const v of voices) {
+      v.src.stop(stopAt);
+      v.lfos.forEach((o) => o.stop(stopAt));
+    }
   } catch {
     amb = null;
   }
@@ -374,7 +495,7 @@ export const sound = {
   setMuted(m: boolean) {
     muted = m;
     if (m) ambienceStop();
-    else if (wantAmbience) ambienceStart();
+    else if (wantAmbience) ambienceStart(wantAmbience);
     try {
       localStorage.setItem(KEY, m ? "1" : "0");
     } catch {
@@ -382,13 +503,16 @@ export const sound = {
     }
   },
 
-  /** The crowd settles in around a fight. Idempotent; ends with arenaOut. */
-  arenaIn() {
-    wantAmbience = true;
-    if (!muted) ambienceStart();
+  /**
+   * The place settles in around a fight — its crowd, and whatever else is in
+   * the air there. Idempotent; ends with arenaOut.
+   */
+  arenaIn(flavour: AmbienceFlavour = "crowd") {
+    wantAmbience = flavour;
+    if (!muted) ambienceStart(flavour);
   },
   arenaOut() {
-    wantAmbience = false;
+    wantAmbience = null;
     ambienceStop();
   },
 

@@ -5,7 +5,7 @@ import { PetSprite } from "./pixelPets.js";
 import { FighterFig, WeatherFx, type FighterAnim } from "./fighters.js";
 import { arenaScene } from "./arenaArt.js";
 import { PixIcon } from "./pixelIcons.js";
-import type { Arena } from "./arenas.js";
+import { ambienceFor, type Arena } from "./arenas.js";
 import { CHAR, weaponArtFor, type Look } from "./paperdoll.js";
 import { narrate, type Line } from "./narrate.js";
 import { SkillFx, fxFor } from "./fightFx.js";
@@ -180,8 +180,11 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
 
   // The crowd is present for the whole bout and drains away with the screen.
   useEffect(() => {
-    sound.arenaIn();
+    // ...and the place has its own air: wind on the ridge, a sub under the
+    // volcano, thinner voices and night-song in the hollow (arenas.ts).
+    sound.arenaIn(ambienceFor(arena));
     return () => sound.arenaOut();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Stable per beat. It used to be a fresh slice every render, which made the

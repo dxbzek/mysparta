@@ -8,9 +8,27 @@
 import { makeRng } from "@agoge/core";
 import type { ArenaSpec } from "./arenaArt.js";
 import type { ParticleKind } from "./gear.js";
+import type { AmbienceFlavour } from "./sound.js";
 
 export interface Arena extends ArenaSpec {
   weather?: ParticleKind;
+}
+
+/**
+ * What an arena sounds like, read off what it already is — its weather, its
+ * ground, its sky — so a new arena gets a voice without anyone remembering to
+ * give it one. The order is the priority: a storm is a storm whatever it is
+ * raining on.
+ */
+export function ambienceFor(a: Pick<Arena, "weather" | "ground" | "far" | "stars">): AmbienceFlavour {
+  if (a.weather === "storm") return "storm";
+  if (a.ground.kind === "lava" || a.far.kind === "volcano") return "rumble";
+  if (a.ground.kind === "water") return "water";
+  if (a.far.kind === "stands") return "stands";
+  if (a.weather === "snow" || a.ground.kind === "snow" || a.ground.kind === "ash") return "wind";
+  if (a.far.kind === "dunes") return "wind";
+  if ((a.stars ?? 0) > 0) return "night";
+  return "crowd";
 }
 
 export const ARENAS: Arena[] = [
