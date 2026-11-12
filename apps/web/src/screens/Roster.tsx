@@ -17,6 +17,8 @@ export function Roster(props: {
   slots: Array<SlotSummary | null>;
   /** Empty is not unreadable: a damaged slot is shown as what it is. */
   states?: SlotState[];
+  /** Per slot: a copy of exactly the bytes it holds exists on this device. */
+  backedUp?: boolean[];
   active: number;
   onPlay: (slot: number) => void;
   onNew: (slot: number) => void;
@@ -109,13 +111,18 @@ export function Roster(props: {
                 <div className="rival-id">
                   <span className="champ-name small">Damaged save</span>
                   <span className="muted small">
-                    This hunter's save can't be read. A copy of it is kept on this device.
+                    {/* Only said when it is true: the copy can fail (storage
+                        full), and then the slot is not freed either. */}
+                    {props.backedUp?.[i]
+                      ? "This hunter's save can't be read. A copy of it is kept on this device."
+                      : "This hunter's save can't be read, and no copy of it could be kept on this device. It stays here until one can."}
                   </span>
                 </div>
               </div>
               <div className="rival-action">
                 <button
                   className={`btn tiny${armed === i ? " danger" : " ghost"}`}
+                  disabled={!props.backedUp?.[i]}
                   onClick={() => {
                     if (armed === i) {
                       props.onRetire(i);

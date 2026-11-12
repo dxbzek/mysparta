@@ -30,9 +30,12 @@ export function Forge({
   onForge,
   onRestore,
   damaged,
+  copyKept,
 }: {
   /** The slot being played holds a save that would not read (save.ts). */
   damaged?: boolean;
+  /** ...and a copy of those bytes really was kept (it can fail: storage full). */
+  copyKept?: boolean;
   onForge: (c: Champion, look: Look, aura: number) => void;
   /** A pasted rescue code checked out as a full save (save.ts). */
   onRestore: (save: SaveV1) => void;
@@ -66,8 +69,9 @@ export function Forge({
         <p className="forge-sub">Every name awakens a different hunter — same name, same hunter, always.</p>
         {damaged && (
           <p className="notice" role="status">
-            Your saved hunter couldn't be read. A copy of that save is kept on this device —
-            starting a new hunter will not erase it.
+            {copyKept
+              ? "Your saved hunter couldn't be read. A copy of that save is kept on this device — starting a new hunter will not erase it."
+              : "Your saved hunter couldn't be read. Starting a new hunter will not erase it."}
           </p>
         )}
         <form

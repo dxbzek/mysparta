@@ -33,9 +33,11 @@ import {
   settleQuests,
   rosterSummary,
   setActiveSlot,
+  slotIsBackedUp,
   slotState,
   slotStates,
   load,
+  loadPlayable,
   newSave,
   persist,
   todayKey,
@@ -182,21 +184,11 @@ function DevPanel({ save, update }: { save: SaveV1; update: (s: SaveV1) => void 
 }
 
 export function App() {
-  const [save, setSave] = useState<SaveV1 | null>(() => {
-    const active = load();
-    if (active) return active;
-    // The slot being played will not read, but another hunter will: land on
-    // them rather than on a Forge that hides the whole roster. The damaged
-    // slot is untouched and shows as damaged on the Hunters screen.
-    if (slotState(activeSlot()) === "corrupt") {
-      const other = rosterSummary().find((r) => r !== null);
-      if (other) {
-        setActiveSlot(other.slot);
-        return load();
-      }
-    }
-    return null;
-  });
+  // The slot being played is empty or will not read, but another hunter
+  // will: land on them rather than on a Forge that hides the whole roster
+  // (save.ts `loadPlayable`). A damaged slot is untouched and shows as
+  // damaged on the Hunters screen.
+  const [save, setSave] = useState<SaveV1 | null>(() => loadPlayable());
   const [screen, setScreen] = useState<Screen>(() => {
     const wanted = routeOf(location.hash);
     if (!save) return { s: "forge" };
@@ -360,7 +352,7 @@ export function App() {
 
   /** The Forge was open with nowhere to write: show the roster instead. */
   const closeForge = () => {
-    setSave(load());
+    setSave(loadPlayable());
     setDraft(null);
     setScreen({ s: "roster" });
   };
@@ -372,6 +364,7 @@ export function App() {
           // Null because nothing is saved, or null because what is saved will
           // not read — the player is owed the difference.
           damaged={!save && slotState(activeSlot()) === "corrupt"}
+          copyKept={slotIsBackedUp(activeSlot())}
           onForge={(champion, look, aura) => {
             // A new hunter takes the first free slot and becomes the one being
             // played. With no slot to take, nothing is written: the fallback
@@ -601,9 +594,13 @@ export function App() {
             // Confirmation happens in-app (two taps) — window.confirm is
             // silently blocked in sandboxed embeds.
             wipe();
-            setSave(null);
+            // Deleting the hunter you are playing drops you onto whoever is
+            // left. It used to open the Forge whatever the roster held, and
+            // the Forge has no door to the Hunters screen.
+            const next = loadPlayable();
+            setSave(next);
             setDraft(null);
-            setScreen({ s: "forge" });
+            setScreen({ s: next ? "home" : "forge" });
           }}
         />
       )}
@@ -655,6 +652,7 @@ export function App() {
         <Roster
           slots={rosterSummary()}
           states={slotStates()}
+          backedUp={slotStates().map((_, i) => slotIsBackedUp(i))}
           active={activeSlot()}
           onBack={() => setScreen({ s: "home" })}
           onPlay={(slot) => {
@@ -670,19 +668,18 @@ export function App() {
             setScreen({ s: "forge" });
           }}
           onRetire={(slot) => {
-            wipe(slot);
+            // A damaged slot whose bytes could not be copied aside is not
+            // freed (save.ts `wipe`); the card says why.
+            if (!wipe(slot)) {
+              setSave((v) => (v ? { ...v } : v));
+              return;
+            }
             // Retiring the hunter you are playing drops you onto whoever is
             // left, or to the Forge if that was the last one.
             if (slot === activeSlot()) {
-              const next = rosterSummary().find((r) => r !== null);
-              if (next) {
-                setActiveSlot(next.slot);
-                setSave(load());
-                setScreen({ s: "home" });
-              } else {
-                setSave(null);
-                setScreen({ s: "forge" });
-              }
+              const next = loadPlayable();
+              setSave(next);
+              setScreen({ s: next ? "home" : "forge" });
             } else {
               setSave((v) => (v ? { ...v } : v));
             }
