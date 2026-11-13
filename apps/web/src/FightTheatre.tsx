@@ -21,6 +21,8 @@ import {
   killBeat,
   koSchedule,
 } from "./beats.js";
+import { PuppetFig, puppetWidth } from "./puppet.js";
+import { puppetClip, puppetEnabled } from "./puppetClips.js";
 
 export interface StageFigure {
   /** The fighter's full appearance (paperdoll.ts). */
@@ -77,6 +79,17 @@ function strikeKind(weaponId: string | undefined, beat: number): StrikeKind {
 /** Scene height in native pixels — 3x this is the stage height on desktop. */
 const NATIVE_H = 148;
 
+/** The cut-out puppet sample stands this share of the stage's height. */
+const PUPPET_SHARE = 0.5;
+
+function readPuppetFlag(): boolean {
+  try {
+    return puppetEnabled(window.location.search, window.localStorage);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * The arena stage: champions run in, dash across to strike, swing, dodge,
  * block and fall — all directed by the deterministic event log.
@@ -107,6 +120,10 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
   const figH = CHAR.h * px.scale;
   const speedRef = useRef<1 | 2>(1);
   speedRef.current = speed;
+  // The puppet sample (puppet.tsx) is behind a flag until Zek approves it.
+  const [puppet] = useState(readPuppetFlag);
+  const pzH = Math.round(NATIVE_H * px.scale * PUPPET_SHARE);
+  const pzW = puppetWidth(pzH);
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -120,13 +137,15 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
       const scale = Math.max(1, Math.min(byWidth, byHeight));
       const nativeW = Math.ceil(w / scale);
       setPx({ scale, w: nativeW, h: NATIVE_H });
-      const charW = (CHAR.w / CHAR.h) * (CHAR.h * scale);
+      const charW = puppet
+        ? puppetWidth(Math.round(NATIVE_H * scale * PUPPET_SHARE))
+        : (CHAR.w / CHAR.h) * (CHAR.h * scale);
       setDash(Math.max(40, Math.round(w * 0.82 - charW * 2)));
     };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [figures]);
+  }, [figures, puppet]);
 
   const finished = skipped || shown >= lines.length;
   // result.ticks is sim time, not a count — "1310 exchanges" was a lie.
@@ -553,6 +572,61 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
     );
   };
 
+  const figsBottom = Math.round(px.h * (1 - arena.horizon) * px.scale) - px.scale;
+  // The loser starts to fall on the beat after the killing blow, and the fall
+  // carries on across the remounts that follow (each beat re-keys the slot).
+  const fallen = koIdx >= 0 && (finished || shown - 1 > koIdx);
+  const fallStart = useRef<number | null>(null);
+  if (!fallen) fallStart.current = null;
+  else if (fallStart.current === null) fallStart.current = performance.now();
+
+  /** The fighter itself: the puppet sample when flagged, the paper doll otherwise. */
+  const renderFigure = (side: 0 | 1) => {
+    const held = heldWeapon[side];
+    if (puppet) {
+      const plan = puppetClip({
+        side,
+        anim: skipped ? undefined : current?.anim,
+        crit: !!fx?.crit,
+        idx,
+        finished,
+        fallen,
+        result,
+        swings: swingCount[side],
+        dodges: dodgeCount[side],
+      });
+      return (
+        <>
+          <span className="fig-shadow" style={{ width: pzW * 1.1 }} />
+          <PuppetFig
+            look={figures[side].look}
+            weaponId={held}
+            discipline={held ? disciplineById.get(held) : undefined}
+            height={pzH}
+            plan={plan}
+            mirror={side === 1}
+            phaseMs={performance.now()}
+            elapsedMs={plan.clip === "ko" && fallStart.current !== null ? (performance.now() - fallStart.current) * speed : 0}
+          />
+        </>
+      );
+    }
+    return (
+      <>
+        <span className="fig-shadow" style={{ width: figH * 0.42 }} />
+        <FighterFig
+          look={figures[side].look}
+          height={figH}
+          anim={animOf(side)}
+          aura={figures[side].aura}
+          weapon={weaponArtFor(disciplineById.get(held ?? "") ?? "")}
+          particles={figures[side].particles}
+          mirror={side === 1}
+        />
+      </>
+    );
+  };
+
   return (
     // --spd compresses the choreography with the clock. At 2x the beats were
     // halved but the CSS kept its 1x durations, so strikes were killed
@@ -564,7 +638,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
           ko === "freeze" ? " hitstop" : ko === "release" ? " ko-shake" : ""
         }${
           anim?.thrown && anim.striker !== undefined ? " thrown-beat" : ""
-        }`}
+        }${puppet ? " pz-on" : ""}`}
         ref={stageRef}
         style={
           {
@@ -579,6 +653,15 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
             // 587px the backdrop was stretched 3x tall while the fighters were
             // drawn at 2x — the ground line and the champions came apart.
             height: px.h * px.scale,
+            // where the puppet's hand lets the javelin go (puppetPoses.ts
+            // throw: the release pose puts the fist at about (84, 36) of the
+            // 100x140 box, feet on 138)
+            ...(puppet
+              ? {
+                  "--pz-hand-x": `${Math.round(pzW / 2 + (34 * pzH) / 140)}px`,
+                  "--pz-hand-y": `${Math.round(figsBottom + (102 * pzH) / 140)}px`,
+                }
+              : {}),
           } as React.CSSProperties
         }
       >
@@ -603,22 +686,11 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
         </div>
         <div className="vs-badge">VS</div>
 
-        <div
-          className="stage-figs"
-          style={{ bottom: Math.round(px.h * (1 - arena.horizon) * px.scale) - px.scale }}
-        >
+        <div className="stage-figs" style={{ bottom: figsBottom }}>
           <div className="corner">
             <div key={`a${idx}`} className={slotClass(0)}>
               <div className={innerClass(0)}>
-                <span className="fig-shadow" style={{ width: figH * 0.42 }} />
-                <FighterFig
-                  look={figures[0].look}
-                  height={figH}
-                  anim={animOf(0)}
-                  aura={figures[0].aura}
-                  weapon={weaponArtFor(disciplineById.get(heldWeapon[0] ?? "") ?? "")}
-                  particles={figures[0].particles}
-                />
+                {renderFigure(0)}
                 {renderEffects(0)}
               </div>
             </div>
@@ -631,16 +703,7 @@ export function FightTheatre({ result, names, figures, arena, rewards, onDone }:
           <div className="corner">
             <div key={`b${idx}`} className={slotClass(1)}>
               <div className={innerClass(1)}>
-                <span className="fig-shadow" style={{ width: figH * 0.42 }} />
-                <FighterFig
-                  look={figures[1].look}
-                  height={figH}
-                  anim={animOf(1)}
-                  aura={figures[1].aura}
-                  weapon={weaponArtFor(disciplineById.get(heldWeapon[1] ?? "") ?? "")}
-                  particles={figures[1].particles}
-                  mirror
-                />
+                {renderFigure(1)}
                 {renderEffects(1)}
               </div>
             </div>
