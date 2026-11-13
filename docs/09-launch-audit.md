@@ -611,3 +611,38 @@ and passed on the re-run; browser timings wandered by tens of milliseconds
 and one Playwright launch timed out. `beats.test.ts` sets a thirty-second
 timeout for itself. A red run on a loaded machine is worth one re-run before
 it is believed.
+
+## Ninth pass (2026-11-13) — fighter puppet sample, behind a flag
+
+Zek, on a recorded fight: *"so ass, we need a complete revamp"*. The fighters
+were 64px LPC pixel dolls snapping between a few frames, next to flat vector
+weapons — two games glued together. The ask is MyBrute's feel: flat-cartoon
+fighters with smooth cut-out animation. MyBrute's art is Motion Twin's and is
+not used or traced.
+
+**One sample fighter, off by default.** `?puppet=1` turns it on (and
+remembers it in `agoge.puppet`), `?puppet=0` turns it off. Both fighters use it.
+
+- `puppet.tsx` draws the fighter as nested vector parts in the arsenal's hand
+  (one `#241c14` outline, flat fills, one highlight): head, torso, upper and
+  lower arms, fists, thighs, shins, boots, with the held weapon taken from
+  `CARTOON_WEAPON`. It reads skin, hair colour and style (crop / curls / long),
+  beard, eyes, outfit colours, bare / tunic / armour and helm from the
+  existing `Look`.
+- `puppetPoses.ts` holds the clips as pose tables and compiles them to CSS
+  keyframes: idle, run-in, chop, thrust, jab (chains and counters), throw,
+  ready, cast, hit, heavy hit, dodge, duck, block, knockout, win. CSS, not a JS
+  tween, because `.stage.hitstop`, `--spd` and reduced-motion already work on
+  CSS animations.
+- `puppetClips.ts` picks a clip from the beat (pure, tested) and mirrors the
+  slot durations, so the chop lands at 38% of 760ms (289ms, the melee clock)
+  and the javelin leaves the hand at 34% of 620ms (211ms, the launch time).
+- With the flag on: the puppet stands half the stage height; the slot's
+  whole-body tilts are removed (the limbs swing now); a counter lunges the
+  distance instead of stabbing air; the loser starts falling the beat after
+  the killing blow; the verdict card waits 850ms so the fall is seen.
+
+**Full rollout, not done:** more hair/helm silhouettes and both builds drawn
+properly, shield on the off arm, sling/discus poses, the Forge preview, Hall
+portrait and roster busts moved to the puppet, beasts re-scaled to the
+bigger fighters, and removing the paper-doll path once approved.
