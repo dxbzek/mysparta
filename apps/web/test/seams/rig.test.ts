@@ -32,7 +32,8 @@ describe("the rig seam", () => {
   it("samples poses that are plain data, equal for equal inputs", () => {
     const pose = rig.samplePose("scrapper", "swing", 150);
     expect(pose.rig).toBe("scrapper");
-    expect(pose.rot.length).toBe(16);
+    // The 16 contract bones come first; the gate rig adds `held` and `hair` after them (RigDef is free-form).
+    expect(pose.rot.length).toBeGreaterThanOrEqual(16);
     for (const angle of pose.rot) expect(Number.isFinite(angle)).toBe(true);
     expect(rig.samplePose("scrapper", "swing", 150)).toEqual(pose);
     expect(JSON.parse(JSON.stringify(pose))).toEqual(pose);
