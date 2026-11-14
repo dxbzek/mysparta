@@ -137,7 +137,7 @@ export const BOTH_FEET = ["footB", "footF"] as const;
 export const STANCE: Spec = {
   root: [-1, 3.4], pelvis: 0, torso: 9, head: -6, held: 0,
   legF: { at: 11 }, legB: { at: -12 },
-  F: { at: [12, -52], aim: -118 }, B: { at: [7.5, -56.5] },
+  F: { at: [12, -52], aim: -84 }, B: { at: [7.5, -56.5] },
   face: "neutral",
 };
 

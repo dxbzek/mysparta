@@ -187,7 +187,7 @@ const P = {
   floorRect: dPoly([[0, WALL], [W, WALL], [W, H], [0, H]]),
   floorGlow: glowRings(160, 196, 230, 54, 6),
   cone: dPoly([[60, 19], [80, 19], [250, H], [-60, H]]),
-  floorGrime: blotches(41, 30, 0, WALL + 4, W, H, 5, 15),
+  floorGrime: blotches(41, 34, 0, WALL + 4, W, H, 2.5, 8),
   floorCracks: cracks(42, 24),
   floorDots: halftone(0, 214, 360, 240, 2.4, 0.6, 30),
   puddle: dPoly(ellipsePoly(292, 224, 34, 6.5, 30)),
@@ -221,7 +221,7 @@ export const drawYard: StageDraw = (env, layer, crowdBounce) => {
   if (layer === "back") {
     fill(env, P.wallRect, ALLEY.brick);
     fill(env, P.litBricks, ALLEY.brickLit, 0.55);
-    for (const g of P.wallGlow) fill(env, g, GLOW, 0.07);
+    for (const g of P.wallGlow) fill(env, g, GLOW, 0.085);
     fill(env, P.bricks, ALLEY.mortar, 0.9);
     fill(env, P.wallDots, TEAL_DEEP, 0.6);
     fill(env, P.wallStreaks, ALLEY.grime, 0.35);
@@ -265,7 +265,7 @@ export const drawYard: StageDraw = (env, layer, crowdBounce) => {
     fill(env, P.floorRect, ALLEY.floor);
     for (const g of P.floorGlow) fill(env, g, GLOW, 0.075);
     fill(env, P.cone, GLOW_HOT, 0.05);
-    fill(env, P.floorGrime, ALLEY.grime, 0.3);
+    fill(env, P.floorGrime, ALLEY.grime, 0.2);
     fill(env, P.ring, ALLEY.paint, 0.4);
     fill(env, P.floorCracks, ALLEY.crack, 0.9);
     fill(env, P.floorDots, TEAL_DEEP, 0.55);

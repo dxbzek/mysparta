@@ -34,6 +34,8 @@ import { createRig } from "../packages/rig/src/engine/createRig.ts";
 import { frames, modelOf } from "../packages/rig/src/engine/pose.ts";
 import { probePack } from "../packages/rig/src/engine/probe.ts";
 import { gatePack } from "../packages/rig/src/gate/pack.ts";
+import { THROW } from "../packages/rig/src/gate/clips/throw.ts";
+import { inspectOf } from "../packages/rig/src/engine/createRig.ts";
 import { REPO_ROOT, createSurface, writePng } from "./lib/node-canvas.ts";
 import type { Surface } from "./lib/node-canvas.ts";
 
@@ -51,7 +53,8 @@ export function arg(name: string): string | undefined {
 export function rigFor(pack: string): Rig {
   if (pack === "probe") return createRig(gatePack, probePack as ContentPack);
   if (pack === "gate") return createRig(gatePack);
-  throw new Error(`unknown --pack ${pack}: gate or probe`);
+  if (pack === "throw") return createRig(gatePack, { clips: { throw: THROW } } as unknown as ContentPack);
+  throw new Error(`unknown --pack ${pack}: gate, throw or probe`);
 }
 export function heldFor(clip: string, given?: string): HeldId | null {
   if (given !== undefined) return given === "none" ? null : (given as HeldId);
@@ -61,9 +64,10 @@ export function dressOf(rigId: RigId, clip: string, look: number, held?: string)
   if (rigId !== "scrapper") return { held: null, door: false, scale: 1 };
   return { look: LOOKS[look % 2]!, held: heldFor(clip, held), door: false, scale: 1 };
 }
-export function clipsOf(rigId: RigId, which: string): string[] {
+export function clipsOf(rigId: RigId, which: string, pack = "gate"): string[] {
   if (which !== "all") return [which];
-  return rigId === "scrapper" ? [...GATE_CLIPS] : [...COMPANION_CLIPS];
+  if (rigId === "scrapper") return pack === "throw" ? [...GATE_CLIPS, "throw"] : [...GATE_CLIPS];
+  return [...COMPANION_CLIPS];
 }
 /** Sample times of a clip at 60 fps, both ends included. */
 export function frameTimes(rig: Rig, rigId: RigId, clip: string): number[] {
@@ -207,15 +211,13 @@ function sheetJoints(rig: Rig, rigId: RigId, pack: string, out: string): string 
 }
 
 // ------------------------------------------------------------------------------ A2 sheets
-function keyTimes(rigId: RigId, clip: string, pack: string): number[] {
-  const src = rigId === "scrapper" ? (gatePack.clips as Record<string, { keys: readonly { t: number }[] }>)[clip]
-    : (pack === "probe" ? probePack : null)?.companions?.[rigId]?.clips?.[clip as "idle"];
-  return src ? [...new Set(src.keys.map((k) => k.t))] : [0];
+function keyTimes(rig: Rig, rigId: RigId, clip: string): number[] {
+  return [...new Set(inspectOf(rig).clip(rigId, clip).keys.map((k) => k.t))];
 }
 function sheetKeys(rig: Rig, rigId: RigId, clips: string[], pack: string, out: string, look: number): string[] {
   const cellW = 110;
   const cellH = 100;
-  const items = clips.flatMap((clip) => keyTimes(rigId, clip, pack).map((t) => ({ clip, t })));
+  const items = clips.flatMap((clip) => keyTimes(rig, rigId, clip).map((t) => ({ clip, t })));
   const cols = 10;
   const rows = Math.ceil(items.length / cols);
   const files: string[] = [];
@@ -259,7 +261,7 @@ function sheetKeys(rig: Rig, rigId: RigId, clips: string[], pack: string, out: s
           for (const p of [...pts.slice(1), top]) c.lineTo(p[0], p[1]);
           c.stroke(); c.restore();
         }
-        if (rig.clipInfo(rigId, it.clip).events.some((e) => e.name === "contact")) {
+        if (rig.clipInfo(rigId, it.clip).events.some((e) => e.name === "contact" && Math.abs(e.t - it.t) < 1)) {
           const p = toStage({ x, y, facing: 1 }, sp);
           s.raw.beginPath(); s.raw.arc(p.x, p.y, 1.2, 0, Math.PI * 2); s.raw.fillStyle = "#FF3B30"; s.raw.fill();
         }
@@ -358,10 +360,13 @@ function sheetUse(rig: Rig, out: string): string {
       const tx = ax + sp.x + head.x;       // the target stands where the aimed tip meets its head
       rig.drawActor(s.env, rig.samplePose("scrapper", "brace", 120), target, { x: tx, y, facing: -1 });
       rig.drawActor(s.env, rig.samplePose("scrapper", clip, t, { y: head.y, dress }), dress, { x: ax, y, facing: 1 });
-      if (col === 1) rig.drawFx(s.env, "burst", 0.35, { x: ax + sp.x, y: y + sp.y, facing: 1 }, 3);
+      if (col === 1) {
+        s.raw.beginPath(); s.raw.arc(ax + sp.x, y + sp.y, 2.2, 0, Math.PI * 2);
+        s.raw.strokeStyle = "#FF3B30"; s.raw.lineWidth = 0.7; s.raw.stroke();
+      }
     });
   });
-  label(s, "Use strips (wind-up, contact, follow-through), each aimed at the target's head", 8, 16, 13);
+  label(s, "Use strips (wind-up, contact, follow-through), each aimed at the target's head; red ring = the striking end at contact", 8, 16, 13);
   return writePng(s, resolve(out, "use-strips-gate-weapons.png"));
 }
 
@@ -374,7 +379,7 @@ async function main(): Promise<void> {
   const held = arg("held");
   const out = resolve(REPO_ROOT, arg("out") ?? ".review/wp2");
   const rig = rigFor(pack);
-  const clips = clipsOf(rigId, arg("clip") ?? (mode === "keys" || mode === "all" ? "all" : "idle"));
+  const clips = clipsOf(rigId, arg("clip") ?? (mode === "keys" || mode === "all" ? "all" : "idle"), pack);
   const wrote: string[] = [];
   if (mode === "a1") wrote.push(await sheetA1(rig, out));
   if (mode === "joints") wrote.push(sheetJoints(rig, rigId, pack, out));

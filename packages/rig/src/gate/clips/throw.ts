@@ -12,7 +12,7 @@ import { clip, BOTH_FEET, STANCE } from "./kit";
 
 export const THROW = clip(260, false, [{ t: 180, name: "release" }], [
   [0, STANCE],
-  [55, { root: [-3, 4.6], pelvis: -3, torso: -4, head: 0, F: { up: 95, lo: -120, hand: 15 }, B: { up: -50, lo: -60, hand: 0 }, face: "grit" }],
+  [55, { root: [-3, 4.6], pelvis: -3, torso: -4, head: 0, F: { up: 128, lo: -138, hand: 25 }, B: { up: -50, lo: -60, hand: 0 }, face: "grit" }],
   [110, { root: [-6, 6], pelvis: -6, torso: -15, head: 4, F: { up: 158, lo: -100, hand: 25 }, B: { up: -62, lo: -30, hand: -10 }, ease: "inOut" }],
   [180, { root: [6, 5.5], pelvis: 5, torso: 22, head: -14, F: { up: 242, lo: -14, hand: 10 }, B: { up: 18, lo: -100, hand: -20 }, face: "shout", ease: "in" }],
   [225, { root: [8.5, 6.5], pelvis: 6, torso: 31, head: -10, F: { up: 290, lo: -12, hand: 0 }, B: { up: 40, lo: -110, hand: -20 }, ease: "out" }],

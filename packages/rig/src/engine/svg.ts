@@ -123,7 +123,7 @@ export function iconArt(art: IconArt | null, ref: IconRef, weapon?: PropArt & { 
     for (const s of [...weapon.shapes].sort((a, b) => a.z - b.z)) {
       if (s.slot === "ink") { parts.push({ d: s.d, fill: INK, transform }); continue; }
       const fill = slotColour(s.slot, ICON_COLOURS);
-      parts.push({ d: s.d, fill, stroke: INK, strokeWidth: n2Num(1.5 / k), transform });
+      parts.push({ d: s.d, fill, stroke: INK, strokeWidth: n2Num(0.85 / k), transform });
     }
     return { viewBox: "0 0 24 24", parts };
   }
