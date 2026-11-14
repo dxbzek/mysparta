@@ -11,10 +11,8 @@ import { SFX_VARIANTS } from "../src/index";
 import type { CreateFightClock, CreateFightPlayer, FightClock, PlayerOpts, SfxFamily, StageText } from "../src/index";
 
 describe("the stage package index", () => {
-  it("exports the contract and nothing else until the stage lane is merged", () => {
-    // SEAM: at the first merge of the stage lane the Lead adds "createFightClock" and
-    // "createFightPlayer" to the index and to this list, in the same commit.
-    expect(Object.keys(stage).sort()).toEqual(["SFX_VARIANTS"]);
+  it("exports the contract, the player, the clock and the cue helper", () => {
+    expect(Object.keys(stage).sort()).toEqual(["SFX_VARIANTS", "createFightClock", "createFightPlayer", "cuesBetween"]);
   });
 });
 
