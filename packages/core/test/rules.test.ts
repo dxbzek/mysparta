@@ -159,6 +159,15 @@ describe("rules the first draft left open", () => {
     }
   });
 
+  it("when Firecrackers drop a companion and the scrapper together, every one gets its ko before the end", () => {
+    const t = setup(snap(["firecrackers"]), snap(["raccoon"]), scripted({ damage: queue([0]) }));
+    const pet = t.bout.actors.find((x) => x.id === "b1")!;
+    t.B.hp = 3;
+    pet.hp = 1;
+    playMove(t.bout, t.A, "firecrackers");
+    expect(t.bout.steps.map((s) => (s.t === "ko" ? `ko ${s.actor}` : s.t))).toEqual(["move", "ko b1", "ko b0", "end"]);
+  });
+
   it("the intercepting swing can crit and disarm, and the attacker still pays the full time cost", () => {
     const t = setup(snap(["pipe"]), snap(["broom"]),
       scripted({ hit: queue([0, 99, 99, 0]), disarm: queue([0]), throw: fn(() => 99), clock: fn(() => 3) }));
