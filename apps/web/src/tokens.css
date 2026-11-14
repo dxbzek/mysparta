@@ -1,0 +1,152 @@
+/*
+ * Rank Zero design tokens (fight-screen lane). EVERY colour of the DOM lives in this file, so a
+ * change of look is a change of this one file. The canvas colours are the rig's (gate/style.ts);
+ * test/ui/palette.test.ts fails when a colour name shared by both has two values.
+ *
+ * Look: gritty street-fight comic. Concrete and newsprint, rough ink frames, halftone dots,
+ * grime, hard offset shadows, condensed heavy type, one strong action colour (signal red).
+ *
+ * Naming rule (checked by test/ui/contrast.test.ts): a background is `--c-<name>`, and the
+ * text that may sit on it is `--t-on-<name>` or `--t-on-<name>-<variant>`. A text token is
+ * never used on another background. Every pair must reach 4.5:1.
+ */
+:root {
+  /* ---------------------------------------------------------------- ink and surfaces */
+  --c-ink: #15130f;              /* every outline and every hard shadow */
+  --c-page: #b9b4aa;             /* concrete */
+  --t-on-page: #15130f;
+  --t-on-page-dim: #38342f;
+  --c-panel: #eeece7;            /* newsprint panel */
+  --t-on-panel: #15130f;
+  --t-on-panel-dim: #4f4a43;
+  --t-on-panel-action: #b01e14;  /* a cost line, a damage number on paper */
+  --c-raised: #faf9f6;           /* a lifted card, an input */
+  --t-on-raised: #15130f;
+  --t-on-raised-dim: #4f4a43;
+  --c-dark: #23201c;             /* asphalt band: HUD, controls, tab bar, the log */
+  --t-on-dark: #f2efe8;
+  --t-on-dark-dim: #b9b2a6;
+  --t-on-dark-hazard: #f2c200;
+  --t-on-dark-hp: #5ccf6c;
+  --c-sticker: #faf9f6;          /* names, tags, card titles: slapped-on paper */
+  --t-on-sticker: #15130f;
+
+  /* ---------------------------------------------------------------- the one action colour */
+  --c-action: #d3261a;           /* signal red: primary buttons, damage, the HP trail */
+  --t-on-action: #ffffff;
+  --c-action-press: #a81c12;
+  --t-on-action-press: #ffffff;
+  /* small accents, used small */
+  --c-hazard: #f2c200;           /* hazard yellow: XP, crits, rare flashes */
+  --t-on-hazard: #15130f;
+
+  /* ---------------------------------------------------------------- HP and XP bars */
+  --c-hp: #3fb24f;
+  --c-hp-trail: #d3261a;
+  --c-hp-back: #3a3530;
+  --c-xp: #f2c200;
+  --c-xp-back: #3a3530;
+
+  /* ---------------------------------------------------------------- stats (always with icon and name) */
+  --c-stat-health: #2e9b47;
+  --c-stat-strength: #d3261a;
+  --c-stat-agility: #7a4cd0;
+  --c-stat-speed: #2a8fd4;
+
+  /* ---------------------------------------------------------------- rarity (always with the word) */
+  --c-rarity-common: #8e8a82;
+  --t-on-rarity-common: #15130f;
+  --c-rarity-uncommon: #2e9b47;
+  --t-on-rarity-uncommon: #15130f;
+  --c-rarity-rare: #2a8fd4;
+  --t-on-rarity-rare: #15130f;
+  --c-rarity-epic: #7a4cd0;
+  --t-on-rarity-epic: #ffffff;
+  --c-rarity-mythic: #f2c200;
+  --t-on-rarity-mythic: #15130f;
+
+  /* ---------------------------------------------------------------- results */
+  --c-win: #2e9b47;
+  --t-on-win: #15130f;
+  --c-loss: #d3261a;
+  --t-on-loss: #ffffff;
+
+  --c-scrim: rgba(21, 19, 15, 0.55);   /* behind a sheet */
+  --c-focus: #f2c200;           /* focus ring, drawn with an ink edge so it shows on every surface */
+
+  /* ---------------------------------------------------------------- texture (colours above, baked in here) */
+  /* halftone dots for shading accents */
+  --tex-halftone: radial-gradient(circle at center, rgba(21, 19, 15, 0.28) 0 1.1px, transparent 1.5px) 0 0 / 5px 5px;
+  --tex-halftone-light: radial-gradient(circle at center, rgba(250, 249, 246, 0.16) 0 1.1px, transparent 1.5px) 0 0 / 5px 5px;
+  /* grime and scratches on concrete: a static noise tile */
+  --tex-grime: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .08 0 0 0 0 .07 0 0 0 0 .06 0 0 0 -1.6 1.05'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.55'/%3E%3Cpath d='M12 40l38 9M120 18l-30 22M140 120l26-6M30 150l44-14M96 96l12 30' stroke='%2315130f' stroke-opacity='.18' stroke-width='1'/%3E%3C/svg%3E");
+  --mask-corner: linear-gradient(135deg, transparent 55%, #000 100%);
+  --tex-scratch: repeating-linear-gradient(-62deg, transparent 0 22px, rgba(21, 19, 15, 0.05) 22px 23px);
+
+  /* ---------------------------------------------------------------- shape */
+  --line: 3px;                   /* the ink line at UI scale */
+  --line-thin: 2px;
+  --shadow-hard: 4px 5px 0 var(--c-ink);
+  --shadow-hard-sm: 2px 3px 0 var(--c-ink);
+  /* uneven radii read as a hand-cut, hand-inked frame */
+  --rough-radius: 3px 7px 4px 8px / 7px 3px 8px 4px;
+  --rough-radius-sm: 2px 4px 3px 5px / 4px 2px 5px 3px;
+
+  /* ---------------------------------------------------------------- type */
+  --font-display: "RZ Display", "Impact", "Arial Narrow", sans-serif;
+  --font-body: "RZ Body", system-ui, "Segoe UI", sans-serif;
+  --fs-body: 15px;
+  --fs-small: 14px;
+  --fs-hud-num: 18px;
+  --fs-h1: 40px;
+  --fs-h2: 28px;
+  --fs-label: 18px;
+
+  /* ---------------------------------------------------------------- sizes */
+  --tap: 44px;
+  --tap-primary: 56px;
+  --gutter: 12px;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--tex-grime), var(--tex-scratch), var(--c-page);
+  color: var(--t-on-page);
+  font: 400 var(--fs-body) / 1.4 var(--font-body);
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--c-ink);
+}
+
+.rz-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

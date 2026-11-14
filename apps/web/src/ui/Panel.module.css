@@ -1,0 +1,44 @@
+/* A comic panel: hand-inked frame, hard offset shadow, halftone shading in one corner. */
+.panel {
+  position: relative;
+  min-width: 0;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius);
+  box-shadow: var(--shadow-hard);
+  padding: var(--gutter);
+}
+.panel::after {
+  /* halftone shade in the bottom-right corner, like a printed shadow */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--tex-halftone);
+  -webkit-mask-image: var(--mask-corner);
+  mask-image: var(--mask-corner);
+}
+.paper {
+  background: var(--c-panel);
+  color: var(--t-on-panel);
+}
+.raised {
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+}
+.dark {
+  background: var(--tex-halftone-light), var(--c-dark);
+  color: var(--t-on-dark);
+}
+.dark::after {
+  background: var(--tex-halftone-light);
+}
+.title {
+  margin: 0 0 8px;
+  font: 900 var(--fs-h2) / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.flush {
+  padding: 0;
+}

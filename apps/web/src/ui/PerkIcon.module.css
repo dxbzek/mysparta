@@ -1,0 +1,58 @@
+.tile {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--tex-halftone-light), var(--c-dark);
+}
+.s20 {
+  width: 20px;
+  height: 20px;
+  border-width: 1px;
+  border-radius: 3px;
+}
+.s28 {
+  width: 28px;
+  height: 28px;
+}
+.s44 {
+  width: 44px;
+  height: 44px;
+  box-shadow: var(--shadow-hard-sm);
+}
+.s64 {
+  width: 64px;
+  height: 64px;
+  box-shadow: var(--shadow-hard-sm);
+}
+/* rarity: a corner tab in the rarity colour; the word itself is printed by the card that shows it */
+.rarity {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--c-ink);
+  border-radius: 2px 0 2px 0;
+}
+.common { background: var(--c-rarity-common); }
+.uncommon { background: var(--c-rarity-uncommon); }
+.rare { background: var(--c-rarity-rare); }
+.epic { background: var(--c-rarity-epic); }
+.mythic { background: var(--c-rarity-mythic); }
+.uses {
+  position: absolute;
+  right: -3px;
+  top: -4px;
+  min-width: 12px;
+  height: 12px;
+  padding: 0 2px;
+  border: 1px solid var(--c-ink);
+  border-radius: 6px;
+  background: var(--c-hazard);
+  color: var(--t-on-hazard);
+  font: 900 11px / 10px var(--font-display);
+  text-align: center;
+}
