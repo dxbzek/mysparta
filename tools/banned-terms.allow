@@ -1,0 +1,6 @@
+# Paths whose contents may name a banned term. One path per line, from the repo root.
+# Keep this list as short as it is: every line is a hole in the check.
+#
+# The save test that proves the old build's storage keys are never read, changed or deleted.
+# It has to name the old prefix to do that.
+apps/web/test/state/legacy-keys.test.ts
