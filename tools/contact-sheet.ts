@@ -294,16 +294,16 @@ function sheetFrames(rig: Rig, rigId: RigId, clip: string, pack: string, out: st
 function sheetOnion(rig: Rig, rigId: RigId, clip: string, pack: string, out: string, look: number, held?: string): string {
   const times = frameTimes(rig, rigId, clip);
   const dress = dressOf(rigId, clip, look, held);
-  const W = 170;
+  const W = 200;
   const H = 120;
-  const s = createSurface(W * 2 + W * 3, H * 3, 1, BG);
-  // real size (left) and 3x (right)
-  for (const [k, ox] of [[PHONE * 1, 0], [PHONE * 3, W * 1.1]] as const) {
+  const s = createSurface(W * 4.4, H * 3, 1, BG);
+  // real size (left) and 3x (right); the actor stands 100 units in, so a fall backwards fits
+  for (const [k, ox] of [[PHONE * 1, 0], [PHONE * 3, W * 0.62]] as const) {
     s.raw.save();
     s.raw.setTransform(k, 0, 0, k, ox * PHONE, 0);
     times.forEach((t, i) => {
       s.raw.globalAlpha = i === times.length - 1 || i === 0 ? 1 : 0.22;
-      rig.drawActor(s.env, rig.samplePose(rigId, clip, t), dress, { x: 60, y: 100, facing: 1 });
+      rig.drawActor(s.env, rig.samplePose(rigId, clip, t), dress, { x: 100, y: 100, facing: 1 });
     });
     s.raw.restore();
   }
