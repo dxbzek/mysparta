@@ -1,0 +1,23 @@
+.sheetFoot {
+  display: grid;
+  margin-top: 12px;
+}
+.pending {
+  display: grid;
+  gap: 12px;
+}
+.pendingFaces {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.vs {
+  font: 900 30px / 1 var(--font-display);
+  color: var(--t-on-panel-action);
+}
+.pendingLine {
+  margin: 0;
+  text-align: center;
+  font-size: 16px;
+}

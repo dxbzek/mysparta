@@ -1,0 +1,59 @@
+.body {
+  display: grid;
+  gap: 14px;
+}
+.setting {
+  display: grid;
+  gap: 6px;
+}
+.settingName {
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.block {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: var(--line-thin) dashed var(--c-ink);
+}
+.blockTitle {
+  margin: 0;
+  font: 900 20px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.help {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--t-on-panel-dim);
+}
+.code {
+  width: 100%;
+  padding: 8px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+  font: 400 var(--fs-small) / 1.3 ui-monospace, monospace;
+  word-break: break-all;
+  resize: vertical;
+}
+.unreadable {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  min-height: 100dvh;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: var(--gutter);
+}
+.stack {
+  display: grid;
+  gap: 10px;
+}

@@ -1,0 +1,47 @@
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: end;
+}
+.controls > :last-child {
+  grid-column: 1 / -1;
+}
+.num {
+  display: grid;
+  gap: 4px;
+  font: 900 16px / 1 var(--font-display);
+  text-transform: uppercase;
+}
+.sides {
+  display: grid;
+  gap: 12px;
+}
+.side {
+  min-width: 0;
+}
+.group {
+  margin: 0 0 10px;
+  padding: 0;
+  border: none;
+}
+.legend {
+  margin-bottom: 6px;
+  font: 900 16px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip {
+  padding: 0 10px;
+  font-size: 15px;
+}
+@media (min-width: 900px) {
+  .sides {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -1,0 +1,76 @@
+.dot {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid var(--c-ink);
+  background: var(--c-dark);
+}
+.health { box-shadow: inset 0 0 0 2px var(--c-stat-health); }
+.strength { box-shadow: inset 0 0 0 2px var(--c-stat-strength); }
+.agility { box-shadow: inset 0 0 0 2px var(--c-stat-agility); }
+.speed { box-shadow: inset 0 0 0 2px var(--c-stat-speed); }
+
+.mini {
+  display: grid;
+  grid-template-columns: 18px 30px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+}
+.miniName {
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+}
+.miniValue {
+  font: 900 16px / 1 var(--font-display);
+  text-align: right;
+}
+.track,
+.cmpTrack {
+  position: relative;
+  height: 10px;
+  border: 1px solid var(--c-ink);
+  border-radius: 2px;
+  background: var(--c-hp-back);
+  overflow: hidden;
+}
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background-image: var(--tex-halftone-light);
+}
+.cmpLeft .fill {
+  inset: 0 0 0 auto;
+}
+.f-health { background-color: var(--c-stat-health); }
+.f-strength { background-color: var(--c-stat-strength); }
+.f-agility { background-color: var(--c-stat-agility); }
+.f-speed { background-color: var(--c-stat-speed); }
+.fHp { background-color: var(--c-hp); }
+
+.compare {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 96px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+}
+.cmpLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font: 900 15px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.cmpValue {
+  font: 900 20px / 1 var(--font-display);
+  text-align: center;
+}
+.lead {
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 3px;
+}
