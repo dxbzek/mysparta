@@ -1,0 +1,433 @@
+{
+ "version": 1,
+ "file": "sfx.mp3",
+ "note": "Offsets in ms, measured on the decoded MP3 (not planned). Built by tools/build-audio.mjs.",
+ "families": {
+  "fist": [
+   {
+    "start": 140,
+    "dur": 257.3
+   },
+   {
+    "start": 537.3,
+    "dur": 278.2
+   },
+   {
+    "start": 955.5,
+    "dur": 222.3
+   }
+  ],
+  "blunt": [
+   {
+    "start": 1317.8,
+    "dur": 480
+   },
+   {
+    "start": 1937.8,
+    "dur": 480
+   },
+   {
+    "start": 2557.8,
+    "dur": 480
+   },
+   {
+    "start": 3177.8,
+    "dur": 466.7
+   }
+  ],
+  "blade": [
+   {
+    "start": 3784.5,
+    "dur": 370.5
+   },
+   {
+    "start": 4294.9,
+    "dur": 450
+   },
+   {
+    "start": 4884.9,
+    "dur": 225.4
+   },
+   {
+    "start": 5250.4,
+    "dur": 212.3
+   }
+  ],
+  "block": [
+   {
+    "start": 5602.7,
+    "dur": 357.7
+   },
+   {
+    "start": 6100.4,
+    "dur": 207.3
+   },
+   {
+    "start": 6447.7,
+    "dur": 227.6
+   }
+  ],
+  "whoosh": [
+   {
+    "start": 6815.4,
+    "dur": 340
+   },
+   {
+    "start": 7295.4,
+    "dur": 303.8
+   },
+   {
+    "start": 7739.2,
+    "dur": 340
+   }
+  ],
+  "dash": [
+   {
+    "start": 8219.2,
+    "dur": 211.1
+   },
+   {
+    "start": 8570.3,
+    "dur": 208.9
+   }
+  ],
+  "landing": [
+   {
+    "start": 8919.2,
+    "dur": 217.2
+   },
+   {
+    "start": 9276.4,
+    "dur": 240.1
+   }
+  ],
+  "throw": [
+   {
+    "start": 9656.5,
+    "dur": 339.7
+   }
+  ],
+  "drop": [
+   {
+    "start": 10136.2,
+    "dur": 293.4
+   },
+   {
+    "start": 10569.6,
+    "dur": 165.1
+   }
+  ],
+  "crowd": [
+   {
+    "start": 10874.7,
+    "dur": 204.1
+   },
+   {
+    "start": 11218.8,
+    "dur": 226.7
+   }
+  ],
+  "companion": [
+   {
+    "start": 11585.5,
+    "dur": 99.5
+   },
+   {
+    "start": 11825,
+    "dur": 134.3
+   },
+   {
+    "start": 12099.3,
+    "dur": 326.9
+   }
+  ],
+  "move": [
+   {
+    "start": 12566.2,
+    "dur": 464.7
+   },
+   {
+    "start": 13171,
+    "dur": 465.2
+   },
+   {
+    "start": 13776.1,
+    "dur": 580.5
+   },
+   {
+    "start": 14496.7,
+    "dur": 582.1
+   }
+  ],
+  "win": [
+   {
+    "start": 15218.8,
+    "dur": 913.9
+   }
+  ],
+  "loss": [
+   {
+    "start": 16272.8,
+    "dur": 326.4
+   }
+  ],
+  "ui-tap": [
+   {
+    "start": 16739.2,
+    "dur": 38.2
+   },
+   {
+    "start": 16917.4,
+    "dur": 39.7
+   }
+  ],
+  "card-flip": [
+   {
+    "start": 17097.1,
+    "dur": 193
+   }
+  ],
+  "level-up": [
+   {
+    "start": 17430.1,
+    "dur": 908.9
+   }
+  ]
+ },
+ "sources": [
+  {
+   "family": "fist",
+   "variant": 0,
+   "file": "bookPlace1.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "fist",
+   "variant": 1,
+   "file": "bookPlace2.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "fist",
+   "variant": 2,
+   "file": "bookClose.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "blunt",
+   "variant": 0,
+   "file": "metalPot1.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "blunt",
+   "variant": 1,
+   "file": "metalPot2.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "blunt",
+   "variant": 2,
+   "file": "metalPot3.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "blunt",
+   "variant": 3,
+   "file": "doorClose_1.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "blade",
+   "variant": 0,
+   "file": "knifeSlice.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "blade",
+   "variant": 1,
+   "file": "knifeSlice2.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "blade",
+   "variant": 2,
+   "file": "chop.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "blade",
+   "variant": 3,
+   "file": "drawKnife1.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "block",
+   "variant": 0,
+   "file": "metalClick.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "block",
+   "variant": 1,
+   "file": "metalLatch.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "block",
+   "variant": 2,
+   "file": "beltHandle1.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "whoosh",
+   "variant": 0,
+   "file": "cloth1.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "whoosh",
+   "variant": 1,
+   "file": "cloth2.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "whoosh",
+   "variant": 2,
+   "file": "cloth3.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "dash",
+   "variant": 0,
+   "file": "footstep00.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "dash",
+   "variant": 1,
+   "file": "footstep02.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "landing",
+   "variant": 0,
+   "file": "footstep05.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "landing",
+   "variant": 1,
+   "file": "bookPlace3.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "throw",
+   "variant": 0,
+   "file": "cloth4.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "drop",
+   "variant": 0,
+   "file": "dropLeather.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "drop",
+   "variant": 1,
+   "file": "handleSmallLeather.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "crowd",
+   "variant": 0,
+   "file": "footstep07.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "crowd",
+   "variant": 1,
+   "file": "footstep08.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "companion",
+   "variant": 0,
+   "file": "pluck_001.ogg",
+   "pack": "kenney_interfaceSounds"
+  },
+  {
+   "family": "companion",
+   "variant": 1,
+   "file": "pluck_002.ogg",
+   "pack": "kenney_interfaceSounds"
+  },
+  {
+   "family": "companion",
+   "variant": 2,
+   "file": "question_002.ogg",
+   "pack": "kenney_interfaceSounds"
+  },
+  {
+   "family": "move",
+   "variant": 0,
+   "file": "jingles_HIT01.ogg",
+   "pack": "jingleSounds_Kenney"
+  },
+  {
+   "family": "move",
+   "variant": 1,
+   "file": "jingles_HIT02.ogg",
+   "pack": "jingleSounds_Kenney"
+  },
+  {
+   "family": "move",
+   "variant": 2,
+   "file": "jingles_HIT04.ogg",
+   "pack": "jingleSounds_Kenney"
+  },
+  {
+   "family": "move",
+   "variant": 3,
+   "file": "jingles_HIT05.ogg",
+   "pack": "jingleSounds_Kenney"
+  },
+  {
+   "family": "win",
+   "variant": 0,
+   "file": "jingles_STEEL00.ogg",
+   "pack": "jingleSounds_Kenney"
+  },
+  {
+   "family": "loss",
+   "variant": 0,
+   "file": "jingles_NES02.ogg",
+   "pack": "jingleSounds_Kenney"
+  },
+  {
+   "family": "ui-tap",
+   "variant": 0,
+   "file": "click_001.ogg",
+   "pack": "kenney_interfaceSounds"
+  },
+  {
+   "family": "ui-tap",
+   "variant": 1,
+   "file": "select_001.ogg",
+   "pack": "kenney_interfaceSounds"
+  },
+  {
+   "family": "card-flip",
+   "variant": 0,
+   "file": "bookFlip3.ogg",
+   "pack": "RPGsounds_Kenney"
+  },
+  {
+   "family": "level-up",
+   "variant": 0,
+   "file": "jingles_STEEL04.ogg",
+   "pack": "jingleSounds_Kenney"
+  }
+ ]
+}
