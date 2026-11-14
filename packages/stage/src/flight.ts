@@ -1,0 +1,73 @@
+/**
+ * How things fly. A Thrown weapon flies by its `WEAPON_META.flight` (owner amendment 13.3):
+ *   straight  Darts: a straight line, point first, no spin.
+ *   tumble    Bricks: a lob on an arc, turning over and over.
+ *   return    Boomerang: a curve, spinning flat; it comes back to the hand on its own flight.
+ * Anything else that is thrown (a Pitcher throw of a held weapon) spins on a low arc, and a
+ * weapon knocked out of a hand goes up in an arc and comes down ("pop").
+ *
+ * A path is plain data; `pointAt` is a pure function of the share of the flight done.
+ * `rot` is in the item's own frame before mirroring, as `rig.drawProp` takes it.
+ */
+import { FLIGHT } from "./tuning";
+
+export type FlightKind = "straight" | "tumble" | "return" | "spin" | "pop";
+export interface FlightPath { kind: FlightKind; x0: number; y0: number; x1: number; y1: number;
+  facing: 1 | -1; ms: number;
+  /** Arc height in units (up is positive). */
+  arc: number;
+  /** Starting angle and spin in degrees per ms (0 for a straight flight). */
+  rot0: number; spin: number }
+
+export function flightKindOf(meta: { flight?: "straight" | "tumble" | "return" } | undefined): FlightKind {
+  return meta?.flight ?? "spin";
+}
+
+/** The angle of a stage direction in the item's own frame for an item that faces `facing`. */
+export function localAngle(dx: number, dy: number, facing: 1 | -1): number {
+  return (Math.atan2(dy, dx * facing) * 180) / Math.PI;
+}
+
+/** A path from one point to another for one kind of flight. `ms` is the flight time. */
+export function makePath(kind: FlightKind, x0: number, y0: number, x1: number, y1: number, facing: 1 | -1,
+  ms: number, rot0 = 0): FlightPath {
+  const dist = Math.hypot(x1 - x0, y1 - y0);
+  switch (kind) {
+    case "straight":
+      return { kind, x0, y0, x1, y1, facing, ms, arc: 0, rot0: localAngle(x1 - x0, y1 - y0, facing), spin: 0 };
+    case "tumble":
+      return { kind, x0, y0, x1, y1, facing, ms, arc: dist * FLIGHT.tumbleArc, rot0, spin: FLIGHT.tumblePerMs };
+    case "return":
+      return { kind, x0, y0, x1, y1, facing, ms, arc: dist * FLIGHT.returnBow, rot0, spin: FLIGHT.spinPerMs * 1.6 };
+    case "pop":
+      return { kind, x0, y0, x1, y1, facing, ms, arc: 46, rot0, spin: FLIGHT.spinPerMs * 0.8 };
+    case "spin":
+    default:
+      return { kind: "spin", x0, y0, x1, y1, facing, ms, arc: dist * 0.08, rot0, spin: FLIGHT.spinPerMs };
+  }
+}
+
+/** Flight time for a distance at the throw speed. */
+export function flightMs(dist: number): number {
+  const ms = (dist / FLIGHT.speed) * 1000;
+  return ms < FLIGHT.minMs ? FLIGHT.minMs : Math.round(ms);
+}
+
+/** Where the item is and how it is turned, `u` from 0 (leaves) to 1 (arrives). */
+export function pointAt(p: FlightPath, u: number): { x: number; y: number; rot: number } {
+  const v = u < 0 ? 0 : u > 1 ? 1 : u;
+  const x = p.x0 + (p.x1 - p.x0) * v;
+  const y = p.y0 + (p.y1 - p.y0) * v;
+  const ms = v * p.ms;
+  if (p.kind === "straight") return { x, y, rot: p.rot0 };
+  if (p.kind === "return") {
+    // A side-arm curve: it sweeps low off the straight line (the throw is flat, so the curve
+    // reads as a dip toward the floor), widest a little after the middle, and ends exactly on
+    // the end point. A lob (tumble) goes up instead.
+    const bow = 6.75 * v * v * (1 - v) * p.arc;
+    return { x, y: y + bow, rot: p.rot0 + p.spin * ms };
+  }
+  // tumble, spin and pop: a parabola, highest in the middle.
+  const lift = 4 * v * (1 - v) * p.arc;
+  return { x, y: y - lift, rot: p.rot0 + p.spin * ms };
+}
