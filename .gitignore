@@ -3,3 +3,5 @@ dist/
 *.local
 .DS_Store
 coverage/
+# Evidence, the brief and the plan. Never committed: the repo is public.
+.review/

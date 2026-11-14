@@ -1,7 +1,8 @@
 /**
- * Deterministic PRNG for the AGOGE combat sim.
- * Canon (04-technical-architecture.md §3): mulberry32, one seeded stream per
- * fight, every random decision drawn from it in a fixed order.
+ * Seeded random numbers for Rank Zero.
+ * mulberry32 gives one 32-bit stream per seed. FNV-1a turns names and keys into seeds.
+ * The sim draws every random decision from a seeded stream in a fixed order, and uses
+ * the whole-number helpers below, so the same inputs give the same bout on every engine.
  */
 
 export type PRNGFn = () => number;

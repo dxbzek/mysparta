@@ -2,13 +2,12 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  // Relative base so the build works at any path (GitHub Pages subpath, file embeds).
+  // Relative base so the build works at any path (a Pages subpath, a LAN preview).
   base: "./",
   plugins: [react()],
-  // @agoge/core ships TypeScript source; let Vite transform it directly.
-  optimizeDeps: { exclude: ["@agoge/core"] },
-  // PORT comes from the launcher when 5173 is taken; nothing here needs a
-  // fixed port (no OAuth callbacks or CORS allowlists in the prototype).
+  // The workspace packages ship TypeScript source. Vite transforms them directly.
+  optimizeDeps: { exclude: ["@rankzero/core", "@rankzero/rig", "@rankzero/stage"] },
+  // PORT comes from the launcher when 5173 is taken. Nothing here needs a fixed port.
   server: {
     port:
       Number((globalThis as { process?: { env?: Record<string, string> } }).process?.env?.PORT) ||
