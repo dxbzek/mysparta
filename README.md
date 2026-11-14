@@ -65,7 +65,8 @@ On a loaded machine a red test run is rerun once before it is believed.
 
 **Building before the other lanes exist.**
 
-- Fixtures: `import { BOUT_FIXTURES, SNAPSHOTS } from "@rankzero/core/fixtures"`. Two bout logs (`bout-gate`, `bout-all-steps`) and six snapshots, checked by the reducer.
+- Fixtures: `import { BOUT_FIXTURES, SNAPSHOTS } from "@rankzero/core/fixtures"`. Two bout logs (`bout-gate`, `bout-all-steps`) and six snapshots, checked by the reducer. They are frozen objects: clone one before changing it in a test.
+- Checking a log: `checkLog(log)` from `@rankzero/core` returns every broken log rule as a sentence. The rules themselves are written at the top of `packages/core/src/contracts/log.ts`.
 - Test rig: `import { capsuleRig } from "@rankzero/rig/testing"`. A complete `Rig` made of sticks, with the real clip lengths and contact times. The app gets its rig from `apps/web/src/seams/rig.ts` only.
 - Drawing in Node: `tools/lib/node-canvas.ts`. Drawing in the browser: `apps/web/src/seams/canvas.ts`.
 - Opening a browser from a tool: `tools/lib/browser.mjs` (`withBrowser`), which allows one browser at a time on the machine.

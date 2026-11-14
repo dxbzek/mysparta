@@ -430,6 +430,17 @@ describe("the all-steps bout", () => {
   });
 });
 
+describe("fixtures are frozen", () => {
+  it("throws when a test tries to change a shared fixture", () => {
+    expect(Object.isFrozen(boutGate.steps)).toBe(true);
+    expect(Object.isFrozen(boutAllSteps.init.bag.a)).toBe(true);
+    expect(Object.isFrozen(SNAPSHOTS.l1Pipe.stats.points)).toBe(true);
+    expect(() => { boutGate.steps.pop(); }).toThrow();
+    expect(() => { (boutGate.result as { turns: number }).turns = 99; }).toThrow();
+    expect(clone(boutGate)).toEqual(boutGate);
+  });
+});
+
 describe("reducer", () => {
   it("starts everyone up, at full HP, bare-handed, with full bags", () => {
     const s = initialState(boutAllSteps.init);

@@ -90,9 +90,11 @@ export type Step =
 export type StepType = Step["t"];
 /** The step with the given `t`, for handlers: `(step: StepOf<"attack">) => ...`. */
 export type StepOf<T extends StepType> = Extract<Step, { t: T }>;
-/** All 17 step types, in the order of the union. A test proves the list is complete. */
+/** All 17 step types, in the order of the union. The line under it fails to compile when one is missing. */
 export const STEP_TYPES = ["enter","draw","swap","move","attack","intercept","riposte","throw",
   "disarm","doorOff","heal","snare","free","flee","ko","overtime","end"] as const satisfies readonly StepType[];
+const STEP_TYPES_COMPLETE: Exclude<StepType, (typeof STEP_TYPES)[number]> extends never ? true : false = true;
+void STEP_TYPES_COMPLETE;
 
 /** `turns` is the turn number of the `end` step. `hpPct` is each scrapper's HP as a whole percent
  *  of its max, rounded up, so it is 0 only at 0 HP. `resultOf` in reduce.ts is the one definition. */
