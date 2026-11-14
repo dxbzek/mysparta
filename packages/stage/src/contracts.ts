@@ -16,6 +16,10 @@
  * Every other number of the timing table lives in this package's tuning file and nowhere else.
  * What the stage may know about a weapon is `WEAPON_META` and `impactFamily` from the core.
  * Where an attacker stops comes from `rig.strikePoint` and `rig.hitPoint`, never from a constant.
+ * Every swing with a contact is aimed: the stage takes the target's `hitPoint` y, passes it as
+ * `aimY` to `strikePoint` and as the same `Aim` to `samplePose` on every frame of that swing, and
+ * stops the attacker on the floor x where the two points meet. The rig bends the clip so the
+ * striking end reaches that height (a short Raccoon or a tall head alike).
  * The stage never applies a clip fallback: the rig does (see the rig contract).
  */
 import type { ActorId, BagItem, BoutLog, BoutState, FighterSnapshot, MoveId, Side, SkillId, StageId } from "@rankzero/core";

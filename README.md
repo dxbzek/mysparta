@@ -67,7 +67,7 @@ On a loaded machine a red test run is rerun once before it is believed.
 
 - Fixtures: `import { BOUT_FIXTURES, SNAPSHOTS } from "@rankzero/core/fixtures"`. Three bout logs (`bout-gate`, `bout-all-steps`, `bout-cap`) and six snapshots, checked by the reducer. They are frozen objects: clone one before changing it in a test.
 - Checking a log: `checkLog(log)` from `@rankzero/core` returns every broken log rule as a sentence. The rules themselves are written at the top of `packages/core/src/contracts/log.ts`.
-- Test rig: `import { capsuleRig } from "@rankzero/rig/testing"`. A complete `Rig` made of sticks, with the real clip lengths and contact times, five recoloured arenas, and strike and hit points measured from what it draws. `capsuleGateRig` is the same double limited to the 13 gate clips, for testing the clip fallback. The app gets its rig from `apps/web/src/seams/rig.ts` only.
+- Test rig: `import { capsuleRig } from "@rankzero/rig/testing"`. A complete `Rig` made of sticks, with the real clip lengths and contact times, five recoloured arenas, and strike and hit points measured from what it draws. Both bend a swing toward an aimed height, so the striking end meets a short target or a tall one. `capsuleGateRig` is the same double limited to what a gate-only rig has (13 gate clips with the clip fallback, placeholder companions, straight placeholder weapons, a placeholder Car Door), for testing that path. The app gets its rig from `apps/web/src/seams/rig.ts` only.
 - Drawing in Node: `tools/lib/node-canvas.ts`. Drawing in the browser: `apps/web/src/seams/canvas.ts`.
 - Opening a browser from a tool: `tools/lib/browser.mjs` (`withBrowser`), which allows one browser at a time on the machine.
 

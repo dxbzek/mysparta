@@ -31,6 +31,21 @@
  *    needs no engine change.
  *  - Missing art never throws. A missing effect or Move prop draws nothing and warns once, a
  *    missing arena draws the yard and warns once, a missing icon gives a plain ring.
+ *  - Gate-only rig. A rig built from the gate pack alone (`createRig(gatePack)`, the seam from
+ *    the first integration to the content merge) still answers for everything the gate pack
+ *    has no art for, with fixed stand-ins, never shipped:
+ *      companions: a placeholder body at the rules' size (Raccoon 26 units tall, Goose 40, Boar
+ *        52 tall and 70 long) with a mouth at its front end, and the clip times of
+ *        `PLACEHOLDER_COMPANION_CLIPS` (attack 280 with contact at 150);
+ *      a weapon outside `GATE_WEAPONS`: a straight bar `placeholderLength(reach)` long (Reach
+ *        from WEAPON_META), gripped at one end at the item's own size, its `tip` at the far end,
+ *        no `grip2`, no links (a weapon that bends is drawn straight), drawn in both hands for a
+ *        pair. Its strike point is that far end;
+ *      the Car Door: a `DOOR_PLACEHOLDER` panel held at its inner edge on the back forearm.
+ *    `capsuleGateRig` follows the same rule, so the stage lane tests against what the real rig
+ *    will do. A rig test checks `createRig(gatePack)` against this rule.
+ *  - Aim. A clip with a `contact` bends toward a target height when the caller asks (`Aim`), so
+ *    the striking end meets a short target or a tall one. See `samplePose` and `strikePoint`.
  *  - Things have one size. `Dress.scale` and the build size the body. A weapon, a door or a Move
  *    prop is drawn at its own size in the hand, in flight and on the floor, so it never changes
  *    size when it is thrown, dropped or snatched.
@@ -245,12 +260,55 @@ export type IconRef = PerkId | "fists" | `stat:${StatKey}` | `ui:${GateUi | Cont
 export interface SvgPart { d: string; fill: string; stroke?: string; strokeWidth?: number; transform?: string }
 export interface SvgArt { viewBox: string; parts: SvgPart[] }
 
+/**
+ * A request to bend a clip toward a target. `y` is the height the striking end must have at the
+ * clip's `contact` time: an `Offset` y from the attacker's place (negative above the floor),
+ * normally the y of the target's `hitPoint`. `dress` is the attacker's own dress, because where
+ * the striking end is depends on the held item, the build and `Dress.scale`.
+ *
+ * Rules every rig keeps:
+ *  - Only a clip with a `contact` event (after the clip fallback) bends. Any other clip ignores
+ *    the aim: a throw's item is carried to the target by its flight, not by the arm.
+ *  - The bend is full at the contact time and fades smoothly to none at the clip's start and
+ *    end, so the clip still starts and ends on its own poses. It is a pure function of t.
+ *  - Reach. `strikePoint(rig, clip, dress, y).y` is within `AIM_TOLERANCE` of `y` for every `y`
+ *    that is a `hitPoint` of a target the stage may aim at: a scrapper aims at the head or the
+ *    body of any rig, a companion at the body of any rig, in every build and at every
+ *    `Dress.scale` from 1 to 1.15 of attacker and target. Outside that the rig gets as close as
+ *    it can and never throws.
+ *  - How it bends is the rig's choice, inside `BoneDef.limit`: a scrapper leans at the waist,
+ *    turns at the shoulders and bends the knees; a companion lowers its head or leaps. The bend
+ *    moves the strike point's x too, and the stage stops the attacker on that x.
+ *  - Without an aim a clip plays exactly as keyed.
+ */
+export interface Aim { y: number; dress: Dress }
+/** How close an aimed strike gets to the height asked for, in stage units. */
+export const AIM_TOLERANCE = 1;
+
+/** Clip times of a placeholder companion in a gate-only rig (see the header). */
+export const PLACEHOLDER_COMPANION_CLIPS: Readonly<Record<CompanionClip, ClipInfo>> = {
+  idle: { durationMs: 1200, loop: true, events: [] },
+  run: { durationMs: 240, loop: true, events: [{ t: 0, name: "step" }, { t: 120, name: "step" }] },
+  attack: { durationMs: 280, loop: false, events: [{ t: 150, name: "contact" }] },
+  hit: { durationMs: 300, loop: false, events: [] },
+  ko: { durationMs: 600, loop: false, events: [{ t: 400, name: "land" }] },
+  flee: { durationMs: 240, loop: true, events: [{ t: 0, name: "step" }, { t: 120, name: "step" }] },
+};
+/** Length in units of the stand-in for a weapon with no art: 12 plus 10 for each point of Reach
+ *  (12 for a Thrown weapon or Knuckle Dusters, 52 for a Bike Chain). */
+export function placeholderLength(reach: number): number { return 12 + 10 * reach; }
+/** The stand-in Car Door: a flat panel `w` wide and `h` tall, held at its inner edge. */
+export const DOOR_PLACEHOLDER = { w: 22, h: 32 } as const;
+
 /** Everything a consumer may call. The stage and the app get a Rig by injection. */
 export interface Rig {
   /** Length, loop flag and events of a clip, after the clip fallback (see the header). */
   clipInfo(rig: RigId, clip: string): ClipInfo;
-  /** The pose of a clip at a time. Pure. A loop clip wraps; any other clip holds its last pose. */
-  samplePose(rig: RigId, clip: string, tMs: number): Pose;
+  /** The pose of a clip at a time. Pure. A loop clip wraps; any other clip holds its last pose.
+   *  With `aim`, a clip with a contact is bent toward the aim (see `Aim`); the stage passes the
+   *  same aim on every frame of that swing, and for the trail the rig bends the past samples the
+   *  same way. */
+  samplePose(rig: RigId, clip: string, tMs: number, aim?: Aim): Pose;
   drawActor(env: DrawEnv, pose: Pose, dress: Dress, at: Place): void;
   /**
    * The grip point of the leading hand of this pose, as a stage point: where a thrown weapon
@@ -276,16 +334,19 @@ export interface Rig {
    * units, measured from the same pose and the same maths `drawActor` uses. It already holds
    * the clip's own lunge (`Pose.root`), the squash, `dress.scale`, the build, `dress.lead`
    * and the held item with its trail. A clip with no strike gives the point at t = 0.
+   * With `aimY`, it is the striking end of `samplePose(rig, clip, strike, { y: aimY, dress })`:
+   * the clip bent toward that height, so its y is within `AIM_TOLERANCE` of `aimY` wherever
+   * `Aim` promises reach.
    */
-  strikePoint(rig: RigId, clip: string, dress: Dress): Offset;
+  strikePoint(rig: RigId, clip: string, dress: Dress, aimY?: number): Offset;
   /**
    * The place on a standing target (its idle pose at t = 0) that a swing lands on: the middle
    * of the head, or the middle of the body (for a long body, a four-legged companion, the
    * middle of its front half: the side its enemy stands on). An `Offset` from the target's
    * place for a target that faces right, with `dress.scale` and the build in it. It lies
-   * inside the drawn figure. The stage stops the attacker at the floor x where the attacker's
-   * `strikePoint` and the target's `hitPoint` line up. An actor only moves along the floor, so
-   * the two heights meet only as far as the clip's strike height and the target's size allow.
+   * inside the drawn figure. The stage aims the swing at it (`strikePoint` with this y as
+   * `aimY`, and the same `Aim` in `samplePose`) and stops the attacker at the floor x where the
+   * two points meet, so the striking end touches the target at any height `Aim` covers.
    */
   hitPoint(rig: RigId, dress: Dress, zone: "head" | "body"): Offset;
   drawFx(env: DrawEnv, fx: FxKind, progress: number, at: Place, seed: number): void;

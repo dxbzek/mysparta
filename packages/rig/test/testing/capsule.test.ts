@@ -11,9 +11,10 @@ import { Path2D, createCanvas } from "@napi-rs/canvas";
 import { COMPANION_IDS, STAGE_IDS, WEAPON_IDS, WEAPON_META } from "@rankzero/core";
 import type { HeldId, StageId } from "@rankzero/core";
 import { boutAllSteps, l1Pipe } from "@rankzero/core/fixtures";
-import { CLIP_FALLBACK, COMPANION_CLIPS, GATE_CLIPS, SCRAPPER_BONES, SCRAPPER_CLIPS, TRAIL_LEN, TRAIL_STEP_MS,
-  comboClipTime, strikeTime, toStage } from "../../src/index";
-import type { ContentClip, Ctx2D, DrawEnv, Dress, FxKind, MoveProp, Place, Pose, Rig, RigId } from "../../src/index";
+import { AIM_TOLERANCE, CLIP_FALLBACK, COMPANION_CLIPS, DOOR_PLACEHOLDER, GATE_CLIPS, GATE_WEAPONS,
+  PLACEHOLDER_COMPANION_CLIPS, SCRAPPER_BONES, SCRAPPER_CLIPS, TRAIL_LEN, TRAIL_STEP_MS, comboClipTime, placeholderLength,
+  strikeTime, toStage } from "../../src/index";
+import type { Aim, ContentClip, Ctx2D, DrawEnv, Dress, FxKind, MoveProp, Place, Pose, Rig, RigId } from "../../src/index";
 import { CAPSULE_CLIPS, capsuleGateRig as gateRig, capsuleRig as rig, capsuleWeaponLength } from "../../src/testing/capsule";
 
 const RIGS: readonly RigId[] = ["scrapper", ...COMPANION_IDS];
@@ -268,7 +269,7 @@ interface PathFill { d: string; m: Matrix; colour: string }
 /** One `ellipse` call, with its centre in stage units. */
 interface Blob extends Pt { rx: number; ry: number; colour: string }
 interface Recording { env: DrawEnv; calls: string[]; paths: string[]; colours: Set<string>; fills: PathFill[]; blobs: Blob[];
-  lines: Pt[]; rects: number }
+  lines: Pt[]; rects: number; rectSizes: [w: number, h: number][] }
 
 /** A context that records calls, follows the transform, and throws on any member outside the
  *  contract's subset. */
@@ -279,6 +280,7 @@ function recorder(): Recording {
   const fills: PathFill[] = [];
   const blobs: Blob[] = [];
   const lines: Pt[] = [];
+  const rectSizes: [number, number][] = [];
   const out = { rects: 0 };
   const state: Record<string, unknown> = {};
   let m: Matrix = [1, 0, 0, 1, 0, 0];
@@ -304,7 +306,7 @@ function recorder(): Recording {
       case "beginPath": pending = null; break;
       case "ellipse": pending = { ...through(m, n[0]!, n[1]!), rx: n[2]!, ry: n[3]!, colour: "" }; break;
       case "moveTo": case "lineTo": lines.push(through(m, n[0]!, n[1]!)); break;
-      case "rect": out.rects += 1; break;
+      case "rect": out.rects += 1; rectSizes.push([n[2]!, n[3]!]); break;
       case "fill": {
         const path = args[0] as { d: string } | undefined;
         if (path !== undefined) fills.push({ d: path.d, m: [...m], colour: String(state.fillStyle) });
@@ -332,7 +334,7 @@ function recorder(): Recording {
       return true;
     },
   }) as unknown as Ctx2D;
-  return { env: { ctx, path: (d) => { paths.push(d); return { d }; } }, calls, paths, colours, fills, blobs, lines,
+  return { env: { ctx, path: (d) => { paths.push(d); return { d }; } }, calls, paths, colours, fills, blobs, lines, rectSizes,
     get rects() { return out.rects; } };
 }
 
@@ -746,6 +748,134 @@ describe("capsule geometry: what the stage places actors with", () => {
   });
 });
 
+describe("aim: a swing bent toward the target's height", () => {
+  const dressOf = (id: HeldId, scale: number, build: number, more: Partial<Dress> = {}): Dress =>
+    ({ look: look(build), held: id, door: false, scale, ...more });
+  /** Every height the stage may aim at: the head and body hit points of every rig in every size. */
+  const heights = (zones: readonly ("head" | "body")[]): number[] => {
+    const out: number[] = [];
+    for (const r of RIGS) for (const scale of SCALES) for (const build of BUILDS) for (const zone of zones) {
+      out.push(rig.hitPoint(r, { look: look(build), held: null, door: false, scale }, zone).y);
+    }
+    return [...new Set(out)];                               // a companion has no build
+  };
+  const ANY_ZONE = heights(["head", "body"]);
+  const BODY = heights(["body"]);
+  const MELEE = HELD.filter((id) => WEAPON_META[id].clip !== "throw");
+
+  it("covers a wide range of heights: from a Raccoon's body to a tall Mountain's head", () => {
+    expect(Math.max(...ANY_ZONE)).toBeGreaterThan(-20);
+    expect(Math.min(...ANY_ZONE)).toBeLessThan(-90);
+    expect(MELEE.length).toBe(26);
+  });
+
+  it("puts every scrapper's striking end at the height asked for, for every held item, size, lead and target", () => {
+    for (const r of [rig, gateRig]) {
+      let checked = 0;
+      let missedWithout = 0;
+      for (const id of MELEE) for (const scale of SCALES) for (const build of BUILDS) for (const lead of ["F", "B"] as const) {
+        const dress = dressOf(id, scale, build, { lead });
+        const clip = WEAPON_META[id].clip;
+        const plain = r.strikePoint("scrapper", clip, dress);
+        for (const y of ANY_ZONE) {
+          const p = r.strikePoint("scrapper", clip, dress, y);
+          expect(Math.abs(p.y - y), `${id} ${JSON.stringify({ scale, build, lead, y, got: p })}`).toBeLessThanOrEqual(AIM_TOLERANCE);
+          expect(p.x, `${id} strikes in front`).toBeGreaterThan(0);
+          if (Math.abs(plain.y - y) > 3) missedWithout += 1;
+          checked += 1;
+        }
+      }
+      expect(checked).toBe(26 * 2 * 3 * 2 * ANY_ZONE.length);
+      expect(ANY_ZONE.length).toBe(2 * 2 * 3 + 3 * 2 * 2);
+      // The control: without the aim most of these heights are missed by more than 3 units, so
+      // the line above can fail.
+      expect(missedWithout).toBeGreaterThan(checked / 2);
+    }
+  });
+
+  it("puts every companion's mouth at the height of any target's body", () => {
+    for (const r of [rig, gateRig]) for (const id of COMPANION_IDS) for (const scale of SCALES) for (const y of BODY) {
+      const p = r.strikePoint(id, "attack", { held: null, door: false, scale }, y);
+      expect(Math.abs(p.y - y), `${id} ${scale} ${y} got ${p.y}`).toBeLessThanOrEqual(AIM_TOLERANCE);
+    }
+  });
+
+  it("gives an aimed strike point that is the drawn striking end of the aimed pose", () => {
+    const cases: [HeldId, Partial<Dress>][] = [["fists", {}], ["fists", { lead: "B" }], ["pipe", {}], ["bat", {}],
+      ["bike-chain", {}], ["screwdrivers", { lead: "B" }], ["sledgehammer", {}], ["lawn-flamingo", {}]];
+    for (const [id, more] of cases) for (const { at, scale, build } of SIZES) for (const y of [-16, -40, -75]) {
+      const dress = dressOf(id, scale, build, more);
+      const clip = WEAPON_META[id].clip;
+      const aim: Aim = { y, dress };
+      const pose = rig.samplePose("scrapper", clip, strikeTime(rig.clipInfo("scrapper", clip)) ?? 0, aim);
+      const rec = recorder();
+      rig.drawActor(rec.env, pose, dress, at);
+      const anchor = rig.handAnchor(pose, dress, at);
+      const strike = toStage(at, rig.strikePoint("scrapper", clip, dress, y));
+      const what = `${id} ${JSON.stringify({ at, scale, build, more, y })}`;
+      if (id === "fists") {
+        near(strike, anchor, what);
+      } else {
+        const leading = rec.fills.filter((f) => dist(origin(f), anchor) < 1e-6);
+        expect(leading.length, what).toBe(1);
+        // the tip is on the one stiff piece, or on the last of the four links of a chain
+        const last = WEAPON_META[id].flex === true ? rec.fills[rec.fills.length - 1]! : leading[0]!;
+        near(strike, farPoint(last), what);
+      }
+      expect(Math.abs(strike.y - (at.y + y)), what).toBeLessThanOrEqual(AIM_TOLERANCE);
+    }
+  });
+
+  it("bends only a clip with a contact: full at the contact, none at its start and its end", () => {
+    const dress = dressOf("pipe", 1, 0);
+    const aim: Aim = { y: -18, dress };
+    for (const clip of SCRAPPER_CLIPS) {
+      const info = rig.clipInfo("scrapper", clip);
+      const contact = info.events.find((e) => e.name === "contact");
+      for (const t of [0, info.durationMs]) {
+        expect(rig.samplePose("scrapper", clip, t, aim), `${clip}@${t}`).toEqual(rig.samplePose("scrapper", clip, t));
+      }
+      const mid = contact?.t ?? info.durationMs / 2;
+      const bentPose = rig.samplePose("scrapper", clip, mid, aim);
+      if (contact === undefined) expect(bentPose, clip).toEqual(rig.samplePose("scrapper", clip, mid));
+      else expect(bentPose, clip).not.toEqual(rig.samplePose("scrapper", clip, mid));
+    }
+    // A throw is carried to the target by its flight, so its release point does not move.
+    const darts: Dress = { ...dress, held: "darts" };
+    expect(rig.strikePoint("scrapper", "throw", darts, -18)).toEqual(rig.strikePoint("scrapper", "throw", darts));
+    // The bend is smooth: on top of the clip's own motion no bone turns more than 30 degrees
+    // between two 60 fps frames (a jump would be the whole bend, 100 degrees or more). The real
+    // rig keeps the rig lane's own line: no bone turns more than 45 degrees in one frame in all.
+    for (const clip of ["punch", "swing", "smash", "thrust", "flick"]) {
+      const step = 1000 / 60;
+      for (let t = step; t <= rig.clipInfo("scrapper", clip).durationMs; t += step) {
+        const prev = rig.samplePose("scrapper", clip, t - step, aim);
+        const now = rig.samplePose("scrapper", clip, t, aim);
+        const plainPrev = rig.samplePose("scrapper", clip, t - step);
+        const plainNow = rig.samplePose("scrapper", clip, t);
+        now.rot.forEach((v, i) => {
+          const extra = Math.abs((v - prev.rot[i]!) - (plainNow.rot[i]! - plainPrev.rot[i]!));
+          expect(extra, `${clip}@${t.toFixed(0)} bone ${SCRAPPER_BONES[i]}`).toBeLessThan(30);
+        });
+      }
+    }
+  });
+
+  it("is a pure function of its inputs, and changes nothing without an aim", () => {
+    const dress = dressOf("bike-chain", 1.15, 2);
+    const a = rig.samplePose("scrapper", "swing", 120, { y: -20, dress });
+    expect(rig.samplePose("scrapper", "swing", 120, { y: -20, dress })).toEqual(a);
+    expect(rig.samplePose("scrapper", "swing", 120, undefined)).toEqual(rig.samplePose("scrapper", "swing", 120));
+    expect(rig.strikePoint("scrapper", "swing", dress, undefined)).toEqual(rig.strikePoint("scrapper", "swing", dress));
+    for (const bad of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(rig.samplePose("scrapper", "swing", 120, { y: bad, dress })).toEqual(rig.samplePose("scrapper", "swing", 120));
+    }
+    // Out of reach (below the floor): as close as it can get, finite, and no throw.
+    const p = rig.strikePoint("scrapper", "punch", dressOf("fists", 1, 0), 40);
+    expect(Number.isFinite(p.x) && Number.isFinite(p.y)).toBe(true);
+  });
+});
+
 describe("capsuleGateRig: the double as a rig with no content pack", () => {
   it("answers a content clip with its gate clip, with no warning", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -830,5 +960,57 @@ describe("capsuleGateRig: the double as a rig with no content pack", () => {
     expect(withCan.calls.length).toBe(plain.calls.length * 2);
     expect(warn).toHaveBeenCalledTimes(7);
     warn.mockRestore();
+  });
+
+  it("gives placeholder companions the fixed clip times of the contract, in both doubles", () => {
+    for (const r of [rig, gateRig]) for (const id of COMPANION_IDS) for (const clip of COMPANION_CLIPS) {
+      expect(r.clipInfo(id, clip), `${id}/${clip}`).toEqual(PLACEHOLDER_COMPANION_CLIPS[clip]);
+    }
+    expect(PLACEHOLDER_COMPANION_CLIPS.attack).toEqual({ durationMs: 280, loop: false, events: [{ t: 150, name: "contact" }] });
+  });
+
+  it("draws every weapon outside the gate as a straight bar placeholderLength(reach) long, tip at the far end", () => {
+    expect([placeholderLength(0), placeholderLength(1), placeholderLength(4)]).toEqual([12, 22, 52]);
+    const outside = WEAPON_IDS.filter((id) => !(GATE_WEAPONS as readonly string[]).includes(id));
+    expect(outside.length).toBe(26);
+    let checked = 0;
+    for (const id of outside) for (const { at, scale, build } of SIZES) {
+      const meta = WEAPON_META[id];
+      const dress: Dress = { look: look(build), held: id, door: false, scale };
+      const clip = meta.clip === "throw" ? "punch" : meta.clip;      // a thrown item is held through a swing here
+      const pose = gateRig.samplePose("scrapper", clip, strikeTime(gateRig.clipInfo("scrapper", clip)) ?? 0);
+      const rec = recorder();
+      gateRig.drawActor(rec.env, pose, dress, at);
+      const anchor = gateRig.handAnchor(pose, dress, at);
+      const what = `${id} ${JSON.stringify({ at, scale, build })}`;
+      // One straight piece per hand: two for a pair, one for anything else, a weapon that bends included.
+      expect(rec.fills.length, what).toBe(meta.pair === true ? 2 : 1);
+      const held = rec.fills.filter((f) => dist(origin(f), anchor) < 1e-6);
+      expect(held.length, what).toBe(1);
+      expect(dist(farPoint(held[0]!), anchor), what).toBeCloseTo(placeholderLength(meta.reach), 6);
+      if (meta.clip !== "throw") near(toStage(at, gateRig.strikePoint("scrapper", clip, dress)), farPoint(held[0]!), what);
+      // On the floor it is the same bar.
+      const floor = recorder();
+      gateRig.drawProp(floor.env, id, { x: 50, y: 60, facing: 1, rot: 0 });
+      expect(floor.fills.length, what).toBe(1);
+      near(farPoint(floor.fills[0]!), { x: 50 + placeholderLength(meta.reach), y: 60 }, `${what} on the floor`);
+      checked += 1;
+    }
+    expect(checked).toBe(26 * 12);
+    // The full double still bends a chain: the straight bar is the gate-only rule.
+    const full = recorder();
+    rig.drawActor(full.env, rig.samplePose("scrapper", "swing", 150), { held: "bike-chain", door: false, scale: 1 }, PLACES[0]!);
+    expect(full.fills.length).toBe(4);
+  });
+
+  it("draws the Car Door as the DOOR_PLACEHOLDER panel, in the hand and on the floor", () => {
+    expect(DOOR_PLACEHOLDER).toEqual({ w: 22, h: 32 });
+    const pose = gateRig.samplePose("scrapper", "idle", 0);
+    const withDoor = recorder();
+    gateRig.drawActor(withDoor.env, pose, { held: null, door: true, scale: 1 }, PLACES[0]!);
+    expect(withDoor.rectSizes).toContainEqual([22, 32]);
+    const floor = recorder();
+    gateRig.drawProp(floor.env, "car-door", { x: 50, y: 60, facing: 1, rot: 0 });
+    expect(floor.rectSizes[0]).toEqual([22, 32]);
   });
 });
