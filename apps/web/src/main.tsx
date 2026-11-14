@@ -1,12 +1,13 @@
 /**
  * SEAM FILE (work package 0). Only the Lead edits it, at integration points.
- *   G0 (now): a placeholder page that draws the capsule rig through the two seam files.
- *   I1: mounts the debug routes.  I2: mounts app/App.tsx.
+ *   G0: a placeholder page that draws the rig through the two seam files.
+ *   I1 (now): #/debug/ routes mount the debug pages.  I2: mounts app/App.tsx.
  */
 import { StrictMode, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { makeDrawEnv } from "./seams/canvas";
 import { rig } from "./seams/rig";
+import { isDebugHash, mountDebug } from "./debug/mount";
 
 const STAGE_W = 360;
 const STAGE_H = 240;
@@ -74,8 +75,13 @@ function Placeholder() {
   );
 }
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <Placeholder />
-  </StrictMode>,
-);
+const root = document.getElementById("root")!;
+if (isDebugHash(location.hash)) {
+  mountDebug(root);
+} else {
+  createRoot(root).render(
+    <StrictMode>
+      <Placeholder />
+    </StrictMode>,
+  );
+}
