@@ -11,10 +11,11 @@
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "build": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/node": "^24.19.2",
     "typescript": "^5.9.0",
     "vitest": "^3.0.5"
   }

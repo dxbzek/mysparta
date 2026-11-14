@@ -4,19 +4,38 @@
  *
  * Rules of this package:
  *  - It imports types from "@rankzero/core" and nothing else. No browser types, no clock.
+ *    (The capsule test double also reads the frozen identity table WEAPON_META.)
  *  - Everything is authored facing right, in stage units (the stage is 360 x 240, a scrapper is
  *    84 units tall), with y growing downward. The host scales the canvas; the rig never does.
- *  - One timing source. The stage reads every clip length and contact time from `clipInfo()`.
+ *  - One timing source. The stage reads every clip length and event time from `clipInfo()`.
  *    The swing clips are fixed by the timing table of the rules: punch, flick, swing and thrust
  *    are 280 ms with `contact` at 150; smash is 380 with `contact` at 240; throw has `release`
- *    at 180. An extra combo swing is the same clip played faster by the stage (220 ms, contact
- *    at 120); the rig holds no second clip.
+ *    at 180 and no `contact`.
+ *  - An extra combo swing is the same clip played faster by the stage; the rig holds no second
+ *    clip. The speed-up is NOT one straight scale (280 with contact at 150 would give 118, a
+ *    smash 139). The stage maps clip time in two straight pieces around the strike:
+ *    [0, strike] of the clip onto the first part of the short swing and [strike, end] onto the
+ *    rest, so the strike lands exactly on the table's time for every attack clip. An extra
+ *    throw uses the same two pieces around `release`, then its normal flight. `comboClipTime`
+ *    below is that mapping, and the one copy of it. The two numbers of the short swing (220
+ *    and 120 in the timing table) live in the stage's tuning file.
+ *  - Clip fallback. Until the content pack lands, a rig built from the gate pack alone holds 13
+ *    of the 23 scrapper clips. THE RIG applies `CLIP_FALLBACK`, inside `clipInfo`, `samplePose`
+ *    and `strikePoint`: a content clip name answers with its gate clip. Only a name outside
+ *    `SCRAPPER_CLIPS` (or outside `COMPANION_CLIPS` for a companion) falls back to "idle", with
+ *    one warning. The stage never applies a fallback and never needs to know which rig it has.
+ *    Two fallbacks change the timeline and the stage must cope: `throw` becomes a clip with a
+ *    `contact` and no `release`, and `smash` becomes 280 with contact at 150. So the stage reads
+ *    the strike of a clip with `strikeTime`, which takes `release` when there is no `contact`.
  *  - The engine is not scrapper-shaped. `RigDef.bones` is free-form, so a four-legged companion
  *    needs no engine change.
- *  - Missing effect art draws nothing and warns once. `drawFx` never throws on an `FxKind`
- *    whose pack has not landed. A missing icon gives a plain ring.
+ *  - Missing art never throws. A missing effect or Move prop draws nothing and warns once, a
+ *    missing arena draws the yard and warns once, a missing icon gives a plain ring.
+ *  - Things have one size. `Dress.scale` and the build size the body. A weapon, a door or a Move
+ *    prop is drawn at its own size in the hand, in flight and on the floor, so it never changes
+ *    size when it is thrown, dropped or snatched.
  */
-import type { CompanionId, HeldId, Look, PerkId, PropId, SkillId, StatKey } from "@rankzero/core";
+import type { CompanionId, HeldId, Look, PerkId, PropId, SkillId, StageId, StatKey } from "@rankzero/core";
 
 export type RigId = "scrapper" | CompanionId;
 export const SCRAPPER_BONES = ["root","pelvis","torso","head","armB.up","armB.lo","handB",
@@ -33,7 +52,8 @@ export type ScrapperClip = (typeof SCRAPPER_CLIPS)[number];
 export type GateClip = (typeof GATE_CLIPS)[number];
 export type ContentClip = Exclude<ScrapperClip, GateClip>;
 export type CompanionClip = (typeof COMPANION_CLIPS)[number];
-/** Used only until the content pack lands. Never shipped. */
+/** Used only until the content pack lands. Never shipped. Applied by the rig, never by the stage
+ *  (see "Clip fallback" above). */
 export const CLIP_FALLBACK: Record<ContentClip, GateClip> = { smash: "swing", thrust: "flick",
   throw: "flick", "hit-heavy": "hit-light", block: "brace", snared: "brace", "power-up": "win",
   drink: "draw", slam: "swing", slammed: "ko-fall" };
@@ -47,7 +67,11 @@ export type FaceId = "neutral" | "grit" | "shout" | "dazed" | "grin";
 export type ColourSlot = "ink" | "skin" | "hair" | "top" | "bottom" | "shoes" | "accent" | "metal" | "wood" | "white";
 export type Ease = "linear" | "in" | "out" | "inOut" | "back" | "snap";
 
-export interface BoneDef { id: string; parent: number /* index, -1 = root */; x: number; y: number }
+/** One bone. `limit` is the range its own rotation may take, in degrees, lowest first: the way a
+ *  real elbow or knee bends. A rig test samples every clip and fails outside the range. A bone
+ *  with no limit turns freely. */
+export interface BoneDef { id: string; parent: number /* index, -1 = root */; x: number; y: number;
+  limit?: readonly [min: number, max: number] }
 export interface RigDef { id: RigId; height: number /* units */; bones: readonly BoneDef[] }
 /** One flat shape. `shade` is the single darker cel shape allowed per part. The outline is always Night Ink. */
 export interface Shape { bone: string; d: string; slot: ColourSlot; shade?: string; z: number }
@@ -60,12 +84,25 @@ export interface Clip { duration: number; loop: boolean; keys: readonly Key[];
   plant?: readonly string[];                // foot bones pinned to the floor by two-bone IK
   stepped?: number }                        // 0 = smooth; 24 = hold poses at 24 fps (fallback lever)
 export interface ClipInfo { durationMs: number; loop: boolean; events: Clip["events"] }
+
+/** How far back a pose remembers its front hand, for a weapon that bends (see `Pose.trail`). */
+export const TRAIL_STEP_MS = 40;
+export const TRAIL_LEN = 4;
 /** `rot` holds one angle per bone of that rig, in the order of its `RigDef.bones`. `root.x` and
  *  `root.y` are an offset from the actor's place in units (y is negative above the floor);
  *  `root.sx` and `root.sy` are the squash. `lift` is how far the feet are above the floor, for
- *  the ground shadow. A pose is plain data: equal inputs give equal poses. */
+ *  the ground shadow. A pose is plain data: equal inputs give equal poses.
+ *
+ *  `trail` is what lets a chain trail the hand although a draw call sees one pose and no past:
+ *  the direction the front hand pointed (degrees, in the actor's own frame, before mirroring)
+ *  at t - 40, t - 80, t - 120 and t - 160 ms of the same clip, newest first. `samplePose` fills
+ *  it for the scrapper rig, by sampling the clip again; it is still a pure function of t.
+ *  A clip that does not loop holds its first pose before t = 0 and its last pose after its end,
+ *  and the trail is read from the time asked for: well after the end it is all the last pose,
+ *  so a chain comes to rest. A pose with no `trail` draws a bending weapon straight. */
 export interface Pose { rig: RigId; rot: readonly number[] /* degrees, in bone order */;
-  root: { x: number; y: number; sx: number; sy: number }; face: FaceId; lift: number /* units above the floor */ }
+  root: { x: number; y: number; sx: number; sy: number }; face: FaceId; lift: number /* units above the floor */;
+  trail?: readonly number[] }
 
 /**
  * The Canvas 2D subset we call: flat fills and strokes, paths, transforms and text. Left out on
@@ -119,19 +156,63 @@ export interface Ctx2D {
 /** What a draw call needs from its host. `path` turns an SVG path string into the host's own
  *  path object and caches it; the rig never builds one itself. */
 export interface DrawEnv { ctx: Ctx2D; path(d: string): unknown /* a cached Path2D */ }
-/** `held: null` and "fists" both draw an empty hand. `scale` is 1 for a normal scrapper.
- *  `tint: "white"` redraws every part in white (the hit flash). */
-export interface Dress { look?: Look; held: HeldId | null; door: boolean; scale: number; tint?: "white" }
+
+/** The small real objects three Moves use: the can of an Energy Drink, the whistle, the air horn.
+ *  (The tarp and the firecrackers fly, so they are effects: `FxKind` "tarp" and "crackers".) */
+export type MoveProp = "can" | "whistle" | "horn";
+/** How one actor is dressed for one frame.
+ *  `held`: null and "fists" both draw empty hands.
+ *  `scale` is 1 for a normal scrapper. It sizes the body, not what the hands hold.
+ *  `tint: "white"` redraws every part in white (the hit flash).
+ *  `lead` is which arm does what the clip keys for the front arm. "B" swaps the two arms, so
+ *  the back hand makes the swing: the stage sets it on every second swing of a combo when the
+ *  held item is a pair (`WEAPON_META[id].pair`: bare fists, Knuckle Dusters, Screwdrivers).
+ *  The rig reads it only for a pair and ignores it for anything else. Default "F".
+ *  `prop` is a Move's object, drawn in the back hand while the Move's clip plays, so a held
+ *  weapon stays where it is. */
+export interface Dress { look?: Look; held: HeldId | null; door: boolean; scale: number; tint?: "white";
+  lead?: "F" | "B"; prop?: MoveProp }
 /** Where the feet stand, in stage units, and which way the actor faces (1 = right, -1 = left). */
 export interface Place { x: number; y: number; facing: 1 | -1 }
-export interface WeaponArt { shapes: readonly Omit<Shape, "bone">[]; grip: { x: number; y: number; rot: number }; length: number }
+/** A point given as an offset from an actor's `Place`, for an actor that faces right: x is
+ *  forward, y is negative above the floor, both in stage units. `toStage` turns it into a stage
+ *  point for an actor that may face left. */
+export interface Offset { x: number; y: number }
+
+/** Something a hand holds. `shapes` are drawn in the item's own units with the grip at
+ *  `grip.x, grip.y`; `grip.rot` is the angle between the hand bone and the item's +x. */
+export interface PropArt { shapes: readonly Omit<Shape, "bone">[]; grip: { x: number; y: number; rot: number } }
+/** One link of a weapon that bends. Its shapes are drawn along its own +x from its start. */
+export interface WeaponSegment { length: number; shapes: readonly Omit<Shape, "bone">[] }
+/**
+ * One weapon drawing. It serves the hand, the flight, the floor and the 28 and 44 px icons.
+ *  `tip` is the striking end in the weapon's own units, the part that the weapon's `use` line
+ *    says hits. At the contact frame the stage puts THIS point on the target.
+ *  `grip2` is where the back hand holds a weapon that takes both hands on one shaft. The engine
+ *    pins the back hand to it with two-bone IK on every frame (1 unit or less).
+ *  `offhand` marks a pair: the same drawing is drawn again in the back hand.
+ *  `segments` makes the weapon bend (`WEAPON_META[id].flex`): three or more links. Link 0 starts
+ *    at the grip and turns with the hand. Link k starts where link k - 1 ends and points where
+ *    the hand pointed k x 40 ms earlier (`Pose.trail[k - 1]`), so the far end arrives late.
+ *    Such a weapon has no `shapes` of its own (an empty list), `length` is the sum of its
+ *    links, and `tip` is its far end when it lies straight. In flight and on the floor it is
+ *    drawn straight.
+ * Every weapon has `hands: 2` in WEAPON_META exactly when its art has `grip2` or `offhand`
+ * (bare fists aside); a rig test checks it for each pack.
+ */
+export interface WeaponArt extends PropArt { length: number;
+  tip: { x: number; y: number }; grip2?: { x: number; y: number }; offhand?: true;
+  segments?: readonly WeaponSegment[] }
 export interface IconArt { shapes: readonly { d: string; slot: ColourSlot | "self"; shade?: string }[] }  // 24-unit box
 export type FxKind = "burst" | "dust" | "spark" | "whoosh" | "tarp" | "tape" | "crackers"
   | "rings" /* Whistle, Air Horn */ | "plus" /* heal */ | "trail" /* Haymaker swing */;
 /** `progress` runs from 0 to 1 over the life of the effect. `seed` picks its cosmetic variation. */
 export type FxDraw = (env: DrawEnv, progress: number, at: Place, seed: number) => void;
-/** `crowdBounce` runs from 0 to 1 (0 = the crowd stands still). */
-export type YardDraw = (env: DrawEnv, layer: "back" | "floor", crowdBounce: number) => void;
+/** One arena: the back wall layer and the floor layer of the 360 x 240 stage, with its own small
+ *  crowd on the back layer. `crowdBounce` runs from 0 to 1 (0 = the crowd stands still).
+ *  Every arena keeps the stage geometry: the floor line, the home marks and the companion marks
+ *  are the same in all five, so the choreography never changes with the place. */
+export type StageDraw = (env: DrawEnv, layer: "back" | "floor", crowdBounce: number) => void;
 export interface Palette { top: string; bottom: string; shoes: string; accent: string }
 export interface AppearanceSet {            // list lengths may be under LOOK_SPACE in the gate pack; an index wraps
   builds: readonly { scale: number; limb: number; torso: number }[];
@@ -145,7 +226,7 @@ export interface GatePack {                 // the rig lane: packages/rig/src/ga
   clips: Record<GateClip, Clip>;
   weapons: Record<GateWeapon, WeaponArt>;
   looks: AppearanceSet;                     // 2 full looks, 3 builds
-  yard: YardDraw;
+  stages: Record<"yard", StageDraw>;        // the gate draws one arena; the other four are content
   fx: Record<"burst" | "dust" | "spark" | "whoosh", FxDraw>;
   icons: Record<`stat:${StatKey}` | `ui:${GateUi}`, IconArt>;
 }
@@ -153,6 +234,8 @@ export interface ContentPack {              // the content-art lane: packages/ri
   clips: Record<ContentClip, Clip>;
   weapons: Record<Exclude<HeldId, GateWeapon>, WeaponArt>;
   door: WeaponArt;
+  props: Record<MoveProp, PropArt>;
+  stages: Record<Exclude<StageId, "yard">, StageDraw>;
   looks: AppearanceSet;                     // full LOOK_SPACE counts; re-uses the gate parts as its first entries
   companions: Record<CompanionId, { rig: RigDef; shapes: readonly Shape[]; clips: Record<CompanionClip, Clip> }>;
   fx: Record<"tarp" | "tape" | "crackers" | "rings" | "plus" | "trail", FxDraw>;
@@ -164,19 +247,86 @@ export interface SvgArt { viewBox: string; parts: SvgPart[] }
 
 /** Everything a consumer may call. The stage and the app get a Rig by injection. */
 export interface Rig {
-  /** Length, loop flag and events of a clip. An unknown clip name falls back to "idle" and warns once. */
+  /** Length, loop flag and events of a clip, after the clip fallback (see the header). */
   clipInfo(rig: RigId, clip: string): ClipInfo;
   /** The pose of a clip at a time. Pure. A loop clip wraps; any other clip holds its last pose. */
   samplePose(rig: RigId, clip: string, tMs: number): Pose;
   drawActor(env: DrawEnv, pose: Pose, dress: Dress, at: Place): void;
-  /** The front hand of a scrapper pose in stage units, for a weapon in flight or a Snatch. */
-  handAnchor(pose: Pose, at: Place): { x: number; y: number; rot: number };
-  /** An item lying on the floor or flying. `rot` is in degrees. */
+  /**
+   * The grip point of the leading hand of this pose, as a stage point: where a thrown weapon
+   * leaves, where a Snatch takes from. It takes the dress because the drawn hand depends on
+   * `dress.scale`, the build and `dress.lead`; it is the hand `drawActor` draws for the same
+   * arguments. `rot` is the angle of a held item in degrees, in the actor's own frame, before
+   * mirroring: pass it to `drawProp` with the same `facing` and the item is drawn exactly as
+   * it sits in the hand. For a companion it is the mouth, with `rot` 0.
+   */
+  handAnchor(pose: Pose, dress: Dress, at: Place): { x: number; y: number; rot: number };
+  /** An item in flight or on the floor, at its own size. Its grip is put at `at.x, at.y`;
+   *  `rot` is in degrees, in the item's own frame before mirroring, as `handAnchor` gives it.
+   *  The stage chooses the height at which an item lies on the floor. */
   drawProp(env: DrawEnv, item: PropId, at: Place & { rot: number }): void;
-  drawYard: YardDraw;
+  /** One layer of an arena. An arena whose art has not landed draws the yard and warns once. */
+  drawStage(env: DrawEnv, stage: StageId, layer: "back" | "floor", crowdBounce: number): void;
+  /**
+   * Accurate weapon use by construction. Where the striking end is at the strike time of a clip
+   * (`strikeTime` of its `clipInfo`): the weapon's `tip`, the leading fist when the hands are
+   * empty, a companion's mouth or tusk. For the "throw" clip it is the release point: the
+   * hand's grip point, where `handAnchor` is at that time.
+   * The answer is an `Offset` from the actor's place for an actor that faces right, in stage
+   * units, measured from the same pose and the same maths `drawActor` uses. It already holds
+   * the clip's own lunge (`Pose.root`), the squash, `dress.scale`, the build, `dress.lead`
+   * and the held item with its trail. A clip with no strike gives the point at t = 0.
+   */
+  strikePoint(rig: RigId, clip: string, dress: Dress): Offset;
+  /**
+   * The place on a standing target (its idle pose at t = 0) that a swing lands on: the middle
+   * of the head, or the middle of the body (for a long body, a four-legged companion, the
+   * middle of its front half: the side its enemy stands on). An `Offset` from the target's
+   * place for a target that faces right, with `dress.scale` and the build in it. It lies
+   * inside the drawn figure. The stage stops the attacker at the floor x where the attacker's
+   * `strikePoint` and the target's `hitPoint` line up. An actor only moves along the floor, so
+   * the two heights meet only as far as the clip's strike height and the target's size allow.
+   */
+  hitPoint(rig: RigId, dress: Dress, zone: "head" | "body"): Offset;
   drawFx(env: DrawEnv, fx: FxKind, progress: number, at: Place, seed: number): void;
   portrait(look: Look): SvgArt;                                             // React cards and portraits
   companionPortrait(id: CompanionId): SvgArt;
   icon(ref: IconRef): SvgArt;                                               // missing art gives a plain ring
 }
 export type CreateRig = (gate: GatePack, content?: ContentPack) => Rig;     // the rig lane: engine/createRig.ts
+
+// ------------------------------------------------------------------ tiny shared helpers
+
+/** An `Offset` of an actor as a stage point: x is mirrored for an actor that faces left. */
+export function toStage(at: Place, p: Offset): { x: number; y: number } {
+  return { x: at.x + at.facing * p.x, y: at.y + p.y };
+}
+
+/** When a clip strikes, in ms: its `contact` event, or its `release` event when it has no
+ *  contact (a throw). `null` for a clip that has neither. */
+export function strikeTime(info: ClipInfo): number | null {
+  let release: number | null = null;
+  for (const e of info.events) {
+    if (e.name === "contact") return e.t;
+    if (e.name === "release" && release === null) release = e.t;
+  }
+  return release;
+}
+
+/**
+ * Clip time for an extra combo swing: the clip played in `lengthMs` with its strike at
+ * `strikeAtMs` (220 and 120 in the timing table). Two straight pieces: [0, strikeAtMs] maps
+ * onto [0, strike] of the clip and [strikeAtMs, lengthMs] onto [strike, end]. `tMs` is the time
+ * since the short swing began; it is held inside the swing. A clip with no strike, or a strike
+ * at one of its ends, is scaled in one piece.
+ */
+export function comboClipTime(info: ClipInfo, tMs: number, lengthMs: number, strikeAtMs: number): number {
+  const d = info.durationMs;
+  if (!(lengthMs > 0) || !(d > 0)) return 0;
+  const t = tMs < 0 || tMs !== tMs ? 0 : tMs > lengthMs ? lengthMs : tMs;
+  const strike = strikeTime(info);
+  if (strike === null || strike <= 0 || strike >= d || !(strikeAtMs > 0) || strikeAtMs >= lengthMs) return (t * d) / lengthMs;
+  return t <= strikeAtMs
+    ? (t * strike) / strikeAtMs
+    : strike + ((t - strikeAtMs) * (d - strike)) / (lengthMs - strikeAtMs);
+}

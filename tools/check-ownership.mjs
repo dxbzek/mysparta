@@ -9,7 +9,10 @@
  *
  * Check B, on a lane branch: the lane is read from the branch name `rebuild/v2-<lane>`
  *   (for example rebuild/v2-wp3). Every path that branch changed since it left the base
- *   branch, committed or not, must belong to that lane. Deleted paths count.
+ *   branch, committed or not, must belong to that lane. Deleted paths count, and so does the
+ *   old path of a renamed file: the diffs run with --no-renames, because git's rename
+ *   detection would otherwise report only the new path and a lane could take another lane's
+ *   file with `git mv`.
  *
  * Options:
  *   --lane wp3            check the diff as that lane, whatever the branch is called
@@ -93,8 +96,8 @@ if (lane !== undefined) {
   let from;
   try { from = git("merge-base", base, "HEAD").trim(); } catch { fail(`cannot find where this branch left ${base}`); }
   changed = [...new Set([
-    ...lines(git("diff", "--name-only", "-z", from, "HEAD")),
-    ...lines(git("diff", "--name-only", "-z", "HEAD")),
+    ...lines(git("diff", "--name-only", "--no-renames", "-z", from, "HEAD")),
+    ...lines(git("diff", "--name-only", "--no-renames", "-z", "HEAD")),
     ...lines(git("ls-files", "-z", "--others", "--exclude-standard")),
   ])].sort();
   for (const file of changed) {

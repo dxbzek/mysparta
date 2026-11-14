@@ -2,15 +2,18 @@
  * Contract tests (work package 0, gate G0). They prove the frozen ids, the identity tables,
  * the reducer and the three fixtures. No lane edits this file.
  */
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import {
   COMPANION_IDS, CONTRACT_REV, LOG_VERSION, LOOK_SPACE, MOVE_IDS, PERK_IDS, RARITY_OF, RARITY_WEIGHT,
-  RIVALS_PER_LEVEL, RULES_VERSION, SKILL_IDS, STEP_TYPES, WEAPON_IDS, WEAPON_META,
+  RIVALS_PER_LEVEL, RULES_VERSION, SKILL_IDS, STAGE_IDS, STEP_TYPES, WEAPON_IDS, WEAPON_META,
   checkLog, hpPercent, impactFamily, initialState, isCompanionId, isMoveId, isPerkId, isSkillId,
-  isWeaponId, killStep, perkKind, reduce, resultOf, stateAt,
+  isStageId, isWeaponId, killStep, perkKind, reduce, resultOf, stageFor, stateAt,
 } from "../src/index";
-import type { BagItem, BoutLog, BoutState, FighterSnapshot, Rarity, Step, StepType } from "../src/index";
-import { BOUT_FIXTURES, SNAPSHOTS, allStepsA, allStepsB, boutAllSteps, boutGate } from "../src/fixtures/index";
+import type { BagItem, BoutLog, BoutState, FighterSnapshot, HeldId, Rarity, StageId, Step, StepType } from "../src/index";
+import { BOUT_FIXTURES, SNAPSHOTS, allStepsA, allStepsB, boutAllSteps, boutCap, boutGate } from "../src/fixtures/index";
 
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 function deepFreeze<T>(v: T): T {
@@ -73,6 +76,45 @@ describe("ids", () => {
   });
 });
 
+describe("arenas", () => {
+  it("are five, in the plan's order, with the yard first", () => {
+    expect([...STAGE_IDS]).toEqual(["yard", "yard-night", "rooftop", "backyard", "gym"]);
+    expect(new Set(STAGE_IDS).size).toBe(5);
+    for (const id of STAGE_IDS) { expect(id).toMatch(/^[a-z]+(-[a-z]+)*$/); expect(isStageId(id)).toBe(true); }
+    expect(isStageId("car-park")).toBe(false);
+    expect(PERK_IDS as readonly string[]).not.toContain("yard");
+  });
+
+  it("come from the bout seed alone: the same seed gives the same place", () => {
+    for (const seed of [0, 1, 7, 1400, 2 ** 31, 2 ** 32 - 1, 123456789]) {
+      const first = stageFor(seed);
+      expect(STAGE_IDS).toContain(first);
+      for (let k = 0; k < 3; k++) expect(stageFor(seed)).toBe(first);
+    }
+  });
+
+  it("reach all five over seeds 0 to 999, 200 bouts each", () => {
+    const count: Record<string, number> = {};
+    for (let seed = 0; seed < 1000; seed++) count[stageFor(seed)] = (count[stageFor(seed)] ?? 0) + 1;
+    expect(count).toEqual({ yard: 200, "yard-night": 200, rooftop: 200, backyard: 200, gym: 200 });
+  });
+
+  it("spread the high seeds too, and never throw on a bad one", () => {
+    const seen = new Set<StageId>();
+    for (let k = 0; k < 500; k++) seen.add(stageFor(4294967295 - k * 7919));
+    expect(seen.size).toBe(5);
+    for (const bad of [-1, -1400, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 40 + 3]) expect(STAGE_IDS).toContain(stageFor(bad));
+    expect(stageFor(Number.NaN)).toBe("yard");
+  });
+
+  it("give each fixture a fixed place, and the gate bout the yard", () => {
+    expect(stageFor(boutGate.seed)).toBe("yard");            // the one arena the gate pack draws
+    expect(stageFor(boutAllSteps.seed)).toBe("rooftop");
+    expect(stageFor(boutCap.seed)).toBe("backyard");
+    expect([boutGate.seed, boutAllSteps.seed, boutCap.seed]).toEqual([1400, 1402, 1403]);
+  });
+});
+
 describe("identity tables", () => {
   const rarities: readonly Rarity[] = ["common", "uncommon", "rare", "epic", "mythic"];
   const counts = (ids: readonly (keyof typeof RARITY_OF)[]): number[] => {
@@ -119,15 +161,69 @@ describe("identity tables", () => {
   });
 
   it("matches spot rows of the brief's weapon table", () => {
-    expect(WEAPON_META.fists).toEqual({ rarity: null, tags: [], clip: "punch", reach: 0 });
-    expect(WEAPON_META.pipe).toEqual({ rarity: "common", tags: [], clip: "swing", reach: 1 });
-    expect(WEAPON_META["pocket-knife"]).toEqual({ rarity: "common", tags: ["light", "blade"], clip: "flick", reach: 0 });
-    expect(WEAPON_META.broom).toEqual({ rarity: "common", tags: ["pole"], clip: "thrust", reach: 3 });
-    expect(WEAPON_META.sledgehammer).toEqual({ rarity: "uncommon", tags: ["heavy"], clip: "smash", reach: 1 });
-    expect(WEAPON_META.darts).toEqual({ rarity: "uncommon", tags: ["thrown", "light"], clip: "throw", reach: 0 });
-    expect(WEAPON_META["stop-sign"]).toEqual({ rarity: "rare", tags: ["pole", "heavy", "blade"], clip: "smash", reach: 3 });
+    expect(WEAPON_META.fists).toMatchObject({ rarity: null, tags: [], clip: "punch", reach: 0 });
+    expect(WEAPON_META.pipe).toMatchObject({ rarity: "common", tags: [], clip: "swing", reach: 1 });
+    expect(WEAPON_META["pocket-knife"]).toMatchObject({ rarity: "common", tags: ["light", "blade"], clip: "flick", reach: 0 });
+    expect(WEAPON_META.broom).toMatchObject({ rarity: "common", tags: ["pole"], clip: "thrust", reach: 3 });
+    expect(WEAPON_META.sledgehammer).toMatchObject({ rarity: "uncommon", tags: ["heavy"], clip: "smash", reach: 1 });
+    expect(WEAPON_META.darts).toMatchObject({ rarity: "uncommon", tags: ["thrown", "light"], clip: "throw", reach: 0 });
+    expect(WEAPON_META["stop-sign"]).toMatchObject({ rarity: "rare", tags: ["pole", "heavy", "blade"], clip: "smash", reach: 3 });
     expect(WEAPON_META["bike-chain"].reach).toBe(4);
-    expect(WEAPON_META["lawn-flamingo"]).toEqual({ rarity: "mythic", tags: ["pole"], clip: "thrust", reach: 4 });
+    expect(WEAPON_META["lawn-flamingo"]).toMatchObject({ rarity: "mythic", tags: ["pole"], clip: "thrust", reach: 4 });
+  });
+
+  const HELD: readonly HeldId[] = [...WEAPON_IDS, "fists"];
+
+  it("holds no field it does not name (a typo in a row is not silently kept)", () => {
+    const known = ["rarity", "tags", "clip", "reach", "hands", "pair", "use", "flight", "flex"];
+    for (const id of HELD) for (const key of Object.keys(WEAPON_META[id])) expect(known, `${id}.${key}`).toContain(key);
+  });
+
+  it("says how many hands every held item takes: 13 on one shaft, 3 as a pair, 13 in one hand", () => {
+    for (const id of HELD) expect([1, 2], id).toContain(WEAPON_META[id].hands);
+    const two = HELD.filter((id) => WEAPON_META[id].hands === 2);
+    const pair = HELD.filter((id) => WEAPON_META[id].pair === true);
+    expect(pair).toEqual(["knuckle-dusters", "screwdrivers", "fists"]);
+    for (const id of pair) expect(WEAPON_META[id].hands, id).toBe(2);
+    for (const id of HELD) expect([undefined, true], id).toContain(WEAPON_META[id].pair);
+    // Both hands on one shaft: the back hand is pinned to the art's second grip.
+    expect(two.filter((id) => !pair.includes(id))).toEqual(["broom", "bat", "pitchfork", "shovel", "sledgehammer",
+      "pickaxe", "rebar", "garden-shears", "stop-sign", "anvil", "ball-and-chain", "pool-cue", "lawn-flamingo"]);
+    expect(HELD.filter((id) => WEAPON_META[id].hands === 1)).toEqual(["pipe", "pocket-knife", "machete", "hand-axe",
+      "crowbar", "bin-lid", "darts", "bike-chain", "monkey-wrench", "boomerang", "umbrella", "bricks", "rubber-chicken"]);
+  });
+
+  it("gives every held item one plain line of use that ends with the part that hits", () => {
+    const seen = new Set<string>();
+    for (const id of HELD) {
+      const use = WEAPON_META[id].use;
+      expect(typeof use, id).toBe("string");
+      expect(use.trim(), id).toBe(use);
+      expect(use.length, id).toBeGreaterThanOrEqual(20);
+      expect(use.length, id).toBeLessThanOrEqual(130);
+      expect(use, id).toMatch(/^[a-z][a-z ,-]+; the [a-z ]+ hits?$/);
+      seen.add(use);
+    }
+    expect(seen.size).toBe(29);
+    expect(WEAPON_META.pipe.use).toBe("gripped near one end, side swing like a club; the far end hits");
+  });
+
+  it("sets a flight on exactly the three Thrown weapons", () => {
+    const flights = Object.fromEntries(HELD.filter((id) => WEAPON_META[id].flight !== undefined).map((id) => [id, WEAPON_META[id].flight]));
+    expect(flights).toEqual({ darts: "straight", boomerang: "return", bricks: "tumble" });
+    for (const id of HELD) {
+      expect(WEAPON_META[id].flight !== undefined, id).toBe(WEAPON_META[id].tags.includes("thrown"));
+      expect("flight" in WEAPON_META[id], id).toBe(WEAPON_META[id].tags.includes("thrown"));
+    }
+  });
+
+  it("marks exactly the three weapons that bend, and none of them is a pair or Thrown", () => {
+    const flex = HELD.filter((id) => WEAPON_META[id].flex === true);
+    expect(flex).toEqual(["bike-chain", "ball-and-chain", "rubber-chicken"]);
+    for (const id of flex) {
+      expect(WEAPON_META[id].pair, id).toBeUndefined();
+      expect(WEAPON_META[id].flight, id).toBeUndefined();
+    }
   });
 
   it("weights rarity 400 / 150 / 50 / 12 / 2", () => {
@@ -287,13 +383,20 @@ describe.each(Object.values(BOUT_FIXTURES))("fixture $name", ({ name, log, a, b 
       const mine = log.init.actors.filter((x) => x.id.startsWith(side));
       expect(mine.find((x) => x.id === `${side}0`)).toEqual({ id: `${side}0`, kind: "scrapper", maxHp: maxHpOf(snap) });
       const companions = mine.filter((x) => x.kind !== "scrapper");
-      expect(companions.map((x) => x.kind).sort()).toEqual(snap.perks.filter((p) => isCompanionId(p)).sort());
+      // Log rule 15: companions take 1, 2, 3 in the order they stand in the owner's perks.
+      expect([...companions].sort((p, q) => p.id.localeCompare(q.id)).map((x) => x.kind)).toEqual(snap.perks.filter((p) => isCompanionId(p)));
+      expect(companions.map((x) => x.id).sort()).toEqual(companions.map((_, n) => `${side}${n + 1}`));
       for (const c of companions) {
         if (c.kind === "scrapper") continue;
         expect(c.maxHp).toBe(Math.floor((COMPANION_HP[c.kind] * (100 + 4 * (snap.level - 1))) / 100));
       }
     }
-    expect(name === "bout-gate" || name === "bout-all-steps").toBe(true);
+    expect(Object.keys(BOUT_FIXTURES)).toEqual(["bout-gate", "bout-all-steps", "bout-cap"]);
+    expect(BOUT_FIXTURES[name].name).toBe(name);
+  });
+
+  it("plays in one of the five arenas", () => {
+    expect(STAGE_IDS).toContain(stageFor(log.seed));
   });
 });
 
@@ -396,7 +499,7 @@ describe("the all-steps bout", () => {
     expect(has((s) => s.t === "ko" && s.actor === "a1")).toBe(true);
     expect(boutAllSteps.init.actors.length).toBe(6);
     const procs = steps.flatMap((s) => ("procs" in s && s.procs !== undefined ? s.procs.map((p) => p.skill) : []));
-    expect([...new Set(procs)].sort()).toEqual(["anticipation", "car-door", "firm-grip", "payback", "stubborn"]);
+    expect([...new Set(procs)].sort()).toEqual(["anticipation", "car-door", "firm-grip", "last-stand", "payback", "stubborn"]);
     // An intercept is never followed by an attack in the same turn.
     const ic = steps.findIndex((s) => s.t === "intercept");
     expect(steps.filter((s) => s.turn === steps[ic]!.turn).map((s) => s.t)).toEqual(["intercept", "disarm"]);
@@ -404,20 +507,63 @@ describe("the all-steps bout", () => {
     expect(steps.some((s) => s.turn === 17)).toBe(false);
   });
 
-  it("ends with the right hands, doors, bags and six items on the floor", () => {
+  it("ends one snare by a hit and one by its third skipped turn", () => {
+    const frees = steps.filter((s): s is Extract<Step, { t: "free" }> => s.t === "free");
+    expect(frees.map((s) => `${s.actor}:${s.cause}`)).toEqual(["a0:hit", "b1:timeout"]);
+    // By a hit: the free comes straight after the swing that landed, in the same turn.
+    const hit = steps.indexOf(frees[0]!);
+    expect(steps[hit - 1]).toMatchObject({ t: "attack", target: "a0", outcome: "hit", turn: frees[0]!.turn });
+    // By timeout: the free is the only step of its turn, and two turns before it have no step.
+    const out = frees[1]!;
+    expect(steps.filter((s) => s.turn === out.turn)).toEqual([out]);
+    const snare = steps.find((s) => s.t === "snare" && s.target === "b1")!;
+    expect(snare.turn).toBe(22);
+    expect(out.turn).toBe(31);
+    for (const skipped of [25, 28]) expect(steps.some((s) => s.turn === skipped)).toBe(false);
+    // The Boar does nothing between the tarp and the timeout.
+    expect(steps.some((s) => s.turn > 22 && s.turn < 31 && "actor" in s && s.actor === "b1")).toBe(false);
+    expect(stateAt(boutAllSteps, steps.indexOf(snare) + 1).actors.b1!.snared).toBe(true);
+    expect(stateAt(boutAllSteps, steps.indexOf(out) + 1).actors.b1!.snared).toBe(false);
+  });
+
+  it("holds a Last Stand save, and overtime then takes the last HP with nobody named", () => {
+    const save = steps.find((s) => s.t === "attack" && s.procs?.some((p) => p.skill === "last-stand"));
+    expect(save).toMatchObject({ target: "b0", outcome: "hit", damage: 87, hpAfter: 1, crit: true, boosted: true, procs: [{ by: "b0", skill: "last-stand" }] });
+    expect(stateAt(boutAllSteps, steps.indexOf(save!)).actors.b0!.hp).toBe(44);      // 44 HP, 87 damage, 1 left
+    expect(allStepsB.perks).toContain("last-stand");
+    const k = killStep(boutAllSteps);
+    expect(steps[k]).toEqual({ t: "overtime", turn: 53, actor: "b0", damage: 12, hpAfter: 0 });
+    expect(steps[k + 1]).toEqual({ t: "ko", turn: 53, actor: "b0", by: null });
+    expect(steps.filter((s) => s.t === "overtime").length).toBe(4);
+  });
+
+  it("puts a seventh item on the floor, so the oldest of six must fade", () => {
+    let most = 0;
+    let firstSeventh = -1;
+    for (let n = 0; n <= steps.length; n++) {
+      const count = stateAt(boutAllSteps, n).floor.length;
+      if (count === 7 && firstSeventh < 0) firstSeventh = n - 1;
+      most = Math.max(most, count);
+    }
+    expect(most).toBe(7);
+    expect(steps[firstSeventh]).toMatchObject({ t: "swap", turn: 52, dropped: "broom" });
+    expect(steps.filter((s) => s.t === "swap").length).toBe(2);
+  });
+
+  it("ends with the right hands, doors, bags and seven items on the floor", () => {
     const end = stateAt(boutAllSteps, steps.length);
-    expect(end.actors.a0).toMatchObject({ hp: 75, status: "up", held: "hand-axe", door: false, snared: false });
+    expect(end.actors.a0).toMatchObject({ hp: 56, status: "up", held: "hand-axe", door: false, snared: false });
     expect(end.actors.a1).toMatchObject({ hp: 0, status: "ko" });
     expect(end.actors.a2).toMatchObject({ hp: 36, status: "fled" });
     expect(end.actors.b0).toMatchObject({ hp: 0, status: "ko", held: "fists", door: false });
-    expect(end.actors.b1).toMatchObject({ hp: 96, status: "up" });
+    expect(end.actors.b1).toMatchObject({ hp: 96, status: "up", snared: false });
     expect(end.actors.b2).toMatchObject({ hp: 3, status: "up" });
-    expect(end.bag.a).toEqual([{ k: "move", id: "whistle", uses: 1 }, { k: "weapon", id: "broom" }]);
+    expect(end.bag.a).toEqual([{ k: "move", id: "whistle", uses: 1 }]);
     expect(end.bag.b).toEqual([{ k: "move", id: "firecrackers", uses: 1 }]);
     expect(end.floor.map((f) => `${f.item}<${f.from}`)).toEqual(
-      ["car-door<a0", "bat<a0", "monkey-wrench<b0", "car-door<b0", "pocket-knife<b0", "darts<a0"]);
+      ["car-door<a0", "bat<a0", "monkey-wrench<b0", "car-door<b0", "pocket-knife<b0", "darts<a0", "broom<a0"]);
     for (const f of end.floor) expect(["swap", "disarm", "doorOff", "throw"]).toContain(steps[f.i]!.t);
-    expect(killStep(boutAllSteps)).toBe(steps.length - 3);
+    expect(killStep(boutAllSteps)).toBe(steps.length - 3);       // overtime, ko, end
   });
 
   it("tracks a held weapon through draw, snatch, throw, disarm and swap", () => {
@@ -425,7 +571,7 @@ describe("the all-steps bout", () => {
       const n = steps.findIndex((s) => s.turn > turn);
       return stateAt(boutAllSteps, n < 0 ? steps.length : n).actors[id]!.held;
     };
-    expect([2, 8, 10, 13, 20, 52].map((t) => heldAfterTurn(t, "a0"))).toEqual(["bat", "fists", "broom", "fists", "darts", "hand-axe"]);
+    expect([2, 8, 10, 13, 20, 23, 52].map((t) => heldAfterTurn(t, "a0"))).toEqual(["bat", "fists", "broom", "fists", "darts", "broom", "hand-axe"]);
     expect([1, 10, 12, 13, 14, 21].map((t) => heldAfterTurn(t, "b0"))).toEqual(["broom", "fists", "monkey-wrench", "monkey-wrench", "fists", "fists"]);
   });
 });
@@ -455,25 +601,26 @@ describe("reducer", () => {
   });
 
   it("reports -1 as the kill step of a cap ending, and keeps the loser standing", () => {
-    const cap: BoutLog = {
-      logVersion: 1, rulesVersion: 1, seed: 7,
-      init: { actors: [{ id: "a0", kind: "scrapper", maxHp: 50 }, { id: "b0", kind: "scrapper", maxHp: 60 }],
-        bag: { a: [], b: [] }, door: { a: false, b: false } },
-      steps: [
-        { t: "enter", turn: 0, actor: "a0" }, { t: "enter", turn: 0, actor: "b0" },
-        { t: "attack", turn: 149, actor: "a0", target: "b0", weapon: "fists", outcome: "hit", damage: 6, crit: false, hpAfter: 54, n: 0 },
-        { t: "overtime", turn: 149, actor: "a0", damage: 4, hpAfter: 46 },
-        { t: "attack", turn: 150, actor: "b0", target: "a0", weapon: "fists", outcome: "block", damage: 0, crit: false, hpAfter: 46, n: 0 },
-        { t: "overtime", turn: 150, actor: "b0", damage: 4, hpAfter: 50 },
-        { t: "end", turn: 150, winner: "a", reason: "cap" },
-      ],
-      result: { winner: "a", reason: "cap", turns: 150, hpPct: { a: 92, b: 84 } },
-    };
-    expect(checkLog(cap)).toEqual([]);
-    expect(killStep(cap)).toBe(-1);
-    const end = stateAt(cap, cap.steps.length);
-    expect(resultOf(end)).toEqual(cap.result);
-    expect(end.actors.b0!.status).toBe("up");
+    expect(checkLog(boutCap)).toEqual([]);
+    expect(killStep(boutCap)).toBe(-1);
+    const end = stateAt(boutCap, boutCap.steps.length);
+    expect(resultOf(end)).toEqual(boutCap.result);
+    expect(end.ended).toEqual({ winner: "a", reason: "cap" });
+    expect(end.actors.a0).toMatchObject({ hp: 50, status: "up" });
+    expect(end.actors.b0).toMatchObject({ hp: 45, status: "up", held: "pocket-knife" });
+    expect(boutCap.steps.some((s) => s.t === "ko")).toBe(false);
+    expect(boutCap.steps[boutCap.steps.length - 1]).toEqual({ t: "end", turn: 150, winner: "a", reason: "cap" });
+    // The higher HP percentage wins: 82 against 74.
+    expect(boutCap.result).toEqual({ winner: "a", reason: "cap", turns: 150, hpPct: { a: 82, b: 74 } });
+  });
+
+  it("takes the turn of a cap ending from the end step, also when the last turn was skipped", () => {
+    // Log rule 4: the last turn before the stop may be a skipped snared turn with no step.
+    const log = clone(boutCap);
+    log.steps = log.steps.filter((s) => s.turn !== 150 || s.t === "end");
+    log.result.hpPct.b = hpPercent(49, 61);
+    expect(checkLog(log)).toEqual([]);
+    expect(resultOf(stateAt(log, log.steps.length))).toMatchObject({ turns: 150, reason: "cap" });
   });
 
   it("finds a kill step made by overtime or by a Move", () => {
@@ -484,8 +631,8 @@ describe("reducer", () => {
     const move: Step = { t: "move", turn: 14, actor: "a0", move: "firecrackers", bagAfter: [], hits: [{ target: "b0", damage: 15, hpAfter: 0 }] };
     base.steps[18] = move;
     expect(killStep(base)).toBe(18);
-    // A companion at 0 HP is not a kill step.
-    expect(boutAllSteps.steps[killStep(boutAllSteps)]).toMatchObject({ target: "b0" });
+    // A companion at 0 HP is not a kill step: the Raccoon falls at turn 3, the kill step is at turn 53.
+    expect(boutAllSteps.steps[killStep(boutAllSteps)]).toMatchObject({ t: "overtime", actor: "b0", turn: 53 });
   });
 
   it("rounds HP percentages up, so only 0 HP reads 0", () => {
@@ -539,4 +686,174 @@ describe("checkLog can fail (each line plants one fault in a copy of a fixture)"
     expect(broken((l) => { const h = l.steps.find((s) => s.t === "heal")!; if (h.t === "heal") { h.amount = 25; h.hpAfter = 42; } }, boutAllSteps).join("\n")).toMatch(/cannot pass the max/);
     expect(broken((l) => { const at = l.steps.findIndex((s) => s.t === "snare"); l.steps.splice(at, 0, l.steps[at]!); }, boutAllSteps).join("\n")).toMatch(/already snared/);
   });
+
+  // ---- the order of the steps (log rules 4, 5, 10, 11, 13, 15, 16 and 17)
+  const at = (l: BoutLog, pred: (s: Step) => boolean): number => {
+    const i = l.steps.findIndex(pred);
+    if (i < 0) throw new Error("the fixture has no such step");
+    return i;
+  };
+  type Attack = Extract<Step, { t: "attack" }>;
+
+  it("rule 16: doorOff before disarm, and a hit on a snared actor with no free", () => {
+    expect(broken((l) => {
+      const i = at(l, (s) => s.t === "disarm" && s.cause === "slam");
+      [l.steps[i], l.steps[i + 1]] = [l.steps[i + 1]!, l.steps[i]!];
+    }, boutAllSteps).join("\n")).toMatch(/after one hit the order is disarm, doorOff, free, ko/);
+    expect(broken((l) => { l.steps.splice(at(l, (s) => s.t === "free" && s.cause === "hit"), 1); }, boutAllSteps).join("\n"))
+      .toMatch(/the hit on snared a0 is not followed by its free step/);
+  });
+  it("rule 16: a free by hit with no hit before it, and a ko that is late", () => {
+    expect(broken((l) => {
+      const i = at(l, (s) => s.t === "free" && s.cause === "hit");
+      const [free] = l.steps.splice(i, 1);
+      l.steps.splice(i - 1, 0, free!);                       // now before the swing that frees
+    }, boutAllSteps).join("\n")).toMatch(/a free step must come straight after the step that caused it/);
+    expect(broken((l) => {
+      const i = at(l, (s) => s.t === "ko" && s.actor === "a1");
+      [l.steps[i], l.steps[i + 1]] = [l.steps[i + 1]!, l.steps[i]!];
+      l.steps[i + 1]!.turn = 4;
+    }, boutAllSteps).join("\n")).toMatch(/a1 was left at 0 HP with no ko step before this step/);
+  });
+  it("rule 16: a disarm with the wrong cause, the wrong target, or after a swing that missed", () => {
+    expect(broken((l) => { const d = l.steps[at(l, (s) => s.t === "disarm")]!; if (d.t === "disarm") d.cause = "slam"; }, boutAllSteps).join("\n"))
+      .toMatch(/after a swing the cause is "hit"/);
+    expect(broken((l) => { const d = l.steps[at(l, (s) => s.t === "doorOff")]!; if (d.t === "doorOff") d.actor = "b1"; }, boutAllSteps).join("\n"))
+      .toMatch(/must name the actor and the target of the step that caused it/);
+    expect(broken((l) => { l.steps.splice(11, 0, { t: "disarm", turn: 6, actor: "a0", target: "b0", weapon: "pocket-knife", cause: "hit" }); }).join("\n"))
+      .toMatch(/only a landed hit can disarm/);
+    expect(broken((l) => { l.steps.splice(11, 0, { t: "doorOff", turn: 6, actor: "a0", target: "b0", cause: "hit" }); }).join("\n"))
+      .toMatch(/an evaded swing cannot knock a door off/);
+  });
+  it("rule 5: a ko that names the wrong actor, and a ko by overtime that names one", () => {
+    expect(broken((l) => { const k = l.steps[19]!; if (k.t === "ko") k.by = "b0"; }).join("\n")).toMatch(/by is b0, but the step that took the last HP gives a0/);
+    expect(broken((l) => { const k = l.steps[at(l, (s) => s.t === "ko" && s.actor === "b0")]!; if (k.t === "ko") k.by = "a0"; }, boutAllSteps).join("\n"))
+      .toMatch(/by is a0, but the step that took the last HP gives null/);
+  });
+  it("rule 4: an end that is not straight after the ko", () => {
+    expect(broken((l) => { l.steps[20]!.turn = 15; l.result.turns = 15; }).join("\n")).toMatch(/the end of a knockout comes straight after the ko step/);
+  });
+  it("rule 17: a wrong swing number, and a Stubborn swing after a hit or twice in a turn", () => {
+    expect(broken((l) => { (l.steps[9] as Attack).n = 2; }).join("\n")).toMatch(/n is 2, but this is swing 1 of b0 in this turn/);
+    expect(broken((l) => { (l.steps[9] as Attack).why = "stubborn"; }).join("\n")).toMatch(/a Stubborn swing follows a swing of the same actor that was evaded or blocked/);
+    expect(broken((l) => {
+      const i = at(l, (s) => s.t === "attack" && s.why === "stubborn");
+      const first = l.steps[i - 1] as Attack;
+      l.steps.splice(i + 1, 0, { ...first, n: 2, why: "stubborn", hpAfter: 138, procs: [{ by: "a0", skill: "stubborn" }] });
+      (l.steps[i] as Attack).outcome = "block";
+      (l.steps[i] as Attack).damage = 0;
+      (l.steps[i] as Attack).hpAfter = 151;
+    }, boutAllSteps).join("\n")).toMatch(/Stubborn gives one extra swing a turn/);
+  });
+  it("rule 10: a swing by the actor that was intercepted", () => {
+    expect(broken((l) => {
+      const i = at(l, (s) => s.t === "intercept");
+      l.steps.splice(i + 2, 0, { t: "attack", turn: 8, actor: "a0", target: "b0", weapon: "fists", outcome: "evade", damage: 0, crit: false, hpAfter: 151, n: 0 });
+    }, boutAllSteps).join("\n")).toMatch(/a0 was intercepted in this turn and makes no swing in it/);
+  });
+  it("rule 11: a snare that times out in the middle of a turn, or in a turn that is not skipped", () => {
+    expect(broken((l) => { l.steps[at(l, (s) => s.t === "free" && s.cause === "timeout")]!.turn = 23; }, boutAllSteps).join("\n"))
+      .toMatch(/a snare that times out is the first step of its turn/);
+    expect(broken((l) => {
+      const i = at(l, (s) => s.t === "free" && s.cause === "timeout");
+      l.steps.splice(i + 1, 0, { t: "attack", turn: 31, actor: "b1", target: "a0", weapon: null, outcome: "evade", damage: 0, crit: false, hpAfter: 85, n: 0 });
+    }, boutAllSteps).join("\n")).toMatch(/the turn in which the snare of b1 timed out was skipped/);
+  });
+  it("rule 11: in overtime a skipped turn still writes the overtime loss, and the third one the free step first", () => {
+    // Brisket is snared at turn 147 and nobody hits him. His skipped turns are 148, 149 and 150.
+    const log: BoutLog = {
+      ...clone(boutCap),
+      init: { ...clone(boutCap.init), bag: { a: [{ k: "move", id: "tarp", uses: 1 }], b: [{ k: "weapon", id: "pocket-knife" }] } },
+      steps: [
+        ...clone(boutCap.steps.slice(0, 5)),
+        { t: "move", turn: 147, actor: "a0", move: "tarp", bagAfter: [], target: "b0" },
+        { t: "snare", turn: 147, actor: "a0", target: "b0" },
+        { t: "overtime", turn: 147, actor: "a0", damage: 4, hpAfter: 50 },
+        { t: "overtime", turn: 148, actor: "b0", damage: 4, hpAfter: 51 },
+        { t: "overtime", turn: 149, actor: "b0", damage: 4, hpAfter: 47 },
+        { t: "free", turn: 150, actor: "b0", cause: "timeout" },
+        { t: "overtime", turn: 150, actor: "b0", damage: 4, hpAfter: 43 },
+        { t: "end", turn: 150, winner: "a", reason: "cap" },
+      ],
+      result: { winner: "a", reason: "cap", turns: 150, hpPct: { a: hpPercent(50, 61), b: hpPercent(43, 61) } },
+    };
+    expect(checkLog(log)).toEqual([]);
+    // The same turn with the two steps the other way round is not a skipped turn any more.
+    const wrong = clone(log);
+    [wrong.steps[10], wrong.steps[11]] = [wrong.steps[11]!, wrong.steps[10]!];
+    expect(checkLog(wrong).join("\n")).toMatch(/a snare that times out is the first step of its turn/);
+  });
+  it("rule 13: a step after an overtime loss in the same turn", () => {
+    expect(broken((l) => {
+      const i = at(l, (s) => s.t === "overtime");
+      [l.steps[i - 1], l.steps[i]] = [l.steps[i]!, l.steps[i - 1]!];
+    }, boutAllSteps).join("\n")).toMatch(/only its own ko and the end may follow the overtime step of b0 in the same turn/);
+  });
+  it("rule 15: a gap in the companion ids", () => {
+    expect(broken((l) => { l.init.actors.find((x) => x.id === "a1")!.id = "a3"; }, boutAllSteps))
+      .toEqual(["init: the companions of side a must be a1 to a2 with no gap"]);
+  });
+});
+
+describe("CoreApi (the shape the sim lane must fill)", () => {
+  // Compile-time checks: a wrong or missing member fails `pnpm typecheck`, not this test.
+  type Api = import("../src/index").CoreApi;
+  type Sheet = import("../src/index").SnapshotSheet;
+  const randomName: Api["randomName"] extends (n: number) => string ? true : false = true;
+  const snapshotSheet: Api["snapshotSheet"] extends (s: FighterSnapshot) => Sheet ? true : false = true;
+  const weapons: keyof Api["content"]["weapons"] extends HeldId ? (HeldId extends keyof Api["content"]["weapons"] ? true : false) : false = true;
+  const tables: keyof Api["content"] extends "weapons" | "skills" | "companions" ? true : false = true;
+  const sheetKeys: keyof Sheet extends "maxHp" | "effective" | "derived" | "companionCostPct" ? true : false = true;
+
+  it("reaches the content tables, a random name and the sheet of any snapshot", () => {
+    expect([randomName, snapshotSheet, weapons, tables, sheetKeys]).toEqual([true, true, true, true, true]);
+  });
+});
+
+describe("the pure packages compile with no Node and no browser types", () => {
+  // The tests of core, rig and stage get Node types (tsconfig.test.json) so they can read files
+  // and hash. Their src must not: tsconfig.json keeps `types: []` and the ES library only, so a
+  // stray Node or browser call in src is a compile error. This compiles one probe file as if it
+  // stood in each package's src folder, with that package's own tsconfig.json.
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const packages = ["core", "rig", "stage"] as const;
+  const PROBE_NODE = 'import { readFileSync } from "node:fs";\nexport const a = readFileSync;\nexport const b = process.argv;\n';
+  const PROBE_DOM = "export const c = document.body;\nexport const d = window.innerWidth;\n";
+  const PROBE_PLAIN = "export const e: number = [1, 2, 3].reduce((s, x) => s + x, 0);\n";
+
+  function compile(pkg: (typeof packages)[number], config: string, text: string): string[] {
+    const dir = path.resolve(here, "../..", pkg);
+    const parsed = ts.getParsedCommandLineOfConfigFile(path.join(dir, config), {}, {
+      ...ts.sys, onUnRecoverableConfigFileDiagnostic: (d) => { throw new Error(ts.flattenDiagnosticMessageText(d.messageText, "\n")); },
+    });
+    if (parsed === undefined) throw new Error(`cannot read ${pkg}/${config}`);
+    const probe = path.join(dir, "src", "__probe__.ts").split("\\").join("/");
+    const host = ts.createCompilerHost(parsed.options);
+    const read = host.getSourceFile.bind(host);
+    host.getSourceFile = (name, lang, onError, fresh) =>
+      name.split("\\").join("/") === probe ? ts.createSourceFile(name, text, lang) : read(name, lang, onError, fresh);
+    const exists = host.fileExists.bind(host);
+    host.fileExists = (name) => name.split("\\").join("/") === probe || exists(name);
+    // The probe plus the type files the config itself adds (the one console type).
+    const extra = parsed.fileNames.filter((f) => f.endsWith(".d.ts"));
+    const program = ts.createProgram([probe, ...extra], parsed.options, host);
+    return ts.getPreEmitDiagnostics(program)
+      .filter((d) => d.file !== undefined && d.file.fileName.split("\\").join("/") === probe)
+      .map((d) => ts.flattenDiagnosticMessageText(d.messageText, " "));
+  }
+
+  for (const pkg of packages) {
+    it(`${pkg}: a Node import and a Node global in src fail, plain code passes`, () => {
+      expect(compile(pkg, "tsconfig.json", PROBE_PLAIN)).toEqual([]);
+      const node = compile(pkg, "tsconfig.json", PROBE_NODE);
+      expect(node.some((m) => m.includes("node:fs")), node.join(" | ")).toBe(true);
+      expect(node.some((m) => m.includes("'process'")), node.join(" | ")).toBe(true);
+      const dom = compile(pkg, "tsconfig.json", PROBE_DOM);
+      expect(dom.some((m) => m.includes("'document'")), dom.join(" | ")).toBe(true);
+      expect(dom.some((m) => m.includes("'window'")), dom.join(" | ")).toBe(true);
+      // Control: the same Node probe compiles under the test config, so the error above comes
+      // from the src config and not from a broken probe.
+      expect(compile(pkg, "tsconfig.test.json", PROBE_NODE)).toEqual([]);
+    }, 60000);
+  }
 });

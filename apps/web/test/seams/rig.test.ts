@@ -1,0 +1,69 @@
+/**
+ * Test of the rig seam (work package 0). The app gets its rig from `src/seams/rig.ts` and from
+ * nowhere else. This test holds for the capsule double today and for the real rig after the
+ * seam flips, because it asks only for what the contract and the timing table promise.
+ * It is also the reason `pnpm test` cannot pass with no test in this package.
+ */
+import { describe, expect, it } from "vitest";
+import { COMPANION_IDS, STAGE_IDS, WEAPON_IDS, WEAPON_META } from "@rankzero/core";
+import { SNAPSHOTS } from "@rankzero/core/fixtures";
+import { strikeTime, toStage } from "@rankzero/rig";
+import type { Dress, Rig } from "@rankzero/rig";
+import { rig } from "../../src/seams/rig";
+
+describe("the rig seam", () => {
+  it("hands the app every member of the Rig contract", () => {
+    const members: (keyof Rig)[] = ["clipInfo", "samplePose", "drawActor", "handAnchor", "drawProp", "drawStage",
+      "strikePoint", "hitPoint", "drawFx", "portrait", "companionPortrait", "icon"];
+    for (const name of members) expect(typeof rig[name], name).toBe("function");
+    const complete: Exclude<keyof Rig, (typeof members)[number]> extends never ? true : false = true;
+    expect(complete).toBe(true);
+  });
+
+  it("answers clip questions with the timing table: a swing is 280 ms and strikes at 150", () => {
+    const swing = rig.clipInfo("scrapper", "swing");
+    expect(swing.durationMs).toBe(280);
+    expect(swing.loop).toBe(false);
+    expect(strikeTime(swing)).toBe(150);
+    expect(rig.clipInfo("scrapper", "idle").loop).toBe(true);
+    for (const id of COMPANION_IDS) expect(strikeTime(rig.clipInfo(id, "attack")), id).toBe(150);
+  });
+
+  it("samples poses that are plain data, equal for equal inputs", () => {
+    const pose = rig.samplePose("scrapper", "swing", 150);
+    expect(pose.rig).toBe("scrapper");
+    expect(pose.rot.length).toBe(16);
+    for (const angle of pose.rot) expect(Number.isFinite(angle)).toBe(true);
+    expect(rig.samplePose("scrapper", "swing", 150)).toEqual(pose);
+    expect(JSON.parse(JSON.stringify(pose))).toEqual(pose);
+  });
+
+  it("says where every weapon strikes and where a target is hit", () => {
+    const dress = (held: Dress["held"]): Dress => ({ look: SNAPSHOTS.l1Pipe.look, held, door: false, scale: 1 });
+    for (const id of WEAPON_IDS) {
+      const p = rig.strikePoint("scrapper", WEAPON_META[id].clip, dress(id));
+      expect(Number.isFinite(p.x) && Number.isFinite(p.y), id).toBe(true);
+      expect(p.x, id).toBeGreaterThan(0);
+    }
+    for (const r of ["scrapper", ...COMPANION_IDS] as const) for (const zone of ["head", "body"] as const) {
+      const p = toStage({ x: 290, y: 195, facing: -1 }, rig.hitPoint(r, dress(null), zone));
+      expect(p.y, `${r} ${zone}`).toBeLessThan(195);
+      expect(p.y, `${r} ${zone}`).toBeGreaterThan(195 - 110);
+    }
+  });
+
+  it("draws both layers of all five arenas without throwing", () => {
+    expect(STAGE_IDS.length).toBe(5);
+    // A context that takes any call. The rig lane's own tests check what is drawn.
+    const calls: string[] = [];
+    const ctx = new Proxy({}, {
+      get: (_t, key) => (typeof key === "string" ? () => { calls.push(key); return { width: 0 }; } : undefined),
+      set: () => true,
+    }) as unknown as Parameters<Rig["drawStage"]>[0]["ctx"];
+    for (const id of STAGE_IDS) for (const layer of ["back", "floor"] as const) {
+      const before = calls.length;
+      rig.drawStage({ ctx, path: (d) => d }, id, layer, 0.5);
+      expect(calls.length, `${id} ${layer}`).toBeGreaterThan(before);
+    }
+  });
+});

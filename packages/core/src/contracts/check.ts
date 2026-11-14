@@ -2,7 +2,8 @@
  * FROZEN CONTRACT (work package 0). A checker for the log rules written at the top of log.ts.
  * It walks a log with the reducer and reports every broken rule as one plain sentence.
  * The fixtures are checked with it, and the sim lane runs it over its golden logs.
- * It checks the shape and the after-values of a log. It knows no game formula.
+ * It checks the shape, the after-values and the order of the steps. It knows no game formula
+ * and no number of the rules, so a retune never changes it.
  */
 import type { ActorId, ActorState, BagItem, BoutLog, BoutState, Proc, Side, Step } from "./log";
 import { COMPANION_IDS, isCompanionId, isMoveId, isSkillId, isWeaponId } from "./ids";
@@ -33,6 +34,14 @@ function bagAfterMove(bag: readonly BagItem[], move: string): BagItem[] | null {
   return item.uses > 1 ? [...rest, { k: "move", id: item.id, uses: item.uses - 1 }] : rest;
 }
 
+/** The step that opened a run of consequence steps (log rule 16). */
+type Cause =
+  | { kind: "swing"; actor: ActorId; target: ActorId; outcome: "hit" | "evade" | "block" }
+  | { kind: "move"; actor: ActorId; target: ActorId | null; slam: boolean }
+  | { kind: "overtime"; actor: ActorId };
+interface Run { by: Cause; rank: number; mustFree: Set<ActorId> }
+const RANK_WORDS = "disarm, doorOff, free, ko";
+
 /** Every broken log rule, as plain sentences. An empty list means the log is well formed. */
 export function checkLog(log: BoutLog): string[] {
   const out: string[] = [];
@@ -56,6 +65,12 @@ export function checkLog(log: BoutLog): string[] {
   }
   if (!seen.has("a0") || !seen.has("b0")) say(-1, null, "init: a0 and b0 must both exist");
   for (const side of ["a", "b"] as const) {
+    const count = [1, 2, 3].filter((n) => seen.has(`${side}${n}`)).length;
+    for (let n = 1; n <= count; n++) {
+      if (!seen.has(`${side}${n}`)) say(-1, null, `init: the companions of side ${side} must be ${side}1 to ${side}${count} with no gap`);
+    }
+  }
+  for (const side of ["a", "b"] as const) {
     for (const it of log.init.bag[side]) {
       if (it.k === "weapon" && !isWeaponId(it.id)) say(-1, null, `init: bag ${side} holds an unknown weapon "${it.id}"`);
       if (it.k === "move" && (!isMoveId(it.id) || !isWhole(it.uses) || it.uses < 1)) say(-1, null, `init: bag ${side} holds a bad Move "${it.id}"`);
@@ -68,6 +83,13 @@ export function checkLog(log: BoutLog): string[] {
   const entered = new Set<string>();
   let ends = 0;
   let lastTurn = 0;
+  // Order of the steps (log rules 10, 11, 13, 16 and 17).
+  const order: { run: Run | null } = { run: null };
+  let swings = new Map<ActorId, { count: number; last: "hit" | "evade" | "block" }>();
+  let stubborn = new Set<ActorId>();
+  let intercepted = new Set<ActorId>();
+  let overtimeOf: ActorId | null = null;
+  let timeoutOf: ActorId | null = null;
 
   for (let i = 0; i < log.steps.length; i++) {
     const step = log.steps[i]!;
@@ -105,7 +127,58 @@ export function checkLog(log: BoutLog): string[] {
     if (ends > 0) err("a step follows the end");
     if (!isWhole(step.turn) || step.turn < lastTurn) err("the turn number goes down or is not a whole number");
     if ((step.t === "enter") !== (step.turn === 0)) err("only enter steps are at turn 0, and every enter step is");
+    const firstOfTurn = step.turn !== lastTurn;
+    if (firstOfTurn) {
+      swings = new Map();
+      stubborn = new Set();
+      intercepted = new Set();
+      overtimeOf = null;
+      timeoutOf = null;
+    }
     lastTurn = step.turn;
+
+    // What may still come in this turn after an overtime loss or a snare that timed out.
+    if (overtimeOf !== null && !(step.t === "ko" && step.actor === overtimeOf) && step.t !== "end") {
+      err(`only its own ko and the end may follow the overtime step of ${overtimeOf} in the same turn`);
+    }
+    if (timeoutOf !== null && !(step.t === "overtime" && step.actor === timeoutOf) && step.t !== "ko" && step.t !== "end") {
+      err(`the turn in which the snare of ${timeoutOf} timed out was skipped: it holds the free step and an overtime loss only`);
+    }
+
+    // The steps a hit causes come straight after it, in the order disarm, doorOff, free, ko.
+    const rank = step.t === "disarm" ? 0 : step.t === "doorOff" ? 1
+      : step.t === "free" && step.cause === "hit" ? 2 : step.t === "ko" ? 3 : -1;
+    const before = order.run;
+    const cause: Cause | null = before === null ? null : before.by;
+    if (rank < 0) {
+      if (before !== null) for (const id of before.mustFree) err(`the hit on snared ${id} is not followed by its free step`);
+      order.run = null;
+      for (const a of Object.values(s.actors)) {
+        if (a.hp === 0 && a.status === "up") err(`${a.id} was left at 0 HP with no ko step before this step`);
+      }
+    } else if (before === null) {
+      err(`a ${step.t} step must come straight after the step that caused it`);
+    } else {
+      if (rank < before.rank) err(`after one hit the order is ${RANK_WORDS}`);
+      before.rank = rank;
+    }
+    const open = (by: Cause, snaredHit: readonly ActorId[]): void => {
+      order.run = { by, rank: -1, mustFree: new Set(snaredHit) };
+    };
+    /** A disarm or a doorOff names the actor and the target of the step that caused it. */
+    const causedBy = (actor: ActorId, target: ActorId, stepCause: "hit" | "slam", door: boolean): void => {
+      if (cause === null) return;
+      if (cause.kind === "overtime") { err("an overtime loss knocks nothing off"); return; }
+      if (cause.actor !== actor || cause.target !== target) err("it must name the actor and the target of the step that caused it");
+      if (cause.kind === "move") {
+        if (!cause.slam || stepCause !== "slam") err(`after a Move only a Body Slam knocks things off, with cause "slam"`);
+      } else {
+        if (stepCause !== "hit") err(`after a swing the cause is "hit"`);
+        if (door ? cause.outcome === "evade" : cause.outcome !== "hit") {
+          err(door ? "an evaded swing cannot knock a door off" : "only a landed hit can disarm");
+        }
+      }
+    };
 
     switch (step.t) {
       case "enter": {
@@ -141,10 +214,13 @@ export function checkLog(log: BoutLog): string[] {
           else if (t.held !== step.taken) err(`takes ${step.taken} but the target holds ${t.held}`);
           if (a.held !== "fists") err("takes a weapon with a full hand");
         }
+        const snaredHit: ActorId[] = [];
         for (const h of step.hits ?? []) {
           const ht = up(h.target, "hit target");
           if (ht !== null) damageLands(ht, h.damage, h.hpAfter, lastStand(step.procs, h.target));
+          if (ht !== null && ht.snared) snaredHit.push(ht.id);
         }
+        open({ kind: "move", actor: a.id, target: step.target ?? null, slam: step.move === "body-slam" }, snaredHit);
         break;
       }
       case "attack":
@@ -165,8 +241,22 @@ export function checkLog(log: BoutLog): string[] {
           if (step.hpAfter !== t.hp) err(`an ${step.outcome} must leave HP at ${t.hp}`);
         }
         if (step.t === "attack" || step.t === "throw") {
+          const earlier = swings.get(a.id);
+          const count = earlier === undefined ? 0 : earlier.count;
           if (!isWhole(step.n) || step.n < 0) err("n must be 0 or more");
+          if (step.n !== count) err(`n is ${step.n}, but this is swing ${count} of ${a.id} in this turn`);
           if ((step.n === 0) !== (step.why === undefined)) err("swing 0 has no `why`, and every later swing has one");
+          if (step.why === "stubborn") {
+            if (earlier === undefined || earlier.last === "hit") err("a Stubborn swing follows a swing of the same actor that was evaded or blocked");
+            if (stubborn.has(a.id)) err("Stubborn gives one extra swing a turn");
+            stubborn.add(a.id);
+          }
+          if (intercepted.has(a.id)) err(`${a.id} was intercepted in this turn and makes no swing in it`);
+          swings.set(a.id, { count: count + 1, last: step.outcome });
+        }
+        if (step.t === "intercept") {
+          if (swings.has(t.id)) err("an intercept comes before the first swing of the actor it stops");
+          intercepted.add(t.id);
         }
         if (step.t === "throw") {
           if (!isScrapper(a.id) || step.weapon === null || step.weapon === "fists") err("only a scrapper throws, and it throws a weapon");
@@ -175,6 +265,7 @@ export function checkLog(log: BoutLog): string[] {
             ? [...bag, { k: "weapon", id: step.weapon }] : bag;
           sameBag(step.bagAfter, want, "the throw");
         }
+        open({ kind: "swing", actor: a.id, target: t.id, outcome: step.outcome }, t.snared && step.outcome === "hit" ? [t.id] : []);
         break;
       }
       case "disarm": {
@@ -182,12 +273,14 @@ export function checkLog(log: BoutLog): string[] {
         const t = get(step.target, "target");
         procs(step.procs);
         if (t !== null && t.held !== step.weapon) err(`knocks away ${step.weapon} but the target holds ${t.held}`);
+        causedBy(step.actor, step.target, step.cause, false);
         break;
       }
       case "doorOff": {
         up(step.actor, "actor");
         const t = get(step.target, "target");
         if (t !== null && !t.door) err("the target carries no door");
+        causedBy(step.actor, step.target, step.cause, true);
         break;
       }
       case "heal": {
@@ -208,6 +301,12 @@ export function checkLog(log: BoutLog): string[] {
       case "free": {
         const a = get(step.actor, "actor");
         if (a !== null && !a.snared) err("the actor is not snared");
+        if (step.cause === "hit") {
+          if (before !== null && !before.mustFree.delete(step.actor)) err("a free by hit is for a snared target of the step before it");
+        } else {
+          if (!firstOfTurn) err("a snare that times out is the first step of its turn");
+          timeoutOf = step.actor;
+        }
         break;
       }
       case "flee": {
@@ -219,6 +318,10 @@ export function checkLog(log: BoutLog): string[] {
         const a = up(step.actor, "actor");
         if (a !== null && a.hp !== 0) err(`${a.id} falls with ${a.hp} HP left`);
         if (step.by !== null) get(step.by, "by");
+        if (cause !== null) {
+          const want = cause.kind === "overtime" ? null : cause.actor;
+          if (step.by !== want) err(`by is ${String(step.by)}, but the step that took the last HP gives ${String(want)}`);
+        }
         break;
       }
       case "overtime": {
@@ -226,11 +329,18 @@ export function checkLog(log: BoutLog): string[] {
         if (a === null) break;
         if (!isScrapper(a.id)) err("only a scrapper loses HP in overtime");
         damageLands(a, step.damage, step.hpAfter, false);
+        open({ kind: "overtime", actor: a.id }, []);
+        overtimeOf = a.id;
         break;
       }
-      case "end":
+      case "end": {
         ends += 1;
+        const last = i > 0 ? log.steps[i - 1] : undefined;
+        if (step.reason === "ko" && (last === undefined || last.t !== "ko" || last.turn !== step.turn)) {
+          err("the end of a knockout comes straight after the ko step, in the same turn");
+        }
         break;
+      }
       default: {
         const unknown: never = step;
         err(`unknown step type ${JSON.stringify(unknown)}`);

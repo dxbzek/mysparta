@@ -10,7 +10,7 @@ The game is being rebuilt from an empty tree. **There is nothing to play yet.** 
 
 - four empty-but-typed packages with their frozen contracts,
 - a reducer that plays a bout log forward, and a checker for the log rules,
-- three hand-written fixtures and a stick-figure test rig that the lanes build against,
+- three hand-written bout fixtures and a stick-figure test rig that the lanes build against,
 - the repo checks (banned terms, file ownership, size budgets) and CI,
 - a placeholder page.
 
@@ -28,11 +28,11 @@ The earlier build of this project was removed in the first commit of the rebuild
 
 Dependencies point one way: `core` <- `rig` <- `stage` <- `web`.
 
-The three pure packages compile without the DOM library and without Node types, so a browser or Node call in them is a compile error.
+The source of the three pure packages compiles without the DOM library and without Node types, so a browser or Node call in it is a compile error (a contract test proves it). Their tests compile with Node types (`tsconfig.test.json`), so a test may read files and hash. The tools have their own `tools/tsconfig.json`, and `pnpm typecheck` checks all of them.
 
 ## Commands
 
-Needs Node 22 or newer and pnpm 10 (the exact pnpm version is pinned in `package.json`).
+Needs Node 24 (CI runs 24) and pnpm 10 (the exact pnpm version is pinned in `package.json`).
 
 ```
 pnpm install --frozen-lockfile
@@ -42,7 +42,7 @@ pnpm test           # every package, one after another, two workers each
 pnpm build          # typecheck, then the static site in apps/web/dist
 pnpm check:terms    # banned names and words
 pnpm check:owners   # one owner per file
-pnpm smoke          # draws the test rig in Node, writes .review/wp0/smoke.png
+pnpm smoke          # draws the test rig in Node, writes .review/wp0/smoke.png, fails without a woff2 font
 pnpm budgets        # size budgets of the built site (run pnpm build first)
 ```
 
@@ -65,9 +65,9 @@ On a loaded machine a red test run is rerun once before it is believed.
 
 **Building before the other lanes exist.**
 
-- Fixtures: `import { BOUT_FIXTURES, SNAPSHOTS } from "@rankzero/core/fixtures"`. Two bout logs (`bout-gate`, `bout-all-steps`) and six snapshots, checked by the reducer. They are frozen objects: clone one before changing it in a test.
+- Fixtures: `import { BOUT_FIXTURES, SNAPSHOTS } from "@rankzero/core/fixtures"`. Three bout logs (`bout-gate`, `bout-all-steps`, `bout-cap`) and six snapshots, checked by the reducer. They are frozen objects: clone one before changing it in a test.
 - Checking a log: `checkLog(log)` from `@rankzero/core` returns every broken log rule as a sentence. The rules themselves are written at the top of `packages/core/src/contracts/log.ts`.
-- Test rig: `import { capsuleRig } from "@rankzero/rig/testing"`. A complete `Rig` made of sticks, with the real clip lengths and contact times. The app gets its rig from `apps/web/src/seams/rig.ts` only.
+- Test rig: `import { capsuleRig } from "@rankzero/rig/testing"`. A complete `Rig` made of sticks, with the real clip lengths and contact times, five recoloured arenas, and strike and hit points measured from what it draws. `capsuleGateRig` is the same double limited to the 13 gate clips, for testing the clip fallback. The app gets its rig from `apps/web/src/seams/rig.ts` only.
 - Drawing in Node: `tools/lib/node-canvas.ts`. Drawing in the browser: `apps/web/src/seams/canvas.ts`.
 - Opening a browser from a tool: `tools/lib/browser.mjs` (`withBrowser`), which allows one browser at a time on the machine.
 

@@ -28,8 +28,8 @@ function Preview() {
       const t = now - started;
       try {
         context.setTransform(canvas.width / STAGE_W, 0, 0, canvas.width / STAGE_W, 0, 0);
-        rig.drawYard(env, "back", 0);
-        rig.drawYard(env, "floor", 0);
+        rig.drawStage(env, "yard", "back", 0);
+        rig.drawStage(env, "yard", "floor", 0);
         rig.drawActor(env, rig.samplePose("scrapper", "idle", t), { held: "pipe", door: false, scale: 1 }, { x: 70, y: 195, facing: 1 });
         rig.drawActor(env, rig.samplePose("scrapper", "idle", t + 500), { held: null, door: false, scale: 1 }, { x: 290, y: 195, facing: -1 });
       } catch (error) {

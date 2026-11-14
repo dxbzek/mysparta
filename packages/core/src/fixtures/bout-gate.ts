@@ -11,11 +11,14 @@
  *
  * The crit takes 18 of 61 HP (29%), so it is a heavy flinch; every other hit is a light one.
  * `hit-heavy` is not a gate clip, so on the gate rig the crit falls back to `hit-light`.
+ *
+ * The seed is 1400 on purpose: `stageFor(1400)` is "yard", the one arena the gate pack draws,
+ * so the gate bout needs no arena fallback.
  */
 import type { BoutLog } from "../contracts/log";
 
 export const boutGate: BoutLog = {
-  logVersion: 1, rulesVersion: 1, seed: 1401,
+  logVersion: 1, rulesVersion: 1, seed: 1400,
   init: {
     actors: [
       { id: "a0", kind: "scrapper", maxHp: 68 },

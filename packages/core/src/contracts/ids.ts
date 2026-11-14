@@ -10,6 +10,17 @@ export const REALM_SALT = "yard-1";
 /** Rivals in the pool at each level, index 0 to 239. */
 export const RIVALS_PER_LEVEL = 240;
 
+/** The five arenas. Cosmetic only: the sim never reads one and the log never holds one.
+ *  All five share the stage geometry, the home marks and the floor line. */
+export const STAGE_IDS = ["yard","yard-night","rooftop","backyard","gym"] as const;
+export type StageId = (typeof STAGE_IDS)[number];
+/** The arena of a bout. A pure function of the bout seed in whole-number maths, so a replay
+ *  shows the same place on every engine. A seed that is not a whole number is cut to 32 bits
+ *  first; it never throws. The host passes the result to the fight player. */
+export function stageFor(boutSeed: number): StageId {
+  return STAGE_IDS[(boutSeed >>> 0) % STAGE_IDS.length] ?? "yard";
+}
+
 export const WEAPON_IDS = ["pipe","pocket-knife","broom","machete","hand-axe","bat","pitchfork",
   "crowbar","knuckle-dusters","bin-lid","shovel","sledgehammer","darts","bike-chain",
   "monkey-wrench","pickaxe","rebar","screwdrivers","garden-shears","stop-sign","boomerang",
@@ -47,12 +58,14 @@ const WEAPON_SET: ReadonlySet<string> = new Set(WEAPON_IDS);
 const SKILL_SET: ReadonlySet<string> = new Set(SKILL_IDS);
 const MOVE_SET: ReadonlySet<string> = new Set(MOVE_IDS);
 const COMPANION_SET: ReadonlySet<string> = new Set(COMPANION_IDS);
+const STAGE_SET: ReadonlySet<string> = new Set(STAGE_IDS);
 
 /** Guards for raw strings, for example ids read from a save. They never throw. */
 export function isWeaponId(id: string): id is WeaponId { return WEAPON_SET.has(id); }
 export function isSkillId(id: string): id is SkillId { return SKILL_SET.has(id); }
 export function isMoveId(id: string): id is MoveId { return MOVE_SET.has(id); }
 export function isCompanionId(id: string): id is CompanionId { return COMPANION_SET.has(id); }
+export function isStageId(id: string): id is StageId { return STAGE_SET.has(id); }
 export function isPerkId(id: string): id is PerkId {
   return WEAPON_SET.has(id) || SKILL_SET.has(id) || COMPANION_SET.has(id);
 }

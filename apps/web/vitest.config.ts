@@ -7,7 +7,5 @@ export default defineConfig({
     minWorkers: 1,
     maxWorkers: 2,
     testTimeout: 30000,
-    // No web test exists before the fight-screen lane lands. Remove this line at the first merge.
-    passWithNoTests: true,
   },
 });

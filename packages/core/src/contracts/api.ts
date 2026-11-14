@@ -3,13 +3,29 @@
  * packages/core/src/api.ts. The package index checks it with `const check: CoreApi = impl`.
  * Every function is pure: the same inputs give the same output on every engine.
  */
-import type { DayKey, FighterSnapshot, Look, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet } from "./fighter";
-import type { PerkId } from "./ids";
+import type { CompanionDef, SkillDef, WeaponDef } from "./content";
+import type { DayKey, FighterSnapshot, Look, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
+  SnapshotSheet } from "./fighter";
+import type { CompanionId, HeldId, PerkId, SkillId } from "./ids";
 import type { BoutLog } from "./log";
 
+/** The three number tables of the rules, as total Records. The screens read every number they
+ *  print from here (card lines, the Kit screen), so no number is typed twice. Read-only. */
+export interface ContentTables {
+  weapons: Readonly<Record<HeldId, WeaponDef>>;
+  skills: Readonly<Record<SkillId, SkillDef>>;
+  companions: Readonly<Record<CompanionId, CompanionDef>>;
+}
+
 export interface CoreApi {
+  /** The number tables. The only way the app reaches them: it never imports a content file. */
+  readonly content: ContentTables;
   /** Trims, collapses inner spaces, then checks 3 to 14 characters of letters, digits, space, hyphen. */
   checkName(raw: string): { ok: true; name: string } | { ok: false; why: "length" | "chars" };
+  /** A name built from the game's own name lists, for the "Random name" link. Pure: the same `n`
+   *  gives the same name, and any whole number is accepted (the app passes a random one).
+   *  Every result passes `checkName`. */
+  randomName(n: number): string;
   /** hash(realmSalt + ":" + the lowercased, cleaned name). */
   fighterSeed(realmSalt: string, name: string): number;
   /** Shapes come from (seed, lookSalt), colours from (seed, colourSalt). */
@@ -18,6 +34,10 @@ export interface CoreApi {
                     today: DayKey }): ScrapperRecord;
   sheetOf(rec: ScrapperRecord): ScrapperSheet;
   snapshotOf(rec: ScrapperRecord): FighterSnapshot;
+  /** Max HP, effective stats, derived values and companion cost of any snapshot: a rival on
+   *  Tonight's Card, either side of the face-off sheet, a sandbox snapshot. It holds the HP
+   *  formula and the companion cost, so no screen copies a rule. */
+  snapshotSheet(s: FighterSnapshot): SnapshotSheet;
   /** The two cards after the given picks. A pure function of its inputs: it never rerolls. */
   routeNode(seed: number, picks: readonly Pick[]): { left: RouteCard; right: RouteCard };
   /** Every level-up taken so far, oldest first. */

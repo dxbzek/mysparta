@@ -4,8 +4,22 @@
  * exists. It is never replaced: the web seam file just stops pointing at it.
  * Import it from "@rankzero/rig/testing".
  *
- * What is real in it: every clip name of the contract, with the lengths and event times of the
- * timing table in the rules. What is not: the look. Poses are rough and the colours are its own.
+ * `capsuleGateRig` is the same double cut down to what a rig built from the gate pack alone
+ * can do: 13 clips with `CLIP_FALLBACK` for the other 10, the yard only, the four gate effects,
+ * no Move props. The stage lane tests the fallback path with it before the first integration.
+ *
+ * What is real in it:
+ *  - every clip name of the contract, with the lengths and event times of the timing table;
+ *  - the geometry the stage places actors with. `strikePoint`, `hitPoint` and `handAnchor` are
+ *    measured from the same forward kinematics, the same scale and the same build that
+ *    `drawActor` draws with, so a point they give is a point on the picture;
+ *  - weapon size. A weapon is 12 + 10 x Reach units long (`WEAPON_META`), at its own size in the
+ *    hand, in flight and on the floor. The three weapons that bend are four links that trail
+ *    the hand through `Pose.trail`;
+ *  - a pair (bare fists, Knuckle Dusters, Screwdrivers) is drawn in both hands and `Dress.lead`
+ *    swaps the arms; a Move prop is drawn in the back hand; five arenas.
+ * What is not: the look. Poses are rough, the colours are its own, and the back hand is not
+ * pinned to a two-hand weapon.
  *
  * Clip times that the timing table fixes:
  *   idle 1200 loop; enter 450 (land at 370); punch, flick, swing, thrust 280 with contact at 150;
@@ -16,11 +30,13 @@
  *   brace 120; snared 600 loop; win 800 loop; slam contact at 400; ko-fall lands at 450;
  *   companion idle 1200, hit 300, ko 600.
  */
-import type { CompanionId, Look, PropId } from "@rankzero/core";
-import type { Clip, ClipInfo, Ctx2D, DrawEnv, Dress, Ease, FaceId, FxKind, IconRef, Key, Place, Pose,
-  Rig, RigId, SvgArt } from "../contracts";
-import { COMPANION_CLIPS, SCRAPPER_BONES, SCRAPPER_CLIPS } from "../contracts";
-import type { CompanionClip, ScrapperClip } from "../contracts";
+import { WEAPON_META } from "@rankzero/core";
+import type { CompanionId, HeldId, Look, PropId, StageId } from "@rankzero/core";
+import type { Clip, ClipInfo, Ctx2D, DrawEnv, Dress, Ease, FaceId, FxKind, IconRef, Key, MoveProp, Offset,
+  Place, Pose, Rig, RigId, SvgArt } from "../contracts";
+import { CLIP_FALLBACK, COMPANION_CLIPS, GATE_CLIPS, SCRAPPER_BONES, SCRAPPER_CLIPS, TRAIL_LEN, TRAIL_STEP_MS,
+  strikeTime } from "../contracts";
+import type { CompanionClip, ContentClip, ScrapperClip } from "../contracts";
 
 const INK = "#14152B";
 const WHITE = "#FFFFFF";
@@ -98,15 +114,18 @@ const SCRAPPER: Record<ScrapperClip, Clip> = {
   swing: clip(280, false, [{ t: 150, name: "contact" }], [
     k(0, I),
     k(90, { torso: -14, "armF.up": 160, "armF.lo": -30, handF: -216, "armB.up": -30, "armB.lo": -70, "legF.up": -8, "legB.up": 16 }, { root: [-3, 0], face: "grit", ease: "out" }),
-    k(150, { torso: 20, "armF.up": 305, "armF.lo": -15, handF: -300, "armB.up": 30, "armB.lo": -50, "legF.up": -24, "legF.lo": 20, "legB.up": 24 }, { root: [6, 0], face: "shout", ease: "in" }),
+    // contact: the arm is out at chest height and the weapon lies level, far end forward
+    k(150, { torso: 20, "armF.up": 280, "armF.lo": -15, handF: -275, "armB.up": 30, "armB.lo": -50, "legF.up": -24, "legF.lo": 20, "legB.up": 24 }, { root: [6, 0], face: "shout", ease: "in" }),
     k(190, { torso: 26, "armF.up": 340, "armF.lo": -10, handF: -306, "armB.up": 36, "armB.lo": -50, "legF.up": -26, "legF.lo": 22, "legB.up": 26 }, { root: [7, 0], face: "shout", ease: "out" }),
     k(280, I_OVER, { ease: "inOut" }),
   ]),
   smash: clip(380, false, [{ t: 240, name: "contact" }], [
     k(0, I),
     k(170, { torso: -18, head: -10, "armF.up": 185, "armF.lo": -20, handF: -232, "armB.up": 175, "armB.lo": -20, "legF.up": -8, "legB.up": 14 }, { root: [-3, 0], scale: [0.96, 1.06], face: "grit", ease: "out" }),
-    k(240, { torso: 35, head: 8, "armF.up": 300, "armF.lo": -10, handF: -265, "armB.up": 290, "armB.lo": -10, "legF.up": -40, "legF.lo": 50, "legB.up": 10, "legB.lo": 40 }, { root: [6, 0], scale: [1.06, 0.92], face: "shout", ease: "in" }),
-    k(290, { torso: 40, head: 10, "armF.up": 325, "armF.lo": -5, handF: -280, "armB.up": 315, "armB.lo": -5, "legF.up": -42, "legF.lo": 54, "legB.up": 10, "legB.lo": 42 }, { root: [7, 0], scale: [1.08, 0.9], face: "shout", ease: "out" }),
+    // contact: both arms out in front, the weapon coming down through shoulder height
+    k(240, { torso: 35, head: 8, "armF.up": 245, "armF.lo": -10, handF: -245, "armB.up": 235, "armB.lo": -10, "legF.up": -40, "legF.lo": 50, "legB.up": 10, "legB.lo": 40 }, { root: [6, 0], scale: [1.06, 0.92], face: "shout", ease: "in" }),
+    // after it: the swing carries on down to the floor
+    k(290, { torso: 40, head: 10, "armF.up": 300, "armF.lo": -10, handF: -265, "armB.up": 290, "armB.lo": -10, "legF.up": -42, "legF.lo": 54, "legB.up": 10, "legB.lo": 42 }, { root: [7, 0], scale: [1.08, 0.9], face: "shout", ease: "out" }),
     k(380, I_OVER2, { ease: "inOut" }),
   ]),
   thrust: clip(280, false, [{ t: 150, name: "contact" }], [
@@ -119,7 +138,8 @@ const SCRAPPER: Record<ScrapperClip, Clip> = {
   throw: clip(260, false, [{ t: 180, name: "release" }], [
     k(0, I),
     k(120, { torso: -15, "armF.up": 170, "armF.lo": -40, handF: -215, "armB.up": -60, "armB.lo": -30, "legF.up": -10, "legB.up": 16 }, { root: [-3, 0], face: "grit", ease: "out" }),
-    k(180, { torso: 22, "armF.up": 300, "armF.lo": -10, handF: -312, "armB.up": 30, "armB.lo": -50, "legF.up": -26, "legF.lo": 22, "legB.up": 24 }, { root: [5, 0], face: "shout", ease: "in" }),
+    // release: the hand lets go out in front at shoulder height
+    k(180, { torso: 22, "armF.up": 255, "armF.lo": -10, handF: -267, "armB.up": 30, "armB.lo": -50, "legF.up": -26, "legF.lo": 22, "legB.up": 24 }, { root: [5, 0], face: "shout", ease: "in" }),
     k(260, I_OVER, { root: [-2, 0], ease: "out" }),
   ]),
   draw: clip(200, false, [], [k(0, I), k(100, { ...I, torso: 6, head: 10, "armF.up": 70, "armF.lo": -80 }, { ease: "out" }), k(200, I, { ease: "inOut" })]),
@@ -155,8 +175,8 @@ const SCRAPPER: Record<ScrapperClip, Clip> = {
   ]),
   drink: clip(450, false, [], [
     k(0, I),
-    k(120, { ...I, torso: -6, head: -18, "armF.up": -110, "armF.lo": -125 }, { ease: "out" }),
-    k(330, { ...I, torso: -9, head: -26, "armF.up": -114, "armF.lo": -128 }),
+    k(120, { ...I, torso: -6, head: -18, "armB.up": -110, "armB.lo": -125 }, { ease: "out" }),
+    k(330, { ...I, torso: -9, head: -26, "armB.up": -114, "armB.lo": -128 }),
     k(450, I, { face: "grin", ease: "inOut" }),
   ]),
   slam: clip(600, false, [{ t: 400, name: "contact" }], [
@@ -212,13 +232,17 @@ const COMPANION: Record<CompanionClip, Clip> = {
   flee: clip(240, true, [{ t: 0, name: "step" }, { t: 120, name: "step" }], [k(0, C_RUN_A, { face: "dazed" }), k(120, C_RUN_B, { face: "dazed" }), k(240, C_RUN_A, { face: "dazed" })]),
 };
 
-function findClip(rig: RigId, name: string): Clip {
+const CONTENT_CLIPS: ReadonlySet<string> = new Set(Object.keys(CLIP_FALLBACK));
+
+/** `gateOnly`: answer a content clip with its gate clip, as a rig with no content pack does. */
+function findClip(rig: RigId, name: string, gateOnly: boolean): Clip {
   if (rig === "scrapper") {
-    const c = (SCRAPPER as Record<string, Clip | undefined>)[name];
-    if (c !== undefined) return c;
+    const key = gateOnly && CONTENT_CLIPS.has(name) ? CLIP_FALLBACK[name as ContentClip] : name;
+    const c = (SCRAPPER as Record<string, Clip | undefined>)[key];
+    if (c !== undefined && Object.prototype.hasOwnProperty.call(SCRAPPER, key)) return c;
   } else {
     const c = (COMPANION as Record<string, Clip | undefined>)[name];
-    if (c !== undefined) return c;
+    if (c !== undefined && Object.prototype.hasOwnProperty.call(COMPANION, name)) return c;
   }
   warnOnce(`clip:${rig}:${name}`, `no clip "${name}" for rig "${rig}", using idle`);
   return rig === "scrapper" ? SCRAPPER.idle : COMPANION.idle;
@@ -235,13 +259,16 @@ function eased(u: number, ease: Ease | undefined): number {
   }
 }
 
-function samplePose(rig: RigId, name: string, tMs: number): Pose {
-  const c = findClip(rig, name);
-  const bones: readonly string[] = rig === "scrapper" ? SCRAPPER_BONES : COMPANION_BONES;
+/** Clip time inside the clip: a loop wraps, any other clip holds its first and its last pose. */
+function clipTime(c: Clip, tMs: number): number {
   const d = c.duration;
   let t = Number.isFinite(tMs) ? tMs : 0;
   if (c.loop) { t = t % d; if (t < 0) t += d; } else { t = t < 0 ? 0 : t > d ? d : t; }
+  return t;
+}
 
+/** One sample of a clip at a time that is already inside it. */
+function sampleAt(c: Clip, bones: readonly string[], t: number): Omit<Pose, "rig" | "trail"> {
   let a = c.keys[0]!;
   let b = c.keys[c.keys.length - 1]!;
   for (let i = 0; i + 1 < c.keys.length; i++) {
@@ -261,15 +288,39 @@ function samplePose(rig: RigId, name: string, tMs: number): Pose {
   const sb = b.scale ?? [1, 1];
   const y = mix(ra[1], rb[1]);
   return {
-    rig, rot,
+    rot,
     root: { x: mix(ra[0], rb[0]), y, sx: mix(sa[0], sb[0]), sy: mix(sa[1], sb[1]) },
     face: (raw < 0.5 ? a.face : b.face) ?? "neutral",
     lift: y < 0 ? -y : 0,
   };
 }
 
-function clipInfo(rig: RigId, name: string): ClipInfo {
-  const c = findClip(rig, name);
+/** The bones from the root to the front hand: their angles add up to where the hand points. */
+const HAND_CHAIN = [0, 1, 2, 7, 8, 9] as const;
+function handAngle(rot: readonly number[]): number {
+  let sum = 0;
+  for (const i of HAND_CHAIN) sum += rot[i] ?? 0;
+  return sum;
+}
+
+function samplePose(rig: RigId, name: string, tMs: number, gateOnly: boolean): Pose {
+  const c = findClip(rig, name, gateOnly);
+  const t = clipTime(c, tMs);
+  if (rig !== "scrapper") return { rig, ...sampleAt(c, COMPANION_BONES, t) };
+  // Where the front hand pointed 40, 80, 120 and 160 ms ago, for a weapon that bends. The past
+  // is read from the time asked for, not from the held time: 500 ms after a one-shot clip ended
+  // the hand has been still for 500 ms, so the whole trail is the last pose and the chain hangs
+  // straight. `clipTime` holds each past sample inside the clip.
+  const now = Number.isFinite(tMs) ? tMs : 0;
+  const trail: number[] = [];
+  for (let n = 1; n <= TRAIL_LEN; n++) {
+    trail.push(handAngle(sampleAt(c, SCRAPPER_BONES, clipTime(c, now - n * TRAIL_STEP_MS)).rot));
+  }
+  return { rig, ...sampleAt(c, SCRAPPER_BONES, t), trail };
+}
+
+function clipInfo(rig: RigId, name: string, gateOnly: boolean): ClipInfo {
+  const c = findClip(rig, name, gateOnly);
   return { durationMs: c.duration, loop: c.loop, events: c.events };
 }
 
@@ -384,28 +435,65 @@ function noise(seed: number, n: number): number {
   h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
+/** Bare hands for null and for "fists". */
+function heldId(dress: Dress): HeldId { return dress.held ?? "fists"; }
+/** 12 units plus 10 for each point of Reach: 12 for a knife, 22 for a pipe, 52 for a bike chain. */
 function weaponLength(id: string): number {
-  let n = 0;
-  for (let i = 0; i < id.length; i++) n += id.charCodeAt(i);
-  return 16 + (n % 5) * 5;                               // 16 to 36 units: a stand-in, not a real size
+  const meta = (WEAPON_META as Record<string, { reach: number } | undefined>)[id];
+  return 12 + 10 * (meta === undefined ? 1 : meta.reach);
 }
-/** A weapon stand-in as an SVG path along +x from the grip, so `DrawEnv.path` is exercised. */
-function weaponPath(len: number): string {
-  return `M-3 -1.6H${len - 4}L${len} 0L${len - 4} 1.6H-3Z`;
+function isFlex(id: string): boolean {
+  return (WEAPON_META as Record<string, { flex?: true } | undefined>)[id]?.flex === true;
 }
-function drawHeld(env: DrawEnv, id: string, x: number, y: number, angleDeg: number, flip: 1 | -1, scale: number, colour: string): void {
+function isPair(id: string): boolean {
+  return (WEAPON_META as Record<string, { pair?: true } | undefined>)[id]?.pair === true;
+}
+const FLEX_LINKS = 4;
+const n2 = (v: number): string => String(Math.round(v * 100) / 100);
+/** A weapon stand-in, or its last link, as an SVG path along +x from its start. The far point
+ *  is the striking end. Straight lines only, so a test can read the points back. */
+function tipPath(len: number, butt: number): string {
+  return `M${n2(-butt)} -1.6L${n2(len - 4)} -1.6L${n2(len)} 0L${n2(len - 4)} 1.6L${n2(-butt)} 1.6Z`;
+}
+function linkPath(len: number): string {
+  return `M0 -1.6L${n2(len)} -1.6L${n2(len)} 1.6L0 1.6Z`;
+}
+/** A held or flying item: its grip in stage units, one angle per link (degrees, in the actor's
+ *  own frame, before mirroring), and its striking end in stage units. */
+interface Held { id: string; x: number; y: number; angles: readonly number[]; link: number; tipX: number; tipY: number }
+function heldAt(id: string, x: number, y: number, angle: number, trail: readonly number[] | undefined, facing: 1 | -1): Held {
+  const len = weaponLength(id);
+  const angles: number[] = [angle];
+  if (isFlex(id)) for (let n = 1; n < FLEX_LINKS; n++) angles.push(trail === undefined ? angle : (trail[n - 1] ?? angle) + GRIP);
+  const link = len / angles.length;
+  let tx = 0;
+  let ty = 0;
+  for (const a of angles) { tx += link * Math.cos(a * DEG); ty += link * Math.sin(a * DEG); }
+  return { id, x, y, angles, link, tipX: x + facing * tx, tipY: y + ty };
+}
+function drawHeld(env: DrawEnv, held: Held, flip: 1 | -1, colour: string): void {
   const ctx = env.ctx;
   ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(flip * scale, scale);
-  ctx.rotate(angleDeg * DEG);
-  const p = env.path(weaponPath(weaponLength(id)));
+  ctx.translate(held.x, held.y);
+  ctx.scale(flip, 1);                                     // its own size: no body scale here
   ctx.fillStyle = colour;
-  ctx.fill(p);
   ctx.strokeStyle = INK;
   ctx.lineWidth = 1.3;
   ctx.lineJoin = "round";
-  ctx.stroke(p);
+  let cx = 0;
+  let cy = 0;
+  held.angles.forEach((a, n) => {
+    const last = n === held.angles.length - 1;
+    const path = env.path(last ? tipPath(held.link, n === 0 ? 3 : 0) : linkPath(held.link));
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(a * DEG);
+    ctx.fill(path);
+    ctx.stroke(path);
+    ctx.restore();
+    cx += held.link * Math.cos(a * DEG);
+    cy += held.link * Math.sin(a * DEG);
+  });
   ctx.restore();
 }
 function drawFace(ctx: Ctx2D, face: FaceId, cx: number, cy: number, f: 1 | -1, s: number, tint: boolean): void {
@@ -436,28 +524,83 @@ function drawFace(ctx: Ctx2D, face: FaceId, cx: number, cy: number, f: 1 | -1, s
   else { ctx.moveTo(mx - 2 * s, my); ctx.lineTo(mx + 2 * s, my); ctx.stroke(); }
 }
 
-function drawScrapper(env: DrawEnv, pose: Pose, dress: Dress, at: Place): void {
-  const ctx = env.ctx;
+/** Arm bones, back then front. `Dress.lead: "B"` swaps their angles for a pair. */
+const ARM_SWAP: readonly (readonly [number, number])[] = [[B.armBup, B.armFup], [B.armBlo, B.armFlo], [B.handB, B.handF]];
+/** One scrapper for one frame: the solved joints and the map to stage units. Drawing, the hand
+ *  anchor, the strike point and the hit point all start here, so they cannot disagree. */
+interface Figure { j: Joint[]; m: (x: number, y: number) => [number, number]; s: number; body: number; thick: number;
+  /** Bone index of the hand that leads the clip, and of the other hand. */
+  hand: number; off: number }
+function figure(pose: Pose, dress: Dress, at: Place): Figure {
   const s = dress.scale > 0 ? dress.scale : 1;
+  const build = ((dress.look?.build ?? 0) % 3 + 3) % 3;   // 0 lean, 1 stocky, 2 tall
+  const thick = build === 1 ? 1.3 : 1;
+  const tall = build === 2 ? 1.06 : build === 1 ? 0.97 : 1;
+  const backLeads = dress.lead === "B" && isPair(heldId(dress));
+  let rot = pose.rot;
+  if (backLeads) {
+    const swapped = [...pose.rot];
+    for (const [b, f] of ARM_SWAP) { swapped[b] = pose.rot[f] ?? 0; swapped[f] = pose.rot[b] ?? 0; }
+    rot = swapped;
+  }
+  return { j: solve(S_SEGS, rot, 2.6), m: mapper(pose, at, s * tall), s, body: s * tall, thick,
+    hand: backLeads ? B.handB : B.handF, off: backLeads ? B.handF : B.handB };
+}
+/** What a hand of the figure holds, or null for an empty hand. Only the front hand has a past. */
+function heldIn(fig: Figure, bone: number, pose: Pose, dress: Dress, facing: 1 | -1): Held | null {
+  const id = heldId(dress);
+  if (id === "fists") return null;
+  const q = fig.j[bone]!;
+  const [x, y] = fig.m(q.ex, q.ey);
+  return heldAt(id, x, y, q.rot + GRIP, bone === B.handF ? pose.trail : undefined, facing);
+}
+
+const PROP_FILL: Record<MoveProp, string> = { can: "#5BD66F", whistle: "#FFD23F", horn: "#FF5A4E" };
+
+function drawScrapper(env: DrawEnv, pose: Pose, dress: Dress, at: Place, gateOnly: boolean): void {
+  const ctx = env.ctx;
   const f = at.facing;
   const tint = dress.tint === "white";
   const skin = tint ? WHITE : pickOf(SKIN, dress.look?.skin);
   const top = tint ? WHITE : pickOf(TOPS, dress.look?.palette);
   const bottom = tint ? WHITE : pickOf(BOTTOMS, dress.look?.bottom);
   const hair = tint ? WHITE : pickOf(HAIR, dress.look?.hairColor);
-  const build = ((dress.look?.build ?? 0) % 3 + 3) % 3;   // 0 lean, 1 stocky, 2 tall
-  const thick = build === 1 ? 1.3 : 1;
-  const tall = build === 2 ? 1.06 : build === 1 ? 0.97 : 1;
-  const j = solve(S_SEGS, pose.rot, 2.6);
-  const m = mapper(pose, at, s * tall);
+  const fig = figure(pose, dress, at);
+  const { j, m, s, thick } = fig;
+  const metal = tint ? WHITE : "#C9CCE0";
   const seg = (i: number, width: number, colour: string): void => {
     const q = j[i]!;
     const [x0, y0] = m(q.x, q.y);
     const [x1, y1] = m(q.ex, q.ey);
     line(ctx, x0, y0, x1, y1, width * s * thick, colour);
   };
+  /** A hand with what it holds. A pair is in both hands; any other weapon is in the front hand. */
+  const hand = (bone: number, radius: number): void => {
+    const q = j[bone]!;
+    const [hx, hy] = m(q.ex, q.ey);
+    const held = bone === B.handF || isPair(heldId(dress)) ? heldIn(fig, bone, pose, dress, f) : null;
+    if (held !== null) drawHeld(env, held, f, metal);
+    if (bone === fig.off && dress.prop !== undefined) {
+      if (gateOnly) warnOnce(`prop:${dress.prop}`, `no art for the Move prop "${dress.prop}"`);
+      else {
+        ctx.save();
+        ctx.translate(hx, hy);
+        ctx.scale(f, 1);
+        ctx.rotate((q.rot + GRIP) * DEG);
+        ctx.fillStyle = tint ? WHITE : PROP_FILL[dress.prop];
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.rect(-2.5, -8, 5, 9);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+    blob(ctx, hx, hy, radius * s, radius * s, 0, skin);
+  };
 
-  shadow(ctx, at.x + f * s * pose.root.x, at.y, 17 * s, pose.lift);
+  shadow(ctx, at.x + f * fig.body * pose.root.x, at.y, 17 * s, pose.lift);
 
   // back limbs
   seg(B.legBup, 5.5, bottom); seg(B.legBlo, 5, bottom); seg(B.footB, 5.5, INK);
@@ -467,7 +610,7 @@ function drawScrapper(env: DrawEnv, pose: Pose, dress: Dress, at: Place): void {
     const [dx, dy] = m(q.ex, q.ey);
     ctx.save();
     ctx.translate(dx, dy);
-    ctx.scale(f * s, s);
+    ctx.scale(f, 1);                                      // the door has its own size too
     ctx.rotate((q.rot + 8) * DEG);
     ctx.fillStyle = tint ? WHITE : "#7FB7FF";
     ctx.strokeStyle = INK;
@@ -483,7 +626,7 @@ function drawScrapper(env: DrawEnv, pose: Pose, dress: Dress, at: Place): void {
     ctx.stroke();
     ctx.restore();
   }
-  { const q = j[B.handB]!; const [hx, hy] = m(q.ex, q.ey); blob(ctx, hx, hy, 3.6 * s, 3.6 * s, 0, skin); }
+  hand(B.handB, 3.6);
 
   // torso and head
   seg(B.torso, 12, top);
@@ -505,14 +648,7 @@ function drawScrapper(env: DrawEnv, pose: Pose, dress: Dress, at: Place): void {
   // front limbs
   seg(B.legFup, 5.5, bottom); seg(B.legFlo, 5, bottom); seg(B.footF, 5.5, INK);
   seg(B.armFup, 4.6, top); seg(B.armFlo, 4.2, skin);
-  {
-    const q = j[B.handF]!;
-    const [hx, hy] = m(q.ex, q.ey);
-    if (dress.held !== null && dress.held !== "fists") {
-      drawHeld(env, dress.held, hx, hy, q.rot + GRIP, f, s, tint ? WHITE : "#C9CCE0");
-    }
-    blob(ctx, hx, hy, 3.8 * s, 3.8 * s, 0, skin);
-  }
+  hand(B.handF, 3.8);
 }
 
 interface Beast { leg: number; rx: number; ry: number; head: number; neck: number; tail: number }
@@ -521,12 +657,11 @@ const BEASTS: Record<CompanionId, Beast> = {
   goose: { leg: 12, rx: 10, ry: 7, head: 4.2, neck: 12, tail: 6 },         // 40 units tall
   boar: { leg: 15, rx: 27, ry: 15, head: 11, neck: 0, tail: 8 },           // 52 tall, 70 long
 };
-function drawCompanion(env: DrawEnv, id: CompanionId, pose: Pose, dress: Dress, at: Place): void {
-  const ctx = env.ctx;
+/** One companion for one frame. Bones: root, body, head, legF, legB, tail. */
+interface BeastFigure { b: Beast; j: Joint[]; m: (x: number, y: number) => [number, number]; s: number }
+function beastFigure(id: CompanionId, pose: Pose, dress: Dress, at: Place): BeastFigure {
   const b = BEASTS[id];
   const s = dress.scale > 0 ? dress.scale : 1;
-  const f = at.facing;
-  const fill = dress.tint === "white" ? WHITE : COMPANION_FILL[id];
   const segs: Seg[] = [
     { parent: -1, ox: 0, oy: 0, lx: 0, ly: 0 },                                    // root
     { parent: 0, ox: 0, oy: -(b.leg + b.ry), lx: b.rx * 0.9, ly: -b.ry * 0.5 },    // body: centre to the neck
@@ -535,8 +670,20 @@ function drawCompanion(env: DrawEnv, id: CompanionId, pose: Pose, dress: Dress, 
     { parent: 1, ox: -b.rx * 0.55, oy: b.ry * 0.7, lx: 0, ly: b.leg },             // legB
     { parent: 1, ox: -b.rx * 0.95, oy: -b.ry * 0.2, lx: -b.tail, ly: -b.tail * 0.5 }, // tail
   ];
-  const j = solve(segs, pose.rot, 1.6);
-  const m = mapper(pose, at, s);
+  return { b, j: solve(segs, pose.rot, 1.6), m: mapper(pose, at, s), s };
+}
+/** The tip of the snout or the beak: what a companion strikes with. Stage units. */
+function mouthOf(fig: BeastFigure, facing: 1 | -1): [number, number] {
+  const head = fig.j[2]!;
+  const [hx, hy] = fig.m(head.ex, head.ey);
+  return [hx + facing * fig.b.head * 1.7 * fig.s, hy + fig.b.head * 0.2 * fig.s];
+}
+function drawCompanion(env: DrawEnv, id: CompanionId, pose: Pose, dress: Dress, at: Place): void {
+  const ctx = env.ctx;
+  const fig = beastFigure(id, pose, dress, at);
+  const { b, j, m, s } = fig;
+  const f = at.facing;
+  const fill = dress.tint === "white" ? WHITE : COMPANION_FILL[id];
   const seg = (i: number, width: number, colour: string): void => {
     const q = j[i]!;
     const [x0, y0] = m(q.x, q.y);
@@ -555,9 +702,10 @@ function drawCompanion(env: DrawEnv, id: CompanionId, pose: Pose, dress: Dress, 
   const [hx, hy] = m(head.ex, head.ey);
   blob(ctx, hx, hy, b.head * s, b.head * 0.9 * s, 0, fill);
   // snout or beak, then one eye
+  const [mx, my] = mouthOf(fig, f);
   ctx.beginPath();
   ctx.moveTo(hx + f * b.head * 0.7 * s, hy - b.head * 0.25 * s);
-  ctx.lineTo(hx + f * b.head * 1.7 * s, hy + b.head * 0.2 * s);
+  ctx.lineTo(mx, my);
   ctx.lineTo(hx + f * b.head * 0.7 * s, hy + b.head * 0.55 * s);
   ctx.closePath();
   ctx.fillStyle = dress.tint === "white" ? WHITE : id === "goose" ? "#FF9E3D" : "#4A4458";
@@ -584,20 +732,54 @@ function drawCompanion(env: DrawEnv, id: CompanionId, pose: Pose, dress: Dress, 
   }
 }
 
-function drawActor(env: DrawEnv, pose: Pose, dress: Dress, at: Place): void {
-  if (pose.rig === "scrapper") drawScrapper(env, pose, dress, at);
+function drawActor(env: DrawEnv, pose: Pose, dress: Dress, at: Place, gateOnly: boolean): void {
+  if (pose.rig === "scrapper") drawScrapper(env, pose, dress, at, gateOnly);
   else drawCompanion(env, pose.rig, pose, dress, at);
 }
 
-function handAnchor(pose: Pose, at: Place): { x: number; y: number; rot: number } {
+function handAnchor(pose: Pose, dress: Dress, at: Place): { x: number; y: number; rot: number } {
   if (pose.rig !== "scrapper") {
-    const b = BEASTS[pose.rig];
-    return { x: at.x + at.facing * (b.rx + pose.root.x), y: at.y - b.leg - b.ry + pose.root.y, rot: 0 };
+    const [x, y] = mouthOf(beastFigure(pose.rig, pose, dress, at), at.facing);
+    return { x, y, rot: 0 };
   }
-  const j = solve(S_SEGS, pose.rot, 2.6);
-  const q = j[B.handF]!;
-  const [x, y] = mapper(pose, at, 1)(q.ex, q.ey);
-  return { x, y, rot: at.facing * (q.rot + GRIP) };
+  const fig = figure(pose, dress, at);
+  const q = fig.j[fig.hand]!;
+  const [x, y] = fig.m(q.ex, q.ey);
+  return { x, y, rot: q.rot + GRIP };
+}
+
+const HOME: Place = { x: 0, y: 0, facing: 1 };
+
+/** Where the striking end is at the strike time of a clip, as an offset from the actor's place. */
+function strikePoint(rig: RigId, clip: string, dress: Dress, gateOnly: boolean): Offset {
+  const pose = samplePose(rig, clip, strikeTime(clipInfo(rig, clip, gateOnly)) ?? 0, gateOnly);
+  if (pose.rig !== "scrapper") {
+    const [x, y] = mouthOf(beastFigure(pose.rig, pose, dress, HOME), 1);
+    return { x, y };
+  }
+  const fig = figure(pose, dress, HOME);
+  const held = clip === "throw" ? null : heldIn(fig, fig.hand, pose, dress, 1);
+  if (held !== null) return { x: held.tipX, y: held.tipY };
+  const q = fig.j[fig.hand]!;
+  const [x, y] = fig.m(q.ex, q.ey);                        // the fist, or the hand a throw leaves
+  return { x, y };
+}
+
+/** The middle of the head or of the body of a standing actor, as an offset from its place. */
+function hitPoint(rig: RigId, dress: Dress, zone: "head" | "body", gateOnly: boolean): Offset {
+  const pose = samplePose(rig, "idle", 0, gateOnly);
+  if (pose.rig !== "scrapper") {
+    const fig = beastFigure(pose.rig, pose, dress, HOME);
+    const q = fig.j[zone === "head" ? 2 : 1]!;
+    // The head blob is at the end of the head bone. The body bone runs from the middle of the
+    // body to the neck, so its middle is the middle of the front half.
+    const [x, y] = zone === "head" ? fig.m(q.ex, q.ey) : fig.m((q.x + q.ex) / 2, (q.y + q.ey) / 2);
+    return { x, y };
+  }
+  const fig = figure(pose, dress, HOME);
+  const q = fig.j[zone === "head" ? B.head : B.torso]!;
+  const [x, y] = fig.m((q.x + q.ex) / 2, (q.y + q.ey) / 2);
+  return { x, y };
 }
 
 function drawProp(env: DrawEnv, item: PropId, at: Place & { rot: number }): void {
@@ -611,34 +793,49 @@ function drawProp(env: DrawEnv, item: PropId, at: Place & { rot: number }): void
     ctx.strokeStyle = INK;
     ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.rect(-11, -32, 22, 32);
+    ctx.rect(-4, -26, 22, 32);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = "#C9CCE0";
     ctx.beginPath();
-    ctx.rect(-7, -29, 14, 10);
+    ctx.rect(0, -23, 14, 10);
     ctx.fill();
     ctx.stroke();
     ctx.restore();
     return;
   }
-  drawHeld(env, item, at.x, at.y - 2, at.rot, at.facing, 1, "#C9CCE0");
+  // The grip is at the given point. A weapon that bends lies straight when no hand holds it.
+  drawHeld(env, heldAt(item, at.x, at.y, at.rot, undefined, at.facing), at.facing, "#C9CCE0");
 }
 
-/** The Yard as flat blocks: wall on the top 46%, floor on the bottom 54% of the 360 x 240 stage. */
-function drawYard(env: DrawEnv, layer: "back" | "floor", crowdBounce: number): void {
+/** The five arenas as flat blocks: wall on the top 46%, floor on the bottom 54% of the
+ *  360 x 240 stage. Same geometry in all five; only the colours and the wall pattern differ. */
+interface ArenaLook { wall: string; trim: string; floor: string; mark: string; crowd: string; doors: number }
+const ARENAS: Record<StageId, ArenaLook> = {
+  "yard":       { wall: "#23264F", trim: "#343977", floor: "#3A3F7A", mark: "#F4F5FA", crowd: INK, doors: 82 },
+  "yard-night": { wall: "#10122B", trim: "#262A57", floor: "#1D2046", mark: "#7FB7FF", crowd: "#05060F", doors: 82 },
+  "rooftop":    { wall: "#F2A65A", trim: "#C9743A", floor: "#8C6A5A", mark: "#FFE9C7", crowd: "#4A2E2A", doors: 120 },
+  "backyard":   { wall: "#8FD3F4", trim: "#5BA86B", floor: "#6DBE6F", mark: "#F4F5FA", crowd: "#2F5D3A", doors: 60 },
+  "gym":        { wall: "#D9C7A3", trim: "#B08D57", floor: "#C99A5B", mark: "#B2413A", crowd: "#3D2F22", doors: 45 },
+};
+function drawStage(env: DrawEnv, stage: StageId, layer: "back" | "floor", crowdBounce: number, gateOnly: boolean): void {
+  let look: ArenaLook | undefined = Object.prototype.hasOwnProperty.call(ARENAS, stage) ? ARENAS[stage] : undefined;
+  if (look === undefined || (gateOnly && stage !== "yard")) {
+    warnOnce(`stage:${String(stage)}`, `no arena art for "${String(stage)}", drawing the yard`);
+    look = ARENAS.yard;
+  }
   const ctx = env.ctx;
   if (layer === "back") {
-    ctx.fillStyle = "#23264F";
+    ctx.fillStyle = look.wall;
     ctx.fillRect(0, 0, 360, 110.4);
-    ctx.strokeStyle = "#343977";
+    ctx.strokeStyle = look.trim;
     ctx.lineWidth = 1;
-    for (let x = 30; x < 360; x += 82) {                 // shutter doors
-      ctx.strokeRect(x, 34, 56, 76.4);
-      for (let y = 44; y < 110; y += 10) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 56, y); ctx.stroke(); }
+    for (let x = 30; x < 360; x += look.doors) {         // shutter doors, fence boards or wall bars
+      ctx.strokeRect(x, 34, look.doors - 26, 76.4);
+      for (let y = 44; y < 110; y += 10) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + look.doors - 26, y); ctx.stroke(); }
     }
     const up = (crowdBounce < 0 ? 0 : crowdBounce > 1 ? 1 : crowdBounce) * 3;
-    ctx.fillStyle = INK;
+    ctx.fillStyle = look.crowd;
     for (const x of [112, 150, 214, 252]) {              // four crowd silhouettes
       ctx.beginPath();
       ctx.ellipse(x, 101 - up, 7, 9, 0, 0, Math.PI * 2);
@@ -647,9 +844,9 @@ function drawYard(env: DrawEnv, layer: "back" | "floor", crowdBounce: number): v
     }
     return;
   }
-  ctx.fillStyle = "#3A3F7A";
+  ctx.fillStyle = look.floor;
   ctx.fillRect(0, 110.4, 360, 129.6);
-  ctx.strokeStyle = "#F4F5FA";
+  ctx.strokeStyle = look.mark;
   ctx.globalAlpha = 0.35;
   ctx.lineWidth = 3;
   ctx.beginPath();
@@ -680,7 +877,13 @@ function star(points: number, r0: number, r1: number): string {
 const STAR = star(7, 6, 13);
 const PLUS = "M-1 -3H1V-1H3V1H1V3H-1V1H-3V-1H-1Z";
 
-function drawFx(env: DrawEnv, fx: FxKind, progress: number, at: Place, seed: number): void {
+const GATE_FX: ReadonlySet<string> = new Set(["burst", "dust", "spark", "whoosh"]);
+
+function drawFx(env: DrawEnv, fx: FxKind, progress: number, at: Place, seed: number, gateOnly: boolean): void {
+  if (gateOnly && !GATE_FX.has(fx)) {
+    warnOnce(`fx:${String(fx)}`, `no effect art for "${String(fx)}"`);
+    return;
+  }
   const ctx = env.ctx;
   const p = progress < 0 ? 0 : progress > 1 ? 1 : progress;
   const fade = 1 - p;
@@ -828,9 +1031,28 @@ function icon(ref: IconRef): SvgArt {
   return { viewBox: "0 0 24 24", parts: [{ d: circle(12, 12, 8), fill: "none", stroke: "#C9CCE0", strokeWidth: 2 }] };
 }
 
-export const capsuleRig: Rig = {
-  clipInfo, samplePose, drawActor, handAnchor, drawProp, drawYard, drawFx, portrait, companionPortrait, icon,
-};
+function makeRig(gateOnly: boolean): Rig {
+  return {
+    clipInfo: (rig, clip) => clipInfo(rig, clip, gateOnly),
+    samplePose: (rig, clip, tMs) => samplePose(rig, clip, tMs, gateOnly),
+    drawActor: (env, pose, dress, at) => drawActor(env, pose, dress, at, gateOnly),
+    handAnchor,
+    drawProp,
+    drawStage: (env, stage, layer, crowdBounce) => drawStage(env, stage, layer, crowdBounce, gateOnly),
+    strikePoint: (rig, clip, dress) => strikePoint(rig, clip, dress, gateOnly),
+    hitPoint: (rig, dress, zone) => hitPoint(rig, dress, zone, gateOnly),
+    drawFx: (env, fx, progress, at, seed) => drawFx(env, fx, progress, at, seed, gateOnly),
+    portrait, companionPortrait, icon,
+  };
+}
+
+/** The full double: all 23 scrapper clips, five arenas, every effect, the Move props. */
+export const capsuleRig: Rig = makeRig(false);
+/** The double as a gate-pack rig would behave: content clips answer with their gate clip
+ *  (`CLIP_FALLBACK`), every arena draws the yard, content effects and Move props draw nothing. */
+export const capsuleGateRig: Rig = makeRig(true);
 
 /** The clip names the capsule rig holds, for tests: all 23 scrapper clips and the 6 companion clips. */
-export const CAPSULE_CLIPS = { scrapper: SCRAPPER_CLIPS, companion: COMPANION_CLIPS } as const;
+export const CAPSULE_CLIPS = { scrapper: SCRAPPER_CLIPS, companion: COMPANION_CLIPS, gate: GATE_CLIPS } as const;
+/** Weapon length in the capsule double, for tests: 12 + 10 x Reach units. */
+export function capsuleWeaponLength(id: HeldId | PropId): number { return id === "fists" || id === "car-door" ? 0 : weaponLength(id); }

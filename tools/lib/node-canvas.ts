@@ -3,7 +3,7 @@
  * (smoke test, contact sheets, spacing charts, bout renders). Run tools with `tsx`.
  *
  *   const s = createSurface(360, 240, 2);        // stage units and a pixel scale
- *   rig.drawYard(s.env, "back", 0);              // draw in stage units
+ *   rig.drawStage(s.env, "yard", "back", 0);     // draw in stage units
  *   writePng(s, ".review/wp2/sheet.png");
  */
 import { mkdirSync, writeFileSync } from "node:fs";

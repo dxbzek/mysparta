@@ -46,6 +46,11 @@ export interface ScrapperSheet {
   perks: PerkId[]; maxHp: number; companionCostPct: number;
   derived: DerivedValues;                                 // bare-handed values, for the Stats tab
 }
+/** What a card shows about any snapshot, a rival's included: max HP after the companion cost, the
+ *  effective stats behind the stat bars, and the bare-handed derived values. Never stored.
+ *  For a snapshot made from a record it equals the same four fields of that record's sheet. */
+export interface SnapshotSheet { maxHp: number; effective: Record<StatKey, number>;
+  derived: DerivedValues; companionCostPct: number }
 /** The only thing a bout reads. For a snapshot made from a record: Route picks behind it = level - 1.
  *  `stats` already holds every booster and Plate Vest change; the sim must NOT apply them again from
  *  `perks`. A sandbox snapshot (the debug route) is built by hand and is exempt from the Route

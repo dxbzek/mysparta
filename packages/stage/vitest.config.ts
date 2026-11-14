@@ -7,7 +7,5 @@ export default defineConfig({
     minWorkers: 1,
     maxWorkers: 2,
     testTimeout: 30000,
-    // No stage test exists before the stage lane lands. Remove this line at the first merge.
-    passWithNoTests: true,
   },
 });

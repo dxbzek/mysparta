@@ -2,18 +2,23 @@
  * FROZEN CONTRACT (work package 0). The bout log: what the sim writes and what the stage,
  * the HUD, the text log and the reducer read.
  *
- * LOG RULES (frozen with the types)
+ * LOG RULES (frozen with the types). `checkLog` in check.ts enforces what a log alone can
+ * prove. What needs the rules or the snapshots is the sim lane's to test: rule 9, the `boosted`
+ * swing of rule 7, the perks order of rule 15, and every chance and condition.
  *  1. Steps are semantic events, never animation orders. String literals only. A new step type
  *     needs a LOG_VERSION bump.
  *  2. Every step carries the values after it (HP after, bag after). Sim time never enters the log.
  *  3. Turn 0 is the intro. Every actor of `init.actors` has exactly one `enter` step, at turn 0,
  *     and no other step is at turn 0. Steps with the same turn number play as one group, in
  *     array order. Turn numbers never go down.
- *  4. Exactly one `end`, and it is last. Its turn is the turn of the last action, and
- *     `result.turns` equals it.
+ *  4. Exactly one `end`, and it is last. Its turn is the turn counter when the bout stopped, and
+ *     `result.turns` equals it. For a knockout that is the turn of the `ko` step before it. For a
+ *     cap it is the last turn taken, which may be a skipped turn with no step of its own.
  *  5. The kill step is the first step that leaves a scrapper at 0 HP (`attack`, `intercept`,
- *     `riposte`, `throw`, a `move` hit or `overtime`). A `ko` step for that scrapper follows it.
- *     Every actor that reaches 0 HP gets a `ko` step; a status only changes on `ko` and `flee`.
+ *     `riposte`, `throw`, a `move` hit or `overtime`). Every actor that reaches 0 HP gets a `ko`
+ *     step before any other action (rule 16 gives its place). `ko.by` is the actor of the step
+ *     that took the last HP, and null when overtime took it. A status only changes on `ko` and
+ *     `flee`.
  *  6. `damage` is the damage dealt after armor. On a "hit" it is 1 or more and
  *     hpAfter = max(0, hp - damage), or 1 when Last Stand saves. On "evade" and "block" it is 0.
  *     The same holds for a `move` hit and for `overtime`. A heal's `amount` is the HP really
@@ -23,14 +28,15 @@
  *     Energy Drink: `move`, then `heal`. Tarp: `move` with `target`, then `snare`.
  *     Whistle: `move`, then `heal` on the companion. Firecrackers: `move` with `hits`.
  *     Snatch: `move` with `target` and `taken`. Air Horn: `move`, then one `flee` per companion
- *     that runs. Body Slam: `move` with `target` and one entry in `hits`, then `disarm` and
- *     `doorOff` with `cause: "slam"`.
+ *     that runs. Body Slam: `move` with `target` and one entry in `hits`; then a `disarm` only
+ *     when the target holds a weapon, and a `doorOff` only when it carries a door, each with
+ *     `cause: "slam"`. A companion target has neither.
  *  8. `procs` is used for: Last Stand (on the swing it saves), Parry (on the riposte it forces),
  *     Stubborn (on the extra swing), Firm Grip (on the `disarm` it resists, which carries
  *     `resisted`, and on the `move` of a Snatch it stops, which then has no `taken`), Car Door
  *     (on a block made with the door).
- *  9. Decisive procs. A passive that only adds to a chance writes a proc on the step where the
- *     roll passed ONLY because of its bonus: Anticipation (on `intercept`), Payback (on
+ *  9. Decisive procs. A passive that only adds to a chance writes a proc on the step where
+ *     the roll passed ONLY because of its bonus: Anticipation (on `intercept`), Payback (on
  *     `riposte`), Flurry (on the combo `attack`), Slippery (on an "evade" outcome), Knock Loose
  *     (on `disarm`), Sharp Eye (on a "hit" that would have been evaded or blocked without it).
  *     Head Start writes a proc on its owner's first action: the first step of its first turn
@@ -38,14 +44,34 @@
  *     stops that turn). `draw` and `swap` carry none. The sim lists the rarest skill first; the
  *     stage shows at most one tag per step.
  * 10. Reading an `intercept`: its `target` is the actor whose turn it is and who was dashing in;
- *     its `actor` is the defender who hit first. No `attack` step follows in that turn.
- * 11. A skipped snared turn writes no step. Turn numbers may jump.
+ *     its `actor` is the defender who hit first. That target makes no `attack` and no `throw` in
+ *     that turn.
+ * 11. Skipped snared turns. The first and the second skipped turn of a snare write no step of
+ *     their own, so turn numbers may jump. The third skipped turn ends the snare: it writes
+ *     `free` with `cause: "timeout"` as the first step of that turn, and nothing else of its own.
+ *     In overtime a skipped turn of a scrapper is still one of its turns: it writes that
+ *     scrapper's `overtime` step (after the `free`, on the third).
  * 12. A cap ending (`reason: "cap"`) has no `ko` step. The stage plays the loser's fall from
  *     the `end` step.
- * 13. The first `overtime` step of a bout is where the stage shows the "OVERTIME" sticker.
+ * 13. Overtime. An `overtime` step is the loss a scrapper takes after one of its own turns. It is
+ *     the last step of that turn; only its own `ko` and the `end` may follow in the same turn.
+ *     The first `overtime` step of a bout is where the stage shows the "OVERTIME" sticker.
  * 14. What lands on the floor: the old weapon of a `swap`, the weapon of a `disarm` that is not
  *     resisted, the door of a `doorOff`, and the weapon of a `throw` with `after: "gone"`.
  *     A Snatch moves the weapon from hand to hand and nothing lands.
+ * 15. Actor ids. a0 and b0 are the scrappers. The companions of a side take 1, 2, 3 in the
+ *     order they stand in the owner's `perks`, with no gap.
+ * 16. What follows a hit. The steps one swing, one Move or one overtime loss causes come straight
+ *     after it, in this order, each only when it happens: `disarm`, `doorOff`, `free` (cause
+ *     "hit"), `ko`. With several targets (Firecrackers) every `free` comes before every `ko`.
+ *     `disarm` and `doorOff` name the actor and the target of the step that caused them; their
+ *     cause is "slam" after a Body Slam and "hit" after a swing. A snared actor that takes a hit
+ *     always gets its `free`, also when the hit knocks it out. Overtime is not a hit: it frees
+ *     nobody. A `doorOff` may follow a blocked swing; a `disarm` follows a landed hit only.
+ * 17. Swings in a turn. `n` counts an actor's `attack` and `throw` steps inside one turn from 0.
+ *     Swing 0 has no `why`; every later one has. Stubborn gives at most one extra swing a turn,
+ *     straight after a swing of the same actor that was evaded or blocked, and never applies to
+ *     a throw. `intercept` and `riposte` carry no `n`: each is a single swing.
  */
 import type { CompanionId, HeldId, MoveId, PropId, SkillId, WeaponId } from "./ids";
 
