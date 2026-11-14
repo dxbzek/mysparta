@@ -1,0 +1,102 @@
+/**
+ * The scrapper skeleton: adult proportions, about 7.3 heads in 84 units (style 13).
+ *
+ * Every body part is its own piece on its own bone and turns on a pin (owner amendment 13.2):
+ * pelvis, torso, head, both upper arms, forearms and hands, both thighs, shins and feet. One more
+ * bone, `held`, is the hand's grip: the held item is its child and turns with the wrist; and
+ * `hair` hangs from the crown and is moved only by secondary motion (`SECONDARY`). Both come
+ * after the 16 bones of the contract, so their indices are the contract's.
+ *
+ * Units are stage units (a standing scrapper is 84 tall, feet at y 0, y down, facing +x). At rest
+ * the figure stands straight with the arms hanging; every limb bone then points along +y.
+ *
+ * Sign rules (degrees, clockwise on screen is positive):
+ *  - torso and head: positive leans forward;
+ *  - an upper arm or a thigh: negative swings it forward;
+ *  - an elbow (`arm*.lo`) only bends negative (the forearm comes forward and up);
+ *  - a knee (`leg*.lo`) only bends positive (the shin goes back).
+ * The limits below are checked on every sampled frame of every clip by a rig test.
+ */
+import type { BoneDef, RigDef } from "../contracts";
+
+/** Source drawings (`.review/style-sampler`) are in units of a 182-unit man; this maps them to 84. */
+export const K = 0.46;
+
+/** The proportions in one settings object, so a proportion change is a change here only. */
+export const PROPORTION = {
+  heads: 7.3,
+  hip: 44.85,              // hip joint centre above the floor, legs straight
+  thigh: 21.16,
+  shin: 20.24,
+  ankle: 3.22,             // ankle above the sole
+  torso: 24.38,            // hip centre to the neck base
+  upperArm: 14.26,
+  forearm: 12.42,
+  grip: 3.0,               // wrist to the middle of the fist
+  shoulderF: [0.46, -21.39] as const,
+  shoulderB: [-1.38, -21.85] as const,
+  hipF: [0.92, 0.46] as const,
+  hipB: [-1.15, 0] as const,
+  neck: [0.23, -24.38] as const,
+} as const;
+
+export const BONE = {
+  root: 0, pelvis: 1, torso: 2, head: 3, armBup: 4, armBlo: 5, handB: 6, armFup: 7, armFlo: 8, handF: 9,
+  legBup: 10, legBlo: 11, footB: 12, legFup: 13, legFlo: 14, footF: 15, held: 16, hair: 17,
+} as const;
+
+/** Where the hair hinges on the head (the back of the crown), in the head bone's frame. */
+export const HAIR_PIVOT = [-1.4, -12.6] as const;
+
+const P = PROPORTION;
+const bones: BoneDef[] = [
+  { id: "root", parent: -1, x: 0, y: 0 },
+  { id: "pelvis", parent: 0, x: 0, y: -P.hip },
+  { id: "torso", parent: 1, x: 0, y: 0, limit: [-70, 115] },
+  { id: "head", parent: 2, x: P.neck[0], y: P.neck[1], limit: [-65, 60] },
+  { id: "armB.up", parent: 2, x: P.shoulderB[0], y: P.shoulderB[1] },
+  { id: "armB.lo", parent: 4, x: 0, y: P.upperArm, limit: [-160, 2] },
+  { id: "handB", parent: 5, x: 0, y: P.forearm, limit: [-95, 95] },
+  { id: "armF.up", parent: 2, x: P.shoulderF[0], y: P.shoulderF[1] },
+  { id: "armF.lo", parent: 7, x: 0, y: P.upperArm, limit: [-160, 2] },
+  { id: "handF", parent: 8, x: 0, y: P.forearm, limit: [-95, 95] },
+  { id: "legB.up", parent: 1, x: P.hipB[0], y: P.hipB[1], limit: [-130, 60] },
+  { id: "legB.lo", parent: 10, x: 0, y: P.thigh, limit: [-2, 160] },
+  { id: "footB", parent: 11, x: 0, y: P.shin, limit: [-60, 70] },
+  { id: "legF.up", parent: 1, x: P.hipF[0], y: P.hipF[1], limit: [-130, 60] },
+  { id: "legF.lo", parent: 13, x: 0, y: P.thigh, limit: [-2, 160] },
+  { id: "footF", parent: 14, x: 0, y: P.shin, limit: [-60, 70] },
+  { id: "held", parent: 9, x: 0, y: P.grip },
+  { id: "hair", parent: 3, x: -1.4, y: -12.6, limit: [-40, 40] },
+];
+
+/**
+ * Secondary motion: bones no clip keys, driven by the motion of their parent (hair flicks back
+ * when the head snaps, trails when the body runs). `gain` turns the parent's change of angle over
+ * the last `ms` into this bone's angle, `drag` is degrees per unit of forward travel in that
+ * time; the result is held inside `limit`. A pure function of t like everything else.
+ */
+export const SECONDARY = [{ bone: "hair", gain: 0.85, drag: 2.2, ms: 70 }] as const;
+
+/** The scrapper rig of the gate pack. */
+export const SCRAPPER_RIG: RigDef = { id: "scrapper", height: 84, bones };
+
+/** Elbows and knees: the joints that may bend one way only. */
+export const ONE_WAY_JOINTS = ["armB.lo", "armF.lo", "legB.lo", "legF.lo"] as const;
+
+/**
+ * Three builds from the same rig. `scale` sizes the whole body; `limb` and `torso` widen the
+ * limbs and the trunk across their bones (lengths never change, so every clip fits every build).
+ */
+export const BUILDS = [
+  { scale: 1, limb: 1, torso: 1 },          // lean
+  { scale: 1.03, limb: 1.24, torso: 1.27 }, // stocky
+  { scale: 1.08, limb: 0.94, torso: 0.96 }, // tall
+] as const;
+
+/** A hand's grip turns the held item this far from the hand bone: with the arm hanging, an item
+ *  in the fist points forward and a little up (the thumb side of a relaxed fist faces forward). */
+export const GRIP_ROT = -10;
+
+/** The foot bones: what "feet on the floor" is measured on. */
+export const FEET = ["footB", "footF"] as const;
