@@ -1,0 +1,247 @@
+/* Perk rows, perk details, Route cards. Colours only from tokens.css. */
+
+/* ------------------------------------------------------------ perk row */
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  width: 100%;
+  padding: 10px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius);
+  box-shadow: var(--shadow-hard-sm);
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+  text-align: left;
+  font: inherit;
+}
+.rowButton {
+  cursor: pointer;
+}
+.rowButton:active {
+  transform: translate(2px, 3px);
+  box-shadow: none;
+}
+.rowIcon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--rough-radius-sm);
+  border: var(--line) solid var(--c-ink);
+  background: var(--tex-halftone), var(--c-panel);
+}
+/* the rarity colour as the frame band behind the icon */
+.edge-common { background: var(--tex-halftone), var(--c-rarity-common); }
+.edge-uncommon { background: var(--tex-halftone), var(--c-rarity-uncommon); }
+.edge-rare { background: var(--tex-halftone), var(--c-rarity-rare); }
+.edge-epic { background: var(--tex-halftone), var(--c-rarity-epic); }
+.edge-mythic { background: var(--tex-halftone), var(--c-rarity-mythic); }
+.rowText {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.rowHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+}
+.rowName {
+  font: 900 22px / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.rowKind {
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t-on-raised-dim);
+}
+.rowEffect {
+  font-size: var(--fs-body);
+  line-height: 1.35;
+}
+.rowCost {
+  font-size: var(--fs-small);
+  line-height: 1.3;
+}
+.raritySmall {
+  font-size: 12px;
+  padding: 0 4px;
+}
+
+/* ------------------------------------------------------------ detail sheet */
+.detail {
+  display: grid;
+  gap: 8px;
+}
+.detailHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.detailName {
+  margin: 0;
+  font: 900 28px / 1 var(--font-display);
+  text-transform: uppercase;
+}
+.detailKind {
+  margin: 4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 900 15px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-on-panel-dim);
+}
+.detailEffect {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+}
+.detailCost {
+  margin: 0;
+  font-size: var(--fs-body);
+}
+.detailSub {
+  margin: 6px 0 0;
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+.number {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 8px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+}
+.number dt {
+  font-size: var(--fs-small);
+}
+.number dd {
+  margin: 0;
+  font: 900 20px / 1 var(--font-display);
+}
+
+/* ------------------------------------------------------------ route card faces */
+.statIcon {
+  display: inline-grid;
+  place-items: center;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 50%;
+  background: var(--c-dark);
+  box-shadow: var(--shadow-hard-sm);
+}
+.stat-health { box-shadow: inset 0 0 0 4px var(--c-stat-health), var(--shadow-hard-sm); }
+.stat-strength { box-shadow: inset 0 0 0 4px var(--c-stat-strength), var(--shadow-hard-sm); }
+.stat-agility { box-shadow: inset 0 0 0 4px var(--c-stat-agility), var(--shadow-hard-sm); }
+.stat-speed { box-shadow: inset 0 0 0 4px var(--c-stat-speed), var(--shadow-hard-sm); }
+
+.face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+}
+.faceArt {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  min-height: 64px;
+  align-items: center;
+}
+.faceKicker {
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t-on-raised-dim);
+}
+.faceName {
+  font: 900 22px / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.faceKind {
+  font: 900 13px / 1 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t-on-raised-dim);
+}
+.faceStat {
+  display: grid;
+  gap: 2px;
+}
+.faceFromTo {
+  font: 900 18px / 1 var(--font-display);
+  color: var(--t-on-raised-dim);
+}
+.faceHp {
+  font: 900 18px / 1 var(--font-display);
+  text-transform: uppercase;
+}
+.faceLine {
+  font-size: var(--fs-small);
+  line-height: 1.3;
+}
+
+/* ------------------------------------------------------------ route chips (Level path) */
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+}
+.chipTaken {
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+  box-shadow: var(--shadow-hard-sm);
+}
+.chipNot {
+  background: var(--c-panel);
+  color: var(--t-on-panel-dim);
+  border-style: dashed;
+}
+.chipNot > :first-child {
+  opacity: 0.55;
+  filter: grayscale(1);
+}
+.chipIcons {
+  display: flex;
+  gap: 2px;
+}
+.chipText {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  min-width: 0;
+}
+.chipName {
+  font: 900 16px / 1.05 var(--font-display);
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}

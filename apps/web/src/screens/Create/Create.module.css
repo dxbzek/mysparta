@@ -1,0 +1,180 @@
+.screen {
+  padding-bottom: 18px;
+}
+.logo {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  height: 80px;
+  padding: 0 var(--gutter);
+  text-align: center;
+}
+.title {
+  margin: 0;
+  font: 900 44px / 0.9 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-on-page);
+  text-shadow: 3px 3px 0 var(--c-hazard);
+}
+.tagline {
+  margin: 4px 0 0;
+  font: 900 17px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-on-page-dim);
+}
+.main {
+  display: grid;
+  gap: 12px;
+  padding: 0 var(--gutter);
+}
+.stageWrap {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.stage {
+  position: relative;
+  height: 260px;
+  overflow: hidden;
+}
+.stageName {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  right: 10px;
+  pointer-events: none;
+}
+.dice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.form {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.namePanel {
+  display: grid;
+  gap: 6px;
+}
+.label {
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.nameRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 12px;
+}
+.bullets {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 700;
+  color: var(--t-on-page);
+}
+.bullets li::before {
+  content: "\2022";
+  display: inline-block;
+  width: 1.1em;
+  font-weight: 900;
+}
+
+/* ------------------------------------------------------------ reveal */
+.reveal {
+  display: grid;
+  gap: 12px;
+  padding: 12px var(--gutter);
+}
+.revealStage {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+}
+.revealStats {
+  display: grid;
+  gap: 6px;
+}
+.hpRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 6px;
+  border-bottom: var(--line-thin) dashed var(--c-ink);
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.hpRow strong {
+  font-size: 34px;
+}
+.bar {
+  animation: fill 520ms steps(8, end) both;
+}
+.perk {
+  animation: flip 600ms ease-out both;
+  transform-origin: 50% 50%;
+}
+.perkLabel {
+  margin: 0 0 6px;
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.skip {
+  margin: 0;
+  min-height: var(--tap-primary);
+  display: grid;
+  place-items: center;
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-on-page-dim);
+}
+.revealDone .bar,
+.revealDone .perk {
+  animation: none;
+}
+@keyframes fill {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes flip {
+  from { transform: perspective(600px) rotateY(90deg); opacity: 0; }
+  to { transform: perspective(600px) rotateY(0deg); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar,
+  .perk {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------ desktop */
+@media (min-width: 900px) {
+  .screen {
+    max-width: 480px;
+  }
+}
+@media (min-width: 1100px) {
+  .screen {
+    max-width: 1060px;
+  }
+  .main {
+    grid-template-columns: 520px minmax(0, 480px);
+    justify-content: center;
+    align-items: start;
+    gap: 24px;
+  }
+  .reveal {
+    max-width: 560px;
+    margin: 0 auto;
+  }
+}

@@ -1,0 +1,132 @@
+/*
+ * Shared layout of the app screens. The look (panels, stickers, buttons, bars) is WP4's ui/ kit;
+ * this file only places it. Colours only from tokens.css, each text token on its own background.
+ */
+.screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.wide {
+  max-width: 560px;
+}
+@media (min-width: 900px) {
+  .wide {
+    max-width: 1120px;
+  }
+}
+.top {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 8px var(--gutter);
+}
+.titles {
+  min-width: 0;
+}
+.kicker {
+  display: block;
+  font: 900 15px / 1.1 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t-on-page-dim);
+}
+.h1 {
+  margin: 0;
+  font: 900 34px / 0.95 var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--t-on-page);
+  overflow-wrap: anywhere;
+}
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 var(--gutter) 22px;
+}
+.sectionTitle {
+  margin: 0 0 8px;
+  font: 900 24px / 1 var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.sub {
+  margin: 0 0 10px;
+  font-size: var(--fs-small);
+  color: var(--t-on-panel-dim);
+}
+.tabs {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--c-dark);
+}
+.link {
+  min-height: var(--tap);
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: 700 var(--fs-body) / 1 var(--font-body);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.cost {
+  color: var(--t-on-panel-action);
+  font-weight: 700;
+}
+.note {
+  color: var(--t-on-panel-dim);
+  font-style: italic;
+}
+/* a rarity word on its own colour, always with the word */
+.rarity {
+  display: inline-block;
+  padding: 1px 6px 0;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 2px;
+  font: 900 14px / 1.2 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.common { background: var(--c-rarity-common); color: var(--t-on-rarity-common); }
+.uncommon { background: var(--c-rarity-uncommon); color: var(--t-on-rarity-uncommon); }
+.rare { background: var(--c-rarity-rare); color: var(--t-on-rarity-rare); }
+.epic { background: var(--c-rarity-epic); color: var(--t-on-rarity-epic); }
+.mythic { background: var(--c-rarity-mythic); color: var(--t-on-rarity-mythic); }
+
+.field {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 12px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+  font: 700 20px / 1 var(--font-body);
+}
+.error {
+  margin: 6px 0 0;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--t-on-panel-action);
+}
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
