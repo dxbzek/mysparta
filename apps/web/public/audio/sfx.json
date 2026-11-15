@@ -1,196 +1,196 @@
 {
  "version": 1,
  "file": "sfx.mp3",
- "note": "Offsets in ms, measured on the decoded MP3 (not planned). Built by tools/build-audio.mjs.",
+ "note": "Offsets in ms, measured on the decoded MP3 (not planned). Built by tools/build-audio.mjs. Credits: see `credits` and CREDITS.md.",
  "families": {
   "fist": [
    {
-    "start": 140,
-    "dur": 257.3
+    "start": 120,
+    "dur": 358.9
    },
    {
-    "start": 537.3,
-    "dur": 278.2
+    "start": 598.9,
+    "dur": 360
    },
    {
-    "start": 955.5,
-    "dur": 222.3
+    "start": 1078.9,
+    "dur": 360
    }
   ],
   "blunt": [
    {
-    "start": 1317.8,
-    "dur": 480
+    "start": 1558.9,
+    "dur": 598.5
    },
    {
-    "start": 1937.8,
-    "dur": 480
+    "start": 2277.4,
+    "dur": 599.9
    },
    {
-    "start": 2557.8,
-    "dur": 480
+    "start": 2997.3,
+    "dur": 584.2
    },
    {
-    "start": 3177.8,
-    "dur": 466.7
+    "start": 3701.5,
+    "dur": 414.4
    }
   ],
   "blade": [
    {
-    "start": 3784.5,
-    "dur": 370.5
+    "start": 4235.9,
+    "dur": 377.8
    },
    {
-    "start": 4294.9,
-    "dur": 450
+    "start": 4733.7,
+    "dur": 377.8
    },
    {
-    "start": 4884.9,
-    "dur": 225.4
+    "start": 5231.5,
+    "dur": 380
    },
    {
-    "start": 5250.4,
-    "dur": 212.3
+    "start": 5731.5,
+    "dur": 375.7
    }
   ],
   "block": [
    {
-    "start": 5602.7,
-    "dur": 357.7
+    "start": 6227.3,
+    "dur": 328.8
    },
    {
-    "start": 6100.4,
-    "dur": 207.3
+    "start": 6676.1,
+    "dur": 232.3
    },
    {
-    "start": 6447.7,
-    "dur": 227.6
+    "start": 7028.5,
+    "dur": 358.8
    }
   ],
   "whoosh": [
    {
-    "start": 6815.4,
-    "dur": 340
+    "start": 7507.3,
+    "dur": 339.9
    },
    {
-    "start": 7295.4,
-    "dur": 303.8
+    "start": 7967.2,
+    "dur": 247.5
    },
    {
-    "start": 7739.2,
-    "dur": 340
+    "start": 8334.7,
+    "dur": 110.4
    }
   ],
   "dash": [
    {
-    "start": 8219.2,
-    "dur": 211.1
+    "start": 8565,
+    "dur": 229.4
    },
    {
-    "start": 8570.3,
-    "dur": 208.9
+    "start": 8914.4,
+    "dur": 213.5
    }
   ],
   "landing": [
    {
-    "start": 8919.2,
-    "dur": 217.2
+    "start": 9247.9,
+    "dur": 487.3
    },
    {
-    "start": 9276.4,
-    "dur": 240.1
+    "start": 9855.3,
+    "dur": 513.9
    }
   ],
   "throw": [
    {
-    "start": 9656.5,
-    "dur": 339.7
+    "start": 10489.1,
+    "dur": 379.9
    }
   ],
   "drop": [
    {
-    "start": 10136.2,
-    "dur": 293.4
+    "start": 10989,
+    "dur": 480
    },
    {
-    "start": 10569.6,
-    "dur": 165.1
+    "start": 11589,
+    "dur": 330.9
    }
   ],
   "crowd": [
    {
-    "start": 10874.7,
-    "dur": 204.1
+    "start": 12039.9,
+    "dur": 650
    },
    {
-    "start": 11218.8,
-    "dur": 226.7
+    "start": 12809.9,
+    "dur": 650
    }
   ],
   "companion": [
    {
-    "start": 11585.5,
-    "dur": 99.5
+    "start": 13579.9,
+    "dur": 420
    },
    {
-    "start": 11825,
-    "dur": 134.3
+    "start": 14119.9,
+    "dur": 194
    },
    {
-    "start": 12099.3,
-    "dur": 326.9
+    "start": 14433.9,
+    "dur": 420
    }
   ],
   "move": [
    {
-    "start": 12566.2,
-    "dur": 464.7
+    "start": 14973.9,
+    "dur": 463.5
    },
    {
-    "start": 13171,
-    "dur": 465.2
+    "start": 15557.4,
+    "dur": 580
    },
    {
-    "start": 13776.1,
-    "dur": 580.5
+    "start": 16257.5,
+    "dur": 650
    },
    {
-    "start": 14496.7,
-    "dur": 582.1
+    "start": 17027.5,
+    "dur": 230.7
    }
   ],
   "win": [
    {
-    "start": 15218.8,
-    "dur": 913.9
+    "start": 17378.1,
+    "dur": 1957.9
    }
   ],
   "loss": [
    {
-    "start": 16272.8,
-    "dur": 326.4
+    "start": 19456,
+    "dur": 815.7
    }
   ],
   "ui-tap": [
    {
-    "start": 16739.2,
-    "dur": 38.2
+    "start": 20391.7,
+    "dur": 41.2
    },
    {
-    "start": 16917.4,
+    "start": 20552.9,
     "dur": 39.7
    }
   ],
   "card-flip": [
    {
-    "start": 17097.1,
-    "dur": 193
+    "start": 20712.6,
+    "dur": 199.6
    }
   ],
   "level-up": [
    {
-    "start": 17430.1,
-    "dur": 908.9
+    "start": 21032.2,
+    "dur": 895.9
    }
   ]
  },
@@ -198,236 +198,461 @@
   {
    "family": "fist",
    "variant": 0,
-   "file": "bookPlace1.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "hits37:hits/hit10.mp3.flac"
+   ]
   },
   {
    "family": "fist",
    "variant": 1,
-   "file": "bookPlace2.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "hits37:hits/hit11.mp3.flac"
+   ]
   },
   {
    "family": "fist",
    "variant": 2,
-   "file": "bookClose.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "qpunch:qubodupPunch/qubodupPunch05.flac",
+    "break75:bfh1_hit_10.ogg"
+   ]
   },
   {
    "family": "blunt",
    "variant": 0,
-   "file": "metalPot1.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "castiron:cast iron clangs - Marker #11.wav",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
   },
   {
    "family": "blunt",
    "variant": 1,
-   "file": "metalPot2.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "castiron:cast iron clangs - Marker #9.wav",
+    "qpunch:qubodupPunch/qubodupPunch04.flac"
+   ]
   },
   {
    "family": "blunt",
    "variant": 2,
-   "file": "metalPot3.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "wood35:wood_impact/crack10.mp3.flac",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
   },
   {
    "family": "blunt",
    "variant": 3,
-   "file": "doorClose_1.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "break75:bfh1_metal_hit_04.ogg",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
   },
   {
    "family": "blade",
    "variant": 0,
-   "file": "knifeSlice.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "rpg80:blade_01.ogg",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
   },
   {
    "family": "blade",
    "variant": 1,
-   "file": "knifeSlice2.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "rpg80:blade_03.ogg",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
   },
   {
    "family": "blade",
    "variant": 2,
-   "file": "chop.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "rpgaudio:OGG/knifeSlice2.ogg",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
   },
   {
    "family": "blade",
    "variant": 3,
-   "file": "drawKnife1.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "rpgaudio:OGG/chop.ogg",
+    "qpunch:qubodupPunch/qubodupPunch04.flac"
+   ]
   },
   {
    "family": "block",
    "variant": 0,
-   "file": "metalClick.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "break75:bfh1_metal_hit_02.ogg"
+   ]
   },
   {
    "family": "block",
    "variant": 1,
-   "file": "metalLatch.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "rpg80:wood_03.ogg"
+   ]
   },
   {
    "family": "block",
    "variant": 2,
-   "file": "beltHandle1.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "shields:impact.4.ogg"
+   ]
   },
   {
    "family": "whoosh",
    "variant": 0,
-   "file": "cloth1.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "battle:battle_sound_effects/swish_3.wav"
+   ]
   },
   {
    "family": "whoosh",
    "variant": 1,
-   "file": "cloth2.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "battle:battle_sound_effects/swish_4.wav"
+   ]
   },
   {
    "family": "whoosh",
    "variant": 2,
-   "file": "cloth3.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "swishes:swishes/swish-7.wav"
+   ]
   },
   {
    "family": "dash",
    "variant": 0,
-   "file": "footstep00.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "rpgaudio:OGG/footstep01.ogg",
+    "swishes:swishes/swish-9.wav"
+   ]
   },
   {
    "family": "dash",
    "variant": 1,
-   "file": "footstep02.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "rpgaudio:OGG/footstep08.ogg",
+    "swishes:swishes/swish-7.wav"
+   ]
   },
   {
    "family": "landing",
    "variant": 0,
-   "file": "footstep05.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "hits37:hits/hit30.mp3.flac",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
   },
   {
    "family": "landing",
    "variant": 1,
-   "file": "bookPlace3.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "break75:bfh1_hit_02.ogg",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
   },
   {
    "family": "throw",
    "variant": 0,
-   "file": "cloth4.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "sword20:sword - StarNinjas/sword.5.ogg"
+   ]
   },
   {
    "family": "drop",
    "variant": 0,
-   "file": "dropLeather.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "break75:bfh1_metal_falling_02.ogg"
+   ]
   },
   {
    "family": "drop",
    "variant": 1,
-   "file": "handleSmallLeather.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "break75:bfh1_wood_falling_02.ogg"
+   ]
   },
   {
    "family": "crowd",
    "variant": 0,
-   "file": "footstep07.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "cheer:Gregor Quendel - Free Crowd Cheering Sounds - MP3/Gregor Quendel - Crowd Cheering Sounds - 03 - Strong cheering - I.mp3"
+   ]
   },
   {
    "family": "crowd",
    "variant": 1,
-   "file": "footstep08.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "crowdshout:crowd_shouting.ogg"
+   ]
   },
   {
    "family": "companion",
    "variant": 0,
-   "file": "pluck_001.ogg",
-   "pack": "kenney_interfaceSounds"
+   "files": [
+    "doggrunt:dog-frieda-grunt-96khz-01.flac"
+   ]
   },
   {
    "family": "companion",
    "variant": 1,
-   "file": "pluck_002.ogg",
-   "pack": "kenney_interfaceSounds"
+   "files": [
+    "dogsounds:Dog/Dog Bark 1.wav"
+   ]
   },
   {
    "family": "companion",
    "variant": 2,
-   "file": "question_002.ogg",
-   "pack": "kenney_interfaceSounds"
+   "files": [
+    "crowcaw:crow_caw.wav"
+   ]
   },
   {
    "family": "move",
    "variant": 0,
-   "file": "jingles_HIT01.ogg",
-   "pack": "jingleSounds_Kenney"
+   "files": [
+    "jingles:OGG/jingles_HIT/jingles_HIT01.ogg"
+   ]
   },
   {
    "family": "move",
    "variant": 1,
-   "file": "jingles_HIT02.ogg",
-   "pack": "jingleSounds_Kenney"
+   "files": [
+    "jingles:OGG/jingles_HIT/jingles_HIT04.ogg"
+   ]
   },
   {
    "family": "move",
    "variant": 2,
-   "file": "jingles_HIT04.ogg",
-   "pack": "jingleSounds_Kenney"
+   "files": [
+    "jingles:OGG/jingles_HIT/jingles_HIT11.ogg"
+   ]
   },
   {
    "family": "move",
    "variant": 3,
-   "file": "jingles_HIT05.ogg",
-   "pack": "jingleSounds_Kenney"
+   "files": [
+    "jingles:OGG/jingles_HIT/jingles_HIT12.ogg"
+   ]
   },
   {
    "family": "win",
    "variant": 0,
-   "file": "jingles_STEEL00.ogg",
-   "pack": "jingleSounds_Kenney"
+   "files": [
+    "winjingle:WinBrass.wav"
+   ]
   },
   {
    "family": "loss",
    "variant": 0,
-   "file": "jingles_NES02.ogg",
-   "pack": "jingleSounds_Kenney"
+   "files": [
+    "jingles:OGG/jingles_SAX/jingles_SAX01.ogg"
+   ]
   },
   {
    "family": "ui-tap",
    "variant": 0,
-   "file": "click_001.ogg",
-   "pack": "kenney_interfaceSounds"
+   "files": [
+    "interface:Audio/click_001.ogg"
+   ]
   },
   {
    "family": "ui-tap",
    "variant": 1,
-   "file": "select_001.ogg",
-   "pack": "kenney_interfaceSounds"
+   "files": [
+    "interface:Audio/select_001.ogg"
+   ]
   },
   {
    "family": "card-flip",
    "variant": 0,
-   "file": "bookFlip3.ogg",
-   "pack": "RPGsounds_Kenney"
+   "files": [
+    "rpgaudio:OGG/bookFlip3.ogg"
+   ]
   },
   {
    "family": "level-up",
    "variant": 0,
-   "file": "jingles_STEEL04.ogg",
-   "pack": "jingleSounds_Kenney"
+   "files": [
+    "jingles:OGG/jingles_STEEL/jingles_STEEL04.ogg"
+   ]
+  }
+ ],
+ "credits": [
+  {
+   "pack": "hits37",
+   "name": "37 hits/punches",
+   "author": "Independent.nu (submitted by qubodup)",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/37-hitspunches",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "qpunch",
+   "name": "Punch",
+   "author": "Iwan 'qubodup' Gabovitch",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/punch",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "battle",
+   "name": "Battle Sound Effects",
+   "author": "artisticdude",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/battle-sound-effects",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "castiron",
+   "name": "33 metal clang sounds from cast iron pans",
+   "author": "bart",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/33-metal-clang-sounds-cast-iron-pans",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "wood35",
+   "name": "35 wooden cracks/hits/destructions",
+   "author": "Independent.nu",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/35-wooden-crackshitsdestructions",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "break75",
+   "name": "75 CC0 breaking / falling / hit sfx",
+   "author": "rubberduck",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "rpg80",
+   "name": "80 CC0 RPG SFX",
+   "author": "rubberduck",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/80-cc0-rpg-sfx",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "shields",
+   "name": "10 Impact/Shield Blocks",
+   "author": "StarNinjas",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/10-impactshield-blocks",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "swishes",
+   "name": "Swishes Sound Pack",
+   "author": "artisticdude",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/swishes-sound-pack",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "sword20",
+   "name": "20 Sword Sound Effects (Attacks and Clashes)",
+   "author": "StarNinjas",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "crowdshout",
+   "name": "Crowd Shouting/Speaking Ambience",
+   "author": "StarNinjas",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/crowd-shoutingspeaking-ambience",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "cheer",
+   "name": "Free Crowd Cheering Sounds",
+   "author": "Gregor Quendel",
+   "licence": "CC BY 4.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
+   "page": "https://opengameart.org/content/free-crowd-cheering-sounds",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "doggrunt",
+   "name": "Dog Grunt",
+   "author": "qubodup",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/dog-grunt",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "dogsounds",
+   "name": "Dog sounds",
+   "author": "pauliuw",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/dog-sounds",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "crowcaw",
+   "name": "Crow caw",
+   "author": "zeroisnotnull",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/crow-caw",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "winjingle",
+   "name": "Win Jingle",
+   "author": "Fupi",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/win-jingle",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "rpgaudio",
+   "name": "RPG Audio (Kenney)",
+   "author": "Kenney",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/50-rpg-sound-effects",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "interface",
+   "name": "Interface Sounds (Kenney)",
+   "author": "Kenney",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/interface-sounds",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "jingles",
+   "name": "Music Jingles (Kenney)",
+   "author": "Kenney",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/85-short-music-jingles",
+   "fetched": "2026-11-15"
   }
  ]
 }

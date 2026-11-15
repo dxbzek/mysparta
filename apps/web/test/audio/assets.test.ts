@@ -24,6 +24,24 @@ describe("audio sprite", () => {
     expect(map.families["level-up"]).toHaveLength(1);
   });
 
+  it("credits every pack it uses, each with an allowed licence, a page and an author", () => {
+    const full = JSON.parse(readFileSync(`${PUB}audio/sfx.json`, "utf8")) as {
+      sources: { family: string; variant: number; files: string[] }[];
+      credits: { pack: string; author: string; licence: string; page: string; fetched: string }[];
+    };
+    const allowed = new Set(["CC0 1.0", "CC BY 3.0", "CC BY 4.0", "CC BY-SA 3.0", "CC BY-SA 4.0"]);
+    const packs = new Map(full.credits.map((c) => [c.pack, c]));
+    for (const c of full.credits) {
+      expect(allowed.has(c.licence), `${c.pack}: ${c.licence}`).toBe(true);
+      expect(c.page, c.pack).toMatch(/^https:\/\//);
+      expect(c.author.length, c.pack).toBeGreaterThan(0);
+      expect(c.fetched, c.pack).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+    for (const s of full.sources) for (const f of s.files) expect(packs.has(f.split(":")[0]!), `${s.family}[${s.variant}] ${f}`).toBe(true);
+    const n = Object.values(SFX_VARIANTS).reduce((a, b) => a + b, 0) + 4;
+    expect(full.sources).toHaveLength(n);
+  });
+
   it("sounds do not overlap and have length", () => {
     const all = Object.values(map.families).flat().sort((p, q) => p.start - q.start);
     for (let i = 0; i < all.length; i++) {
