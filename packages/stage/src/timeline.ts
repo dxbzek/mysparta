@@ -11,13 +11,14 @@
  *  - The moment of contact is one value; every contact effect is scheduled from it (effects.ts).
  *  - One actor at a time: the next actor starts when the last one's dash back is 60% done.
  */
-import type { ActorId, BagItem, BoutLog, FighterSnapshot, HeldId, ShieldId, Side, Step } from "@rankzero/core";
+import type { ActorId, ActorInit, BagItem, BoutLog, FighterSnapshot, HeldId, ShieldId, Side, Step } from "@rankzero/core";
 import { WEAPON_META, isScrapper, killStep as findKillStep, sideOf } from "@rankzero/core";
 import type { Aim, ClipInfo, Dress, Pose, Rig, RigId } from "@rankzero/rig";
 import { strikeTime } from "@rankzero/rig";
 import type { ContactMark, Cue, EffectKey, PlayerOpts, SfxFamily, SfxItem, SfxOn } from "./contracts";
 import { finishCues, pickVariant } from "./cues";
-import { HOME, aimZone, homeFacing, homeMarks, stopFor } from "./layout";
+import type { Zone } from "./layout";
+import { HOME, PET_SCALE, homeFacing, homeMarks, reachFor, stopFor } from "./layout";
 import type { ActorTrack, BagEvent, Crowd, Flash, FlightItem, FloorItem, FxItem, HpEvent, Move, Nudge, NumberItem,
   Seg, Shake, Aura, TagItem, Tracks } from "./model";
 import type { MotionRules } from "./motion";
@@ -34,9 +35,12 @@ export interface Internal {
   stopError?: number;
   /** Multiply every screen shake by this (a planted fault for the calm-motion test). */
   shakeScale?: number;
+  /** Pets on these marks, at this scale (a planted fault for the pet layout test: pets back at
+   *  their owner's feet, as the fight-screen pass had them). */
+  pets?: { marks: Readonly<Record<string, { x: number; y: number }>>; scale?: number };
 }
 
-export type Zone = "head" | "body";
+export type { Zone } from "./layout";
 export interface SwingPlan {
   i: number; actor: ActorId; target: ActorId; clip: string; dress: Dress; zone: Zone;
   start: number;
@@ -109,14 +113,16 @@ export class Builder {
     this.stepAt = new Array<number>(log.steps.length).fill(0);
     this.applyAt = new Array<number>(log.steps.length).fill(0);
     this.bagNow = { a: [...log.init.bag.a], b: [...log.init.bag.b] };
-    const marks = homeMarks(log.init.actors);
+    // a pet is drawn at its clamped height (layout.PET_SCALE); a scrapper at its own size
+    const scaleOf = (a: ActorInit): number => (a.kind === "scrapper" ? 1 : internal.pets?.scale ?? PET_SCALE[a.kind]);
+    const marks = homeMarks(log.init.actors, (a) => reachFor(a.kind));
     log.init.actors.forEach((a, n) => {
       const side = sideOf(a.id);
-      const home = marks.get(a.id) ?? HOME;
+      const home = internal.pets?.marks[a.id] ?? marks.get(a.id) ?? HOME;
       const tr: ActorTrack = {
         id: a.id, side, rig: a.kind as RigId, kind: a.kind, maxHp: a.maxHp,
         ...(isScrapper(a.id) ? { look: snaps[side].look } : {}),
-        scale: 1, home, homeFacing: homeFacing(side),
+        scale: scaleOf(a), home, homeFacing: homeFacing(side), reach: reachFor(a.kind), attacks: [],
         phase: (n * IDLE.phaseStepMs + ((opts.cosmeticSeed >>> 0) % 997)) % 1200,
         segs: [], moves: [], facings: [], helds: [], shields: [], initialShield: a.kind === "scrapper" ? log.init.shield[side] : null,
         start: { x: home.x, y: home.y }, showFrom: Infinity, goneAt: Infinity,
@@ -342,6 +348,8 @@ export class Builder {
       stop = { x: s.x + facing * (this.internal.stopError ?? 0), aimY: s.aimY };
       y = tp.y;
       if (p.mode === "dash") {
+        // a pet starts behind its owner (layout.homeMarks) and keeps behind his floor line until it
+        // reaches its target's, so it passes behind him (he draws over it), never through him
         const dist = Math.hypot(stop.x - from.x, y - from.floorY);
         dashMs = Math.max(BEAT.dashMinMs, Math.round((dist / BEAT.dashSpeed) * 1000));
         contactAt = p.start + BEAT.anticipationMs + dashMs + strikeIn;
@@ -389,6 +397,8 @@ export class Builder {
     const leftMs = postRate > 0 ? left / postRate : 0;
     if (leftMs > 0.01) segs.push(this.play(p.actor, p.clip, t, { c0: c, rate: postRate, until: t + leftMs, ...extra }));
     const end = t + Math.max(0, leftMs);
+    // a pet may be drawn in front of a fighter only during its own attack (frame.ts)
+    if (atr.rig !== "scrapper") atr.attacks.push({ from: p.start, to: end });
     // the target braces from the start of the dash
     if (p.mode === "dash" && this.status.get(p.target) === "up" && !this.snared.has(p.target) && ttr.rig === "scrapper") {
       this.play(p.target, "brace", p.start + BEAT.anticipationMs, { until: contactAt, busy: false });

@@ -20,6 +20,9 @@ import { CONTACT, FLIGHT } from "./tuning";
 export interface FrameActor {
   id: ActorId; rig: RigId; clip: string; clipT: number; aim?: Aim; place: Place; floorY: number;
   dress: Dress; seg: Seg | null; nudges: Nudge[];
+  /** A pet inside its own attack (`ActorTrack.attacks`): the one time it may draw over a fighter
+   *  that stands at its depth. */
+  attacking: boolean;
 }
 export interface FrameProp { item: PropId; x: number; y: number; rot: number; facing: 1 | -1; alpha: number }
 export interface FrameFx { fx: FxKind; progress: number; at: Place; seed: number }
@@ -83,11 +86,11 @@ export function frameAt(tr: Tracks, t: number): Frame {
     if (seg?.prop !== undefined) dress.prop = seg.prop;
     const fa: FrameActor = { id: a.id, rig: a.rig, clip: seg === null ? "idle" : seg.clip,
       clipT: seg === null ? t + a.phase : clipTime(seg, t), place: { x: p.x, y: p.y, facing: p.facing }, floorY: p.floorY,
-      dress, seg, nudges: p.nudges };
+      dress, seg, nudges: p.nudges, attacking: a.attacks.some((w) => t >= w.from && t < w.to) };
     if (seg?.aim !== undefined) fa.aim = seg.aim;
     actors.push(fa);
   }
-  actors.sort((p, q) => (p.floorY !== q.floorY ? p.floorY - q.floorY : p.place.x - q.place.x));
+  actors.sort(byDepth);
   const placeOf = new Map<ActorId, FrameActor>(actors.map((x) => [x.id, x]));
 
   // ---- floor props: the newest six, the oldest fading out as a seventh lands
@@ -219,6 +222,16 @@ export function frameAt(tr: Tracks, t: number): Frame {
 
   const tape = tr.tape !== null && t >= tr.tape.from && t < tr.tape.to ? (t - tr.tape.from) / (tr.tape.to - tr.tape.from) : null;
   return { t, shake: { x: sx, y: sy }, crowd, actors, floor, flights, fx, texts, tape, auras, present };
+}
+
+/**
+ * Draw order (owner, 15 Nov 2026: "Animal covering all animals and model"): farther back (a
+ * smaller floor y) first. At one depth (within 0.3 units) a fighter draws over a pet, and only a
+ * pet in its own attack comes in front of both; then left to right.
+ */
+const depthOf = (a: FrameActor): number => a.floorY + (a.rig === "scrapper" ? 0.3 : a.attacking ? 0.6 : 0);
+export function byDepth(p: FrameActor, q: FrameActor): number {
+  return depthOf(p) - depthOf(q) || p.place.x - q.place.x;
 }
 
 /** The point of a sampled track at `t` (held at its ends). */

@@ -7,6 +7,7 @@ import type { ActorId, BagItem, CompanionId, HeldId, Look, PerkId, PropId, Shiel
 import type { Aim, FxKind, MoveProp, RigId } from "@rankzero/rig";
 import type { Cue, EffectKey, Timeline } from "./contracts";
 import type { FlightPath } from "./flight";
+import type { Reach } from "./layout";
 
 /** A stretch of one clip on one actor. Clip time is `c0 + (t - from) x rate`. The segment that
  *  started last wins; when none covers `t` the actor idles. */
@@ -47,6 +48,12 @@ export interface ActorTrack {
   showFrom: number;
   /** Not drawn from this time (ran off stage). */
   goneAt: number;
+  /** How far its idle pose is drawn from its place (facing the fight), at its scale and in its
+   *  starting dress: what the home marks and the camera frame are made from. */
+  reach: Reach;
+  /** A pet's own attacks, from the start of its run in to the end of its swing: the only times it
+   *  may be drawn in front of a fighter at the same depth. */
+  attacks: { from: number; to: number }[];
 }
 
 /** A drawn effect from the rig's list. `follow` pins it to an actor's place. `loopMs` repeats

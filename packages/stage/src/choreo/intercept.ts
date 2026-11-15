@@ -20,7 +20,7 @@ export function intercept(b: Builder, step: StepOf<"intercept">, i: number): Pla
   // Where the dasher would have stopped for its own swing; it gets 70% of the way there.
   const aWeapon = atr.rig === "scrapper" ? b.heldNow.get(dasher) ?? "fists" : null;
   const own = stopFor(b.rig, { rig: atr.rig, dress: b.dress(dasher), clip: b.swingClip(dasher, aWeapon), facing },
-    { rig: dtr.rig, dress: b.dress(def), x: dp.x, facing: dp.facing }, "body");
+    { rig: dtr.rig, dress: b.dress(def), x: dp.x, facing: dp.facing }, aimZone(atr.rig, dtr.rig, i));
   const xA = from.x + OUTCOME.interceptAt * (own.x - from.x);
   const yA = dp.y;
   const dist = Math.hypot(xA - from.x, yA - from.y);
@@ -39,7 +39,7 @@ export function intercept(b: Builder, step: StepOf<"intercept">, i: number): Pla
   const clip = b.swingClip(def, weapon);
   const strike = b.strikeOf(b.info(dtr.rig, clip));
   const hitStop = b.hitStopFor(i, step.crit);
-  const sw = b.swing({ i, actor: def, target: dasher, clip, dress: b.dress(def, weapon), zone: aimZone(atr.rig, i),
+  const sw = b.swing({ i, actor: def, target: dasher, clip, dress: b.dress(def, weapon), zone: aimZone(dtr.rig, atr.rig, i),
     start: arrive - strike, mode: "step", combo: false, hitStop, slow: i === b.killStep });
   if (dtr.rig !== "scrapper") b.cue(sw.segs[0]!.from, i, "companion", 0, dtr.rig);
   if (step.outcome === "evade") evadeEarly(b, dasher, def, sw.contactAt);

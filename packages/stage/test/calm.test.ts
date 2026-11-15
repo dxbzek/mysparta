@@ -27,7 +27,11 @@ describe("calm screen, measured on every frame", () => {
           const s = motionStats(p, view, reduced);
           expect(s.frames).toBeGreaterThan(400);
           expect(calmProblems(s, p.tracks.koFocus?.at ?? null, reduced)).toEqual([]);
-          if (!reduced && p.tracks.koFocus !== null) expect(s.pushes).toBe(1);
+          // one knockout reframe; none when the bout's frame already holds the fallen body (its
+          // pets beside it reach as far)
+          const k0 = cameraAt(p.tracks, 0, view, false).k;
+          const k1 = cameraAt(p.tracks, p.timeline.durationMs, view, false).k;
+          if (!reduced && p.tracks.koFocus !== null) expect(s.pushes).toBe(Math.abs(Math.log(k1 / k0)) > 0.05 ? 1 : 0);
         });
       }
     }
