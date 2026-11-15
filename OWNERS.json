@@ -89,6 +89,7 @@
       "apps/web/src/text/names.ts",
       "apps/web/src/text/stage.ts",
       "apps/web/src/text/log.ts",
+      "apps/web/src/text/moves.ts",
       "apps/web/public/fonts/**",
       "apps/web/public/audio/**",
       "apps/web/test/fight/**",
