@@ -7,7 +7,7 @@ import type { CompanionId, HeldId, PerkId, ShieldId, SkillId } from "../contract
 import { isCompanionId, isPerkId, isShieldId, isSkillId, perkKind } from "../contracts/ids";
 import type { ActorId, BagItem, Side } from "../contracts/log";
 import type { CompanionDef } from "../contracts/content";
-import { COMPANIONS, COMPANION_FIXED, companionScale } from "../content/companions";
+import { COMPANIONS, COMPANION_FIXED, COMPANION_HP_GROWTH, COMPANION_STR_GROWTH, companionScale } from "../content/companions";
 import { SKILLS, sk } from "../content/skills";
 import { hasTag, weaponNumbers } from "../content/weapons";
 import { shieldNumbers } from "../content/shields";
@@ -92,7 +92,7 @@ function known(perks: readonly PerkId[]): PerkId[] {
   return out;
 }
 
-/** Max HP of a snapshot: 30 + 7 x Health + 3 x level, minus the companion cost. */
+/** Max HP of a snapshot (maxHpOf: 54 + 7 x Health), minus the companion cost. */
 export function snapshotMaxHp(s: FighterSnapshot): number {
   const perks = known(s.perks);
   return maxHpOf(effectiveOf(s.stats).health, s.level, companionCostPct(perks));
@@ -121,11 +121,11 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
   for (const p of perks) {
     if (!isCompanionId(p) || n > 3) continue;
     const def = COMPANIONS[p];
-    const scaled = companionScale(def.hp, s.level);
+    const scaled = companionScale(def.hp, s.level, COMPANION_HP_GROWTH);
     const hp = Math.floor((scaled * (100 + petHp)) / 100);
     actors.push({
       id: `${side}${n}` as ActorId, side, kind: p, scrapper: false, maxHp: hp, hp, status: "up",
-      str: companionScale(def.strength, s.level), agi: def.agility, spd: def.speed,
+      str: companionScale(def.strength, s.level, COMPANION_STR_GROWTH), agi: def.agility, spd: def.speed,
       held: "fists", heldAttacked: false, shield: null, snared: false, snareSkips: 0, snareLimit: 0, sand: 0,
       taunt: 0, reload: false, dmgPct: petDmg, clock: 0, priority: false,
       skills: new Set(), comp: def, dmg: def.dmg, haymaker: false, lastStandUsed: false, headStartPending: false,

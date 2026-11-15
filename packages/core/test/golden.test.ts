@@ -3,7 +3,9 @@
  * 30 seeds. The same digests are checked in headless Chromium and WebKit by tools/parity.
  * Only the sim owner regenerates them, in the same commit as a rules change:
  *   UPDATE_GOLDEN=1 pnpm --filter @rankzero/core exec vitest run test/golden.test.ts
- * Also here: the contract's reducer over every golden log equals the sim's own final state.
+ * Also here: the contract's reducer over every golden log equals the sim's own final state, and the
+ * digests are tied to SIM_VERSION (golden/version.json): new digests under an old version are refused,
+ * so a sim change cannot ship without a version bump (15 November review, finding 70).
  */
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -15,9 +17,11 @@ import { checkLog } from "../src/contracts/check";
 import { resultOf, stateAt } from "../src/contracts/reduce";
 import { simulateFight, simulateWith } from "../src/sim/simulate";
 import { boutStreams } from "../src/sim/rng";
+import { SIM_VERSION } from "../src/sim/version";
 import { SCENARIOS, SEEDS_PER_SCENARIO, goldenBouts } from "./golden/scenarios";
 
 const FILE = join(dirname(fileURLToPath(import.meta.url)), "golden", "digests.json");
+const VERSION_FILE = join(dirname(fileURLToPath(import.meta.url)), "golden", "version.json");
 const sha = (s: string): string => createHash("sha256").update(s, "utf8").digest("hex");
 
 const bouts = goldenBouts();
@@ -42,6 +46,17 @@ describe("golden digests", () => {
       }
     }
     expect(compared).toBe(180);
+  });
+
+  it("belong to the current SIM_VERSION: changed digests need a version bump", () => {
+    const fingerprint = sha(readFileSync(FILE, "utf8").replace(/\r\n/g, "\n"));
+    const stored = JSON.parse(readFileSync(VERSION_FILE, "utf8")) as { simVersion: number; digests: string };
+    if (process.env.UPDATE_GOLDEN === "1" && stored.digests !== fingerprint) {
+      if (stored.simVersion >= SIM_VERSION) throw new Error(`the golden digests changed: bump SIM_VERSION (now ${SIM_VERSION}) in src/sim/version.ts`);
+      writeFileSync(VERSION_FILE, JSON.stringify({ simVersion: SIM_VERSION, digests: fingerprint }, null, 2) + "\n");
+      return;
+    }
+    expect(stored).toEqual({ simVersion: SIM_VERSION, digests: fingerprint });
   });
 
   it("cover what the scenarios promise: fists only, weapons, companions and Moves", () => {

@@ -6,6 +6,7 @@
 import type { BagItem, Proc, Step } from "../contracts/log";
 import type { MoveId, WeaponId } from "../contracts/ids";
 import { SKILLS, sk } from "../content/skills";
+import { hasTag } from "../content/weapons";
 import type { Actor } from "./combatant";
 import { valuesOf } from "./combatant";
 import type { Bout } from "./bout";
@@ -24,7 +25,8 @@ export const TAUNT_TURNS = 2;
 export function moveReady(b: Bout, a: Actor, id: MoveId): boolean {
   const enemies = enemiesUp(b, a);
   switch (id) {
-    case "haymaker": return !a.haymaker;
+    // A throw never uses the boost, so a Haymaker is not called while a Thrown weapon is in the hand.
+    case "haymaker": return !a.haymaker && !(a.held !== "fists" && hasTag(a.held, "thrown"));
     case "energy-drink": return a.hp * 100 < a.maxHp * sk("energy-drink", "belowHpPct");
     case "tarp": return enemies.some((e) => !e.snared);
     case "whistle": return b.actors.some((c) => c.side === a.side && !c.scrapper && c.status === "up"
@@ -34,7 +36,8 @@ export function moveReady(b: Bout, a: Actor, id: MoveId): boolean {
       const foe = scrapperOfSide(b, a.side === "a" ? "b" : "a");
       return a.held === "fists" && foe.status === "up" && foe.held !== "fists";
     }
-    case "air-horn": return enemies.some((e) => !e.scrapper);
+    // With no enemy companion it still startles the enemy scrapper (pet pass: it was often dead).
+    case "air-horn": return enemies.length > 0;
     case "body-slam": return a.held === "fists";
     case "sand-in-the-eyes": {
       const foe = scrapperOfSide(b, a.side === "a" ? "b" : "a");
@@ -168,6 +171,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
     }
     case "air-horn": {
       emit(b, moveStep(b, a, id, procs, {}));
+      const pets = enemiesUp(b, a).some((e) => !e.scrapper);
       for (const e of enemiesUp(b, a)) {
         if (e.scrapper) continue;
         if (b.r.move.int(100) < sk("air-horn", "fleeChance")) {
@@ -176,7 +180,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
         }
       }
       const foe = scrapperOfSide(b, a.side === "a" ? "b" : "a");
-      foe.clock += sk("air-horn", "clockPush");
+      foe.clock += sk("air-horn", pets ? "clockPush" : "clockPushNoPet");
       return sk("air-horn", "cost");
     }
     case "body-slam": {

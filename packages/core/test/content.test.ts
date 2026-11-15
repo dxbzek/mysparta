@@ -6,7 +6,7 @@ import type { HeldId } from "../src/contracts/ids";
 import { COMPANION_IDS, MOVE_IDS, SHIELD_IDS, SKILL_IDS, WEAPON_IDS } from "../src/contracts/ids";
 import { WEAPON_META } from "../src/contracts/content";
 import { api } from "../src/api";
-import { COMPANIONS, companionScale } from "../src/content/companions";
+import { COMPANIONS, COMPANION_HP_GROWTH, COMPANION_STR_GROWTH, companionScale } from "../src/content/companions";
 import { SKILLS } from "../src/content/skills";
 import { WEAPONS } from "../src/content/weapons";
 
@@ -41,23 +41,25 @@ describe("content tables", () => {
   });
 
   it("matches spot values of the skill table", () => {
-    expect(SKILLS["big-heart"].tiers[0]).toEqual({ health: 3, healthMult: 40 });
+    expect(SKILLS["big-heart"].tiers[0]).toEqual({ health: 3, healthMult: 30 });
     expect(SKILLS.mountain.tiers[0]).toMatchObject({ healthMult: 150, agilityMult: -20, speedMult: -20, startClock: 150 });
     expect(SKILLS.parry.tiers[0]).toEqual({ block: 10, riposteAfterBlock: 80 });
     expect(SKILLS.haymaker.move).toEqual({ weight: 5, uses: 1 });
-    expect(SKILLS["body-slam"].tiers[0]).toMatchObject({ base: 16, perStrength: 3, extraCost: 100 });
+    expect(SKILLS["body-slam"].tiers[0]).toMatchObject({ base: 18, perStrength: 3, extraCost: 100 });
     expect(SKILLS.whistle.move).toEqual({ weight: 20, uses: 2 });
     expect(SKILLS.whistle.tiers[0]).toMatchObject({ belowHpPct: 90 });
   });
 
   it("matches the companion table and its scaling", () => {
-    expect(COMPANIONS.raccoon).toMatchObject({ weight: 90, limit: 2, hpCostPct: 8, hp: 16, strength: 4, startClock: 10 });
-    expect(COMPANIONS.goose).toMatchObject({ weight: 5, limit: 1, excludes: ["boar"], hpCostPct: 20, combo: 50, evade: 25 });
-    expect(COMPANIONS.boar).toMatchObject({ weight: 5, limit: 1, excludes: ["goose"], hpCostPct: 30, hp: 104, strength: 16, startClock: 250 });
+    // Pet pass (15 November 2026): level-1 values, grown by COMPANION_HP_GROWTH / COMPANION_STR_GROWTH.
+    expect(COMPANIONS.raccoon).toMatchObject({ weight: 90, limit: 2, hpCostPct: 11, hp: 3, strength: 1, startClock: 10 });
+    expect(COMPANIONS.goose).toMatchObject({ weight: 5, limit: 1, excludes: ["boar"], hpCostPct: 22, combo: 30, evade: 25 });
+    expect(COMPANIONS.boar).toMatchObject({ weight: 5, limit: 1, excludes: ["goose"], hpCostPct: 25, hp: 7, strength: 2, startClock: 150 });
     expect(COMPANIONS["stray-dog"]).toMatchObject({ limit: 1, excludes: ["alley-cat"], swings: 1, flies: false });
     expect(COMPANIONS.crow).toMatchObject({ limit: 1, swings: 1, flies: true });
     expect(COMPANIONS["alley-cat"]).toMatchObject({ limit: 1, excludes: ["stray-dog"], swings: 2, flies: false });
-    expect(companionScale(80, 1)).toBe(80);
-    expect(companionScale(80, 11)).toBe(104);
+    expect(companionScale(80, 1, COMPANION_HP_GROWTH)).toBe(80);
+    expect(companionScale(80, 11, COMPANION_HP_GROWTH)).toBe(200);
+    expect(companionScale(5, 11, COMPANION_STR_GROWTH)).toBe(35);
   });
 });

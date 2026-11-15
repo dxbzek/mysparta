@@ -88,7 +88,7 @@ export const SKILL_LINES: Readonly<Record<SkillId, SkillLine>> = {
   "whistle": (n, m) => ({ effect: `Move, when a pet drops below ${n.belowHpPct}% HP: heals it ${n.healPct}% and it acts next. Fires ${uses(m?.uses ?? 1)}.` }),
   "firecrackers": (n, m) => ({ effect: `Move: ${n.damageMin} to ${n.damageMax} damage to the enemy scrapper that cannot be dodged; enemy pets lose ${n.companionPct}% HP. Fires ${uses(m?.uses ?? 1)}.` }),
   "snatch": (_n, m) => ({ effect: `Move, when unarmed: grabs the enemy's weapon and uses it. Fires ${uses(m?.uses ?? 1)}.` }),
-  "air-horn": (n, m) => ({ effect: `Move: each enemy pet has ${n.fleeChance}% to run off for good, and the enemy loses ${n.clockPush} beats. Fires ${uses(m?.uses ?? 1)}.` }),
+  "air-horn": (n, m) => ({ effect: `Move: each enemy pet has ${n.fleeChance}% to run off for good, and the enemy loses ${n.clockPush} beats (${n.clockPushNoPet} when it has no pet). Fires ${uses(m?.uses ?? 1)}.` }),
   "body-slam": (n, m) => ({ effect: `Move, when unarmed: slams an enemy for ${n.base} plus ${n.perStrength} per Strength, and knocks its weapon and shield away. Fires ${uses(m?.uses ?? 1)}.` }),
   "sand-in-the-eyes": (n, m) => ({ effect: `Move: throws sand in the enemy scrapper's eyes: its Aim is ${abs(n.aimLoss!)} lower for the rest of the bout. Fires ${uses(m?.uses ?? 1)}.` }),
   "taunt": (n, m) => ({ effect: `Move: goads the enemy and still acts at once: Riposte +${n.riposte} until its next turn. Fires ${uses(m?.uses ?? 1)}.` }),
@@ -161,7 +161,7 @@ export function needsLine(id: PerkId, owned: readonly PerkId[], c: ContentTables
   if (id === "whistle" && !owned.some((p) => perkKind(p) === "companion")) return "No pet yet.";
   if (id === "pet-lover" && !owned.some((p) => perkKind(p) === "companion")) return "No pet yet.";
   if (id === "trick-shot" && !weaponTags.includes("thrown")) return "No Thrown weapon yet.";
-  if (id === "junk-collector" && !owned.some((p) => perkKind(p) === "weapon")) return "No weapon yet.";
+  if (id === "junk-collector" && owned.filter((p) => perkKind(p) === "weapon").length < 2) return "Needs two weapons.";
   if (perkKind(id) === "shield" && owned.some((p) => p !== id && perkKind(p) === "shield")) return "Already carries a shield.";
   return null;
 }
@@ -257,7 +257,7 @@ export const SKILL_SHORT: Readonly<Record<SkillId, ShortLine>> = {
   "whistle": (n) => `Heals a hurt pet ${n.healPct}% and it acts next`,
   "firecrackers": (n) => `${n.damageMin} to ${n.damageMax} damage that cannot be dodged`,
   "snatch": () => "Unarmed: grabs the enemy's weapon",
-  "air-horn": (n) => `Each enemy pet has ${n.fleeChance}% to run off`,
+  "air-horn": (n) => `Enemy pets ${n.fleeChance}% run off; no pet: acts later`,
   "body-slam": (n) => `Slams for ${n.base} plus Strength, knocks gear away`,
   "sand-in-the-eyes": (n) => `Enemy Aim -${abs(n.aimLoss!)} for the rest of the bout`,
   "taunt": (n) => `Goads the enemy: Riposte +${n.riposte} for a turn`,

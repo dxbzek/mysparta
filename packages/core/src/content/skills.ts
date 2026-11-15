@@ -15,7 +15,7 @@ function def(id: SkillId, kind: Kind, nums: Record<string, number>, move?: { wei
 
 export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   // Boosters: change the stats for good when picked. Points are added, multipliers are whole percent.
-  "big-heart": def("big-heart", "booster", { health: 3, healthMult: 40 }),
+  "big-heart": def("big-heart", "booster", { health: 3, healthMult: 30 }),
   "heavy-hands": def("heavy-hands", "booster", { strength: 3, strengthMult: 40 }),
   "light-feet": def("light-feet", "booster", { agility: 3, agilityMult: 35 }),
   "fast-twitch": def("fast-twitch", "booster", { speed: 3, speedMult: 40 }),
@@ -42,8 +42,8 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "slippery": def("slippery", "passive", { evade: 25 }),
   // content v2 passives
   "quick-swap": def("quick-swap", "passive", { drawSlack: 2 }),
-  "pet-lover": def("pet-lover", "passive", { petHp: 30, petDamage: 25 }),
-  "junk-collector": def("junk-collector", "passive", { returnChance: 60 }),
+  "pet-lover": def("pet-lover", "passive", { petHp: 30, petDamage: 50 }),
+  "junk-collector": def("junk-collector", "passive", { returnChance: 90 }),
   "trick-shot": def("trick-shot", "passive", { ricochet: 35 }),
 
   // Moves: fire by weighted chance at the start of a turn, limited uses per bout.
@@ -54,13 +54,13 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "whistle": def("whistle", "move", { healPct: 50, belowHpPct: 90, cost: 20 }, { weight: 20, uses: 2 }),
   "firecrackers": def("firecrackers", "move", { damageMin: 12, damageMax: 20, companionPct: 40, costPct: 50 }, { weight: 3, uses: 2 }),
   "snatch": def("snatch", "move", { cost: 0 }, { weight: 28, uses: 2 }),
-  "air-horn": def("air-horn", "move", { fleeChance: 50, clockPush: 40, cost: 20 }, { weight: 8, uses: 1 }),
-  "body-slam": def("body-slam", "move", { base: 16, perStrength: 3, extraCost: 100 }, { weight: 12, uses: 1 }),
+  "air-horn": def("air-horn", "move", { fleeChance: 50, clockPush: 40, clockPushNoPet: 60, cost: 20 }, { weight: 8, uses: 1 }),
+  "body-slam": def("body-slam", "move", { base: 18, perStrength: 3, extraCost: 100 }, { weight: 12, uses: 1 }),
   // content v2 Moves
   "sand-in-the-eyes": def("sand-in-the-eyes", "move", { aimLoss: 25, costPct: 30 }, { weight: 4, uses: 1 }),
   "taunt": def("taunt", "move", { riposte: 40, cost: 0 }, { weight: 4, uses: 1 }),
   "second-wind": def("second-wind", "move", { healPct: 15, belowHpPct: 50, cost: 0 }, { weight: 16, uses: 1 }),
-  "grapple": def("grapple", "move", { base: 8, perStrength: 2, holds: 1 }, { weight: 12, uses: 1 }),
+  "grapple": def("grapple", "move", { base: 8, perStrength: 2, holds: 1 }, { weight: 16, uses: 1 }),
 };
 
 /** A named number of a skill. A missing name is a programming error in this package; it gives 0. */

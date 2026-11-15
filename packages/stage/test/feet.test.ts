@@ -2,7 +2,7 @@
  * Feet on the floor in real bouts (movement pass 2; owner, 16 Nov 2026: "make sure characters have
  * animation for walks, run, dodge etc, block properly"). Measured on the drawn feet of the real art
  * (the gate and content packs), every 60 fps frame of the three fixture bouts and of two find-bout
- * bouts (level 10 candidate 1, level 30 candidate 2), see lib/feet.ts:
+ * bouts (level 10 candidate 1, level 30 candidate 24; it was candidate 2 until the pet pass changed the sim, and candidate 24 has a pet attack the scrapper hops away from), see lib/feet.ts:
  *  - no toe or heel on the floor slides more than 0.5 units along it during footwork (the brace,
  *    the run, the brake, the shuffle, both dodges, both blocks, the idle and the cuts between them);
  *    before this pass the worst was 53.8 units in the fixtures (the eased dash, the walk home
@@ -39,7 +39,7 @@ function found(level: number, n: number): { log: BoutLog; a: FighterSnapshot; b:
 const BOUTS: readonly { name: string; log: BoutLog; a: FighterSnapshot; b: FighterSnapshot }[] = [
   ...FIXTURE_NAMES.map((name) => ({ ...BOUT_FIXTURES[name], name })),
   { name: "find-bout level 10 n 1", ...found(10, 1) },
-  { name: "find-bout level 30 n 2", ...found(30, 2) },
+  { name: "find-bout level 30 n 24", ...found(30, 24) },
 ];
 const cache = new Map<string, StagePlayer>();
 function player(name: string, internal?: Internal): StagePlayer {
@@ -88,7 +88,7 @@ describe("feet on the floor in real bouts, measured on the drawn feet", () => {
       m + tr.segs.filter((g) => g.clip === clip && tr.rig === "scrapper").length, 0), 0);
     for (const clip of ["dash-push", "brake", "shuffle", "slip", "evade", "block", "block-shield"]) expect(count(clip), clip).toBeGreaterThan(0);
     // the find-bout bout at level 30 alone has every one of them
-    const l30 = player("find-bout level 30 n 2").tracks.actors.flatMap((tr) => tr.segs.map((g) => g.clip));
+    const l30 = player("find-bout level 30 n 24").tracks.actors.flatMap((tr) => tr.segs.map((g) => g.clip));
     for (const clip of ["dash-push", "brake", "shuffle", "slip", "evade"]) expect(l30, clip).toContain(clip);
   });
 
@@ -137,10 +137,16 @@ describe("feet on the floor in real bouts, measured on the drawn feet", () => {
         expect(dodge, `${b.name} step ${i}`).toBeDefined();
         const clip = dodge!.clip as "slip" | "evade";
         seen[clip] += 1;
+        // A pet's bite or peck is hopped away from (dodgeOf, effects.ts: a rig that is not a scrapper
+        // gives "evade"). Until 15 Nov 2026 this test read a pet's attack as fists and wanted a slip;
+        // no bout it ran had a dodged pet attack, so it never showed.
+        const from = p.tracks.byId.get(s.actor);
+        const pet = from !== undefined && from.rig !== "scrapper";
+        if (pet) expect(clip, `${b.name} step ${i}: a pet's attack is hopped`).toBe("evade");
         const weapon = s.weapon ?? "fists";
-        const tags: readonly string[] = weapon === "fists" ? [] : (WEAPON_TAGS[weapon] ?? []);
+        const tags: readonly string[] = pet || weapon === "fists" ? [] : (WEAPON_TAGS[weapon] ?? []);
         if (tags.includes("heavy")) expect(clip, `${b.name} step ${i}: ${weapon} is heavy`).toBe("evade");
-        if (tags.includes("light") || weapon === "fists") expect(clip, `${b.name} step ${i}: ${weapon}`).toBe("slip");
+        if (tags.includes("light") || (weapon === "fists" && !pet)) expect(clip, `${b.name} step ${i}: ${weapon}`).toBe("slip");
         if (tags.includes("blade") && !tags.includes("light")) expect(clip, `${b.name} step ${i}: ${weapon} slashes`).toBe("evade");
         // deterministic: the same clip on a second build
         const tr2 = again.byId.get(target)!;

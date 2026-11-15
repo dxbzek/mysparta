@@ -58,14 +58,14 @@ describe("creation", () => {
       for (const p of pts) { expect(p).toBeGreaterThanOrEqual(2); expect(p).toBeLessThanOrEqual(5); }
     }
   });
-  it("gives level-1 HP 59 to 80 before the starting perk", () => {
+  it("gives level-1 HP 68 to 89 before the starting perk (54 + 7 x Health since the pet pass)", () => {
     let lo = 999; let hi = 0;
     for (let i = 0; i < 2000; i++) {
       const hp = maxHpOf(effectiveOf(startStats(combineSeed("t", i))).health, 1, 0);
       lo = Math.min(lo, hp); hi = Math.max(hi, hp);
     }
-    expect(lo).toBe(59);
-    expect(hi).toBe(80);
+    expect(lo).toBe(68);
+    expect(hi).toBe(89);
   });
   it("gives the same name the same stats, starting perk, look and first offer", () => {
     for (const n of ["Marla", "Dez", "Tug", "Big Lou"]) {
@@ -86,15 +86,17 @@ describe("creation", () => {
   it("starts with a perk that is allowed on an empty kit (never a Whistle)", () => {
     for (let i = 0; i < 3000; i++) expect(startPerk(combineSeed("s", i))).not.toBe("whistle");
   });
-  it("applies a starting booster to the stats", () => {
+  it("applies a booster taken on the Route to the stats (a scrapper starts with a weapon since the pet pass)", () => {
     for (let i = 0; i < 5000; i++) {
-      const name = api.randomName(i);
-      const r = rec(name);
-      if (api.sheetOf(r).startPerk !== "big-heart") continue;
-      expect(api.sheetOf(r).stats.mult.health).toBe(140);
+      const r = rec(api.randomName(i));
+      const card = api.routeNode(r.seed, []);
+      const side = card.left.kind === "perk" && card.left.perk === "big-heart" ? "L"
+        : card.right.kind === "perk" && card.right.perk === "big-heart" ? "R" : null;
+      if (side === null) continue;
+      expect(api.sheetOf({ ...r, picks: [side], xp: 0 }).stats.mult.health).toBe(130);
       return;
     }
-    throw new Error("no Big Heart start found");
+    throw new Error("no Big Heart card found");
   });
 });
 
@@ -322,14 +324,14 @@ describe("found perks and sheets", () => {
       expect(ss).toEqual({ maxHp: s.maxHp, effective: s.effective, derived: s.derived, companionCostPct: s.companionCostPct });
     }
   });
-  it("takes the companion cost off max HP: two Raccoons and a Boar cost 46%", () => {
-    const base = 44 + 7 * 5 + 10;
-    expect(maxHpOf(5, 10, 46)).toBe(Math.floor((base * 54) / 100));
+  it("takes the companion cost off max HP: two Raccoons and a Boar cost 47%", () => {
+    const base = 54 + 7 * 5;
+    expect(maxHpOf(5, 10, 47)).toBe(Math.floor((base * 53) / 100));
     const s = api.snapshotSheet({ id: "x", name: "X", look: api.rollLook(1, 0, 0), level: 10, rulesVersion: 1,
       stats: { points: { health: 5, strength: 5, agility: 5, speed: 5 }, mult: { health: 100, strength: 100, agility: 100, speed: 100 } },
       perks: ["raccoon", "raccoon", "boar"] });
-    expect(s.companionCostPct).toBe(46);
-    expect(s.maxHp).toBe(Math.floor((base * 54) / 100));
+    expect(s.companionCostPct).toBe(47);
+    expect(s.maxHp).toBe(Math.floor((base * 53) / 100));
   });
   it("seeds a bout from both ids and the lifetime count", () => {
     expect(api.boutSeed("a", "b", 3)).toBe(api.boutSeed("a", "b", 3));

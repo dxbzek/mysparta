@@ -84,7 +84,9 @@ function drawOrSwap(b: Bout, a: Actor): void {
 /** A scrapper's turn. Returns its time cost. */
 function scrapperTurn(b: Bout, a: Actor): number {
   if (a.taunt > 0) a.taunt -= 1;                           // Taunt ends at the start of its second own turn
-  const move = rollMove(b, a);
+  // Right after a throw the turn is the sure redraw: no Move roll while a weapon waits in the bag.
+  const reloading = a.reload && b.bag[a.side].some((it) => it.k === "weapon");
+  const move = reloading ? null : rollMove(b, a);
   if (move !== null) return playMove(b, a, move);
   drawOrSwap(b, a);
   const target = pickEnemy(b, a);

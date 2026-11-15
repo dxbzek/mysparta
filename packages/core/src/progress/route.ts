@@ -19,15 +19,20 @@ function picksKey(picks: readonly Side2[], upTo: number): string {
   return s;
 }
 
+/** A perk card that is not allowed is rolled again this many times before it becomes a split
+ *  (was 0: at level 30, 38% of perk cards were splits). */
+export const PERK_REROLLS = 3;
+
 /** The two cards of node `k` (k = 0 is the first level-up) for a kit that owns `owned`. */
 function nodeCards(seed: number, k: number, prefix: string, owned: readonly PerkId[]): { left: RouteCard; right: RouteCard } {
   const rng = makeRng(combineSeed(seed, "route", k, prefix));
   const stat: RouteCard = { kind: "stat", stat: STAT_KEYS[rng.int(4)]!, amount: 2 };
-  const rolled = rollPerk(rng);
-  let perkCard: RouteCard;
-  if (allowed(rolled, owned, rng)) {
-    perkCard = { kind: "perk", perk: rolled };
-  } else {
+  let perkCard: RouteCard | null = null;
+  for (let i = 0; i <= PERK_REROLLS && perkCard === null; i++) {
+    const rolled = rollPerk(rng);
+    if (allowed(rolled, owned, rng)) perkCard = { kind: "perk", perk: rolled };
+  }
+  if (perkCard === null) {
     const first = rng.int(4);
     const second = (first + 1 + rng.int(3)) % 4;
     perkCard = { kind: "split", stats: [STAT_KEYS[first]!, STAT_KEYS[second]!] as [StatKey, StatKey] };
