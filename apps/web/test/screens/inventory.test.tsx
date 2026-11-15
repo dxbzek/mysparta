@@ -87,6 +87,17 @@ describe("inventory", () => {
     }
   });
 
+  it("puts what the scrapper owns now first, then the other unlocked items, then the locked ones (finding 63)", () => {
+    const all = sortedPerks();
+    const owned = new Set([all[all.length - 1]!]);
+    const found = new Set([all[all.length - 1]!, all[all.length - 2]!, all[40]!]);
+    const items = inventoryItems(found, "all", true, owned);
+    expect(items).toHaveLength(all.length);
+    expect(items[0]).toBe(all[all.length - 1]);
+    expect(new Set(items.slice(1, 3))).toEqual(new Set([all[all.length - 2], all[40]]));
+    expect(items.slice(3).every((id) => !found.has(id))).toBe(true);
+  });
+
   it("locked tiles never carry colour art: only a two-tone token silhouette, a lock, the name and the rarity word", async () => {
     const { html, found } = await setup();
     const t = tiles(html(<InventoryScreen />));

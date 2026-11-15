@@ -147,7 +147,9 @@ describe("BagStrip and the card's bag", () => {
     expect(sideA).toContain(">+4<");
   });
 
-  it("the card's bag shows 8 icons and a +4 chip in nine equal cells, so it never overflows", () => {
+  // Finding 60: the chip used to share nine equal cells and "+43" was cut to "+4"; it now gets the
+  // width its number needs, after eight equal icon cells.
+  it("the card's bag shows 8 icons and a +4 chip sized to its number, so it never overflows", () => {
     const twelve: BagItem[] = [
       ...(["pipe", "bat", "crowbar", "shovel", "darts", "bricks", "rebar", "umbrella", "broom"] as const).map((id) => ({ k: "weapon" as const, id })),
       { k: "move", id: "tarp", uses: 1 }, { k: "move", id: "firecrackers", uses: 2 }, { k: "move", id: "haymaker", uses: 1 },
@@ -156,7 +158,8 @@ describe("BagStrip and the card's bag", () => {
     expect(count(html, /role="img"/g)).toBe(8);
     expect(html).toContain('data-more="4"');
     const css = readFileSync(new URL("../../src/fight/fight.module.css", import.meta.url), "utf8");
-    expect(css).toMatch(/\.cardBag \{[^}]*grid-template-columns: repeat\(9, minmax\(0, 1fr\)\)/);
+    expect(css).toMatch(/\.cardBag \{[^}]*grid-template-columns: repeat\(8, minmax\(0, 1fr\)\) auto/);
+    expect(css).toMatch(/\.cardBag \.chip \{[^}]*width: auto/);
     expect(css).toMatch(/\.cardBag > \* \{[^}]*width: 100%/);
   });
 

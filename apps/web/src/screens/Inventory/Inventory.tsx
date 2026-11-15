@@ -55,9 +55,17 @@ export function sortedPerks(): PerkId[] {
   });
 }
 
-/** The tiles a filter and the "Show locked" toggle leave on screen, in display order. Pure. */
-export function inventoryItems(unlocked: ReadonlySet<PerkId>, filter: InventoryFilter, showLocked: boolean): PerkId[] {
-  return sortedPerks().filter((id) => (filter === "all" || perkKind(id) === filter) && (showLocked || unlocked.has(id)));
+/** The tiles a filter and the "Show locked" toggle leave on screen, in display order: what the
+ *  scrapper owns now first, then the rest it has unlocked, then the locked ones, each group by
+ *  rarity then name (finding 63: the owned items no longer hide among 90 locked tiles). Pure. */
+export function inventoryItems(unlocked: ReadonlySet<PerkId>, filter: InventoryFilter, showLocked: boolean,
+  ownedNow: ReadonlySet<PerkId> = new Set()): PerkId[] {
+  const group = (id: PerkId): number => (ownedNow.has(id) ? 0 : unlocked.has(id) ? 1 : 2);
+  return sortedPerks()
+    .filter((id) => (filter === "all" || perkKind(id) === filter) && (showLocked || unlocked.has(id)))
+    .map((id, i) => ({ id, i, g: group(id) }))
+    .sort((p, q) => p.g - q.g || p.i - q.i)
+    .map((x) => x.id);
 }
 
 /** One path of a silhouette: the body, its outline, or an ink detail line. No colour is kept. */
@@ -118,7 +126,7 @@ export function InventoryScreen() {
   const unlocked = useMemo(() => new Set(core.foundPerks([...doc.fighters, ...doc.retired])), [core, doc.fighters, doc.retired]);
   const ownedNow = useMemo(() => new Set(shown ? core.sheetOf(shown).perks : []), [core, shown]);
   if (!rec || !shown) return null;
-  const items = inventoryItems(unlocked, filter, showLocked);
+  const items = inventoryItems(unlocked, filter, showLocked, ownedNow);
   const total = PERK_IDS.length;
   const level = core.sheetOf(shown).level;
   return (

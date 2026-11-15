@@ -176,6 +176,12 @@
 }
 
 /* 6. last bouts */
+/* a new scrapper's "Last bouts" says so instead of showing an empty box (finding 62) */
+.noBouts {
+  margin: 0;
+  color: var(--t-on-panel-dim);
+  font-size: var(--fs-small);
+}
 .bouts {
   list-style: none;
   margin: 0;

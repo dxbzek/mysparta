@@ -20,6 +20,10 @@
 .side {
   min-width: 0;
 }
+/* Give everything / Clear sit apart from the first group's heading (finding 67) */
+.tools {
+  margin-bottom: 14px;
+}
 .group {
   margin: 0 0 10px;
   padding: 0;

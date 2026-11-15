@@ -1,3 +1,7 @@
 packages:
   - "packages/*"
   - "apps/*"
+
+# esbuild (under vite and tsx) needs its install script to fetch its binary.
+onlyBuiltDependencies:
+  - esbuild

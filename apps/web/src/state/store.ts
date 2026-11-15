@@ -17,7 +17,7 @@ export type StoreStatus =
 
 export class SaveError extends Error {
   constructor(readonly why: "backup-failed" | "io" | "stale") {
-    super(why === "backup-failed" ? "The damaged save could not be backed up, so nothing was written."
+    super(why === "backup-failed" ? "A backup of the save could not be made, so nothing was written."
       : why === "stale" ? "This save changed in another tab." : "The save could not be written.");
   }
 }

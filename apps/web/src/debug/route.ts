@@ -16,6 +16,10 @@ export type DebugRoute =
   | { page: "ui" }
   | { page: "unknown"; hash: string };
 
+/** True for a #/debug/ hash. Here, not in mount.tsx, so main.tsx can test the hash without
+ *  pulling the debug pages into the first chunk. */
+export const isDebugHash = (hash: string): boolean => hash.startsWith("#/debug/");
+
 const FIXTURES: readonly BoutFixtureName[] = ["bout-gate", "bout-all-steps", "bout-cap"];
 
 export function parseDebugRoute(hash: string): DebugRoute {

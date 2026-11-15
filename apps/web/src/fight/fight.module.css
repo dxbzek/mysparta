@@ -62,16 +62,25 @@
 .sideB .nameRow {
   flex-direction: row-reverse;
 }
+/* A name never loses letters (finding 36): long names step down a size, and the longest legal
+   name (14 letters) may break onto a second line instead of ending in "…". */
 .tape {
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  line-height: 1;
   background: var(--c-tape);
   color: var(--t-on-tape);
   font-size: 17px;
 }
+/* beats the sticker's own nowrap + ellipsis */
+.nameRow > .tape {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
+.tape.nameMid { font-size: 15px; }
+.tape.nameLong { font-size: 13px; }
 .lvl {
   flex: none;
   padding: 2px 5px 1px;
@@ -364,20 +373,22 @@
 .lower {
   grid-area: lower;
   position: relative;
-  min-height: 0;
+  /* Room for the result card from the start, so it never covers the log strip (finding 61) and
+     the stage never changes size when the bout ends. */
+  min-height: 228px;
 }
 .cards {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 6px;
-  padding: 6px;
+  padding: 5px 6px 4px;
 }
 .card {
   display: grid;
   align-content: start;
-  gap: 5px;
+  gap: 4px;
   min-width: 0;
-  padding: 0 6px 6px;
+  padding: 0 6px 4px;
   border: var(--line) solid var(--c-ink);
   border-radius: var(--rough-radius-sm);
   background: var(--tex-halftone-light), var(--c-card);
@@ -391,16 +402,16 @@
   align-items: baseline;
   gap: 5px;
   min-width: 0;
-  padding-top: 4px;
+  padding-top: 3px;
 }
 .cardName {
   min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
   font: 900 19px / 1 var(--font-display);
   text-transform: uppercase;
 }
+.cardName[data-size="mid"] { font-size: 16px; }
+.cardName[data-size="long"] { font-size: 14px; }
 .cardLvl {
   flex: none;
   padding: 1px 4px 0;
@@ -445,7 +456,7 @@
 }
 .stats {
   display: grid;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
 .stat {
@@ -482,7 +493,7 @@
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 6px;
-  padding: 3px 4px;
+  padding: 1px 4px;
   border: var(--line-thin) solid var(--c-ink);
   border-radius: 3px;
   background: var(--c-card-deep);
@@ -493,21 +504,22 @@
   display: grid;
   min-width: 0;
 }
-.weaponName,
-.skillName {
+.weaponName {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   font: 900 14px / 1.05 var(--font-display);
   text-transform: uppercase;
 }
-/* a skill name may take two lines on a phone ("Sand in / the Eyes") rather than lose letters */
+/* A skill name is never cut (finding 35): one tile per row gives it the card's full width, and a
+   name too long even for that wraps at a space ("Sharpening / Stone") instead of losing letters. */
 .skillName {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  overflow: visible;
   white-space: normal;
-  font-size: 13px;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  font: 900 13px / 1.05 var(--font-display);
+  text-transform: uppercase;
 }
 .weaponLine,
 .skillKind {
@@ -523,10 +535,11 @@
   bottom: -5px;
   display: inline-grid;
 }
+/* the "+N" tile sits beside the tiles in its own narrow column, so a long list costs no row */
 .skills {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 4px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -535,9 +548,10 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
-  padding: 3px;
+  min-height: 24px;
+  padding: 0 3px;
   border: var(--line-thin) solid var(--c-ink);
   border-radius: 3px;
   background: var(--c-card-deep);
@@ -558,7 +572,13 @@
 .skillKind { display: none; }
 .skillOnA .skillKind { color: var(--t-on-sodium); }
 .skillOnB .skillKind { color: var(--t-on-teal); }
+.skill > [role="img"] { width: 22px; height: 22px; }
+.skill > [role="img"] svg { width: 18px; height: 18px; }
+.skill { grid-column: 1; }
 .skillMore {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  padding: 0 5px;
   display: grid;
   place-items: center;
   grid-template-columns: minmax(0, 1fr);
@@ -587,6 +607,31 @@
   background: var(--c-card-deep);
   color: var(--t-on-card-deep);
 }
+/* two or three pets share one row as chips (finding 34): portrait, bar, HP left */
+.petStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 3px;
+}
+.petStrip[data-pets="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.petStrip[data-pets="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.petChip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "face bar" "face num";
+  align-items: center;
+  column-gap: 3px;
+  row-gap: 1px;
+  min-width: 0;
+  padding: 1px 3px 1px 1px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 3px;
+  background: var(--c-card-deep);
+  color: var(--t-on-card-deep);
+}
+.petChip > :first-child { grid-area: face; }
+.petChip .petBar { grid-area: bar; height: 6px; }
+.petChip .petNum { grid-area: num; font-size: 11px; }
 .petGone { opacity: 0.6; }
 .petName {
   font: 900 13px / 1 var(--font-display);
@@ -624,10 +669,11 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-/* nine equal cells (8 icons and the "+N" chip) that shrink with the card: never an overflow */
+/* eight equal icon cells that shrink with the card, then the "+N" chip at the width its number
+   needs, so "+43" is never cut at the card edge (finding 60): never an overflow */
 .cardBag {
   display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr)) auto;
   gap: 1px;
   min-width: 0;
 }
@@ -642,9 +688,14 @@
   height: 78%;
 }
 .cardBag .chip {
-  width: 100%;
+  width: auto;
+  max-width: none;
+  min-width: 18px;
+  padding: 0 2px;
   margin: 0;
   font-size: 11px;
+  aspect-ratio: auto;
+  height: 18px;
 }
 
 /* the bag strip (debug page and tools: each side's bag on one 28 px row) */
@@ -685,9 +736,10 @@
   position: absolute;
   left: 6px;
   right: 6px;
-  bottom: 0;
+  top: 4px;
+  min-height: calc(100% - 4px);
   z-index: 2;
-  padding: 12px 12px 14px;
+  padding: 10px 12px 12px;
   border: var(--line) solid var(--c-ink);
   border-bottom: none;
   border-radius: 8px 12px 0 0;
@@ -704,7 +756,7 @@
 }
 .verdict {
   margin: 0;
-  font: 900 52px / 0.9 var(--font-display);
+  font: 900 44px / 0.9 var(--font-display);
   letter-spacing: 0.02em;
 }
 .verdictWin {
@@ -750,6 +802,14 @@
 }
 
 /* ------------------------------------------------------------------ short phones and embedded frames */
+/* replay mode adds the scrub bar: the strip keeps only its newest line, so the stage keeps half
+   the phone screen even with three pets and a full skill list (finding 34) */
+@media (max-width: 899px) {
+  .replayMode .stripLine:not(.stripNew) {
+    display: none;
+  }
+}
+
 @media (max-height: 760px) {
   .skillKind,
   .weaponLine {
@@ -765,12 +825,17 @@
   .tape { font-size: 15px; }
   .hpNum { font-size: 26px; min-width: 28px; }
   .cardName { font-size: 16px; }
+  .tape.nameLong { font-size: 12px; }
+  /* the level is on the card right below; the name gets the room instead */
+  .nameRow > .lvl { display: none; }
+  .cardName[data-size="mid"] { font-size: 14px; }
+  .cardName[data-size="long"] { font-size: 13px; }
   .cardHp { font-size: 18px; }
   .statKey { display: none; }
   .skillName { font-size: 11.5px; }
   .skill { gap: 3px; padding: 2px; }
-  .skill > [role="img"] { width: 22px; height: 22px; }
-  .skill > [role="img"] svg { width: 17px; height: 17px; }
+  .skill > [role="img"] { width: 20px; height: 20px; }
+  .skill > [role="img"] svg { width: 16px; height: 16px; }
   .stat { grid-template-columns: 14px minmax(0, 1fr) 16px; }
   .cards { gap: 4px; padding: 4px; }
   .card { padding: 0 4px 5px; }
@@ -844,6 +909,8 @@
     position: fixed;
     left: 50%;
     right: auto;
+    top: auto;
+    min-height: 0;
     bottom: 0;
     width: 460px;
     margin-left: -230px;

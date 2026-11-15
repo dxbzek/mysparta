@@ -15,6 +15,8 @@ import type { CoreApi, DayKey, FighterSnapshot, Pick as Side2, ScrapperRecord } 
 import type { BoutRecord, Clock, GameActions, Result, SaveDoc, Settings } from "../contracts";
 import { decodeSave, encodeSave } from "./saveCode";
 import { SLOT_LIMIT, emptyDoc, trimHistory } from "./schema";
+import type { Backups, BackupEntry } from "./slots";
+import { SaveError } from "./store";
 import type { GameStore } from "./store";
 import { ulid } from "./ulid";
 
@@ -24,11 +26,27 @@ export interface ActionDeps {
   core?: CoreApi;
   realmSalt?: string;
   newId?: (now: number) => string;
+  /** Where a copy of the save goes before an import or restore replaces it. */
+  backups?: Backups;
 }
+
+/** What a save holds, in names, for the confirm sheet before it replaces another. */
+export interface SaveSummary {
+  active: string[];
+  retired: number;
+}
+export const summaryOf = (doc: SaveDoc): SaveSummary => ({ active: doc.fighters.map((f) => f.name), retired: doc.retired.length });
+const isBlank = (doc: SaveDoc): boolean => doc.fighters.length === 0 && doc.retired.length === 0 && doc.history.length === 0;
 
 export interface AppActions extends GameActions {
   /** Starts a fresh save over an unreadable one (its bytes were backed up first). */
   newSave(): Promise<void>;
+  /** Reads a save code without importing it: null when it is not a save. */
+  previewCode(code: string): Promise<SaveSummary | null>;
+  /** Backups that hold a save this build can read, newest first. */
+  listBackups(): Promise<BackupEntry[]>;
+  /** Puts a backed-up save back. The current save is backed up first. */
+  restoreBackup(key: string): Promise<Result<void, "bad-code">>;
 }
 
 const ok = <T>(value: T): { ok: true; value: T } => ({ ok: true, value });
@@ -67,6 +85,12 @@ export function createGameActions(deps: ActionDeps): AppActions {
 
   const find = (doc: SaveDoc, id: string): ScrapperRecord | undefined => doc.fighters.find((f) => f.id === id);
   const put = (doc: SaveDoc, rec: ScrapperRecord): SaveDoc => ({ ...doc, fighters: doc.fighters.map((f) => (f.id === rec.id ? rec : f)) });
+
+  /** Backs up the save on screen before it is replaced. Refuses the replace if that fails. */
+  const keepCurrent = async (): Promise<void> => {
+    if (!deps.backups || isBlank(store.doc)) return;
+    if ((await deps.backups.keep(store.doc)) === null) throw new SaveError("backup-failed");
+  };
 
   return {
     create(name: string, lookSalt: number, colourSalt: number) {
@@ -157,7 +181,25 @@ export function createGameActions(deps: ActionDeps): AppActions {
     async importCode(code: string) {
       const r = await decodeSave(code);
       if (!r.ok) return fail("bad-code" as const);
+      await keepCurrent();
       return store.commit((doc) => ({ doc: { ...r.doc, rev: doc.rev }, value: ok(undefined) }));
+    },
+
+    async previewCode(code: string) {
+      const r = await decodeSave(code);
+      return r.ok ? summaryOf(r.doc) : null;
+    },
+
+    async listBackups() {
+      return deps.backups ? (await deps.backups.list()).filter((b) => b.doc !== null) : [];
+    },
+
+    async restoreBackup(key: string) {
+      const entry = deps.backups ? (await deps.backups.list()).find((b) => b.key === key) : undefined;
+      if (!entry?.doc) return fail("bad-code" as const);
+      const back = entry.doc;
+      await keepCurrent();
+      return store.commit((doc) => ({ doc: { ...back, rev: doc.rev }, value: ok(undefined) }));
     },
 
     newSave() {

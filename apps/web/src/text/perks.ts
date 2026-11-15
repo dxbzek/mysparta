@@ -101,11 +101,11 @@ const PET_WORD: Readonly<Record<CompanionId, string>> = { raccoon: "A raccoon", 
 
 function petText(id: CompanionId, c: ContentTables): { effect: string; costs: string[] } {
   const d = c.companions[id];
-  const limit = d.limit > 1 ? ` Up to ${d.limit}.` : "";
+  const limit = d.limit > 1 ? ` You can own up to ${d.limit}.` : "";
   const ways = [d.flies ? " It flies: nothing hits it first or hits back at it." : "",
     d.swings > 1 ? " Every attack is two scratches." : "",
     d.disarm >= 15 ? ` Grabs weapons: Disarm ${d.disarm}.` : ""].join("");
-  return { effect: `${PET_WORD[id]} fights beside it: ${d.hp} HP, Strength ${d.strength}, Speed ${d.speed}.${limit}${ways}`,
+  return { effect: `${PET_WORD[id]} fights beside your scrapper: ${d.hp} HP, Strength ${d.strength}, Speed ${d.speed}.${limit}${ways}`,
     costs: [`-${d.hpCostPct}% max HP`] };
 }
 

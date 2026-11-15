@@ -86,14 +86,17 @@ describe("slots", () => {
     const keys = [...kv.data.keys()].filter((k) => k.startsWith(BACKUP_PREFIX)).sort();
     expect(keys).toHaveLength(BACKUP_LIMIT);
     for (let i = 0; i < BACKUP_LIMIT; i++) expect(kv.data.get(`${BACKUP_PREFIX}${i}`)).toBe(`bad bytes ${i}`);
-    // a ninth damaged copy cannot be backed up, so it is not replaced
+    // Finding 73: a ninth damaged copy drops the OLDEST backup and is kept under a new key, so
+    // saving never gets stuck. (This test used to expect the ninth to be refused for ever.)
     kv.data.set(SLOT_KEYS[0], "bad bytes 8");
     const r = await s.load();
-    expect(r.state === "corrupt" && r.backupKey).toBe(null);
+    expect(r.state === "corrupt" && r.backupKey).toBe(`${BACKUP_PREFIX}8`);
+    expect(kv.data.has(`${BACKUP_PREFIX}0`)).toBe(false);
     expect(await s.write(emptyDoc(T0), 0)).toEqual({ ok: true, rev: 1 });   // goes to the empty slot 1
-    expect(await s.write(emptyDoc(T0), 1)).toEqual({ ok: false, why: "backup-failed" });
-    expect(kv.data.get(SLOT_KEYS[0])).toBe("bad bytes 8");
-    for (let i = 0; i < BACKUP_LIMIT; i++) expect(kv.data.get(`${BACKUP_PREFIX}${i}`)).toBe(`bad bytes ${i}`);
+    expect(await s.write(emptyDoc(T0), 1)).toEqual({ ok: true, rev: 2 });   // replaces the backed-up slot 0
+    const after = [...kv.data.keys()].filter((k) => k.startsWith(BACKUP_PREFIX));
+    expect(after).toHaveLength(BACKUP_LIMIT);
+    for (let i = 1; i <= BACKUP_LIMIT; i++) expect(kv.data.get(`${BACKUP_PREFIX}${i}`)).toBe(`bad bytes ${i}`);
   });
 
   it("a write with a stale rev is refused, and the store reloads instead of writing over the other tab", async () => {
@@ -205,5 +208,53 @@ describe("create never writes over a scrapper", () => {
     expect(a.ok && a.value.id).toBe("SAME");
     expect(b.ok && b.value.id).toBe("OTHER");
     expect(g.store.doc.fighters.map((f) => [f.id, f.name])).toEqual([["SAME", "Marla"], ["OTHER", "Dez"]]);
+  });
+});
+
+describe("importing a save code keeps the old save (finding 38)", () => {
+  it("previews the names, backs up the current save first, and the backup can be restored", async () => {
+    const { createGameActions } = await import("../../src/state/actions");
+    const { createBackups } = await import("../../src/state/slots");
+    const { createGameStore } = await import("../../src/state/store");
+    const { fixedClock } = await import("../../src/state/day");
+    const kv = memoryKv();
+    const clock = fixedClock(T0);
+    const store = createGameStore(createSaveStore(kv), clock.now);
+    await store.load();
+    const actions = createGameActions({ store, clock, backups: createBackups(kv) });
+    expect((await actions.create("Marla", 0, 0)).ok).toBe(true);
+
+    const other = memoryKv();
+    const g2 = await gameOn(other);
+    expect((await g2.actions.create("Dez", 0, 0)).ok).toBe(true);
+    const code = await g2.actions.exportCode();
+
+    expect(await actions.previewCode(code)).toEqual({ active: ["Dez"], retired: 0 });
+    expect(await actions.previewCode("junk")).toBeNull();
+    expect((await actions.importCode(code)).ok).toBe(true);
+    expect(store.doc.fighters.map((f) => f.name)).toEqual(["Dez"]);
+
+    const backups = await actions.listBackups();
+    expect(backups).toHaveLength(1);
+    expect(backups[0]!.doc!.fighters.map((f) => f.name)).toEqual(["Marla"]);
+    expect((await actions.restoreBackup(backups[0]!.key)).ok).toBe(true);
+    expect(store.doc.fighters.map((f) => f.name)).toEqual(["Marla"]);
+    // the restore kept the Dez save too
+    const names = (await actions.listBackups()).map((b) => b.doc!.fighters[0]!.name).sort();
+    expect(names).toEqual(["Dez", "Marla"]);
+  });
+
+  it("refuses the import when the backup cannot be made", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { createGameActions } = await import("../../src/state/actions");
+    const { createBackups } = await import("../../src/state/slots");
+    const kv = memoryKv();
+    const g = await gameOn(kv);
+    const actions = createGameActions({ store: g.store, clock: g.clock, backups: createBackups(kv) });
+    expect((await actions.create("Marla", 0, 0)).ok).toBe(true);
+    const code = await encodeSave(emptyDoc(T0));
+    kv.failPut = (key) => key.startsWith(BACKUP_PREFIX);
+    await expect(actions.importCode(code)).rejects.toThrow(/backup/);
+    expect(g.store.doc.fighters.map((f) => f.name)).toEqual(["Marla"]);
   });
 });

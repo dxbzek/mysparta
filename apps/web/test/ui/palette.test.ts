@@ -1,7 +1,8 @@
 /**
  * One colour, one value. The canvas colours belong to the rig (gate/style.ts, exported through
  * the rig seam as `palette` from I1) and the DOM colours to tokens.css. When a colour NAME is in
- * both, its value must be the same. Skipped only while the rig seam exports no palette (plan 4).
+ * both, its value must be the same. The seam exports the palette (finding 46: this test used to
+ * be skipped for ever, and failed when run by hand on ink and teal).
  * Name matching: the rig name in kebab case equals the token name after `--c-` (for example
  * `ink` = `--c-ink`, `hpTrail` = `--c-hp-trail`).
  */
@@ -10,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import * as rigSeam from "../../src/seams/rig";
 
 const CSS = readFileSync(new URL("../../src/tokens.css", import.meta.url), "utf8");
-const palette = (rigSeam as unknown as { palette?: Readonly<Record<string, string>> }).palette;
+const palette = rigSeam.palette;
 
 const kebab = (s: string): string => s.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 
@@ -20,12 +21,12 @@ function domColours(): Map<string, string> {
   return out;
 }
 
-describe.skipIf(palette === undefined)("rig palette and tokens.css agree", () => {
+describe("rig palette and tokens.css agree", () => {
   it("every shared colour name has one value", () => {
     const dom = domColours();
     const clashes: string[] = [];
     let shared = 0;
-    for (const [name, value] of Object.entries(palette ?? {})) {
+    for (const [name, value] of Object.entries(palette)) {
       const token = dom.get(kebab(name));
       if (token === undefined || typeof value !== "string") continue;
       shared += 1;

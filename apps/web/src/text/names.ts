@@ -118,7 +118,3 @@ export function nameOf(id: string): string {
   }
   return "Something";
 }
-
-export function companionName(id: CompanionId): string {
-  return NAMES[id];
-}

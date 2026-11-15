@@ -30,7 +30,7 @@ export interface LockerBout { id: string; won: boolean; opponent: string; line: 
 export interface LockerText {
   settings: string; addScrapper: string; level(n: number): string; xp: string; maxHp: string;
   levelUp: string; fight(boutsLeft: number): string; done(backIn: string): string;
-  kit: string; seeAll: string; more(n: number): string; lastBouts: string; allBouts: string;
+  kit: string; seeAll: string; more(n: number): string; lastBouts: string; allBouts: string; noBouts: string;
   win: string; loss: string; replay(opponent: string): string; xpGained(n: number): string;
   tabs: Record<LockerTab, string>; hero(name: string): string;
 }
@@ -50,6 +50,7 @@ export const LOCKER_TEXT: LockerText = {
   more: (n) => `+${n}`,
   lastBouts: "Last bouts",
   allBouts: "All bouts",
+  noBouts: "No bouts yet. Tap Fight to pick a rival.",
   win: "W",
   loss: "L",
   replay: (o) => `Replay the bout with ${o}`,
@@ -169,9 +170,10 @@ export function LockerView(p: LockerViewProps) {
         <Panel aria-label={t.lastBouts}>
           <div className={css.boutsHead}>
             <h2 className={css.sectionTitle}>{t.lastBouts}</h2>
-            <button type="button" className={css.link} onClick={p.onAllBouts}>{t.allBouts}</button>
+            {p.bouts.length > 0 ? <button type="button" className={css.link} onClick={p.onAllBouts}>{t.allBouts}</button> : null}
           </div>
-          <ul className={css.bouts}>
+          {p.bouts.length === 0 ? <p className={css.noBouts}>{t.noBouts}</p> : null}
+          <ul className={css.bouts} hidden={p.bouts.length === 0}>
             {p.bouts.slice(0, 3).map((b) => (
               <li key={b.id} className={css.bout}>
                 <span className={`${css.wl} ${b.won ? css.win : css.loss}`} aria-label={b.won ? "Win" : "Loss"}>{b.won ? t.win : t.loss}</span>

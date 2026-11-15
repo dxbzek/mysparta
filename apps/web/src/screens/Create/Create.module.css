@@ -67,6 +67,20 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.count {
+  color: var(--t-on-panel-dim);
+  font: 700 var(--fs-small) / 1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+.countFull {
+  color: var(--t-on-panel);
+}
 .nameRow {
   display: flex;
   flex-wrap: wrap;

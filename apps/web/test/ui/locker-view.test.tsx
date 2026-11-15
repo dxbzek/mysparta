@@ -21,6 +21,11 @@ describe("LockerView", () => {
     expect(kit).toContain(">+3</button>");
     expect(count(html, /aria-label="(Win|Loss)"/g)).toBe(3);
   });
+  it("a new scrapper's Last bouts says there are none, with no All bouts link (finding 62)", () => {
+    const html = renderToStaticMarkup(<LockerView {...lockerMockProps()} bouts={[]} />);
+    expect(html).toContain("No bouts yet. Tap Fight to pick a rival.");
+    expect(html).not.toContain(">All bouts</button>");
+  });
   it("the one primary button has three states", () => {
     expect(renderToStaticMarkup(<LockerView {...lockerMockProps({ levelUp: true })} />)).toContain("Level up!");
     const done = renderToStaticMarkup(<LockerView {...lockerMockProps({ done: true })} />);

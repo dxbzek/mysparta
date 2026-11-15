@@ -25,6 +25,14 @@ export const NAV = {
   pets: "Pets",
 } as const;
 
+/** "Marla, Dez and 2 retired" / "no scrappers". */
+function listOf(names: readonly string[], retired: number): string {
+  const parts = [...names];
+  if (retired > 0) parts.push(`${retired} retired`);
+  if (parts.length === 0) return "no scrappers";
+  return parts.length === 1 ? parts[0]! : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
+
 export const UI = {
   appName: "Rank Zero",
   tagline: "Name a scrapper. Watch them fight.",
@@ -53,6 +61,7 @@ export const UI = {
       slot: "All three slots are full. Retire one in the Kit first.",
     },
     preview: (name: string) => (name ? `${name}, idling under the lights` : "Your scrapper, idling under the lights"),
+    count: (n: number, max: number) => `${n} / ${max}`,
     revealHeading: (name: string) => `${name} steps in`,
     startPerk: "Starting perk",
     toLocker: "To the Locker",
@@ -222,6 +231,18 @@ export const UI = {
     importButton: "Import",
     importBad: "That code is not a save.",
     importDone: "Save imported.",
+    importConfirmTitle: "Replace this save?",
+    importLoses: (names: readonly string[], retired: number) => `On this device now: ${listOf(names, retired)}.`,
+    importGets: (names: readonly string[], retired: number) => `In the code: ${listOf(names, retired)}.`,
+    importBackup: "A copy of the save on this device is kept as a backup first. You can restore it below.",
+    importReplace: "Replace my save",
+    cancel: "Cancel",
+    backups: "Backups",
+    backupsHelp: "Copies kept before an import or a restore replaced the save. Restoring one keeps a copy of the save on this device too.",
+    backupLine: (names: readonly string[], retired: number, day: string) => `${listOf(names, retired)}. Saved ${day}.`,
+    restore: "Restore",
+    restoreConfirm: "Replace my save with this",
+    restoreDone: "Backup restored.",
     credits: "Credits",
     creditsLines: [
       "Rank Zero, an original game.",
@@ -241,7 +262,11 @@ export const UI = {
     noBackup: "The backup could not be made, so the damaged copy was left exactly as it was.",
     newSave: "Start a new save",
     importInstead: "Import a save code",
-    failed: "The save could not be opened. This browser may block storage for this page.",
+    failed: "The save could not be opened. Your save may still be on this device: try again first. This browser may also block storage for this page.",
+    retry: "Try again",
+    back: "Back to the Locker",
+    chunkTitle: "This screen did not load",
+    chunkLine: "Part of the game could not be fetched. Check the connection and try again. Your save is safe.",
   },
 
   sandbox: {
@@ -273,6 +298,7 @@ export const LOCKER_WORDS: LockerText = {
   more: (n) => `+${n}`,
   lastBouts: "Last bouts",
   allBouts: "All bouts",
+  noBouts: "No bouts yet. Tap Fight to pick a rival.",
   win: "W",
   loss: "L",
   replay: (o) => `Replay the bout with ${o}`,

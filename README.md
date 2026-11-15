@@ -6,15 +6,16 @@ Rank Zero is a browser game in the "name a fighter, watch it fight by itself, pi
 
 ## State of this branch
 
-The game is being rebuilt from an empty tree. **There is nothing to play yet.** What exists today:
+The game is playable in a browser (`pnpm dev`). What works today:
 
-- four empty-but-typed packages with their frozen contracts,
-- a reducer that plays a bout log forward, and a checker for the log rules,
-- three hand-written bout fixtures and a stick-figure test rig that the lanes build against,
-- the repo checks (banned terms, file ownership, size budgets) and CI,
-- a placeholder page.
+- name a scrapper (up to three), watch its bouts play by themselves, and pick one of two cards at each level-up;
+- weapons, skills, pets and shields from the level-up cards, a Kit and an Inventory to look them over, and a bout History with replays;
+- a deterministic sim: the same seed always plays the same bout, and the fight screen draws it from the bout log;
+- per-item sounds, a reduced-motion setting, a save on the device (IndexedDB, with a local-storage fallback, backups and save codes);
+- a test arena (Settings, Test arena) to try any kit at any level without touching the save;
+- the repo checks (typecheck, tests, build, size budgets, banned terms, file ownership) in CI.
 
-The earlier build of this project was removed in the first commit of the rebuild. Git history keeps it.
+Not there yet: the shop (the VIP switch in Settings is a temporary test switch), online rivals (rivals are generated on the device) and accounts.
 
 ## Layout
 
@@ -46,7 +47,7 @@ pnpm smoke          # draws the test rig in Node, writes .review/wp0/smoke.png, 
 pnpm budgets        # size budgets of the built site (run pnpm build first)
 ```
 
-These scripts are declared in `package.json` but their tools arrive with later work: `sheet`, `spacing`, `render-bout`, `audit`, `find-bout`, `balance`, `parity`, `record-bout`, `build-audio`, `subset-fonts`, `session`, `shots`, `a11y`.
+Tools for renders and checks: `sheet`, `spacing`, `render-bout`, `audit`, `find-bout`, `balance`, `parity`, `record-bout`, `build-audio`, `subset-fonts`, `session`, `shots` (phone, desktop and 320 px screenshots), `a11y` (contrast and tap targets).
 
 On a loaded machine a red test run is rerun once before it is believed.
 

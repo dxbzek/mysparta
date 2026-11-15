@@ -3,7 +3,6 @@
  * navigation. Screens never open the save store themselves.
  */
 import { createContext, useContext, useSyncExternalStore } from "react";
-import { api } from "@rankzero/core";
 import type { CoreApi } from "@rankzero/core";
 import type { Clock, OpponentSource, SaveDoc } from "../contracts";
 import type { AppActions } from "../state/actions";
@@ -40,5 +39,3 @@ export function useStatus(store: GameStore): { status: StoreStatus; notice: stri
   const notice = useSyncExternalStore(store.subscribe, () => store.notice, () => store.notice);
   return { status, notice };
 }
-
-export const defaultCore: CoreApi = api;

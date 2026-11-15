@@ -11,7 +11,10 @@
 import type { ActorId, ActorInit, Side } from "@rankzero/core";
 import type { HudFrame } from "@rankzero/stage";
 import { Sticker } from "../ui/Sticker";
+import { nameSize } from "./FighterCard";
 import css from "./fight.module.css";
+
+const sizeClass = (name: string): string => { const k = nameSize(name); return k === "long" ? css.nameLong! : k === "mid" ? css.nameMid! : ""; };
 
 export interface HudSideInfo { name: string; level: number }
 
@@ -44,7 +47,7 @@ function SideHud({ side, frame, info, levelLabel, reduced }: { side: Side; frame
   return (
     <div className={`${css.side} ${side === "b" ? css.sideB : css.sideA}`} data-side={side}>
       <div className={css.nameRow}>
-        <Sticker size="small" tilt={side === "a" ? -1.5 : 1.5} slap={frame.namesIn} className={css.tape}>{info.name}</Sticker>
+        <Sticker size="small" tilt={side === "a" ? -1.5 : 1.5} slap={frame.namesIn} className={`${css.tape} ${sizeClass(info.name)}`}>{info.name}</Sticker>
         <span className={css.lvl}>{levelLabel(info.level)}</span>
       </div>
       <span
