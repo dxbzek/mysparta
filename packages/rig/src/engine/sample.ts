@@ -155,10 +155,13 @@ function plantsOf(body: Body, c: Clip): Plant[] {
   return out;
 }
 
+/** Share of a planted leg's full length the hips may pull it to (see `solveFeet`). */
+export const PLANT_REACH = 0.985;
+
 export interface Solved { rot: number[]; rootX: number; rootY: number; lift: number }
 
 /** Feet: plant, floor clamp, or drop to the floor (see the header). */
-export function solveFeet(body: Body, c: Clip, raw: Raw): Solved {
+export function solveFeet(body: Body, c: Clip, raw: Raw, hop = 0): Solved {
   const m = body.model;
   const plants = plantsOf(body, c);
   if (plants.length === 0) {
@@ -168,26 +171,44 @@ export function solveFeet(body: Body, c: Clip, raw: Raw): Solved {
     return { rot: [...raw.rot], rootX: raw.rootX, rootY, lift: -want };
   }
   let rot = [...raw.rot];
+  // a planted leg is never pulled straight: when the hips travel further than the leg reaches,
+  // the hips sink (the body moves, not the joint). An aim's hop (`hop`, added to root y) is left
+  // out of that: a hop is meant to lift the feet.
+  let rootY = raw.rootY - hop;
   for (const p of plants) {
     const lower = m.parent[p.bone]!;
     const upper = lower >= 0 ? m.parent[lower]! : -1;
     if (upper < 0) continue;
-    rot = twoBone(m, rot, raw.rootX, raw.rootY, upper, lower, p.bone, p.x, p.y).rot;
+    const hip = frames(m, rot, raw.rootX, rootY)[upper]!;
+    const b = m.def.bones;
+    const L = (Math.hypot(b[lower]!.x, b[lower]!.y) + Math.hypot(b[p.bone]!.x, b[p.bone]!.y)) * PLANT_REACH;
+    const dx = p.x - hip.e;
+    const dy = p.y - hip.f;
+    if (Math.hypot(dx, dy) > L && Math.abs(dx) < L && dy > 0) rootY += dy - Math.sqrt(L * L - dx * dx);
+  }
+  rootY += hop;
+  for (const p of plants) {
+    const lower = m.parent[p.bone]!;
+    const upper = lower >= 0 ? m.parent[lower]! : -1;
+    if (upper < 0) continue;
+    rot = twoBone(m, rot, raw.rootX, rootY, upper, lower, p.bone, p.x, p.y).rot;
     const wa = worldAngles(m, rot);
     rot[p.bone] = p.angle - (wa[lower] ?? 0);
   }
   for (const f of body.feet) {
     if (plants.some((p) => p.bone === f)) continue;
-    const low = lowest(body, rot, raw.rootX, raw.rootY, [f]);
+    const low = lowest(body, rot, raw.rootX, rootY, [f]);
     if (low <= 0) continue;
     const lower = m.parent[f]!;
     const upper = lower >= 0 ? m.parent[lower]! : -1;
     if (upper < 0) continue;
-    const fr = frames(m, rot, raw.rootX, raw.rootY);
-    rot = twoBone(m, rot, raw.rootX, raw.rootY, upper, lower, f, fr[f]!.e, fr[f]!.f - low).rot;
+    const fr = frames(m, rot, raw.rootX, rootY);
+    const keep = worldAngles(m, rot)[f]!;
+    rot = twoBone(m, rot, raw.rootX, rootY, upper, lower, f, fr[f]!.e, fr[f]!.f - low).rot;
+    rot[f] = keep - (worldAngles(m, rot)[lower] ?? 0);      // the foot keeps its angle as it lifts
   }
-  const lowAll = lowest(body, rot, raw.rootX, raw.rootY, body.feet.length > 0 ? body.feet : undefined);
-  return { rot, rootX: raw.rootX, rootY: raw.rootY, lift: lowAll < 0 ? -lowAll : 0 };
+  const lowAll = lowest(body, rot, raw.rootX, rootY, body.feet.length > 0 ? body.feet : undefined);
+  return { rot, rootX: raw.rootX, rootY, lift: lowAll < 0 ? -lowAll : 0 };
 }
 
 /** The whole pose of a clip at a time, with an optional bend. */
@@ -196,7 +217,7 @@ export function poseAt(body: Body, c: Clip, tMs: number, bend: BendAmount | null
   const w = bend === null ? 0 : bendWeight(c, t);
   let raw = bend === null ? sampleRaw(body.model, c, t) : applyBend(body, c, sampleRaw(body.model, c, t), bend, w);
   if (body.secondary !== undefined && body.secondary.length > 0) raw = secondary(body, c, raw, Number.isFinite(tMs) ? tMs : 0, bend, w);
-  const s = solveFeet(body, c, raw);
+  const s = solveFeet(body, c, raw, bend === null ? 0 : bend.lift * w);
   const pose: Pose = { rig: body.rig, rot: s.rot, root: { x: s.rootX, y: s.rootY, sx: raw.sx, sy: raw.sy }, face: raw.face, lift: s.lift };
   if (body.trailBone < 0) return pose;
   // where the front hand pointed 40..160 ms ago (read from the time asked for, bent by NOW's weight)
