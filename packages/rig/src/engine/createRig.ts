@@ -44,6 +44,18 @@ export const TWO_HAND_FOLD = 0.32;
 /** How far the back hand of a two-hand item bends at the wrist to follow the shaft (degrees,
  *  as ANATOMY.wrist, with a margin). */
 export const BACK_WRIST = [-60, 70] as const;
+/** Where a back hand eases off a two-hand item (see `figure`), in degrees past a shoulder's
+ *  limit: it holds fully up to 20 inside the limit and has let go 5 past it. */
+export const BACK_LET_GO = [-20, 5] as const;
+/** How far (figure units) the front hand may be drawn in or out to keep both hands on a two-hand
+ *  item: fully up to the first, the back hand has let go by the second. */
+export const REACH_PULL = [10, 18] as const;
+/** The most the front hand is pushed out (figure units) when grip2 is folded in too close to
+ *  the back shoulder. */
+export const FOLD_PULL = 2.5;
+/** Shares of the arm's length from the back shoulder to grip2 (after that push) over which the
+ *  back hand lets go: gone at the first, held from the second. */
+export const FOLD_LET_GO = [0.22, 0.3] as const;
 
 const warned = new Set<string>();
 export function warnOnce(key: string, message: string): void {
@@ -53,6 +65,8 @@ export function warnOnce(key: string, message: string): void {
 }
 
 const HOME: Place = { x: 0, y: 0, facing: 1 };
+/** The even size change a key's squash stands for (see `figure`). */
+const squashOf = (pose: Pose): number => Math.sqrt(Math.abs(pose.root.sx * pose.root.sy)) || 1;
 const wrap = (i: number | undefined, n: number): number => (n <= 0 ? 0 : (((i ?? 0) % n) + n) % n);
 const pick = <T>(list: readonly T[], i: number | undefined): T => list[wrap(i, list.length)]!;
 const LIMB_BONES = new Set(["armB.up", "armB.lo", "armF.up", "armF.lo", "legB.up", "legB.lo", "legF.up", "legF.lo"]);
@@ -148,24 +162,25 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
   interface Fig {
     fr: Xf[]; wa: number[]; map: Xf; s: number; build: { scale: number; limb: number; torso: number };
     rot: number[]; held: HeldId; art: WeaponArt | null; backLeads: boolean; facing: 1 | -1;
+    /** 1 while the back hand holds a two-hand item's grip2, 0 once it has let go. */
+    hold2: number;
   }
   const SWAP: readonly (readonly [number, number])[] = [[BONE.armBup, BONE.armFup], [BONE.armBlo, BONE.armFlo], [BONE.handB, BONE.handF]];
 
-  /** A two-hand item has the back hand on its shaft: not once the front hand lets it go (a
-   *  knockout fall), not while the back hand holds a Move prop (the can, the whistle). */
-  function holdsShaftOf(pose: Pose, dress: Dress): boolean {
-    return shaftHold(pose, dress) >= 1;
-  }
   /** 1 while the back hand holds the shaft, 0 once it has let go, easing between as the front
-   *  hand's grip opens (the held item turning 15 to 30 degrees out of the hand). */
+   *  hand's grip opens (the held item turning 5 to 35 degrees out of the hand: over 15 degrees the
+   *  back forearm swung off the shaft faster than a real one in a knockout fall). */
   function shaftHold(pose: Pose, dress: Dress): number {
     if (dress.prop !== undefined) return 0;
-    const u = (30 - Math.abs(pose.rot[BONE.held] ?? 0)) / 15;
+    const u = (35 - Math.abs(pose.rot[BONE.held] ?? 0)) / 30;
     return u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
   }
   function figure(pose: Pose, dress: Dress, at: Place): Fig {
     const build = pick(looks.builds, dress.look?.build);
-    const s = (dress.scale > 0 ? dress.scale : 1) * build.scale;
+    // A key's squash (`scale`) is drawn as the same size change both ways (its area): squashed
+    // unevenly, a jointed body's limbs drawn across the squash came out up to 9% longer than
+    // those along it, and a forearm stretched or shrank as it turned (owner: "dislocation of arms").
+    const s = (dress.scale > 0 ? dress.scale : 1) * build.scale * squashOf(pose);
     const held = heldOf(dress);
     const backLeads = dress.lead === "B" && isPair(held);
     let rot = [...pose.rot];
@@ -174,6 +189,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     const art = held === "fists" ? null : weaponArt(held);
     const free = [...rot];
     const hold = shaftHold(pose, dress);
+    let hold2 = 0;
     if (art !== null && art.grip2 !== undefined && hold > 0) {
       // the back hand on the shaft: pinned by two-bone IK to grip2, turned along the item. The
       // item is drawn at its own size (itemStageXf), not at the body's, so grip2's offset from the
@@ -192,16 +208,28 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       const sh = fr0[BONE.armBup]!;
       const most = TWO_HAND_REACH * BACK_ARM;
       const least = TWO_HAND_FOLD * BACK_ARM;
+      // how far the front hand would have to be drawn in or out (figure units): a little reads as
+      // bringing the shaft to the body; far, the front arm would swing round fast to fetch it,
+      // so past REACH_PULL the back hand lets go instead (eased, so the picture stays smooth)
+      const need0 = Math.hypot(wx - sh.e, wy - sh.f);
+      const need = need0 > most ? need0 - most : 0;
+      let pulled = 0;
       for (let pass = 0; pass < 6; pass++) {
         const dist = Math.hypot(wx - sh.e, wy - sh.f);
         if (dist <= most + 1e-3 && dist >= least - 1e-3) break;
+        const cap = dist < least ? FOLD_PULL : REACH_PULL[0];
+        if (pulled >= cap - 1e-6) break;
         const hf = fr0[BONE.handF]!;
         let ux = dist > 1e-6 ? (wx - sh.e) / dist : hf.e - sh.e;
         let uy = dist > 1e-6 ? (wy - sh.f) / dist : hf.f - sh.f;
         const ul = Math.hypot(ux, uy) || 1;
         ux /= ul;
         uy /= ul;
-        const move = dist > most ? most - dist : least - dist;
+        // the front hand is drawn in or out at most REACH_PULL[0] in all: past that the back hand
+        // eases off instead (below), so the front arm never swings round to fetch the shaft
+        const want = dist > most ? most - dist : least - dist;
+        const move = Math.sign(want) * Math.min(Math.abs(want), cap - pulled);
+        pulled += Math.abs(move);
         const keep = wa0[BONE.handF]!;
         rot = twoBone(model, rot, pose.root.x, pose.root.y, BONE.armFup, BONE.armFlo, BONE.handF,
           hf.e + ux * move, hf.f + uy * move, { maxReach: ANATOMY.reach }).rot;
@@ -212,6 +240,12 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
         wa0 = worldAngles(model, rot);
         [wx, wy, handWorld] = backWrist(fr0, wa0, art, s, pose);
       }
+      // Folded in further, grip2 passes close by the back shoulder, where a small shift of it
+      // swings the whole back arm round (the elbow at its limit): the hand lets go over
+      // FOLD_LET_GO of the arm's length instead of holding on into that.
+      const fd = Math.hypot(wx - sh.e, wy - sh.f) / BACK_ARM;
+      const f = (fd - FOLD_LET_GO[0]) / (FOLD_LET_GO[1] - FOLD_LET_GO[0]);
+      const keepFold = f >= 1 ? 1 : f <= 0 ? 0 : f;
       // The back fist closes round the shaft where grip2 is; it need not cross the shaft square
       // (a shaft lies at a slant through a gripping hand), so the hand turns only as far as the
       // wrist bends (BACK_WRIST) and grip2 stays in the fist.
@@ -223,7 +257,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       let hb = handWorld;
       for (let pass = 0; pass < 4; pass++) {
         const [c, sn] = at(hb);
-        rot = twoBone(model, rot, pose.root.x, pose.root.y, BONE.armBup, BONE.armBlo, BONE.handB, gx - (c * g.x - sn * g.y), gy - (sn * g.x + c * g.y)).rot;
+        rot = twoBone(model, rot, pose.root.x, pose.root.y, BONE.armBup, BONE.armBlo, BONE.handB, gx - (c * g.x - sn * g.y), gy - (sn * g.x + c * g.y), { maxReach: TWO_HAND_REACH }).rot;
         const fore = worldAngles(model, rot)[BONE.armBlo]!;
         let local = hb - fore;
         while (local > 180) local -= 360;
@@ -234,16 +268,36 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       }
       {
         const [c, sn] = at(hb);
-        rot = twoBone(model, rot, pose.root.x, pose.root.y, BONE.armBup, BONE.armBlo, BONE.handB, gx - (c * g.x - sn * g.y), gy - (sn * g.x + c * g.y)).rot;
+        rot = twoBone(model, rot, pose.root.x, pose.root.y, BONE.armBup, BONE.armBlo, BONE.handB, gx - (c * g.x - sn * g.y), gy - (sn * g.x + c * g.y), { maxReach: TWO_HAND_REACH }).rot;
       }
       rot[BONE.handB] = hb - worldAngles(model, rot)[BONE.armBlo]!;
+      // A back hand that could only stay on the item by turning a shoulder past a real one's
+      // range (a tyre held up at the face, a shaft swung behind the head) lets go instead, easing
+      // off over the last BACK_LET_GO degrees: a held arm never dislocates to keep its grip.
+      // (the front arm too: the reach solve above may have drawn it in past its own range)
+      const overOf = (a0: number): number => {
+        // degrees outside the shoulder's range, measured round the circle the short way to its
+        // nearer end (negative inside), so it never jumps where the angle wraps
+        const [lo, hi] = ANATOMY.shoulder;
+        let a = a0;
+        while (a < lo) a += 360;
+        while (a >= lo + 360) a -= 360;
+        return a <= hi ? -Math.min(a - lo, hi - a) : Math.min(a - hi, lo + 360 - a);
+      };
+      const over = Math.max(overOf(rot[BONE.armBup]!), overOf(rot[BONE.armFup]!) - Math.max(0, overOf(free[BONE.armFup]!)));
+      const u = (BACK_LET_GO[1] - over) / (BACK_LET_GO[1] - BACK_LET_GO[0]);
+      const keep = u >= 1 ? 1 : u <= 0 ? 0 : u;
+      const r = (REACH_PULL[1] - need) / (REACH_PULL[1] - REACH_PULL[0]);
+      const keepR = r >= 1 ? 1 : r <= 0 ? 0 : r;
+      const k = hold * keep * keepR * keepFold;
+      hold2 = k;
       // letting go (a knockout fall drops the item): the arms ease from the shaft to their keys
-      if (hold < 1) rot = rot.map((v, i) => { let d = v - free[i]!; while (d > 180) d -= 360; while (d < -180) d += 360; return free[i]! + d * hold; });
+      if (k < 1) rot = rot.map((v, i) => { let d = v - free[i]!; while (d > 180) d -= 360; while (d < -180) d += 360; return free[i]! + d * k; });
     }
     const fr = frames(model, rot, pose.root.x, pose.root.y);
     const wa = worldAngles(model, rot);
-    const map: Xf = { a: at.facing * s * pose.root.sx, b: 0, c: 0, d: s * pose.root.sy, e: at.x, f: at.y };
-    return { fr, wa, map, s, build, rot, held, art, backLeads, facing: at.facing };
+    const map: Xf = { a: at.facing * s, b: 0, c: 0, d: s, e: at.x, f: at.y };
+    return { fr, wa, map, s, build, rot, held, art, backLeads, facing: at.facing, hold2 };
   }
   /** Where the back wrist must be (figure space) for the back hand to hold `grip2`, and the
    *  hand's world angle (both hands close round the shaft the same way). */
@@ -252,8 +306,9 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     const ia = (handWorld + art.grip.rot) * Math.PI / 180;
     const ox = art.grip2!.x - art.grip.x;
     const oy = art.grip2!.y - art.grip.y;
-    const gx = fr0[BONE.held]!.e + (ox * Math.cos(ia) - oy * Math.sin(ia)) / (s * pose.root.sx);
-    const gy = fr0[BONE.held]!.f + (ox * Math.sin(ia) + oy * Math.cos(ia)) / (s * pose.root.sy);
+    void pose;
+    const gx = fr0[BONE.held]!.e + (ox * Math.cos(ia) - oy * Math.sin(ia)) / s;
+    const gy = fr0[BONE.held]!.f + (ox * Math.sin(ia) + oy * Math.cos(ia)) / s;
     const g = model.def.bones[BONE.held]!;
     const c = Math.cos(handWorld * Math.PI / 180);
     const sn = Math.sin(handWorld * Math.PI / 180);
@@ -459,14 +514,20 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
 
   function drawScrapper(env: DrawEnv, pose: Pose, dress: Dress, at: Place): void {
     const f = figure(pose, dress, at);
-    const look = dress.look;
-    const colours = lookColours(look);
-    const white = dress.tint === "white";
     // ground shadow between the feet
     const fa = stageOf(f, f.fr[BONE.footF]!.e, 0);
     const fb = stageOf(f, f.fr[BONE.footB]!.e, 0);
     shadow(env, (fa[0] + fb[0]) / 2 + f.facing * 2 * f.s, at.y, (Math.abs(fa[0] - fb[0]) / 2 + 11 * f.s), pose.lift);
-
+    const parts = scrapperParts(f, pose, dress);
+    if (dress.tint === "white") for (const p of parts) p.veil = false;
+    paintParts(env, parts, dress.tint === "white");
+  }
+  /** Every part of a scrapper as it is painted, each tagged with its bone ("armF.lo") or what it
+   *  is ("item:F", "item:B", "shield", "prop"): the one list `drawScrapper` paints and the
+   *  drawn-geometry test measures. */
+  function scrapperParts(f: Fig, pose: Pose, dress: Dress): Paint[] {
+    const look = dress.look;
+    const colours = lookColours(look);
     const parts: Paint[] = [];
     const released = Math.abs(f.rot[BONE.held] ?? 0) > 30;
     const dazed = pose.face === "dazed";
@@ -499,7 +560,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       const side = boneId.startsWith("arm") || boneId.startsWith("leg") ? boneId[3] : boneId.startsWith("hand") || boneId.startsWith("foot") ? boneId[4] : null;
       const isArm = boneId.startsWith("arm") || boneId.startsWith("hand");
       const veil = side !== null && side === (isArm && f.backLeads ? "F" : "B");
-      const p: Paint = { d: sh.d, z, xf, lit, shade: shadeOf(lit), ink: sh.slot === "ink", veil };
+      const p: Paint = { d: sh.d, z, xf, lit, shade: shadeOf(lit), ink: sh.slot === "ink", veil, tag: boneId, kx };
       if (sh.shade !== undefined) p.extra = sh.shade;
       parts.push(p);
     }
@@ -508,29 +569,37 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       const lead: "F" | "B" = f.backLeads ? "B" : "F";
       const g = gripOf(f, lead, f.art);
       const zLead = lead === "F" ? 61 : 61;
-      parts.push(...itemPaints(f.art, itemStageXf(f, g.x, g.y, g.angle, f.art), zLead, colours, pose.trail, f, g.x, g.y, g.angle));
+      const xl = itemStageXf(f, g.x, g.y, g.angle, f.art);
+      parts.push(...tagged(itemPaints(f.art, xl, zLead, colours, pose.trail, f, g.x, g.y, g.angle), `item:${lead}`, xl));
       if (isPair(f.held) || f.art.offhand === true) {
         const other: "F" | "B" = lead === "F" ? "B" : "F";
         const g2 = gripOf(f, other, f.art);
-        parts.push(...itemPaints(f.art, itemStageXf(f, g2.x, g2.y, g2.angle, f.art), 21, colours, undefined, null, 0, 0, 0));
+        const xo = itemStageXf(f, g2.x, g2.y, g2.angle, f.art);
+        parts.push(...tagged(itemPaints(f.art, xo, 21, colours, undefined, null, 0, 0, 0), `item:${other}`, xo));
       }
     }
     if (dress.shield !== null && dress.shield !== undefined) {
       const art = shieldArt(dress.shield);
       const wrist = f.fr[BONE.handB]!;
       const angle = f.wa[BONE.armBlo]! + art.grip.rot;
-      parts.push(...itemPaints(art, itemStageXf(f, wrist.e, wrist.f, angle, art), 23, colours, undefined, null, 0, 0, 0));
+      const xs = itemStageXf(f, wrist.e, wrist.f, angle, art);
+      parts.push(...tagged(itemPaints(art, xs, 23, colours, undefined, null, 0, 0, 0), "shield", xs));
     }
     if (dress.prop !== undefined) {
       const prop = content?.props?.[dress.prop];
       if (prop === undefined) warnOnce(`prop:${dress.prop}`, `no art for the Move prop "${dress.prop}"`);
       else {
         const g = gripOf(f, f.backLeads ? "F" : "B", prop);
-        parts.push(...itemPaints(prop, itemStageXf(f, g.x, g.y, g.angle, prop), 21.5, colours, undefined, null, 0, 0, 0));
+        const xp = itemStageXf(f, g.x, g.y, g.angle, prop);
+        parts.push(...tagged(itemPaints(prop, xp, 21.5, colours, undefined, null, 0, 0, 0), "prop", xp));
       }
     }
-    if (white) for (const p of parts) p.veil = false;
-    paintParts(env, parts, white);
+    return parts;
+  }
+  /** Tags an item's paints; `item` is the frame the item's own drawing (grip, grip2) is in. */
+  function tagged(ps: Paint[], tag: string, item: Xf): Paint[] {
+    for (const p of ps) { p.tag = tag; p.item = item; }
+    return ps;
   }
 
   function companionColours(id: CompanionId): SlotColours {
@@ -673,7 +742,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     },
     backPinError(pose, dress) {
       const f = figure(pose, dress, HOME);
-      if (f.art?.grip2 === undefined || !holdsShaftOf(pose, dress)) return 0;
+      if (f.art?.grip2 === undefined || f.hold2 < 1) return 0;
       const g = gripOf(f, f.backLeads ? "B" : "F", f.art);
       const [ax, ay] = stageOf(f, g.x, g.y);
       const r = (g.angle * Math.PI) / 180;
@@ -685,7 +754,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     },
     backReach(pose, dress) {
       const f = figure(pose, dress, HOME);
-      if (f.art?.grip2 === undefined || !holdsShaftOf(pose, dress)) return null;
+      if (f.art?.grip2 === undefined || f.hold2 < 1) return null;
       const sh = f.fr[BONE.armBup]!;
       const wr = f.fr[BONE.handB]!;
       const fr0 = frames(model, pose.rot, pose.root.x, pose.root.y);
@@ -694,6 +763,14 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       return { drawn: Math.hypot(wr.e - sh.e, wr.f - sh.f) / BACK_ARM, want: Math.hypot(w[0] - sh0.e, w[1] - sh0.f) / BACK_ARM };
     },
     figureRot(pose, dress) { return figure(pose, dress, HOME).rot; },
+    backHold(pose, dress) { return figure(pose, dress, HOME).hold2; },
+    parts(pose, dress, at) {
+      if (pose.rig !== "scrapper") return [];
+      const f = figure(pose, dress, at);
+      return scrapperParts(f, pose, dress);
+    },
+    held(dress) { const h = dress.held ?? "fists"; return h === "fists" ? null : weaponArt(h); },
+    shield(dress) { return dress.shield === null || dress.shield === undefined ? null : shieldArt(dress.shield); },
     lowest(pose, bones) {
       const body = bodyOf(pose.rig);
       const fr = frames(body.model, pose.rot, pose.root.x, pose.root.y);
@@ -730,6 +807,13 @@ export interface RigInspect {
   backReach(pose: Pose, dress: Dress): { drawn: number; want: number } | null;
   /** The bone angles as drawn for this dress (the lead swap, the two-hand solve). */
   figureRot(pose: Pose, dress: Dress): number[];
+  /** 1 while the back hand holds a two-hand item's grip2, easing to 0 as it lets go. */
+  backHold(pose: Pose, dress: Dress): number;
+  /** Every part as `drawActor` paints it, tagged with its bone or item (see `Paint.tag`). */
+  parts(pose: Pose, dress: Dress, at: Place): Paint[];
+  /** The art of the held item and of the shield (null for fists, no shield). */
+  held(dress: Dress): WeaponArt | null;
+  shield(dress: Dress): WeaponArt | null;
   /** The lowest point (largest y, figure units, 0 = the floor) of these bones, or of all. */
   lowest(pose: Pose, bones?: readonly string[]): number;
   rigDef(rig: RigId): RigDef;

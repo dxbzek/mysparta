@@ -57,6 +57,12 @@ export interface Paint {
   line?: number;
   /** Skip the outline (a tiny detail that has its own). */
   noOutline?: boolean;
+  /** What the part is (a bone id, "item:F", "shield"...), for measuring the drawn picture. */
+  tag?: string;
+  /** The build's width scale in `xf` (limb and trunk parts). */
+  kx?: number;
+  /** For an item's part: the item drawing's own frame (where its grip and grip2 are). */
+  item?: Xf;
 }
 
 function scaleOf(m: Xf): number { return Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) || 1; }

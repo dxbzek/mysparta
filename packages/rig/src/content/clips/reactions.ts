@@ -23,7 +23,7 @@ export const HIT_HEAVY = clip(300, false, [], [
   [32, { root: [-2, 3.4], pelvis: -2, torso: -4, head: -36, F: { at: [10, -56], aim: -100 }, B: { up: 10, lo: -126, hand: 10 }, face: "dazed" }],
   [82, { root: [-8, 4], pelvis: -8, torso: -22, head: -30, legB: { at: [-22, -7], foot: 18 }, F: { at: [3, -63], aim: -128 }, B: { up: 28, lo: -86, hand: 22 } }],
   [140, { root: [-12, 7], pelvis: -8, torso: -14, head: -16, legB: { at: -26 }, F: { at: [4, -60], aim: -120 }, B: { up: 30, lo: -84, hand: 20 }, ease: "inOut" }],
-  [196, { root: [-8, 9], pelvis: -4, torso: 12, head: 6, legB: { at: -22 }, F: { at: [8, -52], aim: -102 }, B: { up: 14, lo: -118, hand: 6 }, face: "grit", ease: "inOut" }],
+  [196, { root: [-8, 9], pelvis: -4, torso: 12, head: 6, legB: { at: -22 }, F: { at: [8, -52], aim: -101 }, B: { up: 14, lo: -118, hand: 6 }, face: "grit", ease: "inOut" }],
   [248, { root: [-4, 5.4], pelvis: -2, torso: 10, head: -4, legB: { at: [-16, -5], foot: 10 }, F: { at: [11, -52], aim: -88 }, B: { up: 9, lo: -134, hand: 2 }, ease: "inOut" }],
   [300, { ...STANCE, face: "grit", ease: "inOut" }],
 ], { plant: ["footF"], lag: { torso: 30, "armB.up": 30, "armB.lo": 30, handB: 30 } });

@@ -149,10 +149,15 @@ describe("two hands on one shaft, in every clip a two-hand weapon can play", () 
     const bad = rows.filter((r) => r.pinErr > 1 || r.reach > ANATOMY.reach + 1e-3).map((r) => `${r.id} ${r.clip}: reach ${r.reach.toFixed(3)} (${r.reachAt}) pin ${r.pinErr.toFixed(2)}`);
     expect(bad).toEqual([]);
   });
+  it("keeps both hands on the item in the guard, the draw and the item's own attack (no let-go)", () => {
+    const must = (r: (typeof rows)[number]): boolean => ["idle", "brace", "draw"].includes(r.clip) || (r.clip === WEAPON_META[r.id].clip && r.clip !== "throw");
+    expect(rows.filter((r) => must(r) && r.letGo > 0).map((r) => `${r.id} ${r.clip}: ${r.letGo}/${r.frames}`)).toEqual([]);
+  });
   it("planted fault: a grip2 out of reach is caught", () => {
     const far = { ...contentPack, weapons: { ...contentPack.weapons, broom: { ...contentPack.weapons.broom, grip2: { x: -60, y: 0 } } } };
     const r = measureClip(createRig(gatePack, far), "broom", "idle");
-    expect(r.pinErr > 1 || r.reach > ANATOMY.reach + 1e-3).toBe(true);
+    // out of reach, the back hand lets go (it never stretches or dislocates to hold): caught as a let-go
+    expect(r.pinErr > 1 || r.reach > ANATOMY.reach + 1e-3 || r.letGo > 0).toBe(true);
   });
 });
 

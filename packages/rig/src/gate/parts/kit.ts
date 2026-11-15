@@ -49,16 +49,20 @@ export const PROF = {
 type Prof = readonly (readonly [number, number, number])[];
 const plus = (p: Prof, add: number): Prof => p.map(([t, a, b]) => [t, a + add, b + add] as const);
 
+/** Limb pieces end in full round caps (half circles of the piece's width at that end, not
+ *  flattened), so where two pieces meet at a joint each covers a whole disc round the pin and
+ *  no bend opens a notch between them (owner, 16 Nov 2026: "Dislocation of arms"). */
+const JOINT_ENDS = 9;
 /** An upper arm (`up`) or forearm (`lo`) shape: a sleeve (`top`) or bare (`skin`). */
 export function armPart(side: Side, part: "up" | "lo", sleeve: boolean): Pt[] {
   const len = part === "up" ? PROPORTION.upperArm : PROPORTION.forearm;
   const prof = sleeve ? plus(part === "up" ? PROF.UA : PROF.FA, 0.9) : part === "up" ? PROF.UAbare : PROF.FAbare;
   void side;
-  return limb(len, prof, K);
+  return limb(len, prof, K, JOINT_ENDS, 1);
 }
 export function legPart(part: "up" | "lo", extra = 0): Pt[] {
   const len = part === "up" ? PROPORTION.thigh : PROPORTION.shin;
-  return limb(len, plus(part === "up" ? PROF.TH : PROF.SH, extra), K);
+  return limb(len, plus(part === "up" ? PROF.TH : PROF.SH, extra), K, JOINT_ENDS, 1);
 }
 
 /** Points along a limb's own length: x across (front +), t along (0 joint, 1 far end). */
