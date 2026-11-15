@@ -3,7 +3,7 @@
  * times. `frame.ts` reads it at any `t` (a pure function) and `draw.ts` paints a frame.
  * Nothing in here is mutated after `buildTimeline` returns.
  */
-import type { ActorId, BagItem, CompanionId, HeldId, Look, PerkId, PropId, ShieldId, Side } from "@rankzero/core";
+import type { ActorId, BagItem, CompanionId, HeldId, Look, MoveId, PerkId, PropId, ShieldId, Side, SkillId } from "@rankzero/core";
 import type { Aim, FxKind, MoveProp, RigId } from "@rankzero/rig";
 import type { Cue, EffectKey, Timeline } from "./contracts";
 import type { FlightPath } from "./flight";
@@ -85,7 +85,34 @@ export interface TagItem { from: number; to: number; text: string; colour: strin
   /** A skill's icon drawn at the left of the words (a skill tag, a Move's result). */
   icon?: PerkId;
   /** A banner held in the top band of the view, clear of the heads (the winner's banner). */
-  band?: "top" }
+  band?: "top";
+  /** What the tag says, for its size and place in the pecking order (labels.ts): a Move's
+   *  callout, a Move's result at its target, a passive or shield that procs, a note (BLOCK, MISS,
+   *  a pet's note), the CRIT beside its number. A tag without one is a note. */
+  role?: TagRole;
+  /** The actor the tag rides on: drawn over its head wherever it is in the frame, `dx` (in its
+   *  facing) and `dy` from its floor place. Without it the tag stays at x, y. */
+  follow?: ActorId; dx?: number; dy?: number }
+export type TagRole = "move" | "result" | "proc" | "note" | "crit";
+
+/**
+ * A skill's own picture on the stage (sigs.ts paints it over the actors, drawn on them wherever
+ * they are in the frame): the cocked fist's glow and speed lines, the horn's sound cones and the
+ * enemy's shock marks, the sand cloud at the face, the shout burst, the anger marks, a passive's
+ * small mark when it procs. `kind` is the Move, one of its parts, or "proc" for a passive.
+ */
+export interface Sig { kind: SigKind; actor: ActorId; target: ActorId | null; from: number; to: number;
+  /** A moment inside it (a slam's floor hit, a boosted swing's contact), ms. */
+  at?: number;
+  /** For a signature that flies (the tarp, the snatched item): from this point to (x1, y1). */
+  fly?: { x0: number; y0: number; x1: number; y1: number; ms: number; arc: number };
+  /** The passive of a "proc" signature. */
+  skill?: SkillId }
+export type SigKind = MoveId | "haymaker-swing" | "angry" | "proc";
+
+/** A shield or a two-hand item put aside while its owner does a Move, so the gesture reads (it
+ *  hung on the arm in front of the chest and hid the Taunt's fist pump and the Whistle). */
+export interface Sling { actor: ActorId; from: number; to: number; shield: boolean; held: boolean }
 
 /** A thing in the air: thrown, knocked off, dropped, snatched. */
 export interface FlightItem { item: PropId; from: number; to: number; path: FlightPath;
@@ -127,6 +154,8 @@ export interface Tracks {
   flashes: Flash[];
   crowds: Crowd[];
   auras: Aura[];
+  sigs: Sig[];
+  slings: Sling[];
   /** Where and when the knockout falls, and which way the body falls (+1 toward +x): the camera's
    *  one reframe starts here (null: nobody falls). */
   koFocus: { at: number; x: number; y: number; back: 1 | -1;

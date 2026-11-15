@@ -167,16 +167,22 @@ export const FLIGHT = {
 export const MOVE = {
   /** A Move simply happens (owner, 15 Nov 2026: "I don't like the skill preview. It should just
    *  show"): no wind-up, no dim, no banner. A small tag with its icon and name pops over the user
-   *  as the action starts, as long as a passive's tag. */
+   *  as the action starts, as long as a passive's tag. What says which Move it is, is the action
+   *  itself: the real object, the body's own gesture and the Move's signature effect (owner,
+   *  16 Nov 2026, against bigger tags: "No it's not about it. The effects aren't there"). */
   nameTagMs: 900,
+  /** How long after its end a skill's signature effect fades out (sigs.ts). */
+  sigFadeMs: 180,
+  /** A passive's mark when it procs (sigs.ts): this long. */
+  procMarkMs: 700,
   /** The parts of the rig's power-up clip (Second Wind's breath, the Haymaker's charge,
    *  the whistle or horn blow) and the slam clip's grab are read from their `step` events in
    *  `rig.clipInfo` (choreo/move.ts). A clip without them is split by these shares of its length. */
   partShares: [0.35, 0.7, 0.75],
   /** A Haymaker charges this long; a blow lasts this long; Second Wind breathes in this long. */
-  chargeMs: 440,
-  blowMs: 420,
-  breathMs: 520,
+  chargeMs: 700,
+  blowMs: 820,
+  breathMs: 860,
   /** A Grapple squeezes for this long; the squeeze hurts this far into it. */
   squeezeMs: 700,
   squeezeHitMs: 260,
@@ -189,19 +195,26 @@ export const MOVE = {
   /** Where the lit-bundle part of the content crackers effect ends (content/fx.ts CRACKERS_LIT). */
   crackersLit: 0.2,
   snatchJumpMs: 250,
-  ringsMs: 400,
+  ringsMs: 800,
   /** Sand: the handful flies as a few puffs, this far apart; the target rubs its eyes this long. */
   sandGapMs: 45,
   rubMs: 900,
   /** An Air Horn's blast: the enemy scrapper covers its ears this long. */
-  earsMs: 520,
+  earsMs: 1100,
   /** A Move's result tag ("-25 AIM", "SNARED") stays this long. */
   resultMs: 1100,
   /** A whistled pet runs to its owner's side, this far in front of it, at this speed. */
-  petRunGap: 22,
+  petRunGap: 34,
   petRunSpeed: 260,        // units per second
   freeMs: 220,
   fleeSpeed: 300,          // units per second
+  /** Scared by an Air Horn, a pet first jumps on the spot this long, then runs off at this speed. */
+  startleMs: 260,
+  scaredSpeed: 190,
+  /** A Taunt's target squares up, fists shaking, this long. */
+  angryMs: 900,
+  /** The Taunt's own gesture (rig content clips/gestures.ts: two fist pumps and a beckon). */
+  tauntMs: 1300,
 } as const;
 
 /** The end of the bout. */

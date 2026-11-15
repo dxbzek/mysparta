@@ -34,8 +34,12 @@ export function attack(b: Builder, step: StepOf<"attack">, i: number): Placed {
   for (const seg of sw.segs) seg.strikes = ci;
   if (boosted) {
     const swingStart = sw.segs[0]!.from;
+    // (the trail draws its arc round a point 56 over `at`: at the floor that is the shoulder; with
+    // the old dy of -46 it drew above the head and off the top of a phone's frame)
     b.fx.push({ fx: "trail", from: swingStart, to: sw.contactAt + 120, x: 0, y: 0, facing: sw.facing,
-      seed: b.opts.cosmeticSeed + i, contact: null, follow: step.actor, dy: -46 });
+      seed: b.opts.cosmeticSeed + i, contact: null, follow: step.actor, dy: 0 });
+    // the cocked fist still glows through the swing, and the blow bursts on the target (sigs.ts)
+    b.sigs.push({ kind: "haymaker-swing", actor: step.actor, target: step.outcome === "hit" ? step.target : null, from: swingStart, to: sw.contactAt + 300, at: sw.contactAt });
     b.boosted.delete(step.actor);
   }
   b.cause = { step: i, at: sw.contactAt, actor: step.actor, hitStop };

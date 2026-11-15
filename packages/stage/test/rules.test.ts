@@ -234,7 +234,7 @@ describe("choreography", () => {
           expect(kinds.filter((f) => f === "rings").length, why).toBe(3);
           const enemy = s.actor.startsWith("a") ? "b0" : "a0";
           expect(resultOver(enemy, s.move, at), why).toBe(true);
-          expect(segsOf(enemy).some((g) => g.clip === "snared" && g.from > at), `${why}: covers its ears`).toBe(true);
+          expect(segsOf(enemy).some((g) => g.clip === "ears" && g.from > at), `${why}: covers its ears`).toBe(true);
           for (const n of next) { const f = n.s; if (f.t === "flee") expect(tr.tags.some((g) => g.actor === f.actor && g.text === "FLED:AIR-HORN"), why).toBe(true); }
           break;
         }
@@ -274,12 +274,16 @@ describe("choreography", () => {
         case "sand-in-the-eyes":
           expect(mine.map((g) => g.clip), why).toContain("throw");
           expect(fx.filter((f) => f.fx === "dust" && f.fly !== undefined).length, `${why}: the handful flies`).toBeGreaterThanOrEqual(2);
-          expect(segsOf(s.target!).some((g) => g.clip === "snared" && g.from > at), `${why}: rubs its eyes`).toBe(true);
+          expect(segsOf(s.target!).some((g) => g.clip === "rub-eyes" && g.from > at), `${why}: rubs its eyes`).toBe(true);
           expect(resultOver(s.target!, s.move, at), why).toBe(true);
           break;
         case "taunt":
-          expect(mine.map((g) => g.clip), why).toContain("win");
+          expect(mine.map((g) => g.clip), why).toContain("taunt");
           expect(kinds, why).toContain("rings");
+          {
+            const enemy = s.actor.startsWith("a") ? "b0" : "a0";
+            expect(segsOf(enemy).some((g) => g.clip === "angry" && g.from > at), `${why}: the enemy is angered`).toBe(true);
+          }
           expect(resultOver(s.actor, s.move, at), why).toBe(true);
           break;
         case "second-wind":

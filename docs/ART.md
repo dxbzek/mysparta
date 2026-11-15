@@ -168,6 +168,10 @@ the 12 worst frames; `throws <png>` draws the five throws with the flying item. 
 - **The right hand.** The item is drawn in the leading hand (the back hand only for a pair
   leading with it), a second copy only for a pair or an off-hand item, the shield strapped to
   the back wrist, a Move prop in the back hand; a fighter facing left is the exact mirror.
+  For a Move (and a target's reaction to one: the hands at the ears or the eyes, the hug) the
+  shield, and a two-hand item, are slung on the back (the stage's `Sling`, drawn behind the
+  body), so the whistle, the horn, the can and the gesture are never hidden behind a pallet
+  (owner, 16 Nov 2026: "The effects aren't there").
 - **Throws** start their flight at the drawn hand at the release (the stage's `handAnchor`),
   the hand moving forward. Overarm: weight back, step, hips, chest, the arm over the shoulder,
   release in front of the head. Side-arm (Boomerang, Hubcap): a backhand, the hand drawn in to

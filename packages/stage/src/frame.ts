@@ -8,14 +8,14 @@
  * offset, a burst, a number, an HP change, a shake, a crowd bounce, a sound cue that plays in
  * this millisecond), not from the contact's `starts` record.
  */
-import type { ActorId, PerkId, PropId } from "@rankzero/core";
+import type { ActorId, PerkId, PropId, SkillId } from "@rankzero/core";
 import type { Aim, Dress, FxKind, Place, RigId } from "@rankzero/rig";
 import type { EffectKey } from "./contracts";
 import { IMPACT_FAMILIES } from "./cues";
 import { anchorAt, pointAt } from "./flight";
-import type { Nudge, Seg, Tracks } from "./model";
+import type { Nudge, Seg, SigKind, TagRole, Tracks } from "./model";
 import { clipTime, drawPlace, eased, heldAt, segAt, shieldAt } from "./track";
-import { CONTACT, FLIGHT, FLOOR } from "./tuning";
+import { CONTACT, FLIGHT, FLOOR, MOVE } from "./tuning";
 
 export interface FrameActor {
   id: ActorId; rig: RigId; clip: string; clipT: number; aim?: Aim; place: Place; floorY: number;
@@ -23,6 +23,8 @@ export interface FrameActor {
   /** A pet inside its own attack (`ActorTrack.attacks`): the one time it may draw over a fighter
    *  that stands at its depth. */
   attacking: boolean;
+  /** What it has put aside for a Move (`Sling`): drawn hanging at its back hip, not on the arm. */
+  slung?: PropId[];
 }
 export interface FrameProp { item: PropId; x: number; y: number; rot: number; facing: 1 | -1; alpha: number;
   /** Drawn squashed to this share of its height toward the floor line `floorY` (a fallen shield). */
@@ -33,7 +35,19 @@ export interface FrameFx { fx: FxKind; progress: number; at: Place; seed: number
 export interface FrameText { text: string; x: number; y: number; size: number; colour: string; ink: string; alpha: number;
   kind: "number" | "tag" | "banner" | "sticker"; icon?: PerkId;
   /** A banner held in the top band of the view (`TagItem.band`). */
-  band?: "top" }
+  band?: "top";
+  /** A tag's role (`TagItem.role`; a tag without one is a note), the actor it rides on, its index
+   *  in `Tracks.tags` and its start, for labels.ts. `x, y` of a riding tag is the point over the
+   *  head that its box sits on; of any other text, its centre. */
+  role?: TagRole; actor?: ActorId; idx?: number; from?: number;
+  /** Its size without the pop, in stage units: what labels.ts lays out. */
+  size0?: number }
+/** A skill's signature in this frame (`Sig`): ms since it began, its progress, its fade and the
+ *  actors it is drawn on. */
+export interface FrameSig { kind: SigKind; skill?: SkillId; e: number; progress: number; alpha: number; actor: FrameActor | null;
+  target: FrameActor | null; at?: number; from: number; to: number;
+  /** Where a flying signature is now (the tarp, the snatched item), and where it came from. */
+  fly?: { x: number; y: number; x0: number; y0: number; u: number } }
 /** A glow round an actor in this frame (Second Wind's breath): how strong (0 to 1), where. */
 export interface FrameAura { glow: number; x: number; floorY: number; colour: string; actor: ActorId }
 export interface Present { key: EffectKey; contact: number }
@@ -48,6 +62,7 @@ export interface Frame {
   texts: FrameText[];
   tape: number | null;
   auras: FrameAura[];
+  sigs: FrameSig[];
   present: Present[];
 }
 
@@ -92,10 +107,18 @@ export function frameAt(tr: Tracks, t: number): Frame {
     if (white.has(a.id)) dress.tint = "white";
     if (seg?.lead !== undefined) dress.lead = seg.lead;
     if (seg?.prop !== undefined) dress.prop = seg.prop;
+    let slung: PropId[] | undefined;
+    for (const g of tr.slings) {
+      if (g.actor !== a.id || t < g.from || t >= g.to) continue;
+      slung = [];
+      if (g.shield && dress.shield !== null) { slung.push(dress.shield); dress.shield = null; }
+      if (g.held && dress.held !== null && dress.held !== "fists") { slung.push(dress.held); dress.held = "fists"; }
+    }
     const fa: FrameActor = { id: a.id, rig: a.rig, clip: seg === null ? "idle" : seg.clip,
       clipT: seg === null ? t + a.phase : clipTime(seg, t), place: { x: p.x, y: p.y, facing: p.facing }, floorY: p.floorY,
       dress, seg, nudges: p.nudges, attacking: a.attacks.some((w) => t >= w.from && t < w.to) };
     if (seg?.aim !== undefined) fa.aim = seg.aim;
+    if (slung !== undefined && slung.length > 0) fa.slung = slung;
     actors.push(fa);
   }
   actors.sort(byDepth);
@@ -178,21 +201,30 @@ export function frameAt(tr: Tracks, t: number): Frame {
     texts.push({ text: n.text, x: n.x, y: n.y - rise, size: 13 * n.scale * pop, colour: n.colour, ink: "#14152B", alpha, kind: "number" });
     if (n.contact !== null) present.push({ key: "number", contact: n.contact });
   }
-  for (const g of tr.tags) {
-    if (t < g.from || t >= g.to) continue;
+  tr.tags.forEach((g, idx) => {
+    if (t < g.from || t >= g.to) return;
     const e = t - g.from;
     // a sticker settles in gently (calm camera: no slam)
     const pop = e < 120 ? 1.1 - 0.1 * eased("out", e / 120) : 1;
     const left = g.to - t;
     const alpha = left < 120 ? left / 120 : 1;
     let x = g.x;
-    const y = g.y;
+    let y = g.y;
     if (g.kind === "banner" && e < 200) x = g.x - (1 - eased("out", e / 200)) * 12;
-    const ft: FrameText = { text: g.text, x, y, size: g.size * pop, colour: g.colour, ink: g.ink, alpha, kind: g.kind };
+    const who = g.follow !== undefined ? placeOf.get(g.follow) : undefined;
+    if (who !== undefined) {
+      // a tag rides on its actor: over its head wherever it is now
+      x = who.place.x + who.place.facing * (g.dx ?? 0);
+      y = who.floorY + (g.dy ?? 0);
+    }
+    const ft: FrameText = { text: g.text, x, y, size: g.size * pop, colour: g.colour, ink: g.ink, alpha, kind: g.kind, idx, from: g.from,
+      size0: g.size };
     if (g.icon !== undefined) ft.icon = g.icon;
     if (g.band !== undefined) ft.band = g.band;
+    if (g.role !== undefined) ft.role = g.role;
+    if (g.follow !== undefined) ft.actor = g.follow;
     texts.push(ft);
-  }
+  });
 
   // ---- HP changes that are happening now (for the contact measurement)
   for (const h of tr.hp) {
@@ -238,8 +270,28 @@ export function frameAt(tr: Tracks, t: number): Frame {
     auras.push({ glow, x: who.place.x, floorY: who.floorY, colour: s.colour, actor: s.actor });
   }
 
+  // ---- skill signatures (sigs.ts paints them)
+  const sigs: FrameSig[] = [];
+  for (const g of tr.sigs) {
+    if (t < g.from || t >= g.to + MOVE.sigFadeMs) continue;
+    const e = t - g.from;
+    const span = Math.max(1, g.to - g.from);
+    const alpha = t < g.to ? Math.min(1, e / 60) : 1 - (t - g.to) / MOVE.sigFadeMs;
+    const fs: FrameSig = { kind: g.kind, e, progress: clamp01(e / span), alpha, actor: placeOf.get(g.actor) ?? null,
+      target: g.target !== null ? placeOf.get(g.target) ?? null : null, from: g.from, to: g.to };
+    if (g.at !== undefined) fs.at = g.at;
+    if (g.skill !== undefined) fs.skill = g.skill;
+    if (g.fly !== undefined) {
+      const u = clamp01(e / g.fly.ms);
+      const v = eased("out", u);
+      fs.fly = { x: g.fly.x0 + (g.fly.x1 - g.fly.x0) * v, y: g.fly.y0 + (g.fly.y1 - g.fly.y0) * v - 4 * v * (1 - v) * g.fly.arc,
+        x0: g.fly.x0, y0: g.fly.y0, u };
+    }
+    sigs.push(fs);
+  }
+
   const tape = tr.tape !== null && t >= tr.tape.from && t < tr.tape.to ? (t - tr.tape.from) / (tr.tape.to - tr.tape.from) : null;
-  return { t, shake: { x: sx, y: sy }, crowd, actors, floor, flights, fx, texts, tape, auras, present };
+  return { t, shake: { x: sx, y: sy }, crowd, actors, floor, flights, fx, texts, tape, auras, sigs, present };
 }
 
 /**
