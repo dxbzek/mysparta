@@ -52,6 +52,8 @@ const STAND: DogFrame = (() => {
 })();
 /** The standing frame's near legs, for the lit overlay (`addLitLegs`), each with where it is cut. */
 const STAND_NEAR: readonly (readonly [Pt[], number])[] = [[STAND.body[3]! as Pt[], -9], [STAND.body[4]! as Pt[], -9]];
+/** The standing dog's near hind leg is cut here (just under the hock) for its own lit shank. */
+const DOG_HOCK = 13.8;
 /** Lying on its chest (frame 7): floor at y = 6.5, forelegs out in front, the hind legs folded. */
 const LIE: DogFrame = (() => {
   const torso = S([[2, -1.0], [-3, -1.3], [-9, -1.0], [-15, -0.8], [-21, -0.4], [-25.6, 1.2], [-28.4, 3.8], [-27.8, 6.5], [-20, 6.5], [-10, 6.5], [-3, 6.5], [0.2, 4.8], [2, 2]]);
@@ -94,6 +96,9 @@ export function strayDog(): PetArt & { anatomy: Anatomy } {
 
   // the near legs of the standing dog keep a lit front (the far ones stay in shadow behind)
   addLitLegs(a, [DOG_FRAME.stand], STAND_NEAR);
+  // the near hind leg below the hock on its own over that: the whole leg's light offset is set by
+  // the thigh, which left the thin shank and paw in shadow but for a sliver
+  addLitLegs(a, [DOG_FRAME.stand], [[STAND.body[4]! as Pt[], DOG_HOCK]], 20.012);
 
   // the drawn tail, for the frames drawn by hand (the traced frames carry the hound's own):
   // bushy, carried in a sickle, a pale tip

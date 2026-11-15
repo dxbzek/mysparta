@@ -16,6 +16,8 @@ import { contentPack } from "../../src/content/pack";
 import { PET_UNIT } from "../../src/content/pets";
 import { CAT_FRAME } from "../../src/content/pets/alley-cat";
 import { DOG_FRAME } from "../../src/content/pets/stray-dog";
+import { GOOSE_NECK, gooseNeckPieces, neckCut } from "../../src/content/pets/goose";
+import { LIGHT } from "../../src/gate/style";
 
 const rig = createRig(gatePack, contentPack);
 const ins = inspectOf(rig);
@@ -110,18 +112,54 @@ describe("pets drawn frame by frame: portraits, stripes, legs", () => {
   it("keeps the alley cat's tabby stripes in every drawn frame (run, flee, attack and ko too)", () => {
     const shapes = contentPack.companions["alley-cat"].shapes;
     const all = [...CAT_FRAME.trot, ...CAT_FRAME.gallop, CAT_FRAME.stand, CAT_FRAME.arch, CAT_FRAME.lie];
-    for (const n of all) expect(shapes.filter((s) => s.bone === `body@${n}` && s.slot === "hair").length, `frame ${n}`).toBeGreaterThanOrEqual(2);
+    // all four in every frame, so none pops on or off when a clip switches frames
+    for (const n of all) expect(shapes.filter((s) => s.bone === `body@${n}` && s.slot === "hair").length, `frame ${n}`).toBe(4);
   });
   it("lays the near legs of the standing dog and cat over the body on their own, so they keep a lit side", () => {
     const lit = (id: CompanionId, n: number): number => contentPack.companions[id].shapes.filter((s) => s.bone === `body@${n}` && s.slot === "skin" && s.z > 20 && s.z < 20.02).length;
-    expect(lit("stray-dog", DOG_FRAME.stand)).toBe(2);
-    expect(lit("alley-cat", CAT_FRAME.stand)).toBe(2);
-    expect(lit("alley-cat", CAT_FRAME.arch)).toBe(2);
+    // the near foreleg, the near hind leg, and the near hind shank under the hock on its own (the
+    // whole hind leg's light offset is set by the thigh, which left the shank in shadow)
+    expect(lit("stray-dog", DOG_FRAME.stand)).toBe(3);
+    expect(lit("alley-cat", CAT_FRAME.stand)).toBe(3);
+    expect(lit("alley-cat", CAT_FRAME.arch)).toBe(3);
   });
   it("shades the goose neck as one tube: each lower piece lies over the one above it", () => {
     const z = (bone: string): number => contentPack.companions.goose.shapes.find((s) => s.bone === bone && s.slot === "skin")!.z;
     expect(z("neck1")).toBeGreaterThan(z("neck2"));
     expect(z("neck2")).toBeGreaterThan(z("neck3"));
     expect(z("head")).toBeGreaterThan(z("neck1"));
+  });
+  it("shows only lit edges at the goose's neck joints, standing or stretched out, facing either way", () => {
+    // the lamp is fixed on the stage (LIGHT, up and left); an edge whose outward normal turns
+    // away from it gets a teal shadow strip along it. The edge that shows at a joint is the
+    // piece below's cut (it lies on top). Check it with the neck standing (rest) and turned to
+    // lie flat out in front (attack, run, ko), each facing right and mirrored to face left.
+    const L = [LIGHT.dx, LIGHT.dy];
+    const ll = Math.hypot(L[0]!, L[1]!);
+    const [neck1, neck2] = gooseNeckPieces();
+    for (const [j, piece] of [[GOOSE_NECK.joints[1]!, neck1!], [GOOSE_NECK.joints[2]!, neck2!]] as const) {
+      const { J, u, n, c } = neckCut(j);
+      // the piece really is cut on that line (a whole edge of it lies on the line)
+      const on = piece.filter((p) => Math.abs((p[0] - J[0]) * n[0] + (p[1] - J[1]) * n[1] - c) < 1e-6);
+      expect(on.length, `joint ${j}`).toBeGreaterThanOrEqual(2);
+      const flat = Math.atan2(0, 1) - Math.atan2(u[1], u[0]);   // turns the neck to point straight ahead
+      const turn = (a: number): [number, number] => [n[0] * Math.cos(a) - n[1] * Math.sin(a), n[0] * Math.sin(a) + n[1] * Math.cos(a)];
+      for (const [pose, m] of [["standing", turn(0)], ["stretched", turn(flat)]] as const) for (const facing of [1, -1]) {
+        const lit = (m[0] * facing * L[0]! + m[1] * L[1]!) / ll;
+        expect(lit, `joint ${j} ${pose} facing ${facing}`).toBeGreaterThan(-0.1);
+      }
+    }
+  });
+  it("tucks the tail of each upper goose neck piece inside a disc about its joint, so a bent joint never pokes a corner out", () => {
+    const pieces = gooseNeckPieces();
+    for (const k of [1, 2]) {
+      const j = GOOSE_NECK.joints[k]!;
+      const { J, u } = neckCut(j);
+      const r = GOOSE_NECK.width[j]!;
+      for (const p of pieces[k]!) {
+        const along = (p[0] - J[0]) * u[0] + (p[1] - J[1]) * u[1];
+        if (along < -1e-6) expect(Math.hypot(p[0] - J[0], p[1] - J[1]), `neck${k + 1}`).toBeLessThanOrEqual(r + 1e-6);
+      }
+    }
   });
 });
