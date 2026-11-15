@@ -10,7 +10,7 @@ import type { Actor } from "./combatant";
 import { valuesOf } from "./combatant";
 import type { Bout } from "./bout";
 import { armored, bagCopy, emit, enemiesUp, headStart, knockOut, land, pickEnemy, proc, scrapperOfSide,
-  sortProcs, tryDisarm, tryDoor, tryFree } from "./bout";
+  sortProcs, tryDisarm, tryFree, tryShield } from "./bout";
 import { turnBase, turnCost } from "./clock";
 import { roll } from "./rng";
 
@@ -32,6 +32,16 @@ export function moveReady(b: Bout, a: Actor, id: MoveId): boolean {
     }
     case "air-horn": return enemies.some((e) => !e.scrapper);
     case "body-slam": return a.held === "fists";
+    case "sand-in-the-eyes": {
+      const foe = scrapperOfSide(b, a.side === "a" ? "b" : "a");
+      return foe.status === "up" && foe.sand === 0;
+    }
+    case "taunt": return !a.taunt;
+    case "second-wind": return a.hp * 100 < a.maxHp * sk("second-wind", "belowHpPct");
+    case "grapple": {
+      const foe = scrapperOfSide(b, a.side === "a" ? "b" : "a");
+      return a.held === "fists" && foe.status === "up" && !foe.snared;
+    }
     default: {
       const unknown: never = id;
       return unknown;
@@ -104,6 +114,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       emit(b, moveStep(b, a, id, procs, { target: target.id }));
       target.snared = true;
       target.snareSkips = 0;
+      target.snareLimit = sk("tarp", "skips");
       emit(b, { t: "snare", turn: b.turn, actor: a.id, target: target.id });
       return Math.floor((turnBase(a, a.held) * sk("tarp", "costPct")) / 100);
     }
@@ -172,10 +183,46 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       const hpAfter = land(target, damage, procs);
       emit(b, moveStep(b, a, id, procs, { target: target.id, hits: [{ target: target.id, damage, hpAfter }] }));
       if (target.hp > 0) tryDisarm(b, a, target, "slam");
-      if (target.hp > 0) tryDoor(b, a, target, "slam");
+      if (target.hp > 0) tryShield(b, a, target, "slam");
       tryFree(b, target);
       if (target.hp === 0) knockOut(b, target, a);
       return turnCost(a, a.held, b.r.clock) + sk("body-slam", "extraCost");
+    }
+    case "sand-in-the-eyes": {
+      const foe = scrapperOfSide(b, a.side === "a" ? "b" : "a");
+      foe.sand = sk("sand-in-the-eyes", "aimLoss");
+      emit(b, moveStep(b, a, id, procs, { target: foe.id }));
+      return Math.floor((turnBase(a, a.held) * sk("sand-in-the-eyes", "costPct")) / 100);
+    }
+    case "taunt": {
+      a.taunt = true;
+      emit(b, moveStep(b, a, id, procs, {}));
+      return sk("taunt", "cost");
+    }
+    case "second-wind": {
+      const want = Math.floor((a.maxHp * sk("second-wind", "healPct")) / 100);
+      const amount = Math.max(1, Math.min(want, a.maxHp - a.hp));
+      emit(b, moveStep(b, a, id, procs, {}));
+      a.hp += amount;
+      emit(b, { t: "heal", turn: b.turn, actor: a.id, target: a.id, amount, hpAfter: a.hp });
+      return sk("second-wind", "cost");
+    }
+    case "grapple": {
+      const foe = scrapperOfSide(b, a.side === "a" ? "b" : "a");
+      const variance = roll(b.r.damage, 85, 115);
+      const raw = Math.floor(((sk("grapple", "base") + sk("grapple", "perStrength") * a.str) * variance) / 100);
+      const damage = armored(raw, valuesOf(foe).armor);
+      const hpAfter = land(foe, damage, procs);
+      emit(b, moveStep(b, a, id, procs, { target: foe.id, hits: [{ target: foe.id, damage, hpAfter }] }));
+      if (foe.hp === 0) {
+        knockOut(b, foe, a);
+      } else {
+        foe.snared = true;
+        foe.snareSkips = 0;
+        foe.snareLimit = sk("grapple", "holds");
+        emit(b, { t: "snare", turn: b.turn, actor: a.id, target: foe.id });
+      }
+      return turnCost(a, a.held, b.r.clock);
     }
     default: {
       const unknown: never = id;

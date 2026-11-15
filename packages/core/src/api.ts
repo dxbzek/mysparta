@@ -8,6 +8,7 @@ import { combineSeed } from "./prng";
 import { COMPANIONS } from "./content/companions";
 import { SKILLS } from "./content/skills";
 import { WEAPONS } from "./content/weapons";
+import { SHIELDS } from "./content/shields";
 import { checkName, createRecord, fighterSeed, randomName, rollLook } from "./progress/create";
 import { afterBout, boutsLeft } from "./progress/daily";
 import { routeNode, walk } from "./progress/route";
@@ -17,7 +18,7 @@ import { afterPick, xpForBout, xpToNext } from "./progress/xp";
 import { simulateFight } from "./sim/simulate";
 import { canonical } from "./canonical";
 
-export const content: ContentTables = { weapons: WEAPONS, skills: SKILLS, companions: COMPANIONS };
+export const content: ContentTables = { weapons: WEAPONS, skills: SKILLS, companions: COMPANIONS, shields: SHIELDS };
 
 /** Fight seed = hash(fighter id, opponent id, the fighter's lifetime bout count). */
 export function boutSeed(aId: string, bId: string, lifetimeBouts: number): number {

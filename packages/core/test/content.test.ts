@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { HeldId } from "../src/contracts/ids";
-import { COMPANION_IDS, MOVE_IDS, SKILL_IDS, WEAPON_IDS } from "../src/contracts/ids";
+import { COMPANION_IDS, MOVE_IDS, SHIELD_IDS, SKILL_IDS, WEAPON_IDS } from "../src/contracts/ids";
 import { WEAPON_META } from "../src/contracts/content";
 import { api } from "../src/api";
 import { COMPANIONS, companionScale } from "../src/content/companions";
@@ -15,27 +15,28 @@ describe("content tables", () => {
     expect(Object.keys(api.content.weapons).sort()).toEqual(["fists", ...WEAPON_IDS].sort());
     expect(Object.keys(api.content.skills).sort()).toEqual([...SKILL_IDS].sort());
     expect(Object.keys(api.content.companions).sort()).toEqual([...COMPANION_IDS].sort());
+    expect(Object.keys(api.content.shields).sort()).toEqual([...SHIELD_IDS].sort());
   });
 
-  it("weapons agree with the frozen WEAPON_META on rarity, tags, clip and Reach for all 29 ids", () => {
+  it("weapons agree with the frozen WEAPON_META on rarity, tags, clip and Reach for all 42 ids", () => {
     for (const id of Object.keys(WEAPON_META) as HeldId[]) {
       const w = WEAPONS[id];
       const m = WEAPON_META[id];
       expect([w.rarity, w.tags, w.clip], id).toEqual([m.rarity, m.tags, m.clip]);
       expect(w.tiers[0].reach ?? 0, id).toBe(m.reach);
     }
-    expect(Object.keys(WEAPON_META)).toHaveLength(29);
+    expect(Object.keys(WEAPON_META)).toHaveLength(42);
   });
 
-  it("skills count 6 Common, 13 Uncommon, 9 Rare, 3 Epic, 1 Mythic, in 6 boosters, 18 passives and 8 Moves", () => {
+  it("skills count 7 Common, 16 Uncommon, 12 Rare, 3 Epic, 1 Mythic, in 6 boosters, 21 passives and 12 Moves", () => {
     const rar: Record<string, number> = {};
     const kind: Record<string, number> = {};
     for (const id of SKILL_IDS) {
       rar[SKILLS[id].rarity] = (rar[SKILLS[id].rarity] ?? 0) + 1;
       kind[SKILLS[id].kind] = (kind[SKILLS[id].kind] ?? 0) + 1;
     }
-    expect(rar).toEqual({ common: 6, uncommon: 13, rare: 9, epic: 3, mythic: 1 });
-    expect(kind).toEqual({ booster: 6, passive: 18, move: 8 });
+    expect(rar).toEqual({ common: 7, uncommon: 16, rare: 12, epic: 3, mythic: 1 });
+    expect(kind).toEqual({ booster: 6, passive: 21, move: 12 });
     for (const m of MOVE_IDS) expect(SKILLS[m].move).toBeDefined();
   });
 
@@ -52,6 +53,9 @@ describe("content tables", () => {
     expect(COMPANIONS.raccoon).toMatchObject({ weight: 90, limit: 2, hpCostPct: 8, hp: 14, strength: 4, startClock: 10 });
     expect(COMPANIONS.goose).toMatchObject({ weight: 5, limit: 1, excludes: ["boar"], hpCostPct: 20, combo: 50, evade: 25 });
     expect(COMPANIONS.boar).toMatchObject({ weight: 5, limit: 1, excludes: ["goose"], hpCostPct: 30, hp: 80, strength: 16, startClock: 250 });
+    expect(COMPANIONS["stray-dog"]).toMatchObject({ limit: 1, excludes: ["alley-cat"], swings: 1, flies: false });
+    expect(COMPANIONS.crow).toMatchObject({ limit: 1, swings: 1, flies: true });
+    expect(COMPANIONS["alley-cat"]).toMatchObject({ limit: 1, excludes: ["stray-dog"], swings: 2, flies: false });
     expect(companionScale(80, 1)).toBe(80);
     expect(companionScale(80, 11)).toBe(112);
   });

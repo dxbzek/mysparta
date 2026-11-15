@@ -70,8 +70,8 @@ describe("the reducer over every golden log", () => {
       expect(s.bag, `${g.scenario} #${g.i} bag`).toEqual(bag);
       for (const x of actors) {
         const r = s.actors[x.id]!;
-        expect({ hp: r.hp, status: r.status, held: r.held, snared: r.snared, door: r.door }, `${g.scenario} #${g.i} ${x.id}`)
-          .toEqual({ hp: x.hp, status: x.status, held: x.scrapper ? x.held : "fists", snared: x.snared, door: x.door });
+        expect({ hp: r.hp, status: r.status, held: r.held, snared: r.snared, shield: r.shield }, `${g.scenario} #${g.i} ${x.id}`)
+          .toEqual({ hp: x.hp, status: x.status, held: x.scrapper ? x.held : "fists", snared: x.snared, shield: x.shield });
       }
     }
   });

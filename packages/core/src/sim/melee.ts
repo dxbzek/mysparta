@@ -8,7 +8,8 @@ import { hasTag, reachOf, weaponNumbers } from "../content/weapons";
 import type { Actor } from "./combatant";
 import { CAP, clampPct, valuesOf } from "./combatant";
 import type { Bout } from "./bout";
-import { armored, emit, headStart, knockOut, land, proc, sortProcs, tryDisarm, tryDoor, tryFree } from "./bout";
+import { armored, emit, headStart, knockOut, land, proc, sortProcs, tryDisarm, tryFree, tryShield } from "./bout";
+import { shieldNumbers } from "../content/shields";
 import { roll } from "./rng";
 
 /** Whole-percent damage multiplier: 100 plus skill bonuses, doubled by Haymaker. */
@@ -20,7 +21,9 @@ export function damageMult(att: Actor, thrown: boolean, boosted: boolean): numbe
       m += sk("sharpening-stone", "bladeDamage");
     }
     if (!thrown && att.held === "fists" && att.skills.has("bare-knuckle")) m += sk("bare-knuckle", "fistDamage");
-    if (att.door && att.skills.has("car-door")) m += sk("car-door", "damage");
+    m += shieldNumbers(att.shield).damage;
+  } else {
+    m += att.dmgPct;
   }
   if (boosted) m = Math.floor((m * sk("haymaker", "damageMult")) / 100);
   return m < 0 ? 0 : m;
@@ -53,7 +56,8 @@ export function damageOf(raw: number, variance: number, mult: number, crit: bool
 export interface SwingCalc { outcome: "hit" | "evade" | "block"; damage: number; crit: boolean; hpAfter: number;
   procs: Proc[]; blocked: boolean }
 
-/** Evade and block chances, halved against a throw. Companions never block. A snared actor neither evades nor blocks. */
+/** Evade and block chances, halved against a throw (a shield's thrownBlock is added after the
+ *  halving). Companions never block. A snared actor neither evades nor blocks. */
 export function evadeChance(att: Actor, def: Actor, aimLess: number, evadeLess: number, thrown: boolean): number {
   const av = valuesOf(att);
   const dv = valuesOf(def);
@@ -65,7 +69,8 @@ export function evadeChance(att: Actor, def: Actor, aimLess: number, evadeLess: 
 export function blockChance(att: Actor, def: Actor, pierceLess: number, thrown: boolean): number {
   if (!def.scrapper) return 0;
   const c = clampPct(valuesOf(def).block - (valuesOf(att).pierce - pierceLess), CAP.block);
-  return thrown ? Math.floor(c / 2) : c;
+  if (!thrown) return c;
+  return clampPct(Math.floor(c / 2) + shieldNumbers(def.shield).thrownBlock, CAP.block);
 }
 
 /** Rolls one swing and applies its HP loss. The caller writes the step, then calls `consequences`. */
@@ -89,7 +94,7 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   const rb = b.r.hit.int(100);
   const blocked = !def.snared && rb < bl;
   if (blocked) {
-    if (def.door && def.skills.has("car-door")) procs.push(proc(def, "car-door"));
+    if (def.shield !== null) procs.push(proc(def, def.shield));
     return { outcome: "block", damage: 0, crit: false, hpAfter: def.hp, procs, blocked: true };
   }
   if (sePierce > 0 && !def.snared && rb < blockChance(att, def, sePierce, thrown)) wouldMiss = true;
@@ -107,7 +112,7 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
 /** The steps a swing causes, in order: disarm, doorOff, free, ko. */
 export function consequences(b: Bout, att: Actor, def: Actor, c: SwingCalc): void {
   if (c.outcome === "hit" && def.hp > 0) tryDisarm(b, att, def, "hit");
-  if (c.outcome !== "evade" && def.hp > 0) tryDoor(b, att, def, "hit");
+  if (c.outcome !== "evade" && def.hp > 0) tryShield(b, att, def, "hit");
   if (c.outcome === "hit") tryFree(b, def);
   if (def.hp === 0) knockOut(b, def, att);
 }
@@ -136,8 +141,10 @@ export const MAX_COMBO = 3;
 
 /** A whole melee attack by `att` on `def`, in the turn of `att`. */
 export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
+  // A Crow flies: nobody hits it first and nobody hits back at it.
+  const flying = att.comp !== null && att.comp.flies;
   // a. Intercept: a standing, free scrapper may hit first.
-  if (def.scrapper && def.status === "up" && !def.snared) {
+  if (def.scrapper && def.status === "up" && !def.snared && !flying) {
     const chance = interceptChance(att, def, 0);
     const r = b.r.hit.int(100);
     if (r < chance) {
@@ -162,6 +169,8 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
   let why: "combo" | "stubborn" | undefined;
   let whyProc: Proc | null = null;
   let parried = false;
+  // An Alley Cat's attack is two scratches: the second one is written as a combo swing.
+  let scratches = att.comp !== null ? att.comp.swings - 1 : 0;
 
   for (let n = 0; ; n++) {
     const procs: Proc[] = [];
@@ -180,6 +189,11 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
     if (b.ended || def.status !== "up" || att.hp < hpStart) break;
 
     whyProc = null;
+    if (scratches > 0) {
+      scratches -= 1;
+      why = "combo";
+      continue;
+    }
     // Stubborn: after an evaded or blocked swing, 50% to swing again at once. Once per turn.
     if (c.outcome !== "hit" && att.skills.has("stubborn") && !stubbornUsed) {
       if (b.r.hit.int(100) < sk("stubborn", "chance")) {
@@ -206,14 +220,16 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
   if (b.ended) return;
 
   // f. Riposte: after the last swing, a standing, free scrapper may hit back once.
-  if (def.scrapper && def.status === "up" && !def.snared && att.status === "up") {
+  if (def.scrapper && def.status === "up" && !def.snared && att.status === "up" && !flying) {
     const dv = valuesOf(def);
     const base = clampPct(dv.riposte, CAP.riposte);
     const chance = parried ? sk("parry", "riposteAfterBlock") : base;
     const r = b.r.hit.int(100);
     if (r < (chance > CAP.riposte ? CAP.riposte : chance)) {
       const procs: Proc[] = [];
+      const taunt = def.taunt ? sk("taunt", "riposte") : 0;
       if (parried && r >= base) procs.push(proc(def, "parry"));
+      else if (taunt > 0 && r >= clampPct(dv.riposte - taunt, CAP.riposte)) procs.push(proc(def, "taunt"));
       else if (def.skills.has("payback") && r >= clampPct(dv.riposte - sk("payback", "riposte"), CAP.riposte)) {
         procs.push(proc(def, "payback"));
       }
