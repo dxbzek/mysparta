@@ -73,7 +73,7 @@ export function mapPoly(pts: Poly, f: (p: Pt) => Pt): Pt[] {
  * `[t, front, back]` (t 0 at the joint, 1 at the far end; front is the +x side). Both ends are
  * rounded with `ends` points, so two segments overlap into a round joint.
  */
-export function limb(len: number, prof: readonly (readonly [number, number, number])[], k = 1, ends = 5): Pt[] {
+export function limb(len: number, prof: readonly (readonly [number, number, number])[], k = 1, ends = 5, round = 0.75): Pt[] {
   const side1 = prof.map(([t, f]) => [f * k, t * len] as Pt);
   const side2 = prof.map(([t, , b]) => [-b * k, t * len] as Pt).reverse();
   const first = prof[0]!;
@@ -85,7 +85,7 @@ export function limb(len: number, prof: readonly (readonly [number, number, numb
     for (let j = 1; j < ends; j++) {
       const g = (Math.PI * j) / ends;
       const x = cx + r * Math.cos(g) * (down ? 1 : -1);
-      const y = cy + r * Math.sin(g) * 0.75 * (down ? 1 : -1);
+      const y = cy + r * Math.sin(g) * round * (down ? 1 : -1);
       out.push([x, y]);
     }
     return out;

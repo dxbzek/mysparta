@@ -38,14 +38,16 @@ function frameTimes(rig: Rig, clip: string): number[] {
 
 export interface Row { id: HeldId; clip: string; reach: number; reachAt: string; pinErr: number; frames: number;
   /** The reach the back arm would need to put its hand on grip2 (over 1: it cannot). */
-  want: number; wantAt: string }
+  want: number; wantAt: string;
+  /** Frames where the back hand has let go (wholly or in part) of an item the front hand holds. */
+  letGo: number }
 
 /** Back-arm reach and back-grip pin error of a two-hand item in one clip (worst frame). */
 export function measureClip(rig: Rig, id: HeldId, clip: string): Row {
   const ins = inspectOf(rig);
   const info = rig.clipInfo("scrapper", clip);
   const attack = info.events.some((e) => e.name === "contact");
-  const row: Row = { id, clip, reach: 0, reachAt: "", pinErr: 0, frames: 0, want: 0, wantAt: "" };
+  const row: Row = { id, clip, reach: 0, reachAt: "", pinErr: 0, frames: 0, want: 0, wantAt: "", letGo: 0 };
   for (let b = 0; b < BUILDS.length; b++) for (const scale of [1, 1.15]) {
     const dress: Dress = { look: LOOK(b), held: id, shield: null, scale };
     const target: Dress = { look: LOOK(0), held: null, shield: null, scale: 1 };
@@ -59,6 +61,9 @@ export function measureClip(rig: Rig, id: HeldId, clip: string): Row {
       if (r !== null && r.want > row.want) { row.want = r.want; row.wantAt = `t${Math.round(t)} b${b} s${scale}${aim ? " aimed" : ""}`; }
       const err = ins.backPinError(p, dress);
       if (err > row.pinErr) row.pinErr = err;
+      // the back hand off the shaft (eased off: holding would break a shoulder or swing the
+      // front arm round to fetch it), with the front hand still gripping the item
+      if (Math.abs(p.rot[16] ?? 0) <= 5 && ins.backHold(p, dress) < 1) row.letGo++;
       row.frames++;
     }
   }

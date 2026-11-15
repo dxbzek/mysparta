@@ -130,6 +130,48 @@ was not the cause; the keys and the clip ends were. The rules that keep it fixed
 - A strike's weapon turns at an even rate through the delivery (linear keys from the top of
   the wind-up to the contact): an eased 280 ms swing would need a wrist faster than a real one.
 
+### Measured on the drawn picture (owner, 16 Nov 2026: "Dislocation of arms")
+
+`test/gate/drawn.test.ts` measures the part list `drawActor` paints (`inspect.parts`: every
+part's own polygon put on the stage by the transform it is painted with), not bone angles: every
+scrapper clip, gate, content and per-weapon variants, with fists, a one-hand, three two-hands, a
+pair both ways round, a shield, a Move prop and each variant's own item, three builds, both
+facings, every 60 fps frame, plain and aimed (73,272 frames). Before / after (frames over the
+line): limbs drawn off their rest length by more than 2% 4,078 / 0 (worst 8.9%, a forearm in
+`enter`); joint pieces opening a notch over 0.5 units 3,360 / 0 (worst 1.13, hips, wrists,
+elbows); shoulders and wrists past a real arm as drawn 5,404 / 0 (worst: power-up's cocked fist
+wrapped 95 degrees past the shoulder behind the head, drink's wrist 20 past); forearms turning
+over 25 degrees a frame 178 / 0 (worst 179, the back arm spinning round a tyre in `snared`; the
+two-hand back arm snapping in `ko-fall`). Parts drawn apart, hands off what they hold and arms
+rooted outside the trunk were 0 before and after: the hierarchy was never broken, the picture
+was. `npx tsx packages/rig/test/gate/drawn-audit.ts report <dir>` prints the numbers and draws
+the 12 worst frames; `throws <png>` draws the five throws with the flying item. The rules:
+
+- **No uneven squash.** A key's `scale` is drawn as one even size change (its area): squashed
+  1.08 x 0.92, a jointed body's limbs drawn across the squash grew 8% and shrank along it.
+- **Round caps.** Arm and leg pieces end in full half circles of their own width at both ends
+  (`limb(..., round 1)`), so each covers a whole disc round its pin and no bend opens a notch.
+- **Keys inside the range.** A fist cocked for a big blow goes up in front and behind the head
+  (power-up), never round behind the back; a can tips up by the arm rising, not by a wrist past
+  70; a dropped item's turn out of the hand only grows (an `item` angle in ko-fall put it back in
+  the fist for a frame, and a two-hand item back in both hands).
+- **The back hand lets go rather than dislocate.** On a two-hand item the front hand may be
+  drawn in or out at most `REACH_PULL[0]` (10 units, never pushed out at all to unfold a fold);
+  the back hand eases off the item (back to its own keyed arm) when holding would need more
+  pull (`REACH_PULL`), would fold it within `FOLD_LET_GO` of its shoulder (where a small shift of
+  grip2 swings the whole arm round), or would turn either shoulder past its range
+  (`BACK_LET_GO`). Its IK is capped at `TWO_HAND_REACH`, so a held arm is never straight. The
+  front grip opening (`held` 5 to 35 degrees) lets go over 30 degrees, not 15. Every rule is
+  a function of the pose alone, so the picture stays a pure function of time.
+- **The right hand.** The item is drawn in the leading hand (the back hand only for a pair
+  leading with it), a second copy only for a pair or an off-hand item, the shield strapped to
+  the back wrist, a Move prop in the back hand; a fighter facing left is the exact mirror.
+- **Throws** start their flight at the drawn hand at the release (the stage's `handAnchor`),
+  the hand moving forward. Overarm: weight back, step, hips, chest, the arm over the shoulder,
+  release in front of the head. Side-arm (Boomerang, Hubcap): a backhand, the hand drawn in to
+  the chest at shoulder height and unfolding level, the wrist snapping flat. Bowl (Tyre): deep
+  crouch, swung low and released at knee height in front. Darts: elbow up, a flick by the eye.
+
 ## Weapons
 
 `WeaponArt` in the weapon's own units, +x along it, the grip at `grip`. `tip` is the part the
