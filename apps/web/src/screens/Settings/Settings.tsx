@@ -3,9 +3,12 @@
  * export and import of the save code, credits. Plus a TEMPORARY "VIP (test)" switch under the
  * test arena, so the owner can try 3x fight speed before the shop sells VIP (plan 13.13).
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDoc, useGame } from "../../app/context";
 import type { Settings } from "../../contracts";
+import { summaryOf } from "../../state/actions";
+import type { SaveSummary } from "../../state/actions";
+import type { BackupEntry } from "../../state/slots";
 import { UI } from "../../text/ui";
 import { Button } from "../../ui/Button";
 import { Sheet } from "../../ui/Sheet";
@@ -32,6 +35,26 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose(): voi
   const [code, setCode] = useState<string | null>(null);
   const [paste, setPaste] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  /** The code's contents, waiting for the player to confirm the replace (finding 38). */
+  const [pending, setPending] = useState<SaveSummary | null>(null);
+  const [backups, setBackups] = useState<BackupEntry[]>([]);
+  const [restoreKey, setRestoreKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    let live = true;
+    void actions.listBackups().then((b) => { if (live) setBackups(b); }, () => undefined);
+    return () => { live = false; };
+  }, [open, actions, doc.rev]);
+  const mine = summaryOf(doc);
+  const doImport = (): void => void actions.importCode(paste).then((r) => {
+    setPending(null);
+    setMsg(r.ok ? UI.settings.importDone : UI.settings.importBad);
+    if (r.ok) setPaste("");
+  }, (e: Error) => { setPending(null); setMsg(e.message); });
+  const doRestore = (key: string): void => void actions.restoreBackup(key).then((r) => {
+    setRestoreKey(null);
+    toast(r.ok ? UI.settings.restoreDone : UI.settings.importBad);
+  }, (e: Error) => { setRestoreKey(null); toast(e.message); });
   const set = (patch: Partial<Settings>): void => void actions.setSettings(patch).catch((e: Error) => toast(e.message));
   const onOff = [{ v: true, label: UI.settings.on }, { v: false, label: UI.settings.off }] as const;
   return (
@@ -68,16 +91,50 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose(): voi
         <section className={css.block}>
           <h3 className={css.blockTitle}>{UI.settings.import}</h3>
           <p className={css.help}>{UI.settings.importHelp}</p>
-          <textarea className={css.code} value={paste} rows={3} aria-label={UI.settings.import} onChange={(e) => { setPaste(e.target.value); setMsg(null); }} />
-          <Button
-            disabled={paste.trim().length === 0}
-            onClick={() => void actions.importCode(paste).then((r) => {
-              setMsg(r.ok ? UI.settings.importDone : UI.settings.importBad);
-              if (r.ok) setPaste("");
-            }, (e: Error) => setMsg(e.message))}
-          >{UI.settings.importButton}</Button>
+          <textarea className={css.code} value={paste} rows={3} aria-label={UI.settings.import} onChange={(e) => { setPaste(e.target.value); setMsg(null); setPending(null); }} />
+          {pending === null ? (
+            <Button
+              disabled={paste.trim().length === 0}
+              onClick={() => void actions.previewCode(paste).then((p) => {
+                if (p === null) setMsg(UI.settings.importBad);
+                else if (mine.active.length === 0 && mine.retired === 0) doImport();
+                else setPending(p);
+              }, (e: Error) => setMsg(e.message))}
+            >{UI.settings.importButton}</Button>
+          ) : (
+            <div className={css.confirm} role="group" aria-label={UI.settings.importConfirmTitle}>
+              <p className={css.confirmTitle}>{UI.settings.importConfirmTitle}</p>
+              <p className={css.help}>{UI.settings.importLoses(mine.active, mine.retired)}</p>
+              <p className={css.help}>{UI.settings.importGets(pending.active, pending.retired)}</p>
+              <p className={css.help}>{UI.settings.importBackup}</p>
+              <span className={css.choices}>
+                <Button variant="primary" onClick={doImport}>{UI.settings.importReplace}</Button>
+                <Button onClick={() => setPending(null)}>{UI.settings.cancel}</Button>
+              </span>
+            </div>
+          )}
           {msg ? <p className={msg === UI.settings.importDone ? css.help : common.error} role="status">{msg}</p> : null}
         </section>
+
+        {backups.length > 0 ? (
+          <section className={css.block}>
+            <h3 className={css.blockTitle}>{UI.settings.backups}</h3>
+            <p className={css.help}>{UI.settings.backupsHelp}</p>
+            {backups.map((b) => (
+              <div key={b.key} className={css.confirm}>
+                <p className={css.help}>{UI.settings.backupLine(summaryOf(b.doc!).active, b.doc!.retired.length, new Date(b.doc!.updatedAt).toLocaleDateString())}</p>
+                {restoreKey === b.key ? (
+                  <span className={css.choices}>
+                    <Button variant="primary" onClick={() => doRestore(b.key)}>{UI.settings.restoreConfirm}</Button>
+                    <Button onClick={() => setRestoreKey(null)}>{UI.settings.cancel}</Button>
+                  </span>
+                ) : (
+                  <Button onClick={() => setRestoreKey(b.key)}>{UI.settings.restore}</Button>
+                )}
+              </div>
+            ))}
+          </section>
+        ) : null}
 
         <section className={css.block}>
           <h3 className={css.blockTitle}>{UI.settings.credits}</h3>

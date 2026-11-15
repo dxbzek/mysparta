@@ -17,7 +17,7 @@ export function resultPose(resultIn: number): { slide: number; fill: number } {
   return { slide: ease(Math.min(1, u * 3)), fill: ease(Math.max(0, (u - 0.3) / 0.7)) };
 }
 
-export function ResultCard({ resultIn, data, winnerName, onAction }: { resultIn: number; data: ResultCardData | null; winnerName: string; onAction(a: ResultAction): void }) {
+export function ResultCard({ resultIn, data, winnerName, onAction, doneLabel = "Locker" }: { resultIn: number; data: ResultCardData | null; winnerName: string; onAction(a: ResultAction): void; doneLabel?: string }) {
   const { slide, fill } = resultPose(resultIn);
   const style = { transform: `translateY(${((1 - slide) * 115).toFixed(2)}%)` };
   if (data === null) {
@@ -28,7 +28,7 @@ export function ResultCard({ resultIn, data, winnerName, onAction }: { resultIn:
         </div>
         <div className={css.resultButtons}>
           <Button variant="primary" onClick={() => onAction("replay")}>Replay</Button>
-          <Button onClick={() => onAction("locker")}>Locker</Button>
+          <Button onClick={() => onAction("locker")}>{doneLabel}</Button>
         </div>
       </section>
     );

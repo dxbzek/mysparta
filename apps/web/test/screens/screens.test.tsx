@@ -37,6 +37,16 @@ describe("screens", () => {
     for (const s of ["Step into the Yard", "Shape", "Colours", "Random name", "Your name decides your scrapper."]) expect(out).toContain(s);
   });
 
+  it("the name field stops at 14 characters and counts them live; an empty field previews the placeholder it submits (findings 64, 65)", async () => {
+    const { html } = await setup();
+    const out = html(<CreateScreen />);
+    expect(out).toMatch(/id="rz-name"[^>]*maxLength="14"|maxLength="14"[^>]*id="rz-name"/i);
+    expect(out).toContain("0 / 14");
+    const placeholder = /placeholder="([^"]+)"/.exec(out)![1]!;
+    expect(out).toContain(`aria-label="${placeholder}, idling under the lights"`);
+    expect(api.checkName(placeholder).ok).toBe(true);
+  });
+
   it("the Kit shows every owned perk with its name, rarity word and table-built line", async () => {
     const { g, id, html } = await setup();
     const perks = api.sheetOf(g.store.doc.fighters[0]!).perks;

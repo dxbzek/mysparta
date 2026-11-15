@@ -43,6 +43,9 @@ function useWide(): boolean {
   return wide;
 }
 
+/** The longest legal name (the core's rule: 3 to 14 characters after trimming). */
+export const NAME_MAX = 14;
+
 const randomInt = (): number => Math.floor(Math.random() * 2 ** 31);
 
 export function CreateScreen() {
@@ -66,7 +69,9 @@ export function CreateScreen() {
   const submit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     if (busy) return;
-    const r0 = core.checkName(name);
+    // An empty field makes the scrapper the preview shows: the placeholder name (finding 65).
+    const chosen = name.trim() ? name : placeholder;
+    const r0 = core.checkName(chosen);
     if (!r0.ok) {
       setError(r0.why === "chars" ? UI.create.errors.chars : UI.create.errors.length);
       return;
@@ -77,7 +82,7 @@ export function CreateScreen() {
     }
     setBusy(true);
     try {
-      const r = await actions.create(name, lookSalt, colourSalt);
+      const r = await actions.create(chosen, lookSalt, colourSalt);
       if (r.ok) setMade(r.value);
       else setError(r.error === "name-taken" ? UI.create.errors.taken : r.error === "no-slot" ? UI.create.errors.slot : UI.create.errors.length);
     } catch (err) {
@@ -98,9 +103,9 @@ export function CreateScreen() {
       <main className={css.main}>
         <div className={css.stageWrap}>
           <Panel tone="dark" flush className={css.stage}>
-            <ActorStage look={look} height={260} floorAt={0.86} window={{ w: wide ? 330 : 200, h: 130 }} label={UI.create.preview(name.trim())} />
+            <ActorStage look={look} height={260} floorAt={0.86} window={{ w: wide ? 330 : 200, h: 130 }} label={UI.create.preview(seedName)} />
             <div className={css.stageName}>
-              {name.trim() ? <Sticker tilt={-2}>{name.trim().replace(/\s+/g, " ")}</Sticker> : null}
+              <Sticker tilt={-2}>{seedName.replace(/\s+/g, " ")}</Sticker>
             </div>
           </Panel>
           <div className={css.dice}>
@@ -110,18 +115,21 @@ export function CreateScreen() {
         </div>
         <form className={css.form} onSubmit={submit} noValidate>
           <Panel className={css.namePanel}>
-            <label className={css.label} htmlFor="rz-name">{UI.create.nameLabel}</label>
+            <div className={css.labelRow}>
+              <label className={css.label} htmlFor="rz-name">{UI.create.nameLabel}</label>
+              <span id="rz-name-count" className={`${css.count} ${name.length >= NAME_MAX ? css.countFull : ""}`} aria-live="polite">{UI.create.count(name.length, NAME_MAX)}</span>
+            </div>
             <input
               id="rz-name"
               className={common.field}
               value={name}
-              maxLength={24}
+              maxLength={NAME_MAX}
               autoComplete="off"
               autoCapitalize="words"
               spellCheck={false}
               placeholder={placeholder}
               aria-invalid={Boolean(error ?? liveError)}
-              aria-describedby="rz-name-error"
+              aria-describedby="rz-name-error rz-name-count"
               onChange={(e) => {
                 setName(e.target.value);
                 setError(null);

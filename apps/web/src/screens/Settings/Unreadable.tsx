@@ -25,7 +25,7 @@ export function Unreadable({ backupKey, failed }: { backupKey: string | null; fa
           <Button disabled={!paste.trim()} onClick={() => void actions.importCode(paste).then((r) => (r.ok ? go({ name: "locker" }) : setBad(true)), (e: Error) => toast(e.message))}>{UI.recovery.importInstead}</Button>
           {bad ? <p className={common.error}>{UI.settings.importBad}</p> : null}
           <Button variant="primary" onClick={() => void actions.newSave().then(() => go({ name: "create" }), (e: Error) => toast(e.message))}>{UI.recovery.newSave}</Button>
-          <Button onClick={() => location.reload()}>{UI.recovery.reload}</Button>
+          <Button onClick={() => location.reload()}>{failed ? UI.recovery.retry : UI.recovery.reload}</Button>
         </div>
       </Panel>
     </main>

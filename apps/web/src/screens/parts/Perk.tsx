@@ -9,11 +9,6 @@ import { PerkIcon } from "../../ui/PerkIcon";
 import common from "../common.module.css";
 import css from "./parts.module.css";
 
-export function RarityWord({ id, small }: { id: PerkId; small?: boolean }) {
-  const t = perkText(id);
-  return <span className={`${common.rarity} ${common[t.rarity]} ${small ? css.raritySmall : ""}`}>{t.rarityWord}</span>;
-}
-
 /** One perk as a full-width card: icon, name, rarity word, kind, effect, costs, and a need. */
 export function PerkRow({ id, owned, onOpen }: { id: PerkId; owned?: readonly PerkId[]; onOpen?(id: PerkId): void }) {
   const t = perkText(id);

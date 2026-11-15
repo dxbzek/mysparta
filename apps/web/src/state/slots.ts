@@ -5,14 +5,19 @@
  *   - A slot is empty, ok or corrupt. A corrupt slot is never treated as empty.
  *   - Unreadable bytes are copied to a backup key before anything replaces them. If that copy
  *     fails, the replace is refused ("backup-failed").
- *   - Backups are never overwritten: a new key each time, at most 8. Bytes already backed up are
- *     not copied twice.
+ *   - Backups are never overwritten: a new key each time. Bytes already backed up are not copied
+ *     twice. At most 8 are kept: when all 8 are taken, the oldest is dropped to make room, so a
+ *     later save is never refused for want of a key. `createBackups` lists them and reads one
+ *     back for a restore.
  *   - `write` compares the stored rev with the rev the caller read. A tab that is behind gets
- *     "stale" and must reload; it never writes over the newer copy.
+ *     "stale" and must reload; it never writes over the newer copy. A slot written by a newer
+ *     build (a schema this build cannot read) still counts with its rev, so an older tab can
+ *     never write over it.
  */
 import type { LoadResult, SaveDoc, SaveStore, WriteResult } from "../contracts";
 import type { Kv, KvTx } from "./idb";
 import { readDoc } from "./migrations";
+import { SCHEMA_VERSION } from "./schema";
 
 export const SLOT_KEYS = ["rankzero.slot.0", "rankzero.slot.1"] as const;
 export const BACKUP_PREFIX = "rankzero.backup.";
@@ -39,15 +44,23 @@ const same = (a: unknown, b: unknown): boolean => {
   }
 };
 
+const backupNo = (k: string): number => Number(k.slice(BACKUP_PREFIX.length));
+/** Backup keys, oldest first (by number, not by text: 10 comes after 9). */
+const byAge = (keys: readonly string[]): string[] => [...keys].sort((a, b) => (backupNo(a) || 0) - (backupNo(b) || 0));
+
 /** Copies `raw` to a fresh backup key and returns it, or the key that already holds the same
- *  bytes. Null when the copy failed or all 8 backup keys are taken. Never overwrites a key. */
+ *  bytes. When all 8 keys are taken the oldest backup is dropped first. Null when the copy
+ *  failed. Never overwrites a key. */
 export async function backupRaw(tx: KvTx, raw: unknown): Promise<string | null> {
   try {
-    const keys = await tx.keys(BACKUP_PREFIX);
+    let keys = byAge(await tx.keys(BACKUP_PREFIX));
     for (const k of keys) if (same(await tx.get(k), raw)) return k;
-    if (keys.length >= BACKUP_LIMIT) return null;
     let n = 0;
-    for (const k of keys) n = Math.max(n, Number(k.slice(BACKUP_PREFIX.length)) + 1 || 0);
+    for (const k of keys) n = Math.max(n, backupNo(k) + 1 || 0);
+    while (keys.length >= BACKUP_LIMIT) {
+      await tx.del(keys[0]!);
+      keys = keys.slice(1);
+    }
     const key = `${BACKUP_PREFIX}${n}`;
     if ((await tx.get(key)) !== undefined) return null;
     await tx.put(key, raw);
@@ -64,6 +77,46 @@ function best(reads: readonly SlotRead[]): { i: number; doc: SaveDoc; warnings: 
     if (r.state === "ok" && (out === null || r.doc.rev > out.doc.rev)) out = { i, doc: r.doc, warnings: r.warnings };
   });
   return out;
+}
+
+/** The rev of a slot written by a newer schema than this build reads, else null. */
+export function newerRev(raw: unknown): number | null {
+  if (typeof raw !== "string") return null;
+  try {
+    const v = JSON.parse(raw) as { schemaVersion?: unknown; rev?: unknown };
+    if (typeof v !== "object" || v === null || typeof v.schemaVersion !== "number" || v.schemaVersion <= SCHEMA_VERSION) return null;
+    return typeof v.rev === "number" ? v.rev : 0;
+  } catch {
+    return null;
+  }
+}
+
+export interface BackupEntry {
+  key: string;
+  /** The save in it, when this build can read it; null for damaged or newer bytes. */
+  doc: SaveDoc | null;
+}
+
+/** The backups beside the save: list them, keep a copy of a save before it is replaced. */
+export interface Backups {
+  /** Newest first. */
+  list(): Promise<BackupEntry[]>;
+  /** Copies a whole save into a backup key. Null when that failed. */
+  keep(doc: SaveDoc): Promise<string | null>;
+}
+
+export function createBackups(kv: Kv): Backups {
+  return {
+    list: () => kv.atomic(async (tx) => {
+      const out: BackupEntry[] = [];
+      for (const key of byAge(await tx.keys(BACKUP_PREFIX)).reverse()) {
+        const r = readSlot(await tx.get(key));
+        out.push({ key, doc: r.state === "ok" ? r.doc : null });
+      }
+      return out;
+    }),
+    keep: (doc) => kv.atomic((tx) => backupRaw(tx, JSON.stringify(doc))).catch(() => null),
+  };
 }
 
 export function createSaveStore(kv: Kv): SaveStore {
@@ -96,6 +149,8 @@ export function createSaveStore(kv: Kv): SaveStore {
           const top = best(reads);
           const stored = top ? top.doc.rev : 0;
           if (stored !== expectedRev) return { ok: false, why: "stale" };
+          // A newer build wrote here: this build cannot read that copy, and must not replace it.
+          if (raws.some((raw) => newerRev(raw) !== null)) return { ok: false, why: "stale" };
           const target = top ? 1 - top.i : reads[0]!.state === "corrupt" && reads[1]!.state === "empty" ? 1 : 0;
           const there = reads[target]!;
           if (there.state === "corrupt") {

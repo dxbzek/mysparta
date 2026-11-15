@@ -57,3 +57,22 @@
   display: grid;
   gap: 10px;
 }
+/* The import confirm and each backup row (finding 38). */
+.confirm {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-raised);
+}
+.confirm .help {
+  color: var(--t-on-raised);
+}
+.confirmTitle {
+  margin: 0;
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--t-on-raised);
+}

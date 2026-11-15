@@ -79,6 +79,15 @@ describe("perk cards", () => {
     expect(perkNumbers(id).find((r) => r.label === "Block")?.value).toBe(`+${c.shields[id].tiers[0].block}`);
   });
 
+  it("pet cards say who the pet fights for and how many you can own (finding 66)", () => {
+    for (const id of COMPANION_IDS) {
+      const e = perkText(id).effect;
+      expect(e).toContain("fights beside your scrapper");
+      expect(e).not.toMatch(/beside it:/);
+      if (c.companions[id].limit > 1) expect(e).toContain(`You can own up to ${c.companions[id].limit}.`);
+    }
+  });
+
   it("companion cards print the max HP cost in the cost line", () => {
     for (const id of COMPANION_IDS) expect(perkText(id).costs).toEqual([`-${c.companions[id].hpCostPct}% max HP`]);
   });

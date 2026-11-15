@@ -14,7 +14,17 @@
  */
 import { useSyncExternalStore } from "react";
 import type { Rig } from "@rankzero/rig";
-import { createRig, gatePack } from "@rankzero/rig";
+import { createRig, gatePack, palette as rigPalette } from "@rankzero/rig";
+
+/**
+ * The rig's colours under the names the web app uses, for the palette test (one colour, one
+ * value). The rig's `teal` is the night-wall teal behind a fight, not side B's accent
+ * (`--c-teal` in tokens.css), so it is passed on as `nightTeal`; every other name is the same.
+ */
+export const palette: Readonly<Record<string, string>> = (() => {
+  const { teal, tealDeep, ...rest } = rigPalette;
+  return { ...rest, nightTeal: teal, nightTealDeep: tealDeep };
+})();
 
 let current: Rig = createRig(gatePack);
 let ready = false;

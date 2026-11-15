@@ -15,10 +15,15 @@ export type StoreStatus =
   | { kind: "unreadable"; backupKey: string | null }
   | { kind: "failed"; message: string };
 
+/** Shown when a newer build of the game wrote the save: this tab cannot read that copy and never
+ *  writes over it, so nothing it does can be kept until the page is reloaded. */
+export const NEWER_SAVE_NOTICE = "A newer version of the game saved here. Reload the page to keep playing.";
+
 export class SaveError extends Error {
-  constructor(readonly why: "backup-failed" | "io" | "stale") {
-    super(why === "backup-failed" ? "The damaged save could not be backed up, so nothing was written."
-      : why === "stale" ? "This save changed in another tab." : "The save could not be written.");
+  constructor(readonly why: "backup-failed" | "io" | "stale" | "newer") {
+    super(why === "backup-failed" ? "A backup of the save could not be made, so nothing was written."
+      : why === "stale" ? "This save changed in another tab."
+      : why === "newer" ? NEWER_SAVE_NOTICE : "The save could not be written.");
   }
 }
 
@@ -116,8 +121,16 @@ export function createGameStore(saves: SaveStore, now: () => number, onWrite?: (
           }
           if (w.why !== "stale") throw new SaveError(w.why);
           // Another tab is ahead: take its copy, then try the change once more on it.
+          const before = doc.rev;
           const r = await saves.load();
           if (r.state === "ok" || (r.state === "corrupt" && r.doc)) doc = r.doc!;
+          if (doc.rev === before) {
+            // Nothing newer that this build can read: the refusal is a slot a newer build wrote
+            // (finding 72). Retrying or "loading the newer copy" would only repeat it.
+            notice = NEWER_SAVE_NOTICE;
+            emit();
+            throw new SaveError("newer");
+          }
           notice = "This save changed in another tab. The newer copy is loaded.";
           emit();
         }

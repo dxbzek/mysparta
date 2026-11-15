@@ -12,7 +12,7 @@
  */
 :root {
   /* ---------------------------------------------------------------- ink and surfaces */
-  --c-ink: #15130f;              /* every outline and every hard shadow */
+  --c-ink: #14152b;              /* every outline and every hard shadow: the rig's drawing ink */
   --c-page: #b9b4aa;             /* concrete */
   --t-on-page: #15130f;
   --t-on-page-dim: #38342f;

@@ -9,6 +9,8 @@ import { COMPANION_IDS, SHIELD_IDS, SKILL_IDS, WEAPON_IDS, api } from "@rankzero
 import type { BoutLog, FighterSnapshot, PerkId, StatKey } from "@rankzero/core";
 import type { Settings } from "../../contracts";
 import { RigGate } from "../RigGate";
+import { useDoc, useGame } from "../context";
+import { BackGlyph } from "../../screens/parts/Glyphs";
 import { FightScreen } from "../../fight/FightScreen";
 import { NAMES } from "../../text/names";
 import { UI } from "../../text/ui";
@@ -40,7 +42,7 @@ export function sandboxSnapshot(id: string, name: string, level: number, perks: 
 function Side({ title, picked, onToggle, onAll, onNone }: { title: string; picked: readonly PerkId[]; onToggle(id: PerkId): void; onAll(): void; onNone(): void }) {
   return (
     <Panel title={title} className={css.side}>
-      <div className={css.chips}>
+      <div className={`${css.chips} ${css.tools}`}>
         <Button variant="primary" onClick={onAll}>{UI.sandbox.all}</Button>
         <Button onClick={onNone}>{UI.sandbox.none}</Button>
       </div>
@@ -60,12 +62,16 @@ function Side({ title, picked, onToggle, onAll, onNone }: { title: string; picke
 }
 
 export function SandboxScreen() {
+  const { go } = useGame();
+  const saved = useDoc().settings;
   const [level, setLevel] = useState(30);
   const [seed, setSeed] = useState(1);
   const [a, setA] = useState<PerkId[]>([...EVERYTHING_A]);
   const [b, setB] = useState<PerkId[]>([...EVERYTHING_B]);
   const [bout, setBout] = useState<{ log: BoutLog; a: FighterSnapshot; b: FighterSnapshot } | null>(null);
-  const [settings, setSettings] = useState<Settings>({ sound: true, speed: 1, reducedMotion: "system", liveLog: true, isVip: false });
+  // The saved Sound, VIP (test), motion and log settings (finding 68). Changes here stay here.
+  const [settings, setSettings] = useState<Settings>(() => ({ ...saved }));
+  const [run, setRun] = useState(0);
   /** Shields: one at most, so picking a shield replaces the other. */
   const toggle = (set: (f: (p: PerkId[]) => PerkId[]) => void) => (id: PerkId) => set((p) => {
     if (p.includes(id)) return p.filter((x) => x !== id);
@@ -80,16 +86,17 @@ export function SandboxScreen() {
   if (bout) {
     return (
       <RigGate>
-      <FightScreen log={bout.log} a={bout.a} b={bout.b} mode="replay" settings={settings}
+      <FightScreen key={run} log={bout.log} a={bout.a} b={bout.b} mode="replay" settings={settings}
         onSettings={(p) => setSettings((s) => ({ ...s, ...p }))} onFinished={() => undefined} result={null}
-        onResultAction={() => setBout(null)} />
+        doneLabel={UI.sandbox.again}
+        onResultAction={(act) => (act === "replay" ? setRun((n) => n + 1) : setBout(null))} />
       </RigGate>
     );
   }
   return (
     <div className={`${common.screen} ${common.wide}`}>
       <header className={common.top}>
-        <span />
+        <Button square onClick={() => go({ name: "locker" })} aria-label={UI.back}><BackGlyph /></Button>
         <div className={common.titles}>
           <span className={common.kicker}>{UI.sandbox.line}</span>
           <h1 className={common.h1}>{UI.sandbox.title}</h1>

@@ -50,6 +50,9 @@ export interface FightScreenExtraProps {
   startT?: number;
   startPaused?: boolean;
   onHandle?(handle: FightHandle | null): void;
+  /** The label of the result card's way out in replay mode (default "Locker"; the test arena's
+   *  goes back to its picker, so it says so). */
+  doneLabel?: string;
 }
 
 /** Skip lands this long before the result card, on the knockout pose (brief 3.12). */
@@ -229,7 +232,7 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
             />
           ))}
         </div>
-        {ended ? <ResultCard resultIn={hud.resultIn} data={mode === "replay" ? null : result} winnerName={sideNames[winner]} onAction={onResult} /> : null}
+        {ended ? <ResultCard resultIn={hud.resultIn} data={mode === "replay" ? null : result} winnerName={sideNames[winner]} onAction={onResult} doneLabel={props.doneLabel} /> : null}
       </div>
       <Sheet open={logOpen} title="Bout log" onClose={closeLog} closeLabel="Close">
         <TextLog steps={log.steps} stepsShown={hud.stepsShown} names={names} live={false} />

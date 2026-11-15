@@ -8,7 +8,7 @@ import { createRoot } from "react-dom/client";
 import "../tokens.css";
 import { DebugApp } from "./DebugApp";
 
-export const isDebugHash = (hash: string): boolean => hash.startsWith("#/debug/");
+export { isDebugHash } from "./route";
 
 export function mountDebug(root: HTMLElement): void {
   createRoot(root).render(
