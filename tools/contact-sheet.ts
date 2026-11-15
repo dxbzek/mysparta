@@ -17,6 +17,8 @@
  *   onion    A3: all frames of the clip over each other, real size and 3x
  *   video    A3: the clip looped (three times) as MP4 at real size and 3x (ffmpeg)
  *   use      the use strip of each gate weapon: wind-up, contact on a target, follow-through
+ *   use-all  the use strip of every held item on the full rig (--only a,b; --per n items a file)
+ *   pets     every clip of every pet on the full rig, five frames each (--only, --per)
  *   all      keys, frames, onion and video
  * Flags: --rig <RigId> (scrapper), --clip <name|all> (idle), --pack gate|probe (gate),
  *        --held <HeldId> (by clip: punch fists, flick pocket-knife, else pipe), --look 0|1,
@@ -27,9 +29,12 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createCanvas, loadImage, Path2D } from "@napi-rs/canvas";
-import type { HeldId, Look } from "@rankzero/core";
+import type { CompanionId, HeldId, Look } from "@rankzero/core";
+import { COMPANION_IDS, WEAPON_IDS, WEAPON_META } from "@rankzero/core";
+import { flightKindOf, makePath, pointAt } from "../packages/stage/src/flight.ts";
+import { contentPack } from "../packages/rig/src/content/pack.ts";
 import { COMPANION_CLIPS, GATE_CLIPS, toStage } from "../packages/rig/src/contracts.ts";
-import type { ContentPack, DrawEnv, Dress, Place, Pose, Rig, RigId, SvgArt } from "../packages/rig/src/contracts.ts";
+import type { CompanionClip, ContentPack, DrawEnv, Dress, Place, Pose, Rig, RigId, SvgArt } from "../packages/rig/src/contracts.ts";
 import { createRig } from "../packages/rig/src/engine/createRig.ts";
 import { frames, modelOf } from "../packages/rig/src/engine/pose.ts";
 import { probePack } from "../packages/rig/src/engine/probe.ts";
@@ -53,6 +58,7 @@ export function arg(name: string): string | undefined {
 export function rigFor(pack: string): Rig {
   if (pack === "probe") return createRig(gatePack, probePack as ContentPack);
   if (pack === "gate") return createRig(gatePack);
+  if (pack === "content") return createRig(gatePack, contentPack);
   if (pack === "throw") return createRig(gatePack, { clips: { throw: THROW } } as unknown as ContentPack);
   throw new Error(`unknown --pack ${pack}: gate, throw or probe`);
 }
@@ -370,6 +376,146 @@ function sheetUse(rig: Rig, out: string): string {
   return writePng(s, resolve(out, "use-strips-gate-weapons.png"));
 }
 
+// ------------------------------------------------------------- use strips of every weapon
+/**
+ * The use strip of every held item on the full rig (gate + content): a melee weapon at its
+ * wind-up, just before the contact, at the contact on a standing target (red ring: the striking
+ * end; yellow ring: the back hand's grip2 when a two-hand item has its back hand off it) and in
+ * the follow-through; a Thrown weapon at its wind-up, its release, in flight and arriving.
+ * `--only a,b` limits the items, `--per n` writes n items per file (all on one file by default).
+ */
+function sheetUseAll(rig: Rig, out: string, only: string[] | null, per: number, k: number, name: string): string[] {
+  const ins = inspectOf(rig);
+  const items = (["fists", ...WEAPON_IDS] as HeldId[]).filter((id) => only === null || only.includes(id));
+  const cellW = 150;
+  const cellH = 112;
+  const files: string[] = [];
+  for (let start = 0; start < items.length; start += per) {
+    const chunk = items.slice(start, start + per);
+    const cols = per >= 6 ? 2 : 1;
+    const rows = Math.ceil(chunk.length / cols);
+    const s = createSurface(cols * cellW * 4, rows * cellH + 8, k, BG);
+    chunk.forEach((id, n) => {
+      const meta = WEAPON_META[id];
+      const ox = (n % cols) * cellW * 4;
+      const oy = Math.floor(n / cols) * cellH;
+      const look = n % 2;
+      const dress: Dress = { look: LOOKS[look]!, held: id === "fists" ? "fists" : id, shield: null, scale: 1 };
+      const target: Dress = { look: LOOKS[1 - look]!, held: null, shield: null, scale: 1 };
+      const clip = meta.clip;
+      const info = rig.clipInfo("scrapper", clip);
+      const y = oy + cellH - 10;
+      s.raw.save(); s.raw.fillStyle = "#0E2E35"; s.raw.fillRect(ox + 1, oy + 1, cellW * 4 - 2, cellH - 2); s.raw.restore();
+      if (clip === "throw") {
+        const rel = info.events.find((e) => e.name === "release")!.t;
+        const tx = ox + 118;
+        const ax = ox + 28;
+        const hit = rig.hitPoint("scrapper", target, "body");
+        const pose = rig.samplePose("scrapper", "throw", rel, { y: 0, dress });
+        const hand = rig.handAnchor(pose, dress, { x: ax, y, facing: 1 });
+        const to = { x: tx - hit.x, y: y + hit.y };
+        const kind = flightKindOf(meta);
+        const path = makePath(kind, hand.x, hand.y, to.x, to.y, 1, 240, hand.rot);
+        ([[100, null], [rel, null], [rel + 40, 0.5], [rel + 80, 1]] as const).forEach(([t, u], col) => {
+          const cx = col * cellW;
+          rig.drawActor(s.env, rig.samplePose("scrapper", "idle", 300), target, { x: tx + cx, y, facing: -1 });
+          const d = u === null ? dress : { ...dress, held: null };
+          rig.drawActor(s.env, rig.samplePose("scrapper", "throw", t, { y: 0, dress }), d, { x: ax + cx, y, facing: 1 });
+          if (u !== null) {
+            for (let g = 0; g <= 6; g++) {
+              const q = pointAt(path, (u * g) / 6);
+              s.raw.beginPath(); s.raw.arc(q.x + cx, q.y, 0.45, 0, Math.PI * 2); s.raw.fillStyle = "#FFD23F"; s.raw.fill();
+            }
+            const q = pointAt(path, u);
+            rig.drawProp(s.env, id === "fists" ? "pipe" : id, { x: q.x + cx, y: q.y, facing: 1, rot: q.rot });
+          }
+          label(s, ["wind-up", "release", "flight", "arrives"][col]!, (ox + cx + 4) * k, (oy + 22) * k, 10, "#8FA3A0");
+        });
+      } else {
+        const tc = info.events.find((e) => e.name === "contact")!.t;
+        const zone = meta.clip === "smash" ? "body" : "head";
+        const hp = rig.hitPoint("scrapper", target, zone);
+        const sp = rig.strikePoint("scrapper", clip, dress, hp.y);
+        const ax = ox + 34;
+        const tx = ax + sp.x + hp.x;
+        const aim = { y: hp.y, dress };
+        const ts = [Math.round(tc * 0.42), tc - 40, tc, Math.min(info.durationMs, tc + 70)];
+        ts.forEach((t, col) => {
+          const cx = col * cellW;
+          rig.drawActor(s.env, rig.samplePose("scrapper", col === 3 ? "hit-light" : "brace", col === 3 ? 60 : 120), target, { x: tx + cx, y, facing: -1 });
+          const p = rig.samplePose("scrapper", clip, t, aim);
+          rig.drawActor(s.env, p, dress, { x: ax + cx, y, facing: 1 });
+          if (col === 2) {
+            s.raw.beginPath(); s.raw.arc(ax + cx + sp.x, y + sp.y, 2.4, 0, Math.PI * 2);
+            s.raw.strokeStyle = "#FF3B30"; s.raw.lineWidth = 0.6; s.raw.stroke();
+          }
+          if (ins.backPinError(p, dress) > 1) {
+            const b = ins.backGrip(p, dress, { x: ax + cx, y, facing: 1 });
+            s.raw.beginPath(); s.raw.arc(b[0], b[1], 2.0, 0, Math.PI * 2);
+            s.raw.strokeStyle = "#FFD23F"; s.raw.lineWidth = 0.6; s.raw.stroke();
+          }
+          label(s, `${["wind-up", "before", "contact", "follow"][col]!} ${Math.round(t)}`, (ox + cx + 4) * k, (oy + 22) * k, 10, "#8FA3A0");
+        });
+      }
+      const nice = id.split("-").map((w) => w[0]!.toUpperCase() + w.slice(1)).join(" ");
+      label(s, `${nice}  (${meta.hands === 2 ? (meta.pair ? "pair" : "2 hands") : "1 hand"}, ${clip})`, (ox + 4) * k, (oy + 10) * k, 13, "#F2E2C4");
+      label(s, meta.use.slice(0, 110), (ox + 200) * k, (oy + 10) * k, 10, "#8FA3A0");
+    });
+    files.push(writePng(s, resolve(out, `${name}${items.length > per ? `-${String(start / per + 1).padStart(2, "0")}` : ""}.png`)));
+  }
+  return files;
+}
+
+// ------------------------------------------------------------------------- pets in motion
+/**
+ * Every clip of every pet on the full rig: for each pet two rows (run, flee, idle; attack, hit,
+ * ko), five frames a clip with the time and the event under it, the floor line drawn, and on the
+ * attack's contact frame a red ring on the striking end (the mouth, beak or tusk). `--only` takes
+ * pet ids; `--per n` writes n pets a file.
+ */
+function sheetPets(rig: Rig, out: string, only: string[] | null, per: number, k: number, name: string): string[] {
+  const ins = inspectOf(rig);
+  const pets = (COMPANION_IDS as readonly CompanionId[]).filter((id) => only === null || only.includes(id));
+  const rows: CompanionClip[][] = [["run", "flee", "idle"], ["attack", "hit", "ko"]];
+  const N = 5;
+  const files: string[] = [];
+  for (let start = 0; start < pets.length; start += per) {
+    const chunk = pets.slice(start, start + per);
+    const cellW = 84;
+    const cellH = 70;
+    const s = createSurface(cellW * N * 3 + 20, chunk.length * (cellH * 2 + 14) + 10, k, BG);
+    chunk.forEach((id, pi) => {
+      const y0 = pi * (cellH * 2 + 14) + 14;
+      const nice = id.split("-").map((w) => w[0]!.toUpperCase() + w.slice(1)).join(" ");
+      label(s, nice, 6 * k, (y0 - 3) * k, 14, "#F2E2C4");
+      rows.forEach((clips, ri) => clips.forEach((clip, ci) => {
+        const info = rig.clipInfo(id, clip);
+        const d = info.durationMs;
+        const tc = info.events.find((e) => e.name === "contact")?.t;
+        const ts = Array.from({ length: N }, (_, i) => (clip === "attack" && i === 3 && tc !== undefined ? tc : Math.round((i * d) / (info.loop ? N : N - 1))));
+        ts.forEach((t, fi) => {
+          const x = 10 + (ci * N + fi) * cellW + cellW / 2;
+          const y = y0 + ri * cellH + cellH - 12;
+          s.raw.save(); s.raw.fillStyle = (ci % 2 === 0) ? "#0E2E35" : "#0C2930"; s.raw.fillRect(x - cellW / 2, y0 + ri * cellH, cellW, cellH); s.raw.restore();
+          s.raw.save(); s.raw.fillStyle = "#3A6A70"; s.raw.fillRect(x - cellW / 2 + 2, y, cellW - 4, 0.5); s.raw.restore();
+          const pose = rig.samplePose(id, clip, t);
+          const dress: Dress = { held: null, shield: null, scale: 1 };
+          const at: Place = { x: x - (id === "boar" ? 4 : 0), y, facing: 1 };
+          rig.drawActor(s.env, pose, dress, at);
+          if (clip === "attack" && t === tc) {
+            const m = ins.strikeEnd(pose, dress, at, clip);
+            s.raw.beginPath(); s.raw.arc(m[0], m[1], 2, 0, Math.PI * 2); s.raw.strokeStyle = "#FF3B30"; s.raw.lineWidth = 0.5; s.raw.stroke();
+          }
+          const ev = info.events.filter((e) => Math.abs(e.t - t) < 1).map((e) => e.name).join(" ");
+          label(s, `${fi === 0 ? clip + " " : ""}${Math.round(t)}${ev ? " " + ev : ""}`, (x - cellW / 2 + 3) * k, (y + 9) * k, 10, ev ? "#FFD23F" : "#8FA3A0");
+        });
+      }));
+    });
+    files.push(writePng(s, resolve(out, `${name}${pets.length > per ? `-${start / per + 1}` : ""}.png`)));
+  }
+  return files;
+}
+
 // ---------------------------------------------------------------------------------- main
 async function main(): Promise<void> {
   const mode = arg("mode") ?? "frames";
@@ -384,6 +530,11 @@ async function main(): Promise<void> {
   if (mode === "a1") wrote.push(await sheetA1(rig, out));
   if (mode === "joints") wrote.push(sheetJoints(rig, rigId, pack, out));
   if (mode === "use") wrote.push(sheetUse(rig, out));
+  if (mode === "pets") wrote.push(...sheetPets(pack === "gate" ? rigFor("content") : rig, out, arg("only")?.split(",") ?? null, Number(arg("per") ?? 99), Number(arg("scale") ?? 2), arg("name") ?? "pets-in-motion"));
+  if (mode === "use-all") {
+    const only = arg("only")?.split(",") ?? null;
+    wrote.push(...sheetUseAll(pack === "gate" ? rigFor("content") : rig, out, only, Number(arg("per") ?? 99), Number(arg("scale") ?? 2.2), arg("name") ?? "use-strips-all"));
+  }
   if (mode === "keys" || mode === "all") wrote.push(...sheetKeys(rig, rigId, clips, pack, out, look));
   for (const clip of clips) {
     if (mode === "frames" || mode === "all") wrote.push(sheetFrames(rig, rigId, clip, pack, out, look, held));

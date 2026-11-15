@@ -12,6 +12,14 @@ import { arcPts, band, bar, barAB, blob, ellipsePoly, fillOf, line, lines, quad,
 import { weapon } from "./make";
 
 /** Machete: a long, wide, slightly curved blade, riveted wooden scales; diagonal slash, the edge hits. */
+/** Grip turns other than the fist's (animation pass, 16 Nov 2026). A golf club or a hockey stick
+ *  hangs head down from the hands, the shaft running on down the line of the forearms (the
+ *  golfer's address, the hockey player's stick on the ice), so it sweeps low with the arms long;
+ *  the Umbrella and the Plunger are held like a foil, pointing on along the forearm, so a lunge
+ *  puts the point on line with a long arm. */
+export const CLUB_GRIP = 150;
+export const FOIL_GRIP = 40;
+
 export const MACHETE: WeaponArt = weapon([
   fillOf(bar(-5.4, 4.6, [[0, 1.55], [0.12, 1.2], [0.6, 1.15], [1, 1.3]], 0.6), "wood", 0),
   fillOf([[4, -1.35], [20, -1.45], [30, -1.25], [34.6, -0.7], [35.4, 0.2], [33.2, 1.6], [27, 2.75], [18, 2.7], [8, 2.3], [4, 2.05]], "metal", 1),
@@ -101,7 +109,7 @@ export const GOLF_CLUB: WeaponArt = weapon([
   fillOf([[39.0, -0.7], [41.6, -0.9], [43.8, 3.0], [44.4, 5.6], [43, 6.4], [38.4, 6.2], [38.2, 4.8], [39.8, 2.0]], "metal", 2),
   lines([[[39.6, 3.6], [43.2, 3.6]], [[39.2, 4.6], [43.6, 4.6]], [[39, 5.5], [43.8, 5.5]]], 0.18, 3, false),
   lines([[[-5.6, -0.8], [-5.6, 0.8]], [[-3.6, -0.8], [-3.6, 0.8]], [[-1.6, -0.8], [-1.6, 0.8]], [[0.4, -0.8], [0.4, 0.8]], [[2.4, -0.7], [2.4, 0.7]]], 0.2, 3, false),
-], [42.2, 5.2], { grip2: [-4.6, 0] });
+], [42.2, 5.2], { grip2: [-4.6, 0], rot: CLUB_GRIP });
 
 /** Hockey Stick: a wooden shaft with tape at the top and on a hooked blade; low sweeping slap
  *  shot, both hands apart, the blade hits. */
@@ -113,7 +121,7 @@ export const HOCKEY_STICK: WeaponArt = weapon([
   fillOf(band(quad([34.2, 3.2], [35.6, 6.0], [42.6, 6.4], 6), 2.2), "accent", 2),
   lines([[[-8, -0.4], [30, -0.4]], [[-4, 0.5], [12, 0.5]]], 0.2, 3),
   scuffs(106, 4, 36, 42, 5.2, 7, 3),
-], [41.2, 6.2], { grip2: [-10, 0] });
+], [41.2, 6.2], { grip2: [-10, 0], rot: CLUB_GRIP });
 
 /** Cricket Bat: a rubber-gripped handle and a wide pale willow blade seen face on; a driving
  *  swing from the shoulder, the flat face hits. */
@@ -150,7 +158,7 @@ export const UMBRELLA: WeaponArt = weapon([
   lines([[[8, -1.4], [22, -0.8]], [[9, 1.0], [24, 0.6]], [[11, -0.2], [26, 0]]], 0.22, 2),
   fillOf(roundRect(12.8, -2.9, 2.2, 5.8, 0.6), "accent", 2.5),
   fillOf(bar(27, 31.4, [[0, 0.42], [1, 0.22]], 0.6), "metal", 3),
-], [31.4, 0]);
+], [31.4, 0], { rot: FOIL_GRIP });
 
 /** Plunger: a wooden stick and a black rubber cup; a straight fencing jab cup first, the cup hits. */
 export const PLUNGER: WeaponArt = weapon([
@@ -160,7 +168,7 @@ export const PLUNGER: WeaponArt = weapon([
   line([[33.2, -5.2], [33.2, 5.2]], 0.3, 2, false),
   lines([[[-6, -0.3], [8, -0.4]], [[10, 0.3], [21, 0.3]]], 0.18, 2),
   blob(-7.6, 0, 0.4, 0.4, 2, 8),
-], [33.8, 0]);
+], [33.8, 0], { rot: FOIL_GRIP });
 
 /** Rebar: a rusty ribbed steel bar with a slight bend; heavy two-hand side swing, the far third hits. */
 const REBAR_LINE: Pt[] = [[-14.5, 0], [0, 0.15], [12, 0.4], [26, 0.2], [40.5, -0.9]];

@@ -261,6 +261,11 @@ export interface ContentPack {              // the content-art lane: packages/ri
   companions: Record<CompanionId, { rig: RigDef; shapes: readonly Shape[]; clips: Record<CompanionClip, Clip> }>;
   fx: Record<"tarp" | "tape" | "crackers" | "rings" | "plus" | "trail", FxDraw>;
   icons: Record<SkillId | `ui:${ContentUi}`, IconArt>;
+  /** Animation pass (16 Nov 2026), optional: the clip variants a held item plays in place of a
+   *  base clip (`uses[held][base]` names one of `variants`), so each weapon is used the way the
+   *  real object is. A variant keeps its base clip's length and events (a rig test). */
+  variants?: Readonly<Record<string, Clip>>;
+  uses?: Readonly<Partial<Record<HeldId, Readonly<Record<string, string>>>>>;
 }
 export type IconRef = PerkId | "fists" | `stat:${StatKey}` | `ui:${GateUi | ContentUi}`;
 export interface SvgPart { d: string; fill: string; stroke?: string; strokeWidth?: number; transform?: string }
@@ -363,6 +368,14 @@ export interface Rig {
   portrait(look: Look): SvgArt;                                             // React cards and portraits
   companionPortrait(id: CompanionId): SvgArt;
   icon(ref: IconRef): SvgArt;                                               // missing art gives a plain ring
+  /** Animation pass (16 Nov 2026), additive and optional: the clip a scrapper really plays to
+   *  use what it holds, for a base attack clip name (`WEAPON_META.clip`, or "throw"). A Bat's
+   *  "swing" is the two-hand "swing-2h", a Boomerang's "throw" the side-arm "throw-side", and so
+   *  on (`content/clips/use.ts`). Every variant has its base clip's length and events, so the
+   *  timeline does not change. `samplePose` (with an `Aim`) and `strikePoint` already pick the
+   *  variant from the dress; the stage needs this only where it samples without a dress (the
+   *  throw). A rig with no variants answers the base name. */
+  attackClip?(held: HeldId | null, base: string): string;
 }
 export type CreateRig = (gate: GatePack, content?: ContentPack) => Rig;     // the rig lane: engine/createRig.ts
 

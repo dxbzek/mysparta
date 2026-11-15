@@ -10,14 +10,14 @@
  *   contacts-<n>.png      for every moment of contact, frames -6 to +10 at 60 fps around it, cropped
  *                         on the target, the contact frame boxed in red, with the measured strike
  *                         point (red dot) and the target's hit point (white ring) on it
- * Flags: --rig capsule | capsule-gate | gate | full, --out <dir>, --no-video, --reduced, --seed-a/--seed-b
+ * Flags: --rig capsule | capsule-gate | gate | full, --out <dir>, --no-video, --reduced, --log <find-bout --out file>, --seed-a/--seed-b
  * snapshot names for --seed. The arena is stageFor(log.seed), as the host passes it.
  *
  * Open the storyboards and the contact strips before calling a render done: a number in a log
  * is not evidence.
  */
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { createCanvas } from "@napi-rs/canvas";
 import type { SKRSContext2D } from "@napi-rs/canvas";
@@ -73,6 +73,12 @@ function pickRig(name: string): Rig {
 }
 
 function pickBout(): { name: string; log: BoutLog; a: FighterSnapshot; b: FighterSnapshot } {
+  const file = arg("log");
+  if (file !== undefined) {
+    // a bout found by `pnpm find-bout --out <file>`: { n, seed, a, b, log }
+    const j = JSON.parse(readFileSync(file, "utf8")) as { n: number; a: FighterSnapshot; b: FighterSnapshot; log: BoutLog };
+    return { name: `found-${j.n}`, log: j.log, a: j.a, b: j.b };
+  }
   const seed = arg("seed");
   if (seed !== undefined) {
     const sim = (core as unknown as Record<string, unknown>)["simulateFight"] as
