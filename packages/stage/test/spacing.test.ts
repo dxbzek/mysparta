@@ -136,7 +136,9 @@ describe("room between bodies, measured on every frame (real art)", () => {
   }
 
   for (const [name, bout] of [["bout-all-steps", BOUT_FIXTURES["bout-all-steps"]], ["find-bout level 10 n 29", found(10, 29)],
-    ["find-bout level 30 n 2", found(30, 2)]] as const) {
+    ["find-bout level 30 n 2", found(30, 2)],
+    // a0 hits the raccoon while it is snared behind its owner: it cannot come out, so he gives room
+    ["find-bout level 30 n 4 (snared pet)", found(30, 4)]] as const) {
     it(`${name}: the same, in a real bout`, () => {
       const p = playerFor(bout.log, bout.a, bout.b, FULL);
       const r = spacing(p, bout.log);
@@ -146,6 +148,22 @@ describe("room between bodies, measured on every frame (real art)", () => {
       expect(r.crossed.slice(0, 4)).toEqual([]);
     });
   }
+});
+
+describe("a snared pet behind its owner (verifier, 15 Nov 2026: level 30 n 4, step 57)", () => {
+  it("the owner steps back past it, and its tarp is drawn with the pet, under him", () => {
+    const { log, a, b } = found(30, 4);
+    const p = playerFor(log, a, b, FULL);
+    const c = p.timeline.contacts.find((x) => x.step === 57)!;
+    expect(c).toBeDefined();
+    const f = p.frame(c.at);
+    const atk = f.actors.find((x) => x.id === "a0")!;
+    const owner = f.actors.find((x) => x.id === "b0")!;
+    expect(owner.place.x - atk.place.x).toBeGreaterThanOrEqual(BODY_GAP.body - 0.5);
+    // just before the blow (it knocks the tarp off), the owner in front of it
+    const tarp = p.frame(c.at - 150).fx.find((e) => e.fx === "tarp");
+    expect(tarp?.under).toBe("b2");
+  });
 });
 
 describe("control: the feet walking in turns it red", () => {

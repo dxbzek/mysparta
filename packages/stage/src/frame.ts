@@ -27,7 +27,9 @@ export interface FrameActor {
 export interface FrameProp { item: PropId; x: number; y: number; rot: number; facing: 1 | -1; alpha: number;
   /** Drawn squashed to this share of its height toward the floor line `floorY` (a fallen shield). */
   squash?: number; floorY?: number }
-export interface FrameFx { fx: FxKind; progress: number; at: Place; seed: number }
+/** `under`: a tarp lying over a pet is drawn with that pet (right after it, in its depth order), so
+ *  a fighter in front of the pet stays in front of its tarp too (pets never cover fighters). */
+export interface FrameFx { fx: FxKind; progress: number; at: Place; seed: number; under?: ActorId }
 export interface FrameText { text: string; x: number; y: number; size: number; colour: string; ink: string; alpha: number;
   kind: "number" | "tag" | "banner" | "sticker"; icon?: PerkId;
   /** A banner held in the top band of the view (`TagItem.band`). */
@@ -138,12 +140,14 @@ export function frameAt(tr: Tracks, t: number): Frame {
     let x = e.x;
     let y = e.y;
     let facing = e.facing;
+    let under: ActorId | undefined;
     if (e.follow !== undefined) {
       const who = placeOf.get(e.follow);
       if (who === undefined) continue;
       x = who.place.x + who.place.facing * e.x;
       y = who.floorY + (e.dy ?? 0);
       facing = who.place.facing;
+      if (e.fx === "tarp" && who.rig !== "scrapper" && (e.fly === undefined || t - e.from >= e.fly.ms)) under = e.follow;
     }
     if (e.track !== undefined && e.track.length > 0) {
       const q = trackAt(e.track, t);
@@ -158,7 +162,7 @@ export function frameAt(tr: Tracks, t: number): Frame {
       progress = e.fx === "tarp" ? (u < 1 ? 0.2 : clamp01((t - e.from - e.fly.ms) / Math.max(1, span - e.fly.ms))) : u;
     }
     if (e.p0 !== undefined || e.p1 !== undefined) progress = (e.p0 ?? 0) + ((e.p1 ?? 1) - (e.p0 ?? 0)) * progress;
-    fx.push({ fx: e.fx, progress, at: { x, y, facing }, seed: e.seed });
+    fx.push({ fx: e.fx, progress, at: { x, y, facing }, seed: e.seed, ...(under !== undefined ? { under } : {}) });
     if (e.key !== undefined && e.contact !== null) present.push({ key: e.key, contact: e.contact });
   }
 

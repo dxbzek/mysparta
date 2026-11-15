@@ -394,6 +394,12 @@ export class Builder {
       p.start += met + BEAT.restMs - contactAt;
       plan(p.start);
     }
+    // a pet that cannot come out (snared, or held at the stage edge): its owner steps back past it
+    const gave = p.mode === "dash" ? this.ownerGives(p, from.x, stop.x, facing) : null;
+    if (gave !== null && contactAt < gave + BEAT.restMs) {
+      p.start += gave + BEAT.restMs - contactAt;
+      plan(p.start);
+    }
     const swingStart = contactAt - strikeIn;
     this.face(p.actor, p.start, facing);
     if (feet && way !== null) {
@@ -536,6 +542,36 @@ export class Builder {
     this.play(p.target, "run", p.start, { until: p.start + ms });
     this.out.add(p.target);
     return p.start + ms;
+  }
+
+  /**
+   * A scrapper attacking a pet that stays behind its owner (snared under the tarp, so petMeets
+   * leaves it, or kept at the stage edge) would stop inside him (review finding 1, verifier case:
+   * level 30 n 4, step 57). The owner steps back past his pet instead, with his own footwork, to
+   * `BODY_GAP.body` beyond the attacker's stop; the pet is drawn under him. Returns when he is set
+   * there, or null when he is already clear (or down, or snared himself). He shuffles home at the
+   * next way home.
+   */
+  ownerGives(p: SwingPlan, fromX: number, stopX: number, facing: 1 | -1): number | null {
+    const atr = this.track(p.actor);
+    const ttr = this.track(p.target);
+    if (atr.rig !== "scrapper" || ttr.rig === "scrapper" || this.internal.easedDash === true) return null;
+    const owner = scrapperOf(ttr.side);
+    if (owner === p.actor || !this.has(owner) || this.status.get(owner) !== "up" || this.snared.has(owner)) return null;
+    const start = Math.max(p.start, readyAt(this, owner));
+    const o = this.place(owner, start);
+    // only an owner ahead of the attacker, between him and (or just past) the stop
+    if (facing * (o.x - fromX) <= 0) return null;
+    const gap = BODY_GAP.body * Math.max(drawnScale(this, p.actor), drawnScale(this, owner));
+    if (facing * (o.x - stopX) >= gap - 0.5) return null;
+    const lo = SCRAPPER_REACH.back * drawnScale(this, owner);
+    const x = Math.min(STAGE_W - lo, Math.max(lo, stopX + facing * gap));
+    const way = planWay(this, owner, x - o.x, 0, false, start);
+    if (way.kind === "still") return null;
+    this.face(owner, start, facing === 1 ? -1 : 1);
+    const set = layWay(this, owner, start, x, o.y, way);
+    this.out.add(owner);
+    return set;
   }
 
   /** A dropped item lands on the floor at `at`. When a seventh would land, the oldest fades out

@@ -12,6 +12,7 @@ import { WEAPON_META, impactFamily } from "@rankzero/core";
 import { toStage } from "@rankzero/rig";
 import type { EffectKey, SfxItem } from "./contracts";
 import { noise } from "./cues";
+import { frameSpan } from "./camera";
 import { drawnScale } from "./footwork";
 import { segAt } from "./track";
 import { CORAL, GREEN, INK, PAPER, SKY, VOLT, WHITE } from "./palette";
@@ -268,10 +269,17 @@ export function evadeEarly(b: Builder, target: ActorId, attacker: ActorId, at: n
     // a pet has no dodge clip: it springs back off its legs (its run, in the air on the hop's arc),
     // stands its ground, and runs back in (review finding 20: it used to glide in its idle pose)
     const hold = OUTCOME.petEvadeHoldMs;
+    // the hop stays inside the camera's bout frame (verifier: a crow at the stage's edge hopped out
+    // of view); with no room behind it, it leaps up on the spot, never toward the attacker
+    const span = frameSpan(b);
+    const q = b.place(target, from);
+    const m = Math.max(tr.reach.back, tr.reach.front);
+    const to = Math.min(span.x1 - m, Math.max(span.x0 + m, q.x + dir * OUTCOME.evadeHop));
+    const dx = dir * Math.max(0, dir * (to - q.x));
     b.play(target, "run", from, { until: from + OUTCOME.evadeMs });
     b.play(target, "run", from + OUTCOME.evadeMs + hold, { until: from + OUTCOME.evadeMs + hold + OUTCOME.petEvadeBackMs });
     b.nudge({ actor: target, key: "hop", from, outMs: OUTCOME.evadeMs, holdMs: hold, backMs: OUTCOME.petEvadeBackMs,
-      dx: dir * OUTCOME.evadeHop, arc: OUTCOME.evadeArc, contact: null });
+      dx, arc: OUTCOME.evadeArc, contact: null });
     return;
   }
   b.play(target, "evade", from);

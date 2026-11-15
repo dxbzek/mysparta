@@ -42,6 +42,13 @@ export const CAMERA = {
   /** The knockout reframe: eased over this long. Its fastest zoom is 1.5 x ln(k0 / k1) / 2.6 s,
    *  about 22% per second for the widest case (a body lying at the stage's edge), once per bout. */
   koMoveMs: 2600,
+  /** The outro frame keeps this much of the canvas (CSS px) clear above the standing heads, for
+   *  the winner's banner in the top band (draw.ts: the 52 px band, a margin, a sticker of a 24 px
+   *  text and a gap). Review finding 52: on the app's 390 x 260 phone canvas the reframe held the
+   *  heads 80 px down, inside the banner. */
+  bannerRoomPx: 98,
+  /** A standing scrapper's head top over the floor line, with room for the win pose (units). */
+  headTop: 110,
 } as const;
 
 /** The part of the stage in view: its left and top edge in stage units, and stage units to CSS px. */
@@ -51,10 +58,12 @@ export interface CameraView { x0: number; y0: number; k: number }
  *  240 x w / h stage units across), `must` stays in view: the scrappers' marks and room, and in
  *  the outro the knocked-out body; the pets at the far ends are the ones cut. When even `must`
  *  does not fit, the body's far end (`keepAt`, on the `keep` side) stays in. */
-interface Span { x0: number; x1: number; bottom: number; must?: { x0: number; x1: number }; keep?: "x0" | "x1"; keepAt?: number }
+interface Span { x0: number; x1: number; bottom: number; must?: { x0: number; x1: number }; keep?: "x0" | "x1"; keepAt?: number;
+  /** The outro: keep `CAMERA.bannerRoomPx` clear above the heads. */
+  banner?: boolean }
 
 /** The fixed frame of a bout: the stage span to keep in view and the lowest floor line. */
-export function frameSpan(tr: Tracks): Span {
+export function frameSpan(tr: Pick<Tracks, "actors">): Span {
   let x0 = Infinity;
   let x1 = -Infinity;
   let c0 = Infinity;
@@ -90,7 +99,7 @@ export function outroSpan(tr: Tracks): Span {
   // the body as the rig draws it lying there (choreo/fall.ts), and a little room past the hand
   const far = Math.max(0, Math.min(STAGE_W, f.x + f.back * ((f.reach ?? CAMERA.bodyLength) + CAMERA.bodyMargin)));
   const must = s.must ?? { x0: s.x0, x1: s.x1 };
-  return { x0: Math.min(s.x0, far), x1: Math.max(s.x1, far), bottom: s.bottom, keep: f.back === 1 ? "x1" : "x0", keepAt: far,
+  return { x0: Math.min(s.x0, far), x1: Math.max(s.x1, far), bottom: s.bottom, keep: f.back === 1 ? "x1" : "x0", keepAt: far, banner: true,
     must: { x0: Math.min(must.x0, far), x1: Math.max(must.x1, far) } };
 }
 
@@ -107,7 +116,9 @@ export function reframeAt(tr: Tracks, t: number): number {
 /** The view that fits a span on a canvas of `w x h`. */
 function fit(s: Span, w: number, h: number): CameraView {
   const kFloor = Math.max(w / STAGE_W, h / STAGE_H);
-  const k = Math.max(kFloor, Math.min(w / (s.x1 - s.x0), h / CAMERA.minVisibleH));
+  // the outro leaves the banner its room above the heads (never wider than the whole stage)
+  const kHead = s.banner === true ? (h - CAMERA.bannerRoomPx) / Math.max(1, s.bottom - (FLOOR_Y - CAMERA.headTop)) : Infinity;
+  const k = Math.max(kFloor, Math.min(w / (s.x1 - s.x0), h / CAMERA.minVisibleH, kHead));
   const vw = w / k;
   let x0 = (s.x0 + s.x1) / 2 - vw / 2;
   const m = s.must ?? s;

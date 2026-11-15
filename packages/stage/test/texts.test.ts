@@ -15,7 +15,7 @@ import { BOUT_FIXTURES } from "@rankzero/core/fixtures";
 import { contentPack, createRig, gatePack } from "@rankzero/rig";
 import type { Box } from "../src/bounds";
 import { cameraAt } from "../src/camera";
-import { BANNER_K, MARGIN, STICKER_H, TOP_BAND } from "../src/draw";
+import { MARGIN, STICKER_H, TOP_BAND, bannerPx } from "../src/draw";
 import type { FrameText } from "../src/frame";
 import { TEXT } from "../src/tuning";
 import { playerFor } from "./lib/setup";
@@ -36,6 +36,8 @@ function found(level: number, n: number): { log: BoutLog; a: FighterSnapshot; b:
 const BOUTS = [
   ["bout-gate", BOUT_FIXTURES["bout-gate"]], ["bout-all-steps", BOUT_FIXTURES["bout-all-steps"]],
   ["find-bout level 10 n 1", found(10, 1)], ["find-bout level 30 n 2", found(30, 2)],
+  // the verifier's phone cases (390 x 260, the app's canvas): the banner hid the winner's head
+  ["find-bout level 5 n 2", found(5, 2)], ["find-bout level 1 n 0", found(1, 0)], ["find-bout level 20 n 3", found(20, 3)],
 ] as const;
 
 function boxOfText(t: FrameText): Box {
@@ -73,15 +75,15 @@ describe("words over the fight", () => {
       expect(banner.band).toBe("top");
       const winner = `${p.tracks.winner}0`;
       const bad: string[] = [];
-      for (const view of [{ w: 390, h: 470 }, { w: 760, h: 520 }, { w: 720, h: 480 }]) {
-        const bk = Math.min(view.w * BANNER_K.perWidth, BANNER_K.max);
-        const bottom = TOP_BAND + MARGIN + banner.size * bk * STICKER_H;
+      // 390 x 260 is the app's phone canvas (StageCanvas.tsx, 3:2); 390 x 470 a taller host
+      for (const view of [{ w: 390, h: 260 }, { w: 390, h: 470 }, { w: 760, h: 520 }, { w: 720, h: 480 }]) {
         for (let t = banner.from; t < p.timeline.durationMs; t += 50) {
           const f = p.frame(t);
           const a = f.actors.find((x) => x.id === winner);
           if (a === undefined) continue;
           const head = INSPECT.joints(FULL.samplePose(a.rig, a.clip, a.clipT, a.aim), a.dress, a.place)[HEAD]!;
           const cam = cameraAt(p.tracks, t, view, false);
+          const bottom = TOP_BAND + MARGIN + bannerPx(f, FULL, cam, view, banner.size) * STICKER_H;
           const top = (head[1] - HEAD_UP * a.dress.scale - cam.y0) * cam.k;
           if (top < bottom) bad.push(`${view.w}x${view.h} at ${t}: winner's head from ${top.toFixed(0)} px, banner to ${bottom.toFixed(0)} px`);
         }
