@@ -174,6 +174,8 @@ export const UI = {
 
   settings: {
     title: "Settings",
+    testArena: "Test arena",
+    testArenaHelp: "Two test scrappers with any weapon, skill, pet and shield, up to level 60. Nothing is saved.",
     sound: "Sound",
     on: "On",
     off: "Off",
@@ -220,6 +222,8 @@ export const UI = {
     seed: "Seed",
     run: "Run the bout",
     again: "Edit",
+    all: "Give everything",
+    none: "Clear",
   },
 };
 

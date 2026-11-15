@@ -41,6 +41,12 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose(): voi
         <Choice label={UI.settings.liveLog} value={s.liveLog} options={onOff} onPick={(v) => set({ liveLog: v })} />
 
         <section className={css.block}>
+          <h3 className={css.blockTitle}>{UI.settings.testArena}</h3>
+          <p className={css.help}>{UI.settings.testArenaHelp}</p>
+          <Button onClick={() => { location.hash = "#/sandbox"; }}>{UI.settings.testArena}</Button>
+        </section>
+
+        <section className={css.block}>
           <h3 className={css.blockTitle}>{UI.settings.export}</h3>
           <p className={css.help}>{UI.settings.exportHelp}</p>
           {code === null ? (
