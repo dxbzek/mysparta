@@ -13,12 +13,10 @@
  *  - companion clips other than idle hold the idle pose for the placeholder timeline;
  *  - looks: the gate's two looks (every list wraps), not yet the LOOK_SPACE counts (batch 6a).
  */
-import type { Clip, ContentClip, ContentPack } from "../contracts";
-import { CLIP_FALLBACK } from "../contracts";
-import { GATE_CLIP_ART } from "../gate/clips";
-import { THROW } from "../gate/clips/throw";
+import type { ContentPack } from "../contracts";
 import { GATE_LOOKS } from "../gate/parts";
 import { CONTENT_CLIPS } from "./clips";
+import { USES, VARIANTS } from "./clips/use";
 import { CONTENT_FX, PROPS } from "./fx";
 import { CONTENT_UI_ICONS, SKILL_ICONS } from "./icons";
 import { PET_ART } from "./pets";
@@ -26,10 +24,10 @@ import { SHIELD_ART } from "./shields";
 import { CONTENT_STAGES } from "./stages";
 import { CONTENT_WEAPONS } from "./weapons";
 
-const fallbackClips = Object.fromEntries((Object.keys(CLIP_FALLBACK) as ContentClip[]).map((c) => [c, c === "throw" ? THROW : GATE_CLIP_ART[CLIP_FALLBACK[c]]])) as Record<ContentClip, Clip>;
-
 export const contentPack: ContentPack = {
-  clips: { ...fallbackClips, ...CONTENT_CLIPS },
+  clips: CONTENT_CLIPS,
+  variants: VARIANTS,
+  uses: USES,
   weapons: CONTENT_WEAPONS,
   shields: SHIELD_ART,
   props: PROPS,

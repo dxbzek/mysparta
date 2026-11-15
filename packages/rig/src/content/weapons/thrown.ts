@@ -12,6 +12,9 @@ import { band, bar, blob, ellipsePoly, fillOf, fillsOf, line, lines, ngon, ringP
 import { weapon } from "./make";
 
 /** Darts: one steel dart, knurled barrel, cloth flights; pinch grip, flies straight point first. */
+/** Darts are pinched between the fingers, pointing on along the hand, not across the fist
+ *  (animation pass): with the forearm up by the ear the point faces the target. */
+export const DART_GRIP = 80;
 export const DARTS: WeaponArt = weapon([
   fillOf([[-5.2, 0], [-7.6, -2.7], [-10.4, -2.9], [-9.6, 0], [-10.4, 2.9], [-7.6, 2.7]], "accent", 0),
   line([[-10, 0], [-5.4, 0]], 0.3, 0.5, false),
@@ -19,7 +22,7 @@ export const DARTS: WeaponArt = weapon([
   fillOf(bar(-2.2, 4.8, [[0, 0.6], [0.5, 0.88], [1, 0.62]], 0.3), "metal", 2),
   lines(Array.from({ length: 6 }, (_, i) => [[-1 + i, -0.8], [-1 + i, 0.8]] as Pt[]), 0.16, 3, false),
   fillOf(bar(4.6, 9.6, [[0, 0.32], [1, 0.05]], 0), "metal", 2.5),
-], [9.6, 0]);
+], [9.6, 0], { rot: DART_GRIP });
 
 /** Bricks: a red house brick, chipped; overarm lob, tumbles on an arc, the brick hits. */
 export const BRICKS: WeaponArt = weapon([

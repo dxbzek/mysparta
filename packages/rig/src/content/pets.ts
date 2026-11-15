@@ -9,13 +9,11 @@
  * drawn in their natural rest direction. Colour slots of a pet (engine): "skin" and "top" its
  * body colour, "hair" its dark colour, "accent" its light colour, plus "white" and "ink".
  *
- * Only the idle loop is keyed for now (WP6 static batch). The other five companion clips are
- * the idle pose held for the placeholder timeline (`PLACEHOLDER_COMPANION_CLIPS`), so the stage
- * keeps its times; the animation pass replaces them.
+ * Every pet has all six companion clips (animation pass, 16 Nov 2026): `pet-clips.ts`.
  */
 import type { CompanionId } from "@rankzero/core";
-import type { BoneDef, Clip, CompanionClip, ColourSlot, Key, RigDef, Shape } from "../contracts";
-import { PLACEHOLDER_COMPANION_CLIPS } from "../contracts";
+import type { BoneDef, Clip, CompanionClip, ColourSlot, RigDef, Shape } from "../contracts";
+import { alleyCatClips, boarClips, crowClips, gooseClips, raccoonClips, strayDogClips } from "./pet-clips";
 import type { Poly, Pt } from "../gate/vocab";
 import { dPoly, dPolys, ellipsePoly, inkLine, limb, quad, rotPt } from "../gate/vocab";
 
@@ -117,16 +115,6 @@ const birdFoot = (len: number, slot: ColourSlot) => (b: Builder, bone: string, z
   b.inks(bone, [[[0.2, len - 0.2], [0.4, len + 0.3]], [[0.2, len * 0.3], [0.2, len * 0.6]]], 0.18, z + 0.06, false);
 };
 
-// --------------------------------------------------------------------------------- clips
-const k = (t: number, rot: Record<string, number>, o: Partial<Key> = {}): Key => ({ t, rot, ...o });
-/** The idle loop from three poses (rest, breath in, back), and the other clips as that pose held. */
-function clipsOf(rest: Record<string, number>, breath: Record<string, number>): Record<CompanionClip, Clip> {
-  const P = PLACEHOLDER_COMPANION_CLIPS;
-  const idle: Clip = { duration: P.idle.durationMs, loop: true, events: P.idle.events,
-    keys: [k(0, rest), k(600, { ...rest, ...breath }, { scale: [1, 0.985], ease: "inOut" }), k(1200, rest, { ease: "inOut" })] };
-  const hold = (c: CompanionClip): Clip => ({ duration: P[c].durationMs, loop: P[c].loop, events: P[c].events, keys: [k(0, rest), k(P[c].durationMs, rest)] });
-  return { idle, run: hold("run"), attack: hold("attack"), hit: hold("hit"), ko: hold("ko"), flee: hold("flee") };
-}
 /** The idle pose of the four legs of a quadruped (hind: thigh forward, hock back; fore straight). */
 function legsAt(h: [number, number, number], f: [number, number, number]): Record<string, number> {
   const out: Record<string, number> = {};
@@ -169,7 +157,7 @@ function strayDog(): PetArt {
   b.leg("hindF", "body", -9, 1.6, [7.2, 7.6, 5], [2.9, 1.7, 1.2, 1], "skin", 40, paw(4.6, 1.2));
   b.leg("foreF", "body", 10, 2.6, [7.2, 7, 4], [2.4, 1.6, 1.25, 1], "skin", 40, paw(3.6, 1.2));
   const rest = { ...legsAt([-24, 52, -26], [6, -4, -4]), body: 0, neck: 0, head: 6, tail1: 18, tail2: 12, tail3: 8 };
-  return { rig: b.rig("stray-dog", 34), shapes: b.shapes, clips: clipsOf(rest, { body: -1.5, neck: -2, head: 2, tail1: 8, tail2: 18, tail3: 14 }) };
+  return { rig: b.rig("stray-dog", 34), shapes: b.shapes, clips: strayDogClips(rest, { body: -1.5, neck: -2, head: 2, tail1: 8, tail2: 18, tail3: 14 }) };
 }
 
 // ---------------------------------------------------------------------------------- cat
@@ -204,7 +192,7 @@ function alleyCat(): PetArt {
   b.leg("hindF", "body", -7.4, 1, [5.4, 5.6, 4], [2.3, 1.3, 0.95, 1], "skin", 40, paw(3.4, 1.0));
   b.leg("foreF", "body", 9, 2, [5.2, 5.4, 3], [1.85, 1.2, 1.0, 1], "skin", 40, paw(2.6, 1.0));
   const rest = { ...legsAt([-26, 58, -30], [4, -6, 2]), body: 0, neck: 0, head: 4, tail1: -10, tail2: 30, tail3: 30 };
-  return { rig: b.rig("alley-cat", 26), shapes: b.shapes, clips: clipsOf(rest, { body: -1, head: 2, tail1: -4, tail2: 22, tail3: 46 }) };
+  return { rig: b.rig("alley-cat", 26), shapes: b.shapes, clips: alleyCatClips(rest, { body: -1, head: 2, tail1: -4, tail2: 22, tail3: 46 }) };
 }
 
 // ------------------------------------------------------------------------------ raccoon
@@ -242,7 +230,7 @@ function raccoon(): PetArt {
   b.leg("hindF", "body", -7, 1.6, [4.6, 4.8, 3], [2.8, 1.6, 1.25, 1], "hair", 40, paw(3, 1.25, "hair"));
   b.leg("foreF", "body", 9, 2.6, [4.2, 4.4, 2], [2.0, 1.35, 1.15, 1], "hair", 40, paw(2.4, 1.15, "hair"));
   const rest = { ...legsAt([-28, 56, -28], [8, -10, 2]), body: 2, neck: 0, head: 4, tail1: -12, tail2: -14, tail3: -10 };
-  return { rig: b.rig("raccoon", 26), shapes: b.shapes, clips: clipsOf(rest, { body: 0.5, head: 1, tail1: -6, tail2: -6, tail3: -2 }) };
+  return { rig: b.rig("raccoon", 26), shapes: b.shapes, clips: raccoonClips(rest, { body: 0.5, head: 1, tail1: -6, tail2: -6, tail3: -2 }) };
 }
 
 // --------------------------------------------------------------------------------- boar
@@ -277,7 +265,7 @@ function boar(): PetArt {
   b.leg("hindF", "body", -20, 5, [9.4, 9, 5], [5.4, 3.2, 2.3, 1], "skin", 40, hoof(5, 2.2));
   b.leg("foreF", "body", 21, 7, [8.6, 8.6, 5], [5, 3, 2.3, 1], "skin", 40, hoof(5, 2.2));
   const rest = { ...legsAt([-14, 26, -12], [6, -6, 0]), body: 0, neck: 0, head: 10, tail1: -10, tail2: 10, tail3: 10 };
-  return { rig: b.rig("boar", 52), shapes: b.shapes, clips: clipsOf(rest, { body: -0.6, head: 13, tail1: 14, tail2: 26 }) };
+  return { rig: b.rig("boar", 52), shapes: b.shapes, clips: boarClips(rest, { body: -0.6, head: 13, tail1: 14, tail2: 26 }) };
 }
 
 // -------------------------------------------------------------------------------- goose
@@ -322,7 +310,7 @@ function goose(): PetArt {
   legs("F", 40, 2);
   const rest = { body: -6, tail: 10, "legB.up": -6, "legB.lo": 4, "legB.foot": 8, "legF.up": 10, "legF.lo": -2, "legF.foot": -2,
     wingB: 6, "wingB.tip": 0, wingF: 6, "wingF.tip": 0, neck1: 6, neck2: -4, neck3: -6, head: 4 };
-  return { rig: b.rig("goose", 40), shapes: b.shapes, clips: clipsOf(rest, { neck1: 9, neck2: -8, neck3: -2, head: 6, tail: 16, wingF: 4 }) };
+  return { rig: b.rig("goose", 40), shapes: b.shapes, clips: gooseClips(rest, { neck1: 9, neck2: -8, neck3: -2, head: 6, tail: 16, wingF: 4 }) };
 }
 
 // --------------------------------------------------------------------------------- crow
@@ -366,7 +354,7 @@ function crow(): PetArt {
   legs("F", 40, 1);
   const rest = { body: -16, tail: 18, "legB.up": 10, "legB.lo": 4, "legB.foot": 2, "legF.up": 22, "legF.lo": -4, "legF.foot": -2,
     wingB: 8, "wingB.tip": -4, wingF: 8, "wingF.tip": -4, neck: 10, head: 12 };
-  return { rig: b.rig("crow", 26), shapes: b.shapes, clips: clipsOf(rest, { neck: 4, head: 20, tail: 24, "wingF.tip": -8 }) };
+  return { rig: b.rig("crow", 26), shapes: b.shapes, clips: crowClips(rest, { neck: 4, head: 20, tail: 20, "wingF.tip": -8 }) };
 }
 
 export const PET_ART: Record<CompanionId, PetArt> = {

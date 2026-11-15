@@ -147,7 +147,8 @@ describe("accurate weapon use (13.3): the strike point is the drawn tip", () => 
       for (const li of [0, 1]) {
         const d = dressOf(id, null, li);
         const sp = rig.strikePoint(S, meta.clip, d);
-        const p = rig.samplePose(S, meta.clip, strikeTime(rig.clipInfo(S, meta.clip))!);
+        // the clip the weapon really plays (its use variant: a Bat's two-hand swing)
+        const p = rig.samplePose(S, rig.attackClip!(id, meta.clip), strikeTime(rig.clipInfo(S, meta.clip))!);
         const e = ins.strikeEnd(p, d, HOME, meta.clip);
         expect(Math.hypot(sp.x - e[0], sp.y - e[1]), id).toBeLessThan(1e-6);
         if (art.segments === undefined && art.offhand !== true) {

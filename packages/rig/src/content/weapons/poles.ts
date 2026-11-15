@@ -6,6 +6,7 @@
 import type { WeaponArt } from "../../contracts";
 import type { Pt } from "../kit";
 import { band, bar, blob, ellipsePoly, fillOf, fillsOf, line, lines, ngon, quad, ringPoly, rod, roundRect, scuffs, wraps } from "../kit";
+import { FOIL_GRIP } from "./clubs";
 import { weapon } from "./make";
 
 /** Broom: a long stick and a stitched straw head; held like a staff, thrust head first. */
@@ -169,8 +170,8 @@ export const ANVIL: WeaponArt = weapon([
   scuffs(206, 5, AV(0, 11)[0], AV(0, 3)[0], -3, 9, 2, 0.24),
 ], AV(0, 0), { grip2: [0, 6.4] });
 
-/** Garden Shears: long-bladed hedge shears, one hand on each wooden handle; lunge and snip
- *  shut, the closing blades hit. */
+/** Garden Shears: long-bladed hedge shears, one hand on each wooden handle, the handles running
+ *  on along the forearms (`FOIL_GRIP`); lunge and snip shut, the closing blades hit. */
 export const GARDEN_SHEARS: WeaponArt = weapon([
   fillOf(band([[5, 0.9], [0, 0], [-10.4, -1.4]], 2.0), "wood", 0),
   fillOf(band([[5, 2.2], [-1, 5.6], [-10, 7.8]], 2.0), "wood", 0.2),
@@ -180,7 +181,7 @@ export const GARDEN_SHEARS: WeaponArt = weapon([
   blob(5.4, 1.6, 0.42, 0.42, 2, 8),
   lines([[[8, -0.3], [20, -0.9]], [[8, 2.8], [19, 2.2]]], 0.2, 2),
   lines([[[-9.6, -1.4], [-9.6, 0.2]], [[-9.2, 7.0], [-9.2, 8.6]]], 0.3, 2, false),
-], [20.6, 1.0], { grip2: [-2.8, 6.1] });
+], [20.6, 1.0], { grip2: [-2.8, 6.1], rot: FOIL_GRIP });
 
 /** Bands across a rod (sledge tape, cue wrap) re-exported for the thrown file. */
 export { wraps, ngon, ringPoly };

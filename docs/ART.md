@@ -135,9 +135,46 @@ was not the cause; the keys and the clip ends were. The rules that keep it fixed
 `WeaponArt` in the weapon's own units, +x along it, the grip at `grip`. `tip` is the part the
 brief's table says hits (the Pipe's coupling, the knife's point, the knuckles). The stage puts
 `tip` on the target; the engine pins the back hand to `grip2` (two-bone IK, 1 unit or less in
-every frame of the swing and thrust clips at a bat-like spacing). Items are drawn at their own
+every frame of every clip, see below). Items are drawn at their own
 size, never scaled with the body. Flexible weapons: `segments` (3 or more links) that follow
 `Pose.trail`.
+
+### Using each weapon the way the real object is (animation pass, 16 Nov 2026)
+
+Owner, after playing: "Lots of unrealistic arms or usage of weapons." Measured before the pass
+(every two-hand weapon, every clip it can play, every build at size 1 and 1.15): the back arm
+needed up to 1.38 of its length to hold `grip2` (Tyre in ko-fall; power-up 1.17, win 1.33, enter
+and throw 1.26), so the drawn back hand sat up to 10 units off the shaft; the content clips were
+gate stand-ins (smash played the one-hand club swing at 280 ms, thrust played the knife flick,
+the pole weapons poked upward, the Anvil and the Chair were swung like sticks).
+
+- **One clip per real use.** `WEAPON_META.clip` is the base clip the stage asks for; the content
+  pack's `uses[held][base]` names the clip the rig really plays (`content/clips/use.ts`): the
+  two-hand side swing (`swing-2h`: Bat, Cricket Bat, Rebar), the low-to-high sweep
+  (`swing-low`: Golf Club, Hockey Stick), the fencing lunge (`thrust-1h`: Plunger, Umbrella,
+  Garden Shears), and four throws besides the overarm lob (`throw-side`: Boomerang, Hubcap;
+  `throw-roll`: Tyre; `throw-flick`: Darts; `throw-heave`: any two-hand weapon thrown away).
+  A variant keeps its base clip's length and events. `samplePose` with an `Aim`, and
+  `strikePoint`, pick the variant from the dress; `rig.attackClip(held, base)` names it for a
+  caller that samples without a dress (the stage's throw).
+- **Both hands on one shaft, always.** A clip keys the front arm; `figure()` in createRig puts
+  the back hand on `grip2`. Where the keyed pose puts `grip2` beyond 94% of the back arm (or
+  folded onto the shoulder), the front hand is drawn in (or out) just enough, the item keeping
+  its angle as far as the front wrist bends; the back fist turns along the shaft only as far as
+  its wrist bends (`BACK_WRIST`). The back hand lets go over 15 degrees of the front grip
+  opening (a knockout drop) and while it holds a Move prop.
+- **The fist grip decides the arm.** An item in a fist stands across the forearm
+  (`GRIP_ROT`): to hold it level the forearm must point at least 20 degrees down (wrist
+  = aim - grip - forearm + 90 within -70..80). Key such poses with
+  `F: { dir, reach, aim }` (`gate/clips/kit.ts`: the wrist put `reach` of the arm from the
+  shoulder, `dir` degrees below forward), arms angled down to a level shaft, hands at the hip.
+  Items held otherwise say so in their art: `FOIL_GRIP` (Umbrella, Plunger, Garden Shears, along
+  the forearm), `CLUB_GRIP` (Golf Club, Hockey Stick, hanging head down), `DART_GRIP`.
+- **Pets** (`content/pet-clips.ts`): a gait is a sine per leg with its own phase (the swing
+  phase folds the lower leg and tucks the foot), so legs take turns; tails and wings `lag`.
+- `pnpm sheet --mode use-all` (every weapon's use strip, full rig) and `--mode pets` (every pet
+  clip). `test/content/use.test.ts` holds the lines; `test/content/use-audit.ts` prints the
+  back-arm numbers (`npx tsx packages/rig/test/content/use-audit.ts --rows`).
 
 ## Arena
 

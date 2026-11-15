@@ -22,7 +22,13 @@ type P2 = readonly [number, number];
  *  the item turns away from it by `held` degrees: the grip lets go. */
 export type ArmSpec =
   | { at: P2; aim?: number; hand?: number; grip?: number }
-  | { up: number; lo: number; hand?: number; aim?: number; grip?: number };
+  | { up: number; lo: number; hand?: number; aim?: number; grip?: number }
+  | { dir: number; reach: number; aim?: number; hand?: number; grip?: number };
+/* `dir` and `reach` (animation pass): the wrist put along a line from the shoulder, `dir`
+ * degrees from straight forward (positive down, -90 straight up, 180 straight back), `reach` of
+ * the arm's length from it. An animator thinks "arm long, angled down at the target"; the kit
+ * finds the wrist from wherever the shoulder is in that key, so a lean or a crouch never
+ * stretches the arm by surprise. */
 /** A leg: an ankle target (IK; y defaults to standing on the floor) with the foot's world angle,
  *  or the three angles. */
 export type LegSpec = { at: number | P2; foot?: number } | { up: number; lo: number; foot?: number };
@@ -67,8 +73,16 @@ export function solve(s: Spec, prev?: readonly number[]): number[] {
     const up = side === "F" ? BONE.armFup : BONE.armBup;
     const lo = side === "F" ? BONE.armFlo : BONE.armBlo;
     const hand = side === "F" ? BONE.handF : BONE.handB;
-    if ("at" in a) {
-      r = twoBone(model, r, rx, ry, up, lo, hand, a.at[0], a.at[1]).rot;
+    if ("at" in a || "dir" in a) {
+      let target: P2;
+      if ("at" in a) target = a.at;
+      else {
+        const sh = frames(model, r, rx, ry)[up]!;
+        const L = Math.hypot(model.def.bones[lo]!.x, model.def.bones[lo]!.y) + Math.hypot(model.def.bones[hand]!.x, model.def.bones[hand]!.y);
+        const d = (a.dir * Math.PI) / 180;
+        target = [sh.e + Math.cos(d) * a.reach * L, sh.f + Math.sin(d) * a.reach * L];
+      }
+      r = twoBone(model, r, rx, ry, up, lo, hand, target[0], target[1]).rot;
       if (prev !== undefined) r[up] = wrapNear(r[up]!, prev[up]!);
     } else {
       r[up] = a.up;
