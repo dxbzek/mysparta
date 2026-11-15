@@ -10,8 +10,9 @@
  */
 import type { Clip, Ease, FaceId, Key } from "../../contracts";
 import { twoBone, wrapNear } from "../../engine/ik";
+import type { Stride, StrideClip } from "../../engine/sample";
 import { frames, modelOf, worldAngles } from "../../engine/pose";
-import { BONE, GRIP_ROT, PROPORTION, SCRAPPER_RIG } from "../skeleton";
+import { BONE, GRIP_ROT, K, PROPORTION, SCRAPPER_RIG } from "../skeleton";
 
 const model = modelOf(SCRAPPER_RIG);
 type P2 = readonly [number, number];
@@ -122,7 +123,7 @@ export function solve(s: Spec, prev?: readonly number[]): number[] {
 
 /** Builds a clip from timed specs. Each spec inherits what it leaves out from the one before. */
 export function clip(duration: number, loop: boolean, events: Clip["events"], specs: readonly (readonly [number, Spec])[],
-  extra: { lag?: Record<string, number>; plant?: readonly string[]; stepped?: number } = {}): Clip {
+  extra: { lag?: Record<string, number>; plant?: readonly string[]; stepped?: number; stride?: Stride } = {}): StrideClip {
   const keys: Key[] = [];
   let carry: Spec = {};
   let prev: number[] | undefined;
@@ -141,7 +142,8 @@ export function clip(duration: number, loop: boolean, events: Clip["events"], sp
     keys.push(spec.ease !== undefined ? { ...withFace, ease: spec.ease } : withFace);
   });
   const out: Clip = { duration, loop, events, keys };
-  return { ...out, ...(extra.lag ? { lag: extra.lag } : {}), ...(extra.plant ? { plant: extra.plant } : {}), ...(extra.stepped ? { stepped: extra.stepped } : {}) };
+  return { ...out, ...(extra.lag ? { lag: extra.lag } : {}), ...(extra.plant ? { plant: extra.plant } : {}), ...(extra.stepped ? { stepped: extra.stepped } : {}),
+    ...(extra.stride ? { stride: extra.stride } : {}) };
 }
 
 /** Both feet stay where they stood at the clip's start. */
@@ -159,4 +161,33 @@ export const STANCE: Spec = {
 export function jointsOf(s: Spec): [number, number][] {
   const r = solve(s);
   return frames(model, r, s.root?.[0] ?? 0, s.root?.[1] ?? 0).map((f) => [f.e, f.f]);
+}
+
+/**
+ * Standing on part of the foot (movement pass). The sole's bottom corners in the foot bone's
+ * frame (`SOLE` in gate/parts/clothes.ts, both shoes): the toe a foot pushes off from and the
+ * heel a backward step rolls onto. `onToe(x, foot)` and `onHeel` are the ankle target that puts
+ * that corner on the floor at figure x with the foot at world angle `foot` (positive = heel up).
+ */
+export const TOE: P2 = [22.2 * K, 7.6 * K];
+export const HEEL: P2 = [-7 * K, 7.6 * K];
+function standOn(p: P2, x: number, foot: number): LegSpec {
+  const r = (foot * Math.PI) / 180;
+  const dx = Math.cos(r) * p[0] - Math.sin(r) * p[1];
+  const dy = Math.sin(r) * p[0] + Math.cos(r) * p[1];
+  return { at: [x - dx, -dy], foot };
+}
+export const onToe = (x: number, foot: number): LegSpec => standOn(TOE, x, foot);
+export const onHeel = (x: number, foot: number): LegSpec => standOn(HEEL, x, foot);
+/** A value that runs round a loop of `d` ms through `[t, v]` points, straight between them. */
+export function cyc(d: number, pts: readonly (readonly [number, number])[], t: number): number {
+  const u = ((t % d) + d) % d;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i]!;
+    const b = pts[(i + 1) % pts.length]!;
+    const tb = b[0] <= a[0] ? b[0] + d : b[0];
+    const uu = u < a[0] ? u + d : u;
+    if (uu >= a[0] && uu <= tb) return a[1] + (b[1] - a[1]) * ((uu - a[0]) / (tb - a[0] || 1));
+  }
+  return pts[0]![1];
 }

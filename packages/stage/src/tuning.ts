@@ -27,7 +27,7 @@ export const BEAT = {
   anticipationMs: 100,
   dashSpeed: 560,          // units per second
   dashMinMs: 140,
-  dashBackSpeed: 640,      // units per second
+  dashBackSpeed: 250,      // units per second: a backward walk in guard, 33-unit steps (rig backpedal)
   dashBackMinMs: 120,
   /** The next actor may start its anticipation when the dash back is this far done. */
   nextAfterBack: 0.6,

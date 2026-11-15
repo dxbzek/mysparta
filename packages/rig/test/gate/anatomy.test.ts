@@ -171,8 +171,8 @@ describe("anatomy: draw order", () => {
 });
 
 /**
- * Clip switches. The stage cuts from clip to clip with no blend, so a clip that starts or ends
- * far from the guard makes the arms jump in one frame (the first bout: brace to dash turned a
+ * Clip switches. The stage first cut from clip to clip with no blend, so a clip that starts or ends
+ * far from the guard made the arms jump in one frame (the first bout: brace to dash turned a
  * forearm 164 degrees between two frames). Every clip starts and ends near the stance, and the
  * loops the stage can leave at any frame (idle, dash, backpedal) stay near it all through.
  * The jump in, the knockout's last frame and the winner's loop are exempt: nothing follows them
@@ -186,20 +186,36 @@ describe("anatomy: clip switches stay in the guard", () => {
     for (const s of ["F", "B"] as const) m = Math.max(m, Math.abs(turn(g.foreW[s], f.foreW[s])), Math.abs(turn(g.handW[s], f.handW[s])));
     return m;
   }
-  const LOOPS = new Set(["idle", "dash", "backpedal"]);
+  const LOOPS = new Set(["idle", "backpedal"]);
   function entries(): [string, Frame][] {
     const out: [string, Frame][] = [];
     for (const r of RUNS.slice(0, GATE_CLIPS.length + 1)) {
-      if (r.name === "win") continue;
+      if (r.name === "win" || r.name === "dash") continue;
       if (LOOPS.has(r.name)) { r.frames.forEach((f, i) => out.push([`${r.name} frame ${i}`, f])); continue; }
-      if (r.name !== "enter") out.push([`${r.name} start`, r.frames[0]!]);
-      if (r.name !== "ko-fall") out.push([`${r.name} end`, r.frames[r.frames.length - 1]!]);
+      if (r.name !== "enter" && r.name !== "evade") out.push([`${r.name} start`, r.frames[0]!]);
+      if (r.name !== "ko-fall" && r.name !== "brace") out.push([`${r.name} end`, r.frames[r.frames.length - 1]!]);
     }
     return out;
   }
   it(`every clip start and end, and every frame of a loop, is within ${SWITCH} degrees of the stance`, () => {
     const g = stance();
     for (const [name, f] of entries()) expect(off(f, g), name).toBeLessThanOrEqual(SWITCH);
+  });
+  /* Two poses sit further from the guard on purpose (movement pass, 16 Nov 2026): the run pumps
+   * its arms (a sprint, not a shuffle) and the brace ends with the forearm raised in front of the
+   * face (a block or an evade starts there, so the evade's start sits between the two). The stage now crossfades every cut (stage/src/blend.ts, checked
+   * frame to frame on whole bouts by the stage's blend test), so they may; FADE_SWITCH keeps the
+   * gap one a crossfade closes in its longest time (BLEND.maxMs 230, about 14 frames): 100 degrees
+   * there is at most 11 degrees a frame at the fade's fastest, under half a real arm's 25. */
+  const FADE_SWITCH = 100;
+  it(`every frame of the run, and the brace's end, is within ${FADE_SWITCH} degrees of the stance`, () => {
+    const g = stance();
+    const run = RUNS.find((r) => r.name === "dash")!;
+    run.frames.forEach((f, i) => expect(off(f, g), `dash frame ${i}`).toBeLessThanOrEqual(FADE_SWITCH));
+    const brace = RUNS.find((r) => r.name === "brace")!;
+    expect(off(brace.frames[brace.frames.length - 1]!, g), "brace end").toBeLessThanOrEqual(FADE_SWITCH);
+    const evade = RUNS.find((r) => r.name === "evade")!;
+    expect(off(evade.frames[0]!, g), "evade start").toBeLessThanOrEqual(FADE_SWITCH);
   });
   it("planted fault: a clip that starts with the arm thrown up is caught", () => {
     const g = stance();
