@@ -8,7 +8,7 @@ All rule maths is whole numbers. Division rounds down. A chance is a whole perce
 
 A scrapper has four stats: Health, Strength, Agility and Speed. Each has points and a multiplier (a whole percent, 100 at the start). The value used everywhere is `floor(points x multiplier / 100)`.
 
-- **Health** sets max HP: `30 + 7 x Health + 3 x level`, then the companion cost is taken off: `floor(maxHP x (100 - cost) / 100)`. Never below 1.
+- **Health** sets max HP: `44 + 7 x Health + level`, then the companion cost is taken off: `floor(maxHP x (100 - cost) / 100)`. Never below 1.
 - **Strength** adds melee damage, more for heavier weapons.
 - **Agility** adds to Evade against a slower-footed attacker, adds to Combo, and adds to thrown damage.
 - **Speed** sets how much time a turn costs and who acts first.
@@ -33,7 +33,7 @@ Fight values, all whole percents. A held weapon adds its numbers to the base; sk
 - **Name.** Trimmed, inner spaces collapsed to one, then 3 to 14 characters of letters, digits, spaces and hyphens. The display keeps the player's capitals.
 - **The name is the seed.** `seed = FNV-1a(realmSalt + ":" + lowercased cleaned name)`. The same name gives the same scrapper on every device: stats, starting perk, look and Route.
 - **Look.** Shapes (build, head, hair, face, top, bottom, shoes, accessory) come from `(seed, lookSalt)`; colours (skin, hair colour, palette) from `(seed, colourSalt)`. The two reroll buttons each add 1 to one salt.
-- **Stats.** Every stat starts at 2. Then 6 points are dealt one at a time, each to a random stat that is still below 5. Total 14. Level-1 HP is 47 to 68 before the starting perk.
+- **Stats.** Every stat starts at 2. Then 6 points are dealt one at a time, each to a random stat that is still below 5. Total 14. Level-1 HP is 59 to 80 before the starting perk.
 - **Starting perk.** One roll from the perk pool (section 3), rolled again until it is allowed on an empty kit. A starting booster changes the stats at once, like a picked one.
 - **Random name.** A first part (120 of our own) and a second part (60 of our own), joined by a space. Every such name passes the name check.
 
@@ -85,7 +85,7 @@ Each part of the rules draws from its own stream, seeded from the bout seed and 
 
 - The two scrappers are `a0` (the challenger, left) and `b0`. Companions take `a1` to `a3` and `b1` to `b3` in the order they stand in the owner's perks.
 - Time is in beats. `bodyTempo = 40 + floor(1200 / (10 + Speed))`: 160 at Speed 0, 120 at 5, 100 at 10, 80 at 20, 60 at 50.
-- A normal turn costs `floor(weapon Tempo x bodyTempo / 100) + roll(0..10)`. Companions use Tempo 100.
+- A normal turn costs `floor(weapon Tempo x bodyTempo / 100) + roll(0..10)`. Companions use Tempo 80.
 - Start clocks: a scrapper `roll(0..20) - 2 x Speed`, Head Start -150, Mountain +150. A companion: Raccoon 10, Goose 40, Boar 250, Stray Dog 30, Crow 20, Alley Cat 15, each `+ roll(0..10)`.
 - A shield's `tempo` adds that percent to its owner's weapon Tempo (after Heavy Lifter): the Wooden Pallet 15, the Riot Shield 10.
 - The lowest clock acts next. On a tie, an actor whose last action cost no time (a free Move, or a companion just called by a Whistle) goes first; then a seeded roll among the tied actors in id order.
@@ -93,14 +93,18 @@ Each part of the rules draws from its own stream, seeded from the bout seed and 
 
 ### A scrapper's turn
 
-1. **Snared?** It skips the turn. The skip costs one normal turn of time and writes nothing, so turn numbers jump. The last skip ends the snare and writes `free` with cause "timeout": a Tarp holds for 3 skips, a Grapple for 1. A Taunt that is still on ends here, at the start of the owner's next turn.
+1. **Snared?** It skips the turn. The skip costs one normal turn of time and writes nothing, so turn numbers jump. The last skip ends the snare and writes `free` with cause "timeout": a Tarp holds for 3 skips, a Grapple for 1. A Taunt counts down here: it is still on in the free action that follows it and ends at the start of the owner's turn after that.
 2. **Move roll.** The owned Moves with uses left whose condition holds are listed; W is the sum of their weights. One roll from 0 to W + 11: below W picks a Move by weight, otherwise none fires. A Move is the whole turn and sets its own time cost.
 3. **Draw or swap.** Empty hands and weapons in the bag: draw with chance `S / (S + 6)` (Quick Swap: `S / (S + 2)`), S the sum of the bag's Draw weights, picked by weight. Right after a weapon left the hand by a throw, the draw is certain (throw and replace, content v2). Holding a weapon that has already attacked, with weapons in the bag: 30% to swap (Firm Grip 15%); the old weapon falls and is gone for the bout. Drawing does not end the turn.
 4. **Throw or melee.** A Thrown weapon is always thrown and never used up. Any other held weapon that has already swung once is thrown 20% of the time while another weapon waits in the bag, 5% when it is the last one (Pitcher 35% either way), and is then gone (Pitcher: back into the bag; Junk Collector: back into the bag 60% of the time). A weapon just drawn always gets its swing first.
-5. **Target.** One random standing enemy, scrapper or companion.
+5. **Target.** One random standing enemy, scrapper or companion. The enemy scrapper counts twice in the pick, each companion once (with one pet: the scrapper 2 in 3, the pet 1 in 3). Companions, Body Slam and a Trick Shot bounce pick the same way.
 6. **Resolve** the attack.
 7. **Pay the time.** The weapon whose Tempo counts is the one the turn was made with.
 8. **Overtime.** From turn 50 a scrapper loses 8% of its max HP (at least 1) after each of its own turns, skipped ones included. Last Stand does not save from it.
+
+### The opening
+
+Turns 1 to 5 are the opening. In each of those turns a scrapper loses at most 10% of its max HP and a companion at most 50% of its own (rounded down, at least 1). A hit or a Move hit that would take more is cut to what is left; once nothing is left for that turn, the attacker's swings stop (no further combo, Stubborn, scratch or bounce at it, and no intercept or riposte against it). So no bout can end before turn 6, and a pet always lives through the first turn it is hit in. From turn 6 every hit lands in full.
 
 ### A melee attack
 
@@ -136,7 +140,7 @@ A Crow flies: no intercept and no riposte against its attacks. An Alley Cat's at
 
 ### Companions
 
-Separate actors with their own HP and clock. A scrapper has three companion places at most. HP and Strength grow with the owner's level: `x (100 + 4 x (level - 1)) / 100`. They make bare melee attacks on a random standing enemy with their own numbers and the melee formula, can combo and evade, never block, intercept or riposte, and a scrapper may intercept or riposte them. Tempo 100, Reach 0, Crit 5, Pierce 0, Armor 0. A knocked-out companion stays down; a companion scared off by an Air Horn leaves. A companion going down never ends a bout.
+Separate actors with their own HP and clock. A scrapper has three companion places at most. HP and Strength grow with the owner's level: `x (100 + 3 x (level - 1)) / 100`. They make bare melee attacks on a random standing enemy with their own numbers and the melee formula, can combo and evade, never block, intercept or riposte, and a scrapper may intercept or riposte them. Tempo 80, Reach 0, Crit 5, Pierce 0, Armor 0. A knocked-out companion stays down; a companion scared off by an Air Horn leaves. A companion going down never ends a bout.
 
 | | Raccoon | Goose | Boar | Stray Dog | Crow | Alley Cat |
 |---|---|---|---|---|---|---|
@@ -144,9 +148,9 @@ Separate actors with their own HP and clock. A scrapper has three companion plac
 | Rarity word | Uncommon | Epic | Epic | Uncommon | Rare | Rare |
 | Weight | 90 | 5 | 5 | 30 | 15 | 15 |
 | Limit | 2 | 1, never with a Boar | 1, never with a Goose | 1, never with a Cat | 1 | 1, never with a Dog |
-| Owner max HP cost | 8% each | 20% | 30% | 14% | 12% | 14% |
-| HP | 14 | 22 | 80 | 18 | 10 | 15 |
-| Strength | 4 | 8 | 16 | 6 | 5 | 5 |
+| Owner max HP cost | 8% each | 20% | 30% | 16% | 12% | 14% |
+| HP | 16 | 28 | 104 | 18 | 13 | 19 |
+| Strength | 4 | 8 | 16 | 5 | 5 | 5 |
 | Agility | 6 | 12 | 2 | 7 | 18 | 16 |
 | Speed | 6 | 16 | 2 | 8 | 12 | 11 |
 | Base damage | 3 | 3 | 6 | 3 | 3 | 3 |
@@ -175,14 +179,14 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Pipe | Common | - | swing | 110 | 12 | 1 | 5 | 0 | 0 | 12 | 0 | 5 | 0 | 10 | 10 |
 | Pocket Knife | Common | Light, Blade | flick | 65 | 6 | 0 | 5 | 25 | 0 | 0 | 5 | 0 | 35 | 0 | 10 |
 | Broom | Common | Pole | thrust | 100 | 6 | 3 | 4 | 0 | 0 | 20 | 5 | 28 | 10 | 15 | 5 |
-| Machete | Common | Blade | swing | 115 | 10 | 1 | 5 | 5 | 0 | 5 | 0 | 5 | 5 | 5 | 30 |
+| Machete | Common | Blade | swing | 115 | 11 | 1 | 5 | 5 | 0 | 5 | 0 | 5 | 5 | 5 | 30 |
 | Hand Axe | Common | Heavy, Blade | swing | 145 | 15 | 1 | 4 | 0 | 15 | -5 | 0 | 0 | 0 | 5 | 15 |
 | Bat | Uncommon | - | swing | 120 | 12 | 2 | 5 | 0 | 10 | 5 | 0 | 18 | 0 | 5 | 15 |
 | Pitchfork | Uncommon | Pole | thrust | 130 | 14 | 3 | 3 | 0 | 0 | 5 | 0 | 0 | 0 | 5 | 10 |
 | Crowbar | Uncommon | Heavy | swing | 140 | 16 | 1 | 4 | -10 | 20 | 5 | 0 | 0 | 0 | 25 | 5 |
 | Knuckle Dusters | Uncommon | Light | punch | 70 | 7 | 0 | 5 | 10 | 10 | 0 | 5 | 0 | 28 | 0 | 10 |
 | Shovel | Uncommon | Heavy, Pole | smash | 150 | 15 | 2 | 3 | -10 | 10 | 18 | -5 | 5 | -10 | 10 | 5 |
-| Sledgehammer | Uncommon | Heavy | smash | 180 | 33 | 1 | 5 | -30 | 30 | -20 | -20 | -20 | -40 | 10 | 10 |
+| Sledgehammer | Uncommon | Heavy | smash | 180 | 34 | 1 | 5 | -30 | 30 | -20 | -20 | -20 | -40 | 10 | 10 |
 | Darts | Uncommon | Thrown, Light | throw | 45 | 3 | - | 5 | 0 | 0 | -5 | 12 | 0 | 30 | 0 | 5 |
 | Bike Chain | Rare | Pole | swing | 140 | 10 | 4 | 5 | 30 | -10 | -15 | 20 | -5 | 30 | 25 | 0 |
 | Monkey Wrench | Rare | Heavy | swing | 130 | 12 | 1 | 4 | 0 | 10 | 10 | 0 | 0 | 0 | 60 | 5 |
@@ -192,7 +196,7 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Garden Shears | Rare | Light, Blade | flick | 75 | 8 | 1 | 4 | 15 | 0 | 5 | 0 | 5 | 20 | 10 | 15 |
 | Stop Sign | Rare | Pole, Heavy, Blade | smash | 175 | 23 | 3 | 3 | -30 | 0 | 10 | 0 | 0 | 5 | 10 | 5 |
 | Boomerang | Rare | Thrown | throw | 70 | 8 | - | 4 | 0 | 0 | -5 | 10 | 0 | 20 | 10 | 10 |
-| Anvil | Epic | Heavy | smash | 240 | 48 | 1 | 5 | -35 | 50 | -30 | -30 | -20 | -40 | 15 | 5 |
+| Anvil | Epic | Heavy | smash | 240 | 48 | 1 | 5 | -30 | 50 | -30 | -30 | -20 | -40 | 15 | 5 |
 | Ball and Chain | Epic | Heavy | smash | 215 | 34 | 2 | 5 | -30 | 100 | -40 | -25 | 0 | 12 | -10 | 0 |
 | Umbrella | Epic | Light | flick | 50 | 4 | 1 | 5 | 40 | 0 | -30 | 45 | 40 | 40 | -20 | 0 |
 | Pool Cue | Epic | Pole, Light | thrust | 85 | 8 | 3 | 4 | 20 | 0 | 10 | 10 | 10 | 22 | 10 | 10 |
@@ -266,23 +270,27 @@ A shield is carried on the back arm while the front hand keeps its weapon. At mo
 | Move | Rarity | Weight | Uses | Only when | Time | Effect |
 |---|---|---|---|---|---|---|
 | Haymaker | Uncommon | 5 | 1, plus 1 per 25 Strength | no boost is already waiting | 0 | the next melee swing (hit, evaded or blocked) has double damage and Crit +15; a throw or an intercepted turn does not use it |
-| Energy Drink | Uncommon | 10 | 1 | own HP below 50% | 30 | heals `roll(25..40)`% of max HP |
+| Energy Drink | Uncommon | 16 | 1 | own HP below 50% | 30 | heals `roll(25..40)`% of max HP |
 | Tarp | Uncommon | 5 | 1 | an enemy that is not snared | 20% of a turn | snares a random free enemy companion if there is one, otherwise the scrapper |
-| Whistle | Uncommon | 6 | 2 | an own companion standing and below 60% HP | 20 | heals it by 50% of its max HP and it acts next |
+| Whistle | Uncommon | 20 | 2 | an own companion standing and below 90% HP | 20 | heals it by 50% of its max HP and it acts next |
 | Firecrackers | Rare | 3 | 2 | always | 50% of a turn | `roll(12..20)` to the enemy scrapper, 40% of max HP to each enemy companion; no evade, block or Armor |
-| Snatch | Rare | 8 | 2 | own hands empty, the enemy scrapper holds a weapon | 0 | takes that weapon into the hand |
+| Snatch | Rare | 28 | 2 | own hands empty, the enemy scrapper holds a weapon | 0 | takes that weapon into the hand |
 | Air Horn | Rare | 8 | 1 | an enemy companion is standing | 20 | each enemy companion has 50% to run off; the enemy scrapper's clock +40 |
-| Body Slam | Epic | 3 | 1 | own hands empty | one turn + 100 | `floor((16 + 3 x Strength) x roll(85..115) / 100)` to a random enemy, Armor applies; no evade, block or intercept; knocks off its weapon (Firm Grip can hold on) and its shield |
+| Body Slam | Epic | 12 | 1 | own hands empty | one turn + 100 | `floor((16 + 3 x Strength) x roll(85..115) / 100)` to a random enemy, Armor applies; no evade, block or intercept; knocks off its weapon (Firm Grip can hold on) and its shield |
 | Sand in the Eyes | Uncommon | 4 | 1 | the enemy scrapper stands and has no sand yet | 30% of a turn | the enemy scrapper's Aim -25 for the rest of the bout |
-| Taunt | Uncommon | 4 | 1 | no Taunt is on | 0 | Riposte +40 until the start of its next own turn |
-| Second Wind | Rare | 6 | 1 | own HP below 40% | 0 | heals 15% of max HP |
-| Grapple | Rare | 4 | 1 | own hands empty, the enemy scrapper stands and is not snared | one turn | `floor((8 + 2 x Strength) x roll(85..115) / 100)` to the enemy scrapper, Armor applies, no evade, block or intercept; then it is snared for 1 skipped turn (no tarp) |
+| Taunt | Uncommon | 4 | 1 | no Taunt is on | 0 | Riposte +40 through the free action that follows and until the start of the own turn after it |
+| Second Wind | Rare | 16 | 1 | own HP below 50% | 0 | heals 15% of max HP |
+| Grapple | Rare | 12 | 1 | own hands empty, the enemy scrapper stands and is not snared | one turn | `floor((8 + 2 x Strength) x roll(85..115) / 100)` to the enemy scrapper, Armor applies, no evade, block or intercept; then it is snared for 1 skipped turn (no tarp) |
 
 "20% of a turn" and "50% of a turn" are shares of the user's turn cost without its random part.
 
 ### Skill tags on stage
 
-A step can name a skill that decided it (`procs`), rarest skill first. Rule skills always write their tag: Last Stand on the hit it survives, Parry on the riposte it made possible, Stubborn on its extra swing, Firm Grip on the disarm or Snatch it resisted, a shield (its own id) on a block made while it is carried, Trick Shot on its bounce throw, Junk Collector on a throw whose weapon it brings back, Head Start on its owner's first action. Chance skills write their tag only when the roll passed because of their bonus (the same roll compared with the chance with and without it, no extra random number): Anticipation on an intercept, Payback on a riposte, Flurry on a combo swing, Slippery on an evade, Knock Loose on a disarm, Sharp Eye on a hit that would have been evaded or blocked without it, Taunt on a riposte while its bonus is on.
+A step can name the skill that mattered on it (`procs`). Rule skills always write their tag: Last Stand on the hit it survives, Parry on the riposte it made possible, Stubborn on its extra swing, Firm Grip on the disarm or Snatch it resisted, a shield (its own id) on a block made while it is carried, Trick Shot on its bounce throw, Junk Collector on a throw whose weapon it brings back, Head Start on its owner's first action. Chance skills write their tag only when the roll passed because of their bonus (the same roll compared with the chance with and without it, no extra random number): Anticipation on an intercept, Payback on a riposte, Flurry on a combo swing, Slippery on an evade, Knock Loose on a disarm, Sharp Eye on a hit that would have been evaded or blocked without it (its Aim or its Pierce), Taunt on a riposte while its bonus is on, Sand in the Eyes on a swing that was evaded only because of the Aim the sand took (the tag is the thrower's), Quick Swap on the first swing or throw after an empty-hand draw it made (not the sure draw after a throw).
+
+Number skills write their tag on the step where their number changed the result (the same hit counted again without the skill's number, after the opening's cut; no extra random number): Padding and Plate Vest on a hit, Body Slam or Grapple that their Armor made smaller; Sharpening Stone on a Blade hit, Bare Knuckle on a fists hit and Pitcher on a throw that they made bigger; Pitcher also on a throw whose weapon it sends back to the bag; Pet Lover on a companion's hit that it made bigger (the tag is the owner's); Heavy Lifter on the first swing or throw of a turn made with a Heavy weapon (that turn costs 30% less time). Boosters have no fight moment: they show on the stat screen.
+
+**At most one tag per step.** When several skills mattered on one step the sim keeps one: Last Stand first; then rule skills (Firm Grip, Parry, Stubborn, Trick Shot, Junk Collector, Head Start, a shield); then chance skills (Anticipation, Payback, Flurry, Slippery, Knock Loose, Sharp Eye, Taunt, Sand in the Eyes, Quick Swap); then number skills (Padding, Plate Vest, Sharpening Stone, Bare Knuckle, Pitcher, Pet Lover, Heavy Lifter). Inside a group the rarest wins, then the order of the perk list.
 
 ## 8. Choices the sim makes where the brief was silent
 
@@ -294,6 +302,8 @@ A step can name a skill that decided it (`procs`), rarest skill first. Rule skil
 - Firecrackers rolls its damage once for the enemy scrapper.
 - A Whistle sets the companion's clock to its owner's clock before the owner pays the Move's time, and the companion wins a tie.
 - The Snatch, Body Slam and Firecrackers roll on the `disarm`, `damage` and `move` streams like every other system of their kind.
+- Taunt costs no time, so its owner acts again at once. Until the sim-feel pass the Taunt ended at the start of that very action, before any enemy could attack, and never did anything (0 Taunt tags in 500 bouts). It now holds through that free action and ends at the start of the owner's turn after it.
+- The opening's cut is booked per actor and per turn; a cut hit still writes its real `damage` (what was taken), so the log needs no new field.
 
 ## 9. Balance pass
 
@@ -354,3 +364,59 @@ Changes to numbers that existed before content v2 (each 30% or less of the brief
 | Light Feet | Agility multiplier | 40 | 35 | Agility now feeds many more throws (62.3% ownership at level 30) |
 | Car Door | Block | 35 | 32 | now a shield beside a held weapon, and bouts ran long |
 | Category roll | weapon / skill / shield / companion | 46 / 50 / - / 4 | 44 / 46 / 6 / 4 | room for the shield category |
+
+### Sim-feel pass (15 November 2026)
+
+A review of 500 rival-against-rival bouts (100 at each of levels 1, 5, 10, 20 and 30) found four problems: bouts that ended in 2 to 5 turns (a heavy weapon drawn and swung on turn 1, a crit, a combo with a riposte on top, against level-1 HP of 47 to 68), medians under the 12-turn target at levels 1 and 5, Moves that almost never fired, passives that changed a number but never showed, and pets that were knocked out before they acted (about one pet in five never acted). The changes are structural where a number could not do it, and each is written above where it applies:
+
+- **The opening** (section 5): turns 1 to 5 take at most 10% of a scrapper's max HP and 50% of a companion's per turn. No bout can end before turn 6.
+- **Target weight** (section 5, step 5): the enemy scrapper counts twice in the target pick.
+- **Taunt** now lasts past the free action it buys (section 8); before, it never did anything.
+- **Skill tags** (section 7): number skills write a tag where they changed the result; at most one tag per step.
+
+Number changes. Some are larger than the 30% retune band of the brief; the owner's complaints ("short plain bouts", "proper use of skill is not it") asked for more than a retune, and the balance gate below still passes.
+
+| Row | Number | Was | Now | Why |
+|---|---|---|---|---|
+| Max HP | base | 30 | 44 | low-level bouts were too short (median 10 to 11 at levels 1 to 5) |
+| Max HP | per level | 3 | 1 | with the larger base, level-30 bouts ran past 20 turns |
+| Companions | Tempo | 100 | 80 | a pet acted 2 times in a typical bout; target 3 or more |
+| Companions | HP and Strength growth per level | 4% | 3% | pets with more base HP made level-30 bouts long |
+| Raccoon | HP | 14 | 16 | pets fell before they acted |
+| Goose | HP | 22 | 28 | same |
+| Boar | HP | 80 | 104 | same |
+| Crow | HP | 10 | 13 | same |
+| Alley Cat | HP | 15 | 19 | same |
+| Stray Dog | Strength | 6 | 5 | ownership 67.5% at level 10 after the pet changes (cap 62%) |
+| Stray Dog | owner max HP cost | 14% | 16% | same |
+| Energy Drink | weight | 10 | 16 | fired in 62% of the bouts of its owners |
+| Whistle | condition | pet below 60% HP | pet below 90% HP | a pet was usually knocked out from full before it was ever below 60%; fired in 29% |
+| Whistle | weight | 6 | 20 | same |
+| Snatch | weight | 8 | 28 | its window (own hands empty, enemy armed) is short; fired in 48% |
+| Body Slam | weight | 3 | 12 | needs empty hands; fired in 41% |
+| Grapple | weight | 4 | 12 | needs empty hands; fired in 46% |
+| Second Wind | condition | below 40% HP | below 50% HP | fired in 43% |
+| Second Wind | weight | 6 | 16 | same |
+| Machete | Dmg | 10 | 11 | with-and-without 46.4% at level 30 (the opening cuts burst weapons) |
+| Sledgehammer | Dmg | 33 | 34 | 47.5% at level 30, too near the line |
+| Anvil | Aim | -35 | -30 | ownership 39.6% at level 30 (floor 40%) |
+
+Move conditions that need empty hands (Snatch, Body Slam, Grapple) were kept: the log contract checks that a Snatch is made with an empty hand, and the three are unarmed moves. Their weights carry the fix instead.
+
+Results, same 500-bout review before and after (rivals and seeds from one fixed stream; "condition held" counts the bouts where the Move's condition was true at the start of one of its owner's turns):
+
+| | Before | After |
+|---|---|---|
+| Median / shortest bout, level 1 | 11 / 5 | 15 / 8 |
+| Median / shortest bout, level 5 | 10 / 4 | 14 / 7 |
+| Median / shortest bout, level 10 | 13 / 5 | 14 / 8 |
+| Median / shortest bout, level 20 | 17 / 6 | 16 / 10 |
+| Median / shortest bout, level 30 | 17 / 7 | 18 / 7 |
+| Bouts under 6 turns, 2,000 per level | 143, 106, 71, 19, 16 | 0 at every level |
+| Bouts under 6 turns, 30,000 at random levels 1 to 30 | (3.3% in 10,000) | 0; medians 13 to 18 at every level |
+| Pet actions per bout, owner sides (median) | 2 | 4 |
+| Pets knocked out before they acted (6,000 bouts) | 20.3% | 1.6% |
+
+Move firing, 2,000 bouts per level, share of owner bouts where the condition held: Haymaker 84% to 83%, Energy Drink 74% to 78%, Tarp 83% to 83%, Whistle 51% to 84%, Firecrackers 73% to 72%, Snatch 60% to 81%, Air Horn 70% to 80%, Body Slam 41% to 73%, Sand in the Eyes 79% to 78%, Taunt 80% to 80%, Second Wind 57% to 79%, Grapple 46% to 70%. `test/feel.test.ts` holds every Move at 60% or more.
+
+Balance gate after the pass (`pnpm balance`, full sample): PASS, no limit broken; level 10 median 14 turns, level 30 median 18, overtime 0.0%. Nearest to a limit: Raccoon 59.5% and Stray Dog 59.6% ownership at level 10 (cap 62%); at level 30 Machete 47.8%, Anvil 47.8%, Pickaxe 47.9%, Ball and Chain 47.9%, Body Slam 47.9% and Sledgehammer 48.0% with-and-without (line 47%). The opening cuts big early hits, so the burst weapons sit near the line; a later change that weakens them further needs this gate run again.

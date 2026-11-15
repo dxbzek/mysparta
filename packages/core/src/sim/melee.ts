@@ -8,21 +8,31 @@ import { hasTag, reachOf, weaponNumbers } from "../content/weapons";
 import type { Actor } from "./combatant";
 import { CAP, clampPct, valuesOf } from "./combatant";
 import type { Bout } from "./bout";
-import { armored, emit, headStart, knockOut, land, proc, sortProcs, tryDisarm, tryFree, tryShield } from "./bout";
+import { allowance, armored, emit, firstAction, knockOut, land, opening, proc, scrapperOfSide, sortProcs, spent, tryDisarm, tryFree,
+  tryShield } from "./bout";
 import { shieldNumbers } from "../content/shields";
 import { roll } from "./rng";
 
-/** Whole-percent damage multiplier: 100 plus skill bonuses, doubled by Haymaker. */
-export function damageMult(att: Actor, thrown: boolean, boosted: boolean): number {
+/** The one damage skill that raises this swing: Pitcher, Sharpening Stone, Bare Knuckle, or the
+ *  owner's Pet Lover for a companion. Null when none applies. */
+export function damageSkill(att: Actor, thrown: boolean): "pitcher" | "sharpening-stone" | "bare-knuckle" | "pet-lover" | null {
+  if (!att.scrapper) return att.dmgPct > 0 ? "pet-lover" : null;
+  if (thrown) return att.skills.has("pitcher") ? "pitcher" : null;
+  if (att.held === "fists") return att.skills.has("bare-knuckle") ? "bare-knuckle" : null;
+  return hasTag(att.held, "blade") && att.skills.has("sharpening-stone") ? "sharpening-stone" : null;
+}
+
+/** Whole-percent damage multiplier: 100 plus skill bonuses, doubled by Haymaker. `bare` leaves the
+ *  damage skill out (to tell whether it changed the number). */
+export function damageMult(att: Actor, thrown: boolean, boosted: boolean, bare = false): number {
   let m = 100;
+  const skill = bare ? null : damageSkill(att, thrown);
   if (att.scrapper) {
-    if (thrown && att.skills.has("pitcher")) m += sk("pitcher", "thrownDamage");
-    if (!thrown && att.held !== "fists" && hasTag(att.held, "blade") && att.skills.has("sharpening-stone")) {
-      m += sk("sharpening-stone", "bladeDamage");
-    }
-    if (!thrown && att.held === "fists" && att.skills.has("bare-knuckle")) m += sk("bare-knuckle", "fistDamage");
+    if (skill === "pitcher") m += sk("pitcher", "thrownDamage");
+    if (skill === "sharpening-stone") m += sk("sharpening-stone", "bladeDamage");
+    if (skill === "bare-knuckle") m += sk("bare-knuckle", "fistDamage");
     m += shieldNumbers(att.shield).damage;
-  } else {
+  } else if (skill === "pet-lover") {
     m += att.dmgPct;
   }
   if (boosted) m = Math.floor((m * sk("haymaker", "damageMult")) / 100);
@@ -86,6 +96,10 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
     if (def.skills.has("slippery") && r >= evadeChance(att, def, 0, sk("slippery", "evade"), thrown)) {
       procs.push(proc(def, "slippery"));
     }
+    // Sand in the Eyes: the swing missed only because the sand took the attacker's Aim.
+    if (att.sand > 0 && r >= evadeChance(att, def, -att.sand, 0, thrown)) {
+      procs.push(proc(scrapperOfSide(b, def.side), "sand-in-the-eyes"));
+    }
     return { outcome: "evade", damage: 0, crit: false, hpAfter: def.hp, procs, blocked: false };
   }
   if (seBonus > 0 && !def.snared && r < evadeChance(att, def, seBonus, 0, thrown)) wouldMiss = true;
@@ -103,10 +117,30 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   const variance = thrown ? roll(b.r.damage, 95, 125) : roll(b.r.damage, 85, 115);
   const critChance = Math.min(valuesOf(att).crit + (boosted ? sk("haymaker", "crit") : 0), CAP.crit);
   const crit = b.r.hit.int(100) < critChance;
-  const damage = damageOf(rawDamage(att, thrown), variance, damageMult(att, thrown, boosted), crit,
-    thrown ? null : valuesOf(def).armor);
+  const raw = rawDamage(att, thrown);
+  const mult = damageMult(att, thrown, boosted);
+  const armor = thrown ? null : valuesOf(def).armor;
+  const full = damageOf(raw, variance, mult, crit, armor);
+  // Number skills show where they changed the damage (no random number: the same hit, re-counted).
+  const left = allowance(b, def);
+  const cut = (d: number): number => (left === Infinity ? d : Math.max(1, Math.min(d, left)));
+  const skill = damageSkill(att, thrown);
+  if (skill !== null && cut(damageOf(raw, variance, damageMult(att, thrown, boosted, true), crit, armor)) !== cut(full)) {
+    procs.push(proc(skill === "pet-lover" ? scrapperOfSide(b, att.side) : att, skill));
+  }
+  if (armor !== null) armorProcs(def, armor, (a) => cut(damageOf(raw, variance, mult, crit, a)), cut(full), procs);
+  const damage = opening(b, def, full);
   const hpAfter = land(def, damage, procs);
   return { outcome: "hit", damage, crit, hpAfter, procs, blocked: false };
+}
+
+/** Padding and Plate Vest: a proc on a hit whose damage would have been higher without that
+ *  skill's Armor. `dealt(armor)` is the damage the hit would deal with that Armor. */
+export function armorProcs(def: Actor, armor: number, dealt: (armor: number) => number, done: number, procs: Proc[]): void {
+  if (!def.scrapper) return;
+  for (const id of ["plate-vest", "padding"] as const) {
+    if (def.skills.has(id) && dealt(armor - sk(id, "armor")) !== done) procs.push(proc(def, id));
+  }
 }
 
 /** The steps a swing causes, in order: disarm, doorOff, free, ko. */
@@ -144,7 +178,7 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
   // A Crow flies: nobody hits it first and nobody hits back at it.
   const flying = att.comp !== null && att.comp.flies;
   // a. Intercept: a standing, free scrapper may hit first.
-  if (def.scrapper && def.status === "up" && !def.snared && !flying) {
+  if (def.scrapper && def.status === "up" && !def.snared && !flying && !spent(b, att)) {
     const chance = interceptChance(att, def, 0);
     const r = b.r.hit.int(100);
     if (r < chance) {
@@ -152,7 +186,7 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
       if (def.skills.has("anticipation") && r >= interceptChance(att, def, sk("anticipation", "intercept"))) {
         procs.push(proc(def, "anticipation"));
       }
-      headStart(att, procs);
+      firstAction(att, procs);
       const c = resolve(b, def, att, false, false, procs);
       emit(b, swingStep("intercept", b, def, att, c));
       consequences(b, def, att, c);
@@ -175,7 +209,7 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
   for (let n = 0; ; n++) {
     const procs: Proc[] = [];
     if (whyProc !== null) procs.push(whyProc);
-    if (n === 0) headStart(att, procs);
+    if (n === 0) firstAction(att, procs);
     const boosted = n === 0 && att.scrapper && att.haymaker;
     if (boosted) att.haymaker = false;
     const c = resolve(b, att, def, false, boosted, procs);
@@ -186,7 +220,8 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
     if (boosted) step.boosted = true;
     emit(b, step);
     consequences(b, att, def, c);
-    if (b.ended || def.status !== "up" || att.hp < hpStart) break;
+    // The swings stop when the target falls, or has spent its opening allowance for this turn.
+    if (b.ended || def.status !== "up" || att.hp < hpStart || spent(b, def)) break;
 
     whyProc = null;
     if (scratches > 0) {
@@ -220,14 +255,14 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
   if (b.ended) return;
 
   // f. Riposte: after the last swing, a standing, free scrapper may hit back once.
-  if (def.scrapper && def.status === "up" && !def.snared && att.status === "up" && !flying) {
+  if (def.scrapper && def.status === "up" && !def.snared && att.status === "up" && !flying && !spent(b, att)) {
     const dv = valuesOf(def);
     const base = clampPct(dv.riposte, CAP.riposte);
     const chance = parried ? sk("parry", "riposteAfterBlock") : base;
     const r = b.r.hit.int(100);
     if (r < (chance > CAP.riposte ? CAP.riposte : chance)) {
       const procs: Proc[] = [];
-      const taunt = def.taunt ? sk("taunt", "riposte") : 0;
+      const taunt = def.taunt > 0 ? sk("taunt", "riposte") : 0;
       if (parried && r >= base) procs.push(proc(def, "parry"));
       else if (taunt > 0 && r >= clampPct(dv.riposte - taunt, CAP.riposte)) procs.push(proc(def, "taunt"));
       else if (def.skills.has("payback") && r >= clampPct(dv.riposte - sk("payback", "riposte"), CAP.riposte)) {

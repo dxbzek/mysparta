@@ -13,7 +13,7 @@ import { sk } from "../content/skills";
 import { hasTag } from "../content/weapons";
 import type { Actor } from "./combatant";
 import type { Bout } from "./bout";
-import { bagCopy, emit, headStart, pickEnemy, proc, sortProcs } from "./bout";
+import { bagCopy, emit, firstAction, pickEnemy, proc, sortProcs, spent } from "./bout";
 import { MAX_COMBO, comboChance, consequences, resolve } from "./melee";
 
 /** A held melee weapon is thrown this often while another weapon waits in the bag. */
@@ -30,7 +30,10 @@ export function throwChance(a: Actor, bagHasWeapon: boolean): number {
 /** What happens to a thrown weapon. Junk Collector rolls one number on the throw stream. */
 export function afterThrow(b: Bout, a: Actor, weapon: WeaponId, procs: Proc[]): "held" | "bag" | "gone" {
   if (hasTag(weapon, "thrown")) return "held";
-  if (a.skills.has("pitcher")) return "bag";
+  if (a.skills.has("pitcher")) {
+    procs.push(proc(a, "pitcher"));
+    return "bag";
+  }
   if (a.skills.has("junk-collector") && b.r.throw.int(100) < sk("junk-collector", "returnChance")) {
     procs.push(proc(a, "junk-collector"));
     return "bag";
@@ -51,7 +54,7 @@ export function throwAttack(b: Bout, att: Actor, first: Actor): WeaponId {
   for (let n = 0; ; n++) {
     const procs: Proc[] = [];
     if (whyProc !== null) procs.push(whyProc);
-    if (n === 0) headStart(att, procs);
+    if (n === 0) firstAction(att, procs);
     const c = resolve(b, att, def, true, false, procs);
     const after = afterThrow(b, att, weapon, procs);
     const bag = b.bag[att.side];
@@ -70,14 +73,14 @@ export function throwAttack(b: Bout, att: Actor, first: Actor): WeaponId {
     if (c.outcome === "hit" && !ricocheted && att.skills.has("trick-shot")
       && b.r.throw.int(100) < sk("trick-shot", "ricochet")) {
       const next = pickEnemy(b, att);
-      if (next !== null) {
+      if (next !== null && !spent(b, next)) {
         ricocheted = true;
         def = next;
         whyProc = proc(att, "trick-shot");
         continue;
       }
     }
-    if (def.status !== "up") break;
+    if (def.status !== "up" || spent(b, def)) break;
     if (combos >= MAX_COMBO) break;
     const r = b.r.hit.int(100);
     if (!(r < combo)) break;

@@ -49,18 +49,18 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   // Moves: fire by weighted chance at the start of a turn, limited uses per bout.
   // `cost` is in beats; `costPct` is a share of one normal turn of that scrapper.
   "haymaker": def("haymaker", "move", { damageMult: 200, crit: 15, usesPerStrength: 25, cost: 0 }, { weight: 5, uses: 1 }),
-  "energy-drink": def("energy-drink", "move", { healMin: 25, healMax: 40, belowHpPct: 50, cost: 30 }, { weight: 10, uses: 1 }),
+  "energy-drink": def("energy-drink", "move", { healMin: 25, healMax: 40, belowHpPct: 50, cost: 30 }, { weight: 16, uses: 1 }),
   "tarp": def("tarp", "move", { skips: 3, costPct: 20 }, { weight: 5, uses: 1 }),
-  "whistle": def("whistle", "move", { healPct: 50, belowHpPct: 60, cost: 20 }, { weight: 6, uses: 2 }),
+  "whistle": def("whistle", "move", { healPct: 50, belowHpPct: 90, cost: 20 }, { weight: 20, uses: 2 }),
   "firecrackers": def("firecrackers", "move", { damageMin: 12, damageMax: 20, companionPct: 40, costPct: 50 }, { weight: 3, uses: 2 }),
-  "snatch": def("snatch", "move", { cost: 0 }, { weight: 8, uses: 2 }),
+  "snatch": def("snatch", "move", { cost: 0 }, { weight: 28, uses: 2 }),
   "air-horn": def("air-horn", "move", { fleeChance: 50, clockPush: 40, cost: 20 }, { weight: 8, uses: 1 }),
-  "body-slam": def("body-slam", "move", { base: 16, perStrength: 3, extraCost: 100 }, { weight: 3, uses: 1 }),
+  "body-slam": def("body-slam", "move", { base: 16, perStrength: 3, extraCost: 100 }, { weight: 12, uses: 1 }),
   // content v2 Moves
   "sand-in-the-eyes": def("sand-in-the-eyes", "move", { aimLoss: 25, costPct: 30 }, { weight: 4, uses: 1 }),
   "taunt": def("taunt", "move", { riposte: 40, cost: 0 }, { weight: 4, uses: 1 }),
-  "second-wind": def("second-wind", "move", { healPct: 15, belowHpPct: 40, cost: 0 }, { weight: 6, uses: 1 }),
-  "grapple": def("grapple", "move", { base: 8, perStrength: 2, holds: 1 }, { weight: 4, uses: 1 }),
+  "second-wind": def("second-wind", "move", { healPct: 15, belowHpPct: 50, cost: 0 }, { weight: 16, uses: 1 }),
+  "grapple": def("grapple", "move", { base: 8, perStrength: 2, holds: 1 }, { weight: 12, uses: 1 }),
 };
 
 /** A named number of a skill. A missing name is a programming error in this package; it gives 0. */
