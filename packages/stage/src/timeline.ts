@@ -19,7 +19,7 @@ import type { ContactMark, Cue, EffectKey, PlayerOpts, SfxFamily, SfxItem, SfxOn
 import { finishCues, pickVariant } from "./cues";
 import { HOME, aimZone, homeFacing, homeMarks, stopFor } from "./layout";
 import type { ActorTrack, BagEvent, Crowd, Flash, FlightItem, FloorItem, FxItem, HpEvent, Move, Nudge, NumberItem,
-  Seg, Shake, Spot, TagItem, Tracks } from "./model";
+  Seg, Shake, Aura, TagItem, Tracks } from "./model";
 import type { MotionRules } from "./motion";
 import { motionRules } from "./motion";
 import { basePos, clipTime, drawPlace, facingAt, nudgeAt, segAt } from "./track";
@@ -72,7 +72,7 @@ export class Builder {
   readonly shakes: Shake[] = [];
   readonly flashes: Flash[] = [];
   readonly crowds: Crowd[] = [];
-  readonly spots: Spot[] = [];
+  readonly auras: Aura[] = [];
   readonly extraBusy: [number, number][] = [];
   tape: { from: number; to: number } | null = null;
   koFocus: { at: number; x: number; y: number; back: 1 | -1 } | null = null;
@@ -495,7 +495,7 @@ export function buildTimeline(log: BoutLog, a: FighterSnapshot, b: FighterSnapsh
     shakes: B.shakes,
     flashes: B.flashes,
     crowds: B.crowds,
-    spots: B.spots,
+    auras: B.auras,
     tape: B.tape,
     koFocus: B.koFocus,
     applyAt: stepEnd,

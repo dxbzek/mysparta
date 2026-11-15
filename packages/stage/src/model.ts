@@ -62,10 +62,9 @@ export interface FxItem { fx: FxKind; from: number; to: number; x: number; y: nu
    *  interpolated between them). Read instead of x, y. */
   track?: readonly { t: number; x: number; y: number }[] }
 
-/** A Move's spotlight (calm fight, skills pass): from its wind-up to the end of its action the
- *  arena dims a little and a ring glows on the floor under the user, so the eye goes to it. With
- *  `aura` a glow of that colour stands round the user too (Second Wind's breath). */
-export interface Spot { from: number; to: number; actor: ActorId; colour: string; aura?: boolean }
+/** A glow of one colour standing round an actor while its Move plays (Second Wind's breath). It
+ *  never dims the arena: a Move simply happens (owner, 15 Nov 2026: "It should just show"). */
+export interface Aura { from: number; to: number; actor: ActorId; colour: string }
 
 export interface NumberItem { from: number; x: number; y: number; text: string; colour: string; scale: number;
   contact: number | null }
@@ -114,7 +113,7 @@ export interface Tracks {
   shakes: Shake[];
   flashes: Flash[];
   crowds: Crowd[];
-  spots: Spot[];
+  auras: Aura[];
   /** Where and when the knockout falls, and which way the body falls (+1 toward +x): the camera's
    *  one reframe starts here (null: nobody falls). */
   koFocus: { at: number; x: number; y: number; back: 1 | -1 } | null;

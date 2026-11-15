@@ -8,20 +8,16 @@ import { perkKind, sideOf } from "@rankzero/core";
 import type { Timeline } from "@rankzero/stage";
 
 /** A skill (passive, Move or the shield that blocked) firing: its owner's side and when. */
-/** `shield` is a block a carried shield made: it lights the shield on the card, with no banner. */
-export interface Fire { at: number; side: Side; id: PerkId; kind: "move" | "proc" | "shield"; step: number;
-  /** A Move's banner stays up to here: through its wind-up and its action (the steps that carry
-   *  its result: the heal, the snare, the pets running off). */
-  until?: number }
+/** `shield` is a block a carried shield made: it lights the shield on the card. A Move or a
+ *  passive lights its tile; its name shows on the stage as a small tag over its user. */
+export interface Fire { at: number; side: Side; id: PerkId; kind: "move" | "proc" | "shield"; step: number }
 /** A hit that is the second (or later) of one actor's swings in a turn. */
 export interface ComboHit { at: number; side: Side; count: number; step: number }
 export interface Beats { fires: Fire[]; combos: ComboHit[]; koAt: number | null; koSide: Side | null }
 
-/** How long a fire lights its tile and holds its banner, and a combo counter stays up. */
-export const BEAT_MS = { fire: 1150, combo: 760, bannerIn: 160, bannerOut: 220, stampIn: 200,
-  /** A Move's banner: through its wind-up and the start of its action, at least this long and at
-   *  most this long, and this long past the Move's own step (it then gets out of the way). */
-  moveMin: 1000, moveMax: 1500, moveTail: 200 } as const;
+/** How long a fire lights its tile, and a combo counter stays up. A Move has no banner: it
+ *  simply happens on the stage (owner, 15 Nov 2026: "It should just show"). */
+export const BEAT_MS = { fire: 1150, combo: 760, stampIn: 200 } as const;
 
 
 function contactOf(tl: Timeline, step: number): number | null {
@@ -35,11 +31,7 @@ export function beatsOf(log: BoutLog, tl: Timeline): Beats {
   let chain: { actor: ActorId; turn: number; hits: number } | null = null;
   log.steps.forEach((s: Step, i) => {
     const at = tl.stepAt[i] ?? 0;
-    if (s.t === "move") {
-      const end = (tl.stepEnd[i] ?? at) + BEAT_MS.moveTail;
-      const until = at + Math.min(BEAT_MS.moveMax, Math.max(BEAT_MS.moveMin, end - at));
-      fires.push({ at, side: sideOf(s.actor), id: s.move, kind: "move", step: i, until });
-    }
+    if (s.t === "move") fires.push({ at, side: sideOf(s.actor), id: s.move, kind: "move", step: i });
     if ("procs" in s && s.procs) {
       const p = s.procs[0];
       if (p) fires.push({ at: contactOf(tl, i) ?? at, side: sideOf(p.by), id: p.skill as PerkId, kind: perkKind(p.skill as PerkId) === "shield" ? "shield" : "proc", step: i });
@@ -75,15 +67,6 @@ export function litAt(beats: Beats, t: number): Map<string, number> {
     out.set(key, Math.max(out.get(key) ?? 0, g));
   }
   return out;
-}
-
-/** The Move banner on show at `t`: the latest Move whose window covers `t`, its age and its
- *  length. A passive that decides a roll shows on the stage instead, as a tag with its icon over
- *  its owner ("PARRY!"), and lights its tile on the card. */
-export function bannerAt(beats: Beats, t: number): { fire: Fire; ms: number; span: number } | null {
-  let best: Fire | null = null;
-  for (const f of beats.fires) if (f.kind === "move" && t >= f.at && t < (f.until ?? f.at + BEAT_MS.fire)) best = f;
-  return best === null ? null : { fire: best, ms: t - best.at, span: (best.until ?? best.at + BEAT_MS.fire) - best.at };
 }
 
 /** The combo counter on show at `t`, if any. */

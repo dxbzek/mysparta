@@ -187,7 +187,7 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
       <Hud frame={hud} sides={sides} actors={log.init.actors} t={t} turn={state.turn} reduced={reduced} />
       <div className={css.stageArea}>
         <StageCanvas player={player} t={t} label={`${a.name} against ${b.name}`} />
-        <StageOverlay beats={beats} t={t} reduced={reduced} names={sideNames} />
+        <StageOverlay beats={beats} t={t} reduced={reduced} />
         <Controls
           paused={paused}
           ended={ended}

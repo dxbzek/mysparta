@@ -16,7 +16,7 @@ import { HANDLERS } from "../src/choreo/index";
 import { createFightClock } from "../src/clock";
 import { SFX_VARIANTS } from "../src/contracts";
 import { buildPlayer, createFightPlayer } from "../src/createFightPlayer";
-import { BEAT } from "../src/tuning";
+import { BEAT, MOVE } from "../src/tuning";
 import { fixturePlayer, optsFor } from "./lib/setup";
 
 const SRC = resolve(__dirname, "../src");
@@ -149,7 +149,9 @@ describe("choreography", () => {
     for (const t of STEP_TYPES) expect(existsHandlerFile(t)).toBe(true);
   });
 
-  it("stages every Move like a special move: a wind-up of 300 ms or more, its banner, its real object and a visible result", () => {
+  it("lets every Move just happen: no wind-up or hold, a small name tag, its real object and a visible result", () => {
+    // owner, 15 Nov 2026, after a 420 ms wind-up with a dim, a floor ring and a banner: "I don't
+    // like the skill preview. It should just show."
     const p = fixturePlayer("bout-all-steps");
     const log = BOUT_FIXTURES["bout-all-steps"].log;
     const tr = p.tracks;
@@ -165,6 +167,10 @@ describe("choreography", () => {
       && tr.hp.some((h) => h.actor === id && h.kind === "gain" && h.at === n.from));
     const resultOver = (id: string, move: string, from: number) => tr.tags.some((g) => g.actor === id && g.from >= from
       && g.text === `RESULT:${move.toUpperCase()}` && g.icon === move);
+    // the breath part of the power-up clip (before its first step event): what a wind-up played
+    const pu = capsuleRig.clipInfo("scrapper", "power-up");
+    const marks = pu.events.filter((e) => e.name === "step").map((e) => e.t);
+    const breathEnd = marks.length >= 3 ? Math.min(...marks) : Math.round(pu.durationMs * MOVE.partShares[0]);
     log.steps.forEach((s, i) => {
       if (s.t !== "move") return;
       const at = p.timeline.stepAt[i]!;
@@ -173,25 +179,40 @@ describe("choreography", () => {
       const fx = tr.fx.filter((f) => f.from >= at && f.from <= end);
       const kinds = fx.map((f) => f.fx);
       const why = `${s.move} (step ${i})`;
-      // 1. the wind-up: the user's power-up breath for 300 ms or more from the step's start, a
-      //    spotlight on it, and nobody else starting anything in that time (the opponent waits)
-      const wind = mine.find((g) => g.from === at);
-      expect(wind?.clip, why).toBe("power-up");
-      expect(wind!.to - wind!.from, why).toBeGreaterThanOrEqual(300);
-      expect(wind!.to - wind!.from, why).toBeLessThanOrEqual(500);
-      expect(tr.spots.some((sp) => sp.actor === s.actor && sp.from === at && sp.to >= wind!.to), why).toBe(true);
-      for (const other of tr.actors) {
-        if (other.id === s.actor) continue;
-        expect(other.segs.some((g) => g.busy && g.from >= at && g.from < wind!.to), `${why}: ${other.id} moves in the wind-up`).toBe(false);
-        expect(other.moves.some((m) => m.from >= at && m.from < wind!.to), `${why}: ${other.id} walks in the wind-up`).toBe(false);
+      // 1. no wind-up: the user's action starts with the step, not a breath held before it
+      const first = mine[0];
+      expect(first, why).toBeDefined();
+      expect(first!.from - at, `${why}: the action starts late`).toBeLessThanOrEqual(120);
+      expect(first!.clip === "power-up" && first!.c0 < breathEnd && s.move !== "second-wind", `${why}: a wind-up breath`).toBe(false);
+      //    and no hold: never more than 120 ms where the user stands still and nobody else reacts
+      //    to the Move (the others idle, or carry on with what they did before it)
+      let still = 0;
+      let longest = 0;
+      let prev: string | null = null;
+      for (let t = at; t <= p.timeline.stepEnd[i]!; t += 10) {
+        const f = p.frame(t);
+        const me = f.actors.find((x) => x.id === s.actor);
+        if (me === undefined) break;
+        const key = `${me.clip}|${me.clipT.toFixed(2)}|${me.place.x.toFixed(2)}|${me.place.y.toFixed(2)}`;
+        const othersWait = f.actors.every((x) => x.id === s.actor || x.seg === null || x.seg.from < at);
+        still = key === prev && othersWait ? still + 10 : 0;
+        longest = Math.max(longest, still);
+        prev = key;
       }
-      // 2. the banner over its user, from the start of the wind-up
-      expect(tr.tags.some((g) => g.from === at && g.text === `MOVE:${s.move.toUpperCase()}` && g.actor === s.actor), why).toBe(true);
+      expect(longest, `${why}: a hold where the others freeze`).toBeLessThanOrEqual(120);
+      // 2. a small name tag with the Move's icon over its user as it happens, like a passive's tag
+      const name = tr.tags.find((g) => g.actor === s.actor && g.text === `MOVE:${s.move.toUpperCase()}`);
+      expect(name, why).toBeDefined();
+      expect(name!.kind, why).toBe("tag");
+      expect(name!.icon, why).toBe(s.move);
+      expect(name!.from - at, why).toBeLessThanOrEqual(120);
+      expect(name!.to - name!.from, why).toBeGreaterThanOrEqual(800);
+      expect(name!.to - name!.from, why).toBeLessThanOrEqual(1000);
       // 3. the real object, and 4. a visible result
       const next = after(i);
       switch (s.move) {
         case "haymaker":
-          expect(mine.filter((g) => g.clip === "power-up").length, why).toBeGreaterThanOrEqual(2);
+          expect(mine.some((g) => g.clip === "power-up" && g.c0 >= breathEnd && g.from === at), `${why}: charges at once`).toBe(true);
           expect(fx.some((f) => f.fx === "spark" && f.track !== undefined), why).toBe(true);
           expect(resultOver(s.actor, s.move, at), why).toBe(true);
           expect(tr.fx.some((f) => f.fx === "trail" && f.from > at), why).toBe(true);
@@ -202,14 +223,14 @@ describe("choreography", () => {
           expect(greenOver(s.actor, at), why).toBe(true);
           break;
         case "whistle": {
-          expect(mine.some((g) => g.clip === "power-up" && g.prop === "whistle" && g.from > at), why).toBe(true);
+          expect(mine.some((g) => g.clip === "power-up" && g.prop === "whistle" && g.from >= at), why).toBe(true);
           expect(kinds, why).toContain("rings");
           const pet = next.find((n) => n.s.t === "heal")!.s as { target: string };
           expect(greenOver(pet.target, at), why).toBe(true);
           break;
         }
         case "air-horn": {
-          expect(mine.some((g) => g.clip === "power-up" && g.prop === "horn" && g.from > at), why).toBe(true);
+          expect(mine.some((g) => g.clip === "power-up" && g.prop === "horn" && g.from >= at), why).toBe(true);
           expect(kinds.filter((f) => f === "rings").length, why).toBe(3);
           const enemy = s.actor.startsWith("a") ? "b0" : "a0";
           expect(resultOver(enemy, s.move, at), why).toBe(true);
@@ -261,8 +282,8 @@ describe("choreography", () => {
           expect(resultOver(s.actor, s.move, at), why).toBe(true);
           break;
         case "second-wind":
-          expect(mine.filter((g) => g.clip === "power-up" && g.rate === 0).length, `${why}: holds the breath`).toBe(1);
-          expect(tr.spots.some((sp) => sp.actor === s.actor && sp.aura === true && sp.from === at), `${why}: glow`).toBe(true);
+          expect(mine.some((g) => g.clip === "power-up" && g.rate > 0 && g.from === at), `${why}: breathes in`).toBe(true);
+          expect(tr.auras.some((au) => au.actor === s.actor && au.from === at && au.colour === "#5BD66F"), `${why}: glow`).toBe(true);
           expect(greenOver(s.actor, at), why).toBe(true);
           break;
         case "grapple":
@@ -278,6 +299,47 @@ describe("choreography", () => {
       seen.add(s.move);
     });
     expect(seen.size).toBe(12);
+  });
+
+  it("never dims the arena for a Move: the background looks the same during a Move as in a plain swing", () => {
+    const p = fixturePlayer("bout-all-steps");
+    const log = BOUT_FIXTURES["bout-all-steps"].log;
+    const W = 390;
+    const H = 470;
+    const canvas = createCanvas(W, H);
+    const raw = canvas.getContext("2d");
+    const ctx = raw as unknown as Ctx2D;
+    const env: DrawEnv = { ctx, path: (d) => new Path2D(d) };
+    /** The mean colour of a patch of background at the top corners, away from the fighters and the words. */
+    const patch = (t: number): number[] => {
+      p.draw(env, t, { w: W, h: H, dpr: 1 });
+      const out: number[] = [];
+      for (const x0 of [4, W - 24]) {
+        const d = raw.getImageData(x0, 60, 20, 20).data;
+        let r = 0, g = 0, b = 0;
+        for (let k = 0; k < d.length; k += 4) { r += d[k]!; g += d[k + 1]!; b += d[k + 2]!; }
+        const n = d.length / 4;
+        out.push(r / n, g / n, b / n);
+      }
+      return out;
+    };
+    const kill = p.timeline.killStep >= 0 ? p.timeline.stepAt[p.timeline.killStep]! : Infinity;
+    const plain = log.steps.findIndex((s) => s.t === "attack");
+    const base = patch(p.timeline.stepAt[plain]! + 100);
+    let checked = 0;
+    log.steps.forEach((s, i) => {
+      if (s.t !== "move") return;
+      for (const d of [60, 200, 400, 700]) {
+        const t = p.timeline.stepAt[i]! + d;
+        if (t >= kill) continue;
+        const got = patch(t);
+        got.forEach((v, k) => expect(Math.abs(v - base[k]!), `${s.move} (step ${i}) at +${d} ms`).toBeLessThanOrEqual(2));
+        checked++;
+      }
+    });
+    expect(checked).toBeGreaterThan(20);
+    // and no sticker or banner names a Move: only the small tag
+    for (const g of p.tracks.tags) if (g.text.startsWith("MOVE:")) expect(g.kind).toBe("tag");
   });
 
   it("tags a passive that decides a roll with its icon and an exclamation mark, long enough to read", () => {

@@ -13,7 +13,7 @@ import { capsuleRig } from "@rankzero/rig/testing";
 import { createFightPlayer } from "@rankzero/stage";
 import type { HudFrame } from "@rankzero/stage";
 import { BAG_SHOWN, BagStrip, SideBag, bagView } from "../../src/fight/BagStrip";
-import { beatsOf } from "../../src/fight/beats";
+import { beatsOf, litAt } from "../../src/fight/beats";
 import { FighterCard, cardInfo } from "../../src/fight/FighterCard";
 import { Hud, hitGlow } from "../../src/fight/Hud";
 import { LogStrip, stripParts, stripSteps } from "../../src/fight/LogStrip";
@@ -110,19 +110,16 @@ describe("beats", () => {
     for (let i = 1; i < beats.fires.length; i++) expect(beats.fires[i]!.at).toBeGreaterThanOrEqual(beats.fires[i - 1]!.at);
   });
   it("the overlay is a pure function of t", () => {
-    const at = (t: number) => renderToStaticMarkup(<StageOverlay beats={beats} t={t} reduced={false} names={{ a: a.name, b: b.name }} />);
+    const at = (t: number) => renderToStaticMarkup(<StageOverlay beats={beats} t={t} reduced={false} />);
     for (const t of [0, 3000, 9000, player.timeline.durationMs]) expect(at(t)).toBe(at(t));
-    // a Move's banner: in through its wind-up, with the Move's icon and name, and no slam (no scale)
-    const f = beats.fires.find((x) => x.kind === "move")!;
-    expect(at(f.at + 300)).toContain("rotate(");
-    expect(at(f.at + 300)).toContain(`data-move="${f.id}"`);
-    expect(at(f.at + 300)).toContain('role="img"');
-    expect(at(f.at + 40)).not.toContain("scale(");
-    expect(f.until! - f.at).toBeGreaterThanOrEqual(1000);
-    // a passive's proc has no banner (its tag is on the stage, its tile lights on the card)
-    const proc = beats.fires.find((x) => x.kind === "proc");
-    if (proc !== undefined && !beats.fires.some((x) => x.kind === "move" && proc.at >= x.at && proc.at < x.until!)) {
-      expect(at(proc.at + 100)).not.toContain("data-move");
+    // a Move has no banner (owner: "It should just show"): its name is a small tag on the stage
+    // and its tile lights on the card
+    for (const f of beats.fires.filter((x) => x.kind === "move")) {
+      for (const d of [0, 40, 300, 900]) {
+        expect(at(f.at + d)).not.toContain("data-move");
+        expect(at(f.at + d)).not.toContain('role="img"');
+      }
+      expect(litAt(beats, f.at + 300).get(`${f.side}:${f.id}`) ?? 0).toBeGreaterThan(0);
     }
     if (beats.koAt !== null) expect(at(beats.koAt + 600)).toContain("K.O.");
   });

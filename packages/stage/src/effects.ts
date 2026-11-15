@@ -212,11 +212,11 @@ export function overtimeSticker(b: Builder, at: number): void {
     actor: null, x: 180, y: 70, size: TEXT.sticker * 1.4, kind: "sticker" });
 }
 
-/** The Move banner: a sticker with the Move's name over its user. */
-export function moveBanner(b: Builder, actor: ActorId, at: number, ms: number, text: string): void {
-  const p = overHead(b, actor, at);
-  b.tags.push({ from: at, to: at + ms, text: text.toUpperCase(), colour: VOLT, ink: INK, actor, x: p.x, y: p.y - 14,
-    size: TEXT.sticker, kind: "sticker" });
+/** A Move's name tag: a small tag with the Move's icon and name over its user, as it happens,
+ *  the size and length of a passive's tag (owner, 15 Nov 2026: "It should just show"). */
+export function moveNameTag(b: Builder, move: MoveId, actor: ActorId, at: number): void {
+  if (!b.has(actor)) return;
+  tagOver(b, actor, at, b.opts.text.moveName(move).toUpperCase(), VOLT, MOVE.nameTagMs, move);
 }
 
 /** A cosmetic variation from the seed, 0 to 1. */
