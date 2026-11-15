@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { AudioContextLike, AudioHost } from "../../src/audio/engine";
-import { createAudioEngine, unlockOnFirstGesture } from "../../src/audio/engine";
+import { createAudioEngine, unlockOnGestures } from "../../src/audio/engine";
 import { soundFor } from "../../src/audio/cues";
 
 function fakeHost() {
@@ -47,10 +47,13 @@ describe("audio engine", () => {
       addEventListener: (t: string, fn: () => void) => { listeners.set(t, fn); },
       removeEventListener: (t: string) => { listeners.delete(t); },
     } as unknown as EventTarget;
-    unlockOnFirstGesture(engine, target);
+    unlockOnGestures(engine, target, null);
     expect(f.calls).toEqual([]);
     listeners.get("pointerdown")!();
-    expect(listeners.size).toBe(0);           // once
+    // review finding 58: the listeners stay (a later gesture resumes an interrupted context);
+    // the load still happens once
+    expect(listeners.size).toBe(3);
+    listeners.get("keydown")!();
     await engine.unlock();
     expect(engine.state).toBe("ready");
     await engine.content();

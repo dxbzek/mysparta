@@ -226,7 +226,12 @@ export const UI = {
     creditsLines: [
       "Rank Zero, an original game.",
       "Type: Big Shoulders Display and Inter, SIL Open Font License 1.1.",
-      "Sound: Kenney sound packs, CC0.",
+      "Sound: free packs from OpenGameArt, CC0 1.0: Independent.nu, Iwan 'qubodup' Gabovitch, artisticdude, bart, rubberduck, StarNinjas, pauliuw, zeroisnotnull, Fupi, Kenney, Jordan Irwin (AntumDeluge), cogitollc, EZduzziteh, Aeva, Rocha57, fvcalderan.",
+      "Free Crowd Cheering Sounds by Gregor Quendel, CC BY 4.0 (opengameart.org/content/free-crowd-cheering-sounds).",
+      "Pig SFX Pack by Vinrax, CC BY 3.0 (opengameart.org/content/pig-sfx-pack).",
+      "Cat SFX by Dan Knoflicek (Macro), CC BY 3.0 (opengameart.org/content/cat-sfx).",
+      "Goose Honks by HollywoodEdge and Raccoon Snorts and Growls by prosoundfx, Envato Elements licence.",
+      "All sounds were cut, layered and level-adjusted for this game. Full list: CREDITS.md.",
     ],
   },
 
