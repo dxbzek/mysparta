@@ -221,8 +221,13 @@ the pole weapons poked upward, the Anvil and the Chair were swung like sticks).
   from the photographs: thresholded, legs lost to blur traced by hand, legs and tail thickened,
   the head cut off); standing and lying are drawn by hand at the same proportions. Head, jaw,
   ears and the hand-drawn tail stay on bones so they turn. Frames step, never blend: a clip's
-  `frame` key changes in two keys at one time, just before the beat. The other five pets will
-  follow this method once the dog is approved.
+  `frame` key changes in two keys at one time, just before the beat (`pets/frames.ts`).
+  - The alley cat is traced the same way from Muybridge plate 718 (trot frames 3 to 8 run, gallop
+    frames 13 to 18 flee); standing, the arched-back hiss and lying are drawn to match.
+  - Where no motion series exists, the torso is traced from one public-domain or CC0 photo and the
+    limbs stay on bones for the motion (`pets/traced-torsos.ts`): boar (plate 674 sow, shoulders
+    raised into a hump, crest along the traced back), goose (CC0 snow goose), raccoon and crow
+    (USFWS photos). The traced torso is one rigid picture, so those rigs keep the spine still.
 - **Pets drawn from life** (`content/pets/`, the other five; the four-legged ones share
   `quad-build.ts` and the gait function `quad.ts`). The rules:
   - Draw the animal standing, in stage units, from real anatomy (`pets/anatomy.ts`: `smooth`

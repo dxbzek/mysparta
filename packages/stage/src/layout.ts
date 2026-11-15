@@ -32,7 +32,7 @@ export const PET_HEIGHT: Readonly<Record<CompanionId, number>> = {
  *  (81.8 units), over the pet's own idle height, measured on the real art (src/bounds.ts) and
  *  rounded down. A test measures the art again and turns red when a redraw makes a pet taller. */
 export const PET_SCALE: Readonly<Record<CompanionId, number>> = {
-  "stray-dog": 0.86, goose: 0.75, raccoon: 0.75, "alley-cat": 0.82, crow: 0.59, boar: 0.77,
+  "stray-dog": 0.86, goose: 0.75, raccoon: 0.69, "alley-cat": 0.81, crow: 0.59, boar: 0.77,
 };
 
 /** How far a drawn actor reaches from its place, for an actor facing the fight: `back` units
@@ -45,8 +45,8 @@ const reach = (back: number, front: number, up: number, down: number): Reach => 
  *  for whichever rig draws them (redraw of 15 Nov 2026). */
 export const SCRAPPER_REACH: Readonly<Reach> = reach(23, 26, 88.5, 5.5);
 export const PET_REACH: Readonly<Record<CompanionId, Reach>> = {
-  raccoon: reach(22, 18.5, 19, 5), goose: reach(17.5, 18.5, 30, 4), boar: reach(26.5, 39, 38.5, 7),
-  "stray-dog": reach(23, 24, 27, 5), crow: reach(13, 13, 17.5, 3.5), "alley-cat": reach(23, 18.5, 21.5, 4.5),
+  raccoon: reach(20, 17, 18, 4.5), goose: reach(18, 18.5, 30, 4), boar: reach(26.5, 39, 38.5, 7),
+  "stray-dog": reach(23, 24, 27, 5), crow: reach(12, 13, 17.5, 3.5), "alley-cat": reach(23, 20, 21.5, 5),
 };
 /** The reach of an actor of this kind. */
 export const reachFor = (kind: "scrapper" | CompanionId): Reach => (kind === "scrapper" ? SCRAPPER_REACH : PET_REACH[kind]);

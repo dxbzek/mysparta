@@ -15,19 +15,23 @@ import type { Clip, CompanionClip } from "../../contracts";
 import { PLACEHOLDER_COMPANION_CLIPS } from "../../contracts";
 import type { Pt } from "../../gate/vocab";
 import type { Anatomy, Hi } from "./anatomy";
-import { band, ellipse, line, poseFrom, profile, sampleClip, smooth, sn, track } from "./anatomy";
+import { band, ellipse, line, poseFrom, profile, sampleClip as sampleBones, smooth, sn, track } from "./anatomy";
 import type { PetArt } from "./kind";
 import { floorClamp, mv, quadSkeleton } from "./quad-build";
+import { BOAR_TORSO } from "./traced-torsos";
+import { topEdge } from "./frames";
 import { gaitOf } from "./quad";
 
 const P = PLACEHOLDER_COMPANION_CLIPS;
+/** The traced torso is one rigid picture: the spine does not flex (the legs, head and tail move). */
+const sampleClip: typeof sampleBones = (b, l, d, loop, step, at, r) => sampleBones(b, l, d, loop, step, (t) => { const h = at(t); return { ...h, rot: { ...h.rot, hips: 0, chest: 0 } }; }, r);
 /** Touch-down share of the cycle per leg and the duty factor of each gait (the tests read these). */
 export const BOAR_GAITS = {
   run: { hindB: 0, foreF: 0.02, hindF: 0.5, foreB: 0.52, duty: 0.55 },
   flee: { hindB: 0, hindF: 0.1, foreF: 0.48, foreB: 0.58, duty: 0.34 },
 } as const;
-const G = 1.27;
-const fitP = (p: Pt): Pt => [p[0] * G, p[1] * G];
+const G = 1.16;
+const fitP = (p: Pt): Pt => [(p[0] + 1.5) * G, p[1] * G];   // the place a little behind the middle, under the heavy front
 const FAR: Pt = [0.8, 0];
 export const BOAR_ANGLES = { hind: -12, fore: -10 } as const;
 
@@ -63,21 +67,15 @@ export function boar(): PetArt & { anatomy: Anatomy } {
   a.fill("tail3", S([[-17.2, -16.0], [-16.4, -15.0], [-16.6, -13.2], [-17.4, -12.6], [-18.0, -13.4], [-17.9, -15.0]], 3), "hair", 19.7);
   a.fill("ear", [[14.6, -22.6], [14.6, -25.6], [15.8, -26.6], [17.0, -24.2], [16.8, -22.4]], "hair", 19.5, true);
   // body masses: narrow rump under barrel under the great forequarters under the neck and head
-  a.fill("hips", S([[-4, -22.4], [-8, -23], [-12, -22.4], [-15.4, -20.6], [-17, -17.6], [-16.4, -14.4], [-14, -12.0], [-10.4, -11.4], [-7, -12.4], [-4.4, -15.6]]), "skin", 20.0);
-  a.fill("body", S([[-12, -22.6], [-6, -23.4], [0, -24.6], [5, -25.0], [6, -20], [5.6, -13], [2, -10.6], [-3, -10.2], [-8, -10.8], [-11.6, -13], [-12.6, -18]]), "skin", 20.1);
-  a.fill("chest", S([[-2, -24.4], [2, -26.2], [6, -27.4], [9.6, -26.6], [12.4, -24.2], [13.8, -21], [13.6, -16.6], [12.2, -12.8], [9.4, -10.8], [5.6, -10.4], [2, -11], [-1, -13], [-2.6, -17.6], [-2.8, -21.6]]), "skin", 20.2);
-  // the mane: a bristled crest from the back over the hump to the nape
-  const crest: Pt[] = [];
-  for (let k = 0; k <= 18; k++) {
-    const x = -8 + k;
-    const top = -23.4 - 3.6 * Math.exp(-((x - 6) ** 2) / 40);
-    crest.push([x, top - (k % 2 === 0 ? 1.1 : 0)]);
-  }
-  a.fill("chest", [...crest, [10.6, -25.6], [6, -25.4], [0, -24.0], [-6, -22.6], [-8.2, -22.6]], "hair", 20.25);
-  a.ink("body", [line([[-8, -20], [-7, -16]]), line([[-4, -21], [-3.2, -16.6]]), line([[0, -22], [0.6, -17.6]]), line([[-10.4, -14.6], [-6, -12.6], [-1, -12.0]])], 0.28, 20.15);
-  a.ink("chest", [line([[3.6, -22.4], [4.2, -17.6]]), line([[7.0, -23.4], [7.6, -18.6]]), line([[10.2, -22.2], [10.6, -17.6]])], 0.28, 20.27);
-  a.fill("neck", S([[9, -25.6], [12, -25], [14.8, -23.4], [16.2, -20.6], [15.6, -16.6], [13.4, -13.4], [10.4, -12.6], [8.6, -16], [8.4, -21]]), "skin", 20.3);
-  a.fill("neck", S([[11.6, -25.2], [14.6, -23.6], [15.2, -22.0], [12.6, -23.0], [10.2, -24.2]], 3), "hair", 20.31);
+  // the torso traced from Muybridge's sow (plate 674), shoulders raised into a boar's hump (traced-torsos.ts)
+  a.fill("body", BOAR_TORSO, "skin", 20.1);
+  a.ink("body", [line([[-8, -20], [-7, -16]]), line([[-4, -21], [-3.2, -16.6]]), line([[0, -22], [0.6, -17.6]]), line([[4, -22.4], [4.6, -17.6]]), line([[8, -22.6], [8.6, -17.8]]),
+    line([[-12.4, -15.4], [-6, -13.4], [-1, -13.0]])], 0.28, 20.15);
+  // the mane: a bristled crest along the traced back, tallest over the hump
+  const back = topEdge(BOAR_TORSO, -12, 13, 26);
+  const crest: Pt[] = back.map(([x, y], k) => [x, y - (k % 2 === 0 ? 1.4 + 1.2 * Math.exp(-((x - 5) ** 2) / 50) : 0.2)] as Pt);
+  a.fill("body", [...crest, ...back.reverse().map(([x, y]) => [x, y + 1.6] as Pt)], "hair", 20.25);
+  a.fill("head", ellipse(13.6, -18.8, 3.6, 5.6, -10, 16), "skin", 20.3);   // the neck root over the cut
   a.fill("ear", [[13.6, -22.4], [13.4, -26.0], [15.0, -27.0], [16.4, -24.4], [16.0, -22.4]], "hair", 20.35);
   a.fill("ear", [[14.2, -23.0], [14.2, -25.4], [15.0, -26.0], [15.6, -24.0]], "accent", 20.355);
   a.fill("jaw", [[18.6, -14.6], [26.4, -13.0], [26.2, -15.6], [18.8, -16.6]], "ink", 20.37);

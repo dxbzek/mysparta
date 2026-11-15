@@ -21,20 +21,21 @@ import { DOG_FRAME } from "../../src/content/pets/stray-dog";
 import { GALLOP_FRAMES } from "../../src/content/pets/dog-frames";
 import { GOOSE_GAITS, goose } from "../../src/content/pets/goose";
 import { RACCOON_GAITS, raccoon } from "../../src/content/pets/raccoon";
-import { CAT_GAITS, alleyCat } from "../../src/content/pets/alley-cat";
+import { CAT_FRAME } from "../../src/content/pets/alley-cat";
+import { CAT_GALLOP, CAT_TROT } from "../../src/content/pets/cat-frames";
 import { BOAR_GAITS, boar } from "../../src/content/pets/boar";
 import { CROW_GAITS, crow } from "../../src/content/pets/crow";
 
 const rig = createRig(gatePack, contentPack);
 const ins = inspectOf(rig);
 const FIGHTER = 84;
-type Pet = "goose" | "raccoon" | "alley-cat" | "boar" | "crow";
+type Pet = "goose" | "raccoon" | "boar" | "crow";
 const LEGS: Record<Pet, readonly Leg[]> = { goose: goose().anatomy.legs, raccoon: raccoon().anatomy.legs,
-  "alley-cat": alleyCat().anatomy.legs, boar: boar().anatomy.legs, crow: crow().anatomy.legs };
-const QUADS = ["raccoon", "alley-cat", "boar"] as const;
+  boar: boar().anatomy.legs, crow: crow().anatomy.legs };
+const QUADS = ["raccoon", "boar"] as const;
 const BIRDS = ["goose", "crow"] as const;
 /** Each pet's share of a fighter's height (owner, 15 Nov 2026), within 3 points. */
-const SHARE: Record<Pet | "stray-dog", number> = { "stray-dog": 0.30, goose: 0.35, raccoon: 0.22, "alley-cat": 0.25, crow: 0.20, boar: 0.42 };
+const SHARE: Record<Pet | "stray-dog" | "alley-cat", number> = { "stray-dog": 0.30, goose: 0.35, raccoon: 0.22, "alley-cat": 0.25, crow: 0.20, boar: 0.42 };
 
 function framesAt(id: CompanionId, clip: string, t: number): { fr: Xf[]; index: ReadonlyMap<string, number> } {
   const p = rig.samplePose(id, clip, t);
@@ -67,7 +68,7 @@ const limitOf = (id: CompanionId, bone: string): readonly [number, number] => in
 
 describe("pets drawn from life: joints bend the animal's way", () => {
   it("raccoon, cat and boar bend like the dog: stifle forward, hock back, elbow back, wrist folding back", () => {
-    for (const id of ["raccoon", "alley-cat", "boar"] as const) for (const s of ["B", "F"]) {
+    for (const id of ["raccoon", "boar"] as const) for (const s of ["B", "F"]) {
       expect(limitOf(id, `hind${s}.lo`)[0], `${id} stifle`).toBeGreaterThan(0);
       expect(limitOf(id, `hind${s}.paw`)[1], `${id} hock`).toBeLessThan(0);
       expect(limitOf(id, `fore${s}.lo`)[1], `${id} elbow`).toBeLessThanOrEqual(0);
@@ -96,8 +97,6 @@ describe("pets drawn from life: feet planted while they carry weight", () => {
     ["goose", "flee", GOOSE_GAITS.flee, ["legB", "legF"]],
     ["raccoon", "run", RACCOON_GAITS.run, ["hindB", "hindF", "foreB", "foreF"]],
     ["raccoon", "flee", RACCOON_GAITS.flee, ["hindB", "hindF", "foreB", "foreF"]],
-    ["alley-cat", "run", CAT_GAITS.run, ["hindB", "hindF", "foreB", "foreF"]],
-    ["alley-cat", "flee", CAT_GAITS.flee, ["hindB", "hindF", "foreB", "foreF"]],
     ["boar", "run", BOAR_GAITS.run, ["hindB", "hindF", "foreB", "foreF"]],
     ["boar", "flee", BOAR_GAITS.flee, ["hindB", "hindF", "foreB", "foreF"]],
     ["crow", "run", CROW_GAITS.run, ["legB", "legF"]],
@@ -156,7 +155,7 @@ describe("pets drawn from life: footfall order of the real gaits", () => {
   }
   const gap = (a: number, b: number): number => { const g = (b - a + 1) % 1; return g; };
   it("raccoon, cat and boar run in a trot too: diagonal pairs together, the pairs half a stride apart", () => {
-    for (const id of ["raccoon", "alley-cat", "boar"] as const) {
+    for (const id of ["raccoon", "boar"] as const) {
       const td = touchdowns(id, "run", ["hindB", "hindF", "foreB", "foreF"]);
       const near = (a: number, b: number): number => Math.min(gap(a, b), gap(b, a));
       expect(near(td.hindB!, td.foreF!), id).toBeLessThan(0.06);
@@ -165,12 +164,12 @@ describe("pets drawn from life: footfall order of the real gaits", () => {
     }
   });
   it("their flee is a gallop: both hind feet, then both fore, and the cat and the raccoon fly (plate 718)", () => {
-    for (const id of ["raccoon", "alley-cat", "boar"] as const) {
+    for (const id of ["raccoon", "boar"] as const) {
       const td = touchdowns(id, "flee", ["hindB", "hindF", "foreB", "foreF"]);
       const order = ["hindB", "hindF", "foreF", "foreB"].map((l) => gap(td.hindB!, td[l]!));
       for (let i = 1; i < order.length; i++) expect(order[i]!, `${id} order ${i}`).toBeGreaterThan(order[i - 1]!);
     }
-    for (const id of ["raccoon", "alley-cat"] as const) {
+    for (const id of ["raccoon"] as const) {
       const d = rig.clipInfo(id, "flee").durationMs;
       expect(Array.from({ length: 96 }, (_, k) => k / 96).some((u) => rig.samplePose(id, "flee", u * d).lift > 0.3), id).toBe(true);
     }
@@ -228,13 +227,33 @@ describe("the stray dog, drawn frame by frame (v3, rotoscoped)", () => {
   });
 });
 
+describe("the alley cat, traced from Muybridge (plate 718)", () => {
+  const frameAt = (clip: string, t: number): number => {
+    const p = rig.samplePose("alley-cat", clip, t);
+    return Math.round(p.rot[ins.rigDef("alley-cat").bones.findIndex((b) => b.id === "frame")]!);
+  };
+  it("runs on the six traced trot frames and flees on the six traced gallop frames, 40 ms each, in order", () => {
+    expect(CAT_TROT.length).toBe(6);
+    expect(CAT_GALLOP.length).toBe(6);
+    for (let k = 0; k < 6; k++) {
+      expect(frameAt("run", k * 40 + 20), `run ${k}`).toBe(CAT_FRAME.trot[k]);
+      expect(frameAt("flee", k * 40 + 20), `flee ${k}`).toBe(CAT_FRAME.gallop[k]);
+    }
+  });
+  it("stands in its idle, squares up with the arched back before it strikes, and ends its ko lying down", () => {
+    for (const t of [0, 400, 800]) expect(frameAt("idle", t)).toBe(CAT_FRAME.stand);
+    expect(frameAt("attack", 80)).toBe(CAT_FRAME.arch);
+    expect(frameAt("ko", 600)).toBe(CAT_FRAME.lie);
+  });
+});
+
 describe("pets drawn from life: one outline, real sizes", () => {
   it("draws each animal's body masses in one outline group, and the goose neck with no stripes", () => {
     const groupOf = (id: CompanionId, bones: string[]): Set<number> =>
       new Set(contentPack.companions[id].shapes.filter((s) => bones.includes(s.bone) && s.slot !== "ink").map((s) => Math.floor(s.z)));
 
     expect([...groupOf("goose", ["body", "tail", "neck1", "neck2", "neck3", "head", "jaw"])]).toEqual([20]);
-    for (const id of ["raccoon", "alley-cat", "boar"] as const) expect([...groupOf(id, ["hips", "body", "chest", "neck", "head", "jaw"])], id).toEqual([20]);
+    for (const id of ["raccoon", "boar"] as const) expect([...groupOf(id, ["body", "head", "jaw"])], id).toEqual([20]);
     expect([...groupOf("crow", ["body", "tail", "neck", "head", "jaw"])]).toEqual([20]);
     expect(contentPack.companions.goose.shapes.filter((s) => /^neck/.test(s.bone) && s.slot === "ink")).toEqual([]);
   });
@@ -274,7 +293,7 @@ describe("pets drawn from life: one outline, real sizes", () => {
       }
       return -top / FIGHTER / PET_UNIT[id];
     };
-    for (const id of ["stray-dog", ...QUADS, ...BIRDS] as const) expect(Math.abs(height(id) - SHARE[id]), `${id} ${height(id).toFixed(3)}`).toBeLessThan(0.03);
+    for (const id of ["stray-dog", "alley-cat", ...QUADS, ...BIRDS] as const) expect(Math.abs(height(id) - SHARE[id]), `${id} ${height(id).toFixed(3)}`).toBeLessThan(0.03);
     expect(height("boar")).toBeLessThan(0.45);
   });
   it("the crow reads on the dark arena: blue-grey sheen on its back, wings and head, and a pale eye", () => {

@@ -26,6 +26,7 @@ import type { Pt } from "../../gate/vocab";
 import type { Foot, GaitFoot, Hi, Rot } from "./anatomy";
 import { Anatomy, gaitFootByJoint, ellipse, line, poseFrom, profile, restLeg, sampleClip, smooth, sn, track } from "./anatomy";
 import type { PetArt } from "./kind";
+import { GOOSE_TORSO } from "./traced-torsos";
 
 const P = PLACEHOLDER_COMPANION_CLIPS;
 
@@ -92,9 +93,9 @@ export function goose(): PetArt & { anatomy: Anatomy } {
   };
   wing("wingB", [0.4, -0.4], 18, true);
   // body masses: tail under the body, then the neck pieces upward, then the head: one outline
-  a.fill("tail", S([[-9.4, -14.4], [-12.2, -15.0], [-14.4, -15.6], [-13.8, -14.0], [-12.0, -12.0], [-9.8, -11.4]]), "skin", 20.0);
-  a.fill("body", S([[-10.5, -14.2], [-7.0, -15.6], [-2.5, -16.0], [1.5, -15.2], [3.4, -14.6], [4.6, -15.2], [6.4, -13.2], [6.8, -11.4], [6.6, -8.6], [4.8, -6.4], [1.0, -5.2], [-3.0, -4.8], [-6.6, -5.6], [-9.6, -7.6], [-11.4, -10.6], [-11.6, -12.8]]), "skin", 20.05);
-  a.fill("body", S([[-3.0, -5.6], [1.0, -5.9], [4.6, -7.0], [4.8, -6.3], [1.0, -5.2], [-3.0, -4.85], [-6.4, -5.7]]), "accent", 20.06);   // dirt on the paunch
+  // the body traced from a CC0 photograph of a walking goose (traced-torsos.ts); the tail's own feathers
+  a.fill("body", GOOSE_TORSO, "skin", 20.05);
+  a.ink("tail", [[[-10.5, -13.6], [-13.5, -14.4]], [[-10.8, -12.6], [-13.0, -13.0]]], 0.18, 20.06);
   // the neck: three overlapping pieces, each cut on a slant at its base (back side higher) so the
   // lit side runs on unbroken; the head's back covers the top of the last
   const pieces = ["neck1", "neck2", "neck3"];
