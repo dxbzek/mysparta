@@ -15,7 +15,7 @@ import { COMPANION_IDS, WEAPON_META, isShieldId } from "@rankzero/core";
 import type { Aim, AppearanceSet, IconArt, Clip, ClipInfo, CompanionClip, ContentClip, ContentPack, CreateRig, DrawEnv, Dress,
   FaceId, FxDraw, FxKind, GatePack, IconRef, Offset, Place, Pose, PropArt, Rig, RigDef, RigId, Shape, StageDraw,
   SvgArt, WeaponArt } from "../contracts";
-import { CLIP_FALLBACK, COMPANION_CLIPS, SCRAPPER_CLIPS, TRAIL_LEN, strikeTime } from "../contracts";
+import { CLIP_FALLBACK, COMPANION_CLIPS, SCRAPPER_CLIPS, strikeTime } from "../contracts";
 import { BODY_CENTRE, HEAD_CENTRE, KNUCKLES } from "../gate/parts";
 import { PLACEHOLDER_COMPANIONS, placeholderWeapon, shieldStandIn } from "../gate/placeholders";
 import type { CompanionArt } from "../gate/placeholders";
@@ -97,7 +97,13 @@ function plantedFeet(model: Model, clips: Iterable<Clip>): number[] {
 }
 
 /** Hand turn (degrees per 40 ms) at and above which a bending weapon no longer hangs at all. */
-const HANG_SPEED = 40;
+const HANG_SPEED = 30;
+/** Most a link of a bending weapon turns against the link before it while swung (degrees). */
+export const MAX_BEND = 55;
+/** How far (figure units) a hanging chain keeps from the centre of its holder's head. */
+const HEAD_CLEAR = 13;
+/** Most the first joint turns while the hand is still, so a chain drapes over the fist. */
+export const MAX_BEND_HANG = 110;
 
 export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig => {
   const gateOnly = content === undefined;
@@ -353,51 +359,83 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       return stageOf(f, p[0], p[1]);
     }
     const g = gripOf(f, hand, f.art);
-    const tip = tipOffset(f.art, g.angle, hand === "F" ? pose.trail : undefined);
+    const tip = tipOffset(f.art, g.angle, hand === "F" ? pose.trail : undefined, headFrom(f, g.x, g.y));
     const [sx, sy] = stageOf(f, g.x, g.y);
     return [sx + f.facing * tip[0], sy + tip[1]];
   }
   /**
    * The angle of each link of a bending weapon (degrees, figure frame, +90 = straight down).
-   * Link 0 turns with the hand; each later link points where the link before it pointed 40 ms
-   * earlier (from `Pose.trail`), so the far end trails a fast swing. When the hand is slow (at
-   * rest, before a swing) the links are pulled toward hanging, so a chain never stands up like
-   * a pole (review of 15 Nov 2026, item 18); the pull fades out as the hand speeds up.
+   * Link 0 turns with the hand; link k points where the hand pointed k x 40 ms earlier (from
+   * `Pose.trail`), so the far end trails a fast swing. When the hand is slow (at rest, before a
+   * swing) the links are pulled toward hanging, so a chain never stands up like a pole (review of
+   * 15 Nov 2026, item 18). The pull uses only the hand's recent speed, so a swung hand (every
+   * contact frame) gets exactly the trail angles and the strike point does not move. No link turns more
+   * than `MAX_BEND` against the link before it, so a chain never folds back on itself; only the
+   * first joint, where the chain leaves the fist, may drape further (`MAX_BEND_HANG`) at rest.
+   * A loose link never lies on the holder's own head (`head`: its centre from the grip and a
+   * clear radius, in link-length units): its hang pull eases off until the link clears it, and if
+   * the trail itself crosses the face, the link turns aside by the least angle that clears.
    */
-  function linkAngles(art: WeaponArt, angle: number, trail: readonly number[] | undefined): number[] {
+  function linkAngles(art: WeaponArt, angle: number, trail: readonly number[] | undefined, head?: readonly [number, number, number]): number[] {
     const segs = art.segments ?? [];
     if (trail === undefined) return segs.map(() => angle);
     const wrap = (d: number): number => ((((d + 180) % 360) + 360) % 360) - 180;
     // the hand's angle j x 40 ms ago (j = 0 now); older than the trail holds: the oldest known
     const hand = (j: number): number => (j === 0 ? angle : (trail[Math.min(j, trail.length) - 1] ?? angle - art.grip.rot) + art.grip.rot);
-    // slack at j: 1 when the hand is still, 0 at a turn of HANG_SPEED per 40 ms or more
-    const slack = (j: number): number => {
-      let speed = 0;
-      for (let i = j; i < j + 2; i++) speed = Math.max(speed, Math.abs(wrap(hand(i) - hand(i + 1))));
-      return Math.max(0, Math.min(1, 1 - speed / HANG_SPEED));
+    // slack: 1 when the hand was still 40-120 ms ago, 0 when it then turned HANG_SPEED per 40 ms
+    // or more. It looks one step back, so a chain that hung keeps hanging for the first 40 ms of a
+    // swing (it lags the hand), and is fully swung out by the time the swing lands.
+    const speed = Math.max(Math.abs(wrap(hand(1) - hand(2))), Math.abs(wrap(hand(2) - hand(3))));
+    const slack = Math.max(0, Math.min(1, 1 - speed / HANG_SPEED));
+    // the first free joint (where the chain leaves the fist) may drape over sharply at rest
+    const hangBend = MAX_BEND + (MAX_BEND_HANG - MAX_BEND) * slack;
+    const out: number[] = [];
+    let x = 0;
+    let y = 0;
+    const clear = (a: number, len: number): boolean => {
+      if (head === undefined) return true;
+      const r = a * Math.PI / 180;
+      for (const u of [0.25, 0.5, 0.75, 1]) {
+        if (Math.hypot(x + len * u * Math.cos(r) - head[0], y + len * u * Math.sin(r) - head[1]) < head[2]) return false;
+      }
+      return true;
     };
-    // link k now follows where link k-1 pointed 40 ms ago (so a chain that hung keeps hanging as
-    // the hand starts to move), pulled toward straight down by its slack
-    const memo = new Map<number, number>();
-    const link = (j: number, k: number): number => {
-      if (k === 0) return hand(j);
-      const key = j * 16 + k;
-      const got = memo.get(key);
-      if (got !== undefined) return got;
-      const a = link(Math.min(j + 1, TRAIL_LEN), k - 1);
-      const pull = slack(j) * Math.min(1, 0.6 + (0.4 * k) / Math.max(1, segs.length - 1));
-      const out = a + wrap(90 - a) * pull;
-      memo.set(key, out);
-      return out;
-    };
-    return segs.map((_, k) => link(0, k));
+    segs.forEach((sg, k) => {
+      let a = angle;
+      if (k > 0) {
+        const raw = hand(k);
+        const prev = out[k - 1]!;
+        const cap = k === 1 ? hangBend : MAX_BEND;
+        const full = slack * Math.min(1, 0.6 + (0.4 * k) / Math.max(1, segs.length - 1));
+        const at = (want: number): number => prev + Math.max(-cap, Math.min(cap, wrap(want - prev)));
+        let found = false;
+        for (const ease of full === 0 ? [0] : [1, 0.75, 0.5, 0.25, 0]) {
+          a = at(raw + wrap(90 - raw) * full * ease);
+          if (clear(a, sg.length)) { found = true; break; }
+        }
+        // still on the face (a flailing hand): swing the link aside, the least turn that clears
+        for (let d = 10; !found && d <= 180; d += 10) {
+          for (const c of [at(a + d), at(a - d)]) if (clear(c, sg.length)) { a = c; found = true; break; }
+        }
+      }
+      out.push(a);
+      x += sg.length * Math.cos(a * Math.PI / 180);
+      y += sg.length * Math.sin(a * Math.PI / 180);
+    });
+    return out;
+  }
+  /** The holder's head centre from a grip (figure point), and the radius a hanging chain keeps
+   *  clear of it, in stage units (the units of a link's length). */
+  function headFrom(f: Fig, gx: number, gy: number): [number, number, number] {
+    const h = apply(f.fr[BONE.head]!, HEAD_CENTRE[0], HEAD_CENTRE[1]);
+    return [(h[0] - gx) * f.s, (h[1] - gy) * f.s, HEAD_CLEAR * f.s];
   }
   /** Tip relative to the grip in stage units (facing +x), for an item at `angle`. */
-  function tipOffset(art: WeaponArt, angle: number, trail: readonly number[] | undefined): [number, number] {
+  function tipOffset(art: WeaponArt, angle: number, trail: readonly number[] | undefined, head?: readonly [number, number, number]): [number, number] {
     if (art.segments !== undefined && art.segments.length > 0) {
       let x = 0;
       let y = 0;
-      const links = linkAngles(art, angle, trail);
+      const links = linkAngles(art, angle, trail, head);
       art.segments.forEach((sg, k) => {
         const a = links[k]! * Math.PI / 180;
         x += sg.length * Math.cos(a);
@@ -547,7 +585,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     if (w.segments !== undefined && w.segments.length > 0 && f !== null) {
       let x = gx;
       let y = gy;
-      const links = linkAngles(w, angle, trail);
+      const links = linkAngles(w, angle, trail, headFrom(f, gx, gy));
       w.segments.forEach((sg, k) => {
         const a = links[k]!;
         const m = itemStageXf(f, x, y, a, { ...art, grip: { x: 0, y: 0, rot: 0 } });
