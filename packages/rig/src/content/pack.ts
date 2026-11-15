@@ -18,7 +18,7 @@ import { GATE_LOOKS } from "../gate/parts";
 import { CONTENT_CLIPS } from "./clips";
 import { USES, VARIANTS } from "./clips/use";
 import { CONTENT_FX, PROPS } from "./fx";
-import { CONTENT_UI_ICONS, SKILL_ICONS } from "./icons";
+import { CONTENT_UI_ICONS, SHIELD_ICONS, SKILL_ICONS, WEAPON_ICONS } from "./icons";
 import { PET_ART } from "./pets";
 import { SHIELD_ART } from "./shields";
 import { CONTENT_STAGES } from "./stages";
@@ -35,5 +35,5 @@ export const contentPack: ContentPack = {
   looks: GATE_LOOKS,
   companions: PET_ART,
   fx: CONTENT_FX,
-  icons: { ...SKILL_ICONS, ...CONTENT_UI_ICONS },
+  icons: { ...SKILL_ICONS, ...CONTENT_UI_ICONS, ...SHIELD_ICONS, ...WEAPON_ICONS },
 };

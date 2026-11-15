@@ -248,10 +248,11 @@ export const KINDS: readonly { name: string; dress: Partial<Dress> & { held: Hel
   { name: "tyre", dress: { held: "tyre" } },
   { name: "golf club", dress: { held: "golf-club" } },
   { name: "plunger", dress: { held: "plunger" } },
+  { name: "frying pan", dress: { held: "frying-pan" } },
 ];
 /** The per-weapon variants (`content/clips/use.ts`) and the hands each is made for. */
 const VARIANT_HANDS: Readonly<Record<string, 1 | 2>> = {
-  "throw-side": 1, "throw-flick": 1, "thrust-1h": 1, "swing-2h": 2, "swing-low": 2, "throw-roll": 2, "throw-heave": 2,
+  "throw-side": 1, "throw-flick": 1, "thrust-1h": 1, "swing-2h": 2, "swing-low": 2, "swing-flat": 1, "throw-roll": 2, "throw-heave": 2,
 };
 const BASES = ["swing", "thrust", "flick", "throw"] as const;
 export const LOOK = (build: number): Dress["look"] => ({ build, head: 0, hair: 0, face: 0, top: build === 1 ? 0 : 1, bottom: 0, shoes: 0, accessory: 0, skin: 0, hairColor: 0, palette: 0 });

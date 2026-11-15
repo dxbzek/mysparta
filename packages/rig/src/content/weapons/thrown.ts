@@ -120,9 +120,18 @@ const H = (x: number, y: number): Pt => handToItem(x * K, G + y * K);
  *  standing out past the knuckles shows, as it does on a real hand. */
 const knuckle = KNUCKLES;
 export const KNUCKLE_DUSTERS: WeaponArt = weapon([
-  fillOf([H(-7.0, 3.6), H(7.0, 3.6), H(7.4, 5.8), H(5.6, 7.4), H(3.2, 6.8), H(1.6, 7.6), H(-0.2, 6.9), H(-1.9, 7.6), H(-3.6, 6.9), H(-5.4, 7.6), H(-7.4, 6.0)], "metal", 0),
-  lines([[H(-4.6, 5.4), H(-4.4, 7.0)], [H(-1.0, 5.4), H(-1.0, 7.1)], [H(2.4, 5.4), H(2.4, 7.1)], [H(5.6, 5.4), H(5.8, 6.8)]], 0.22, 1, false),
-  line([H(-6.8, 4.4), H(6.8, 4.4)], 0.22, 1),
+  // the brass plate: a bar across the palm, four rings that stand well out past the knuckles
+  // (review of 15 Nov 2026, item 54: the first plate barely cleared the fist and was a speck
+  // on the floor)
+  fillOf([H(-8.4, 2.8), H(8.4, 2.8), H(9.0, 7.2), H(8.2, 11.2), H(6.4, 12.4), H(4.6, 11.4), H(3.2, 12.6), H(1.2, 12.6), H(-0.2, 11.5),
+    H(-1.6, 12.6), H(-3.6, 12.6), H(-5.0, 11.4), H(-6.6, 12.4), H(-8.4, 11.2), H(-9.2, 7.2)], "metal", 0,
+  // the far edge of the rings in shadow: the brass reads apart from the skin of the fist
+  [H(9.0, 9.6), H(8.2, 11.2), H(6.4, 12.4), H(4.6, 11.4), H(3.2, 12.6), H(1.2, 12.6), H(-0.2, 11.5), H(-1.6, 12.6), H(-3.6, 12.6),
+    H(-5.0, 11.4), H(-6.6, 12.4), H(-8.4, 11.2), H(-9.0, 9.6)]),
+  // the finger holes, dark where the fist does not cover them
+  fillsOf([[-6.8, 7.8], [-3.0, 8.2], [0.6, 8.2], [4.4, 7.8]].map(([x, y]) => ellipsePoly(...H(x! + 1.4, y!), 1.2 * K, 1.9 * K, 12)), "ink", 1),
+  lines([[H(-5.0, 11.0), H(-5.0, 12.2)], [H(-0.2, 11.1), H(-0.2, 12.3)], [H(4.6, 11.0), H(4.6, 12.2)]], 0.26, 1, false),
+  line([H(-8.0, 3.8), H(8.0, 3.8)], 0.26, 1),
 ], handToItem(knuckle[0], knuckle[1] + 0.9), { offhand: true });
 
 /** Screwdrivers: one flat screwdriver in each fist, fluted handles; jabs that take turns, the

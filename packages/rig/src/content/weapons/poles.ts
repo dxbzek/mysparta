@@ -102,12 +102,15 @@ const S_: [number, number][] = [[1.6, 1.6], [0, 1.6], [0, 0.15], [1.2, 0.15], [1
 const T_: [number, number][] = [[0, 1.6], [1.6, 1.6], [1.6, 1.15], [1.02, 1.15], [1.02, -1.6], [0.58, -1.6], [0.58, 1.15], [0, 1.15]];
 const O_: [number, number][] = [[0, 1.6], [1.6, 1.6], [1.6, -1.6], [0, -1.6], [0, 1.45], [0.42, 1.2], [0.42, -1.2], [1.18, -1.2], [1.18, 1.2], [0.42, 1.2], [0, 1.45]];
 const P_: [number, number][] = [[0, 1.6], [1.6, 1.6], [1.6, -0.1], [0.42, -0.1], [0.42, -1.6], [0, -1.6], [0, 1.45], [0.42, 1.2], [0.42, 0.3], [1.18, 0.3], [1.18, 1.2], [0.42, 1.2], [0, 1.45]];
+const STOP_GLYPHS: Pt[][] = [glyph(S_, -3.9), glyph(T_, -1.9), glyph(O_, 0.1), glyph(P_, 2.1)];
 export const STOP_SIGN: WeaponArt = weapon([
   fillOf(rod(-16.5, 31, 1.15, 0), "metal", 0),
   fillsOf(Array.from({ length: 14 }, (_, i) => roundRect(-14 + i * 3, -0.35, 1.3, 0.7, 0.3)), "ink", 1),
   fillOf(((): Pt[] => { const o = ngon(SIGN_C[0], SIGN_C[1], SIGN_R, 8, 22.5); o[1] = [o[1]![0] - 1.0, o[1]![1] - 0.4]; return o; })(), "wood", 2),
   fillOf([...ngon(SIGN_C[0], SIGN_C[1], 9.0, 8, 22.5), ngon(SIGN_C[0], SIGN_C[1], 9.0, 8, 22.5)[0]!, ...ngon(SIGN_C[0], SIGN_C[1], 8.1, 8, 22.5).concat([ngon(SIGN_C[0], SIGN_C[1], 8.1, 8, 22.5)[0]!]).reverse()], "white", 3),
-  fillsOf([glyph(S_, -3.9), glyph(T_, -1.9), glyph(O_, 0.1), glyph(P_, 2.1)], "white", 3.2),
+  // the letters, and the same letters turned over across the post's line (item y = 0), painted
+  // when the sign is drawn mirrored (holder facing left): "STOP" never reads "9OT2"
+  { ...fillsOf(STOP_GLYPHS, "white", 3.2), flip: fillsOf(STOP_GLYPHS.map((p) => p.map(([x, y]) => [x, 2 * SIGN_C[1] - y] as Pt)), "white", 3.2).d },
   blob(30.6, 0, 0.55, 0.55, 4, 8), blob(44.6, 0, 0.55, 0.55, 4, 8),
   scuffs(204, 9, 29, 46, -8, 8, 4, 0.26),
   lines([[[41, 6.4], [43.6, 4.6], [44.8, 6.0]]], 0.3, 4),
@@ -157,15 +160,25 @@ export const FOLDING_CHAIR: WeaponArt = weapon([
 
 /** Anvil: a small blacksmith's anvil, hugged with a hand on each side of its waist, base
  *  forward; heaved overhead and dropped forward, the flat base hits. Drawn in (u, h): u across,
- *  h height above the base; the base is at item +x. */
-const AV = (u: number, h: number): Pt => [6.5 - h, u + 3.2];
-const ANVIL_PROFILE: [number, number][] = [[-8, 0], [8, 0], [8, 1.6], [6, 2.6], [3.2, 5.4], [3.2, 8], [8.6, 9], [8.6, 12.6], [-4, 12.6],
-  [-11.6, 11.8], [-15.4, 10.8], [-10.2, 9.6], [-4, 8.7], [-3.2, 8], [-3.2, 5.4], [-6, 2.6], [-8, 1.6]];
+ *  h height above the base; the base is at item +x. The waist (|u| 3.2, where the hands are)
+ *  stays put; the rest is drawn a third bigger than it was (review of 15 Nov 2026, item 24: it
+ *  read as a thin dark bar), in lit steel with a pale polished face, a long pointed horn and a
+ *  stepped heel, so the anvil outline reads at stage size. */
+const AV = (u: number, h: number): Pt => {
+  const k = 1.35;
+  const uu = Math.abs(u) <= 3.2 ? u : Math.sign(u) * (3.2 + (Math.abs(u) - 3.2) * k);
+  return [6.5 - (6.5 + (h - 6.5) * k), uu + 3.2];
+};
+const ANVIL_PROFILE: [number, number][] = [[-8, 0], [8, 0], [8, 1.6], [6, 2.6], [3.2, 5.2], [3.2, 8], [7.2, 8.6], [8.8, 9.4], [8.8, 12.6], [-3.6, 12.6],
+  [-8, 12.3], [-12.2, 11.2], [-16.6, 9.8], [-12, 9.0], [-7, 8.6], [-3.2, 8], [-3.2, 5.2], [-6, 2.6], [-8, 1.6]];
 export const ANVIL: WeaponArt = weapon([
-  fillOf(ANVIL_PROFILE.map(([u, h]) => AV(u, h)), "hair", 0),
-  fillOf([AV(-4, 12.6), AV(8.6, 12.6), AV(8.6, 11.4), AV(-4, 11.4)], "metal", 1),
-  fillOf([AV(-8, 0), AV(8, 0), AV(8, 1.2), AV(-8, 1.2)], "metal", 1),
-  blob(...AV(5.6, 12), 0.5, 0.5, 2, 6),
+  fillOf(ANVIL_PROFILE.map(([u, h]) => AV(u, h)), "metal", 0),
+  // the polished face on top, the step down to the horn, the base plate
+  fillOf([AV(-3.6, 12.6), AV(8.8, 12.6), AV(8.8, 11.3), AV(-3.6, 11.3)], "white", 1),
+  fillOf([AV(-8, 0), AV(8, 0), AV(8, 1.4), AV(-8, 1.4)], "hair", 1),
+  line([AV(-3.6, 12.6), AV(-3.6, 11.0)], 0.3, 2, false),
+  // the hardy hole in the face
+  fillOf([AV(5.4, 12.6), AV(6.8, 12.6), AV(6.8, 11.7), AV(5.4, 11.7)], "ink", 2),
   lines([[AV(-3, 8.3), AV(3, 8.3)], [AV(-5.6, 2.4), AV(5.6, 2.4)]], 0.24, 2, false),
   scuffs(206, 5, AV(0, 11)[0], AV(0, 3)[0], -3, 9, 2, 0.24),
 ], AV(0, 0), { grip2: [0, 6.4] });

@@ -105,7 +105,7 @@ export function iconArt(art: IconArt | null, ref: IconRef, weapon?: PropArt & { 
     const parts: SvgPart[] = [];
     for (const s of art.shapes) {
       const fill = s.slot === "self" ? own : s.slot === "ink" ? INK : slotColour(s.slot, ICON_COLOURS);
-      parts.push(s.slot === "ink" ? { d: s.d, fill } : { d: s.d, fill, stroke: INK, strokeWidth: LINE.icon });
+      parts.push(s.slot === "ink" ? { d: s.d, fill } : { d: s.d, fill, stroke: INK, strokeWidth: s.w ?? LINE.icon });
       if (s.shade !== undefined) parts.push({ d: s.shade, fill: shadeOf(fill) });
     }
     return { viewBox: "0 0 24 24", parts };

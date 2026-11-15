@@ -22,6 +22,9 @@ let version = 0;
 let loading: Promise<Rig> | null = null;
 const listeners = new Set<() => void>();
 
+// `satisfies Required<Rig>`: an optional contract member left out here is a type error. The
+// review of 15 Nov 2026 (item 3) found attackClip dropped, so every throw in the app played the
+// plain overarm throw.
 export const rig: Rig = {
   clipInfo: (...a) => current.clipInfo(...a),
   samplePose: (...a) => current.samplePose(...a),
@@ -35,7 +38,8 @@ export const rig: Rig = {
   portrait: (...a) => current.portrait(...a),
   companionPortrait: (...a) => current.companionPortrait(...a),
   icon: (...a) => current.icon(...a),
-};
+  attackClip: (held, base) => current.attackClip?.(held, base) ?? base,
+} satisfies Required<Rig>;
 
 /** The content art has arrived and `rig` draws it. */
 export function rigReady(): boolean { return ready; }

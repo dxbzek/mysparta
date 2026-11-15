@@ -7,17 +7,29 @@
 import { describe, expect, it } from "vitest";
 import { COMPANION_IDS, STAGE_IDS, WEAPON_IDS, WEAPON_META } from "@rankzero/core";
 import { SNAPSHOTS } from "@rankzero/core/fixtures";
-import { strikeTime, toStage } from "@rankzero/rig";
+import { contentPack, createRig, gatePack, strikeTime, toStage } from "@rankzero/rig";
 import type { Dress, Rig } from "@rankzero/rig";
-import { rig } from "../../src/seams/rig";
+import { loadFullRig, rig } from "../../src/seams/rig";
 
 describe("the rig seam", () => {
-  it("hands the app every member of the Rig contract", () => {
-    const members: (keyof Rig)[] = ["clipInfo", "samplePose", "drawActor", "handAnchor", "drawProp", "drawStage",
-      "strikePoint", "hitPoint", "drawFx", "portrait", "companionPortrait", "icon"];
+  it("hands the app every member of the Rig contract, the optional ones included", () => {
+    // `as const`: the list's own names, so a member added to the contract and missing here is a
+    // type error (typed as `(keyof Rig)[]`, the check below was always true and missed attackClip)
+    const members = ["clipInfo", "samplePose", "drawActor", "handAnchor", "drawProp", "drawStage",
+      "strikePoint", "hitPoint", "drawFx", "portrait", "companionPortrait", "icon", "attackClip"] as const satisfies readonly (keyof Rig)[];
     for (const name of members) expect(typeof rig[name], name).toBe("function");
     const complete: Exclude<keyof Rig, (typeof members)[number]> extends never ? true : false = true;
     expect(complete).toBe(true);
+    // and every method the real rig has at run time (its test-only `inspect` object aside)
+    for (const [name, v] of Object.entries(createRig(gatePack, contentPack))) if (typeof v === "function") expect(typeof (rig as unknown as Record<string, unknown>)[name], name).toBe("function");
+  });
+
+  it("forwards the weapon's own attack clip once the full rig is in (review 15 Nov 2026, item 3)", async () => {
+    await loadFullRig();
+    expect(rig.attackClip?.("boomerang", "throw")).toBe(createRig(gatePack, contentPack).attackClip?.("boomerang", "throw"));
+    expect(rig.attackClip?.("boomerang", "throw")).not.toBe("throw");
+    expect(rig.attackClip?.("tyre", "throw")).not.toBe("throw");
+    expect(rig.attackClip?.(null, "swing")).toBe("swing");
   });
 
   it("answers clip questions with the timing table: a swing is 280 ms and strikes at 150", () => {
