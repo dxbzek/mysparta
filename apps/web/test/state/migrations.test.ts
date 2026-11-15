@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { migrate, readDoc } from "../../src/state/migrations";
 import { emptyDoc } from "../../src/state/schema";
 import { isUlid, ulid } from "../../src/state/ulid";
+import { boutGate, l1Knife, l1Pipe } from "@rankzero/core/fixtures";
 
 describe("migrations", () => {
   it("runs each step in order up to the target version", () => {
@@ -35,5 +36,16 @@ describe("ulid", () => {
     expect(isUlid(a) && isUlid(b)).toBe(true);
     expect(a < b).toBe(true);
     expect(ulid(5)).not.toBe(ulid(5));
+  });
+  it("keeps a content v2 log and drops a log written before it (log version 1), keeping the row", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const row = { id: "b1", at: 5, seed: boutGate.seed, rulesVersion: 1, logVersion: 2, snapshotA: l1Pipe, snapshotB: l1Knife,
+      result: boutGate.result, role: "attacker", fighterId: "f1", xp: 2, lineId: 0, watched: true, before: { xp: 0, boutsUsed: 0 },
+      log: boutGate };
+    const old = { ...row, id: "b0", logVersion: 1, log: { ...JSON.parse(JSON.stringify(boutGate)), logVersion: 1 } };
+    const r = readDoc(JSON.stringify({ ...emptyDoc(1), history: [row, old] }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.doc.history.map((h) => [h.id, h.logVersion, h.log === undefined])).toEqual([["b1", 2, false], ["b0", 1, true]]);
   });
 });

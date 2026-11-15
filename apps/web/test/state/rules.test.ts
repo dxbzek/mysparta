@@ -155,7 +155,7 @@ describe("slots and names", () => {
     expect(g.store.doc.retired[0]!.picks).toEqual(["R"]);
   });
 
-  it("Found N of 63 counts every perk owned by active and retired scrappers", async () => {
+  it("Found N of 92 counts every perk owned by active and retired scrappers", async () => {
     const g = await memGame();
     const names = ["Marla", "Dez", "Tug", "Nettle"];
     for (const n of names.slice(0, 3)) await g.actions.create(n, 0, 0);

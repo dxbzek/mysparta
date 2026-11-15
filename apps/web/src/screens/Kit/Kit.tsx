@@ -2,8 +2,8 @@
  * F. The fighter sheet (brief 3.11 F, plan 13.7 "a proper skill view, proper information, and
  * stats"). Three tabs:
  *   Kit         every owned perk as a card: icon, name, rarity word, kind, the one-line effect and
- *               its costs, built from the content tables. Tap for exact numbers. "Found N of 63"
- *               opens all 63: found ones in colour with names, the rest as dark silhouettes with
+ *               its costs, built from the content tables. Tap for exact numbers. "Found N of 92"
+ *               opens all 92: found ones in colour with names, the rest as dark silhouettes with
  *               only a rarity dot.
  *   Level path  the Route: every level reached, the card taken and the card not taken.
  *   Stats       each stat with its number, bar and icon, max HP, and every derived value with a
@@ -87,6 +87,7 @@ function KitTabView({ rec, perks }: { rec: ScrapperRecord; perks: PerkId[] }) {
     { title: UI.kit.weapons, ids: perks.filter((p) => perkKind(p) === "weapon") },
     { title: UI.kit.skills, ids: perks.filter((p) => perkKind(p) === "skill") },
     { title: UI.kit.pets, ids: perks.filter((p) => perkKind(p) === "companion") },
+    { title: UI.kit.shields, ids: perks.filter((p) => perkKind(p) === "shield") },
   ];
   return (
     <>

@@ -1,21 +1,21 @@
 /**
- * Card text for all 63 perks (plan 13.4). Every number on a card is read from the content tables
+ * Card text for all 92 perks (plan 13.4, content v2). Every number on a card is read from the content tables
  * of the sim (`CoreApi.content`), never typed here, so a card can only say what the rules do.
  * test/text/perks.test.ts checks every line against its table row.
  *
- * A card has: the kind ("Weapon", "Booster", "Passive", "Move", "Pet"), the rarity word, ONE line
+ * A card has: the kind ("Weapon", "Booster", "Passive", "Move", "Pet", "Shield"), the rarity word, ONE line
  * of effect in plain words, and cost lines (shown in the action colour). `needsLine` adds the one
  * line "No Blade weapon yet." when a perk waits on something the scrapper does not own.
  */
 import { RARITY_OF, api, perkKind } from "@rankzero/core";
-import type { CompanionId, ContentTables, PerkId, Rarity, SkillId, WeaponId, WeaponNumbers } from "@rankzero/core";
+import type { CompanionId, ContentTables, PerkId, Rarity, ShieldId, ShieldNumbers, SkillId, WeaponId, WeaponNumbers } from "@rankzero/core";
 import { NAMES } from "./names";
 
 export const RARITY_WORD: Readonly<Record<Rarity, string>> = {
   common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", mythic: "Mythic",
 };
 
-export type PerkKindWord = "Weapon" | "Booster" | "Passive" | "Move" | "Pet";
+export type PerkKindWord = "Weapon" | "Booster" | "Passive" | "Move" | "Pet" | "Shield";
 
 export interface PerkText { name: string; kind: PerkKindWord; rarity: Rarity; rarityWord: string; effect: string; costs: string[] }
 
@@ -67,8 +67,6 @@ export const SKILL_LINES: Readonly<Record<SkillId, SkillLine>> = {
   "bare-knuckle": (n) => ({ effect: `Fists deal ${n.fistDamage}% more damage. Combo +${n.unarmedCombo} while unarmed.` }),
   "payback": (n) => ({ effect: `Riposte +${n.riposte}: hits back after being attacked.` }),
   "flurry": (n) => ({ effect: `Combo +${n.combo}: more extra swings in a row.` }),
-  "car-door": (n) => ({ effect: `Carries a car door as a shield: Block +${n.block}.`,
-    costs: [`Own damage ${n.damage}%. Both end if the door is knocked off.`] }),
   "firm-grip": (n) => ({ effect: `${n.resist}% to keep the weapon against a disarm or a Snatch. Swaps weapons only ${n.swapChance}% of the time.` }),
   "head-start": (n) => ({ effect: `Starts ${abs(n.startClock!)} beats early: often acts first, sometimes twice.` }),
   "sharp-eye": (n) => ({ effect: `Aim +${n.aim} and Pierce +${n.pierce}: harder to dodge and to block.` }),
@@ -80,6 +78,10 @@ export const SKILL_LINES: Readonly<Record<SkillId, SkillLine>> = {
   "last-stand": (n) => ({ effect: `${n.saves === 1 ? "Once" : `${n.saves} times`} a bout, a hit that would end it leaves it standing on its last HP.` }),
   "stubborn": (n) => ({ effect: `After a swing is dodged or blocked, ${n.chance}% to swing again at once.` }),
   "slippery": (n) => ({ effect: `Evade +${n.evade}: slips out of more swings.` }),
+  "quick-swap": (n) => ({ effect: `Empty-handed, it draws from the bag far more often: even a weapon of Draw ${n.drawSlack} is an even chance.` }),
+  "pet-lover": (n) => ({ effect: `Its pets have ${n.petHp}% more HP and hit ${n.petDamage}% harder.` }),
+  "junk-collector": (n) => ({ effect: `A weapon it throws away comes back to its bag ${n.returnChance}% of the time.` }),
+  "trick-shot": (n) => ({ effect: `A Thrown weapon that lands has ${n.ricochet}% to bounce on to another enemy, once a turn.` }),
   "haymaker": (n, m) => ({ effect: `Move: the next swing deals ${n.damageMult}% damage with Crit +${n.crit}. Fires ${uses(m?.uses ?? 1)}, plus once more per ${n.usesPerStrength} Strength.` }),
   "energy-drink": (n, m) => ({ effect: `Move, below ${n.belowHpPct}% HP: drinks up and heals ${n.healMin} to ${n.healMax}% of max HP. Fires ${uses(m?.uses ?? 1)}.` }),
   "tarp": (n, m) => ({ effect: `Move: throws a tarp over an enemy, who skips turns until hit (up to ${n.skips}). Fires ${uses(m?.uses ?? 1)}.` }),
@@ -87,22 +89,42 @@ export const SKILL_LINES: Readonly<Record<SkillId, SkillLine>> = {
   "firecrackers": (n, m) => ({ effect: `Move: ${n.damageMin} to ${n.damageMax} damage to the enemy scrapper that cannot be dodged; enemy pets lose ${n.companionPct}% HP. Fires ${uses(m?.uses ?? 1)}.` }),
   "snatch": (_n, m) => ({ effect: `Move, when unarmed: grabs the enemy's weapon and uses it. Fires ${uses(m?.uses ?? 1)}.` }),
   "air-horn": (n, m) => ({ effect: `Move: each enemy pet has ${n.fleeChance}% to run off for good, and the enemy loses ${n.clockPush} beats. Fires ${uses(m?.uses ?? 1)}.` }),
-  "body-slam": (n, m) => ({ effect: `Move, when unarmed: slams an enemy for ${n.base} plus ${n.perStrength} per Strength, and knocks its weapon away. Fires ${uses(m?.uses ?? 1)}.` }),
+  "body-slam": (n, m) => ({ effect: `Move, when unarmed: slams an enemy for ${n.base} plus ${n.perStrength} per Strength, and knocks its weapon and shield away. Fires ${uses(m?.uses ?? 1)}.` }),
+  "sand-in-the-eyes": (n, m) => ({ effect: `Move: throws sand in the enemy scrapper's eyes: its Aim is ${abs(n.aimLoss!)} lower for the rest of the bout. Fires ${uses(m?.uses ?? 1)}.` }),
+  "taunt": (n, m) => ({ effect: `Move: goads the enemy and still acts at once: Riposte +${n.riposte} until its next turn. Fires ${uses(m?.uses ?? 1)}.` }),
+  "second-wind": (n, m) => ({ effect: `Move, below ${n.belowHpPct}% HP: catches its breath, heals ${n.healPct}% of max HP and acts at once. Fires ${uses(m?.uses ?? 1)}.` }),
+  "grapple": (n, m) => ({ effect: `Move, when unarmed: squeezes the enemy scrapper for ${n.base} plus ${n.perStrength} per Strength and holds it: it loses ${n.holds === 1 ? "1 turn" : `${n.holds} turns`}. Fires ${uses(m?.uses ?? 1)}.` }),
 };
 
-const PET_WORD: Readonly<Record<CompanionId, string>> = { raccoon: "A raccoon", goose: "A goose", boar: "A boar" };
+const PET_WORD: Readonly<Record<CompanionId, string>> = { raccoon: "A raccoon", goose: "A goose", boar: "A boar",
+  "stray-dog": "A stray dog", crow: "A crow", "alley-cat": "An alley cat" };
 
 function petText(id: CompanionId, c: ContentTables): { effect: string; costs: string[] } {
   const d = c.companions[id];
   const limit = d.limit > 1 ? ` Up to ${d.limit}.` : "";
-  return { effect: `${PET_WORD[id]} fights beside it: ${d.hp} HP, Strength ${d.strength}, Speed ${d.speed}.${limit}`,
+  const ways = [d.flies ? " It flies: nothing hits it first or hits back at it." : "",
+    d.swings > 1 ? " Every attack is two scratches." : "",
+    d.disarm >= 15 ? ` Grabs weapons: Disarm ${d.disarm}.` : ""].join("");
+  return { effect: `${PET_WORD[id]} fights beside it: ${d.hp} HP, Strength ${d.strength}, Speed ${d.speed}.${limit}${ways}`,
     costs: [`-${d.hpCostPct}% max HP`] };
+}
+
+/** A shield's card: what it adds while it is on the back arm, how it comes off, and its costs. */
+function shieldText(n: ShieldNumbers): { effect: string; costs: string[] } {
+  const extra = [n.thrownBlock > 0 ? `, and Block +${n.thrownBlock} more against a throw` : "",
+    n.riposte > 0 ? `, Riposte +${n.riposte}` : "", n.armor > 0 ? `, Armor +${n.armor}` : ""].join("");
+  const effect = `Shield on the back arm, with any weapon in hand: Block +${n.block}${extra}. A slam knocks it off; a hit does ${n.knock}% as often as it disarms.`;
+  const costs: string[] = [];
+  if (n.damage < 0) costs.push(`Own damage ${n.damage}% while it is on.`);
+  if (n.tempo > 0) costs.push(`Turns take ${n.tempo}% longer while it is on.`);
+  return { effect, costs };
 }
 
 export function perkKindWord(id: PerkId, c: ContentTables = api.content): PerkKindWord {
   const k = perkKind(id);
   if (k === "weapon") return "Weapon";
   if (k === "companion") return "Pet";
+  if (k === "shield") return "Shield";
   const kind = c.skills[id as SkillId]?.kind;
   return kind === "booster" ? "Booster" : kind === "move" ? "Move" : "Passive";
 }
@@ -118,6 +140,11 @@ export function perkText(id: PerkId, c: ContentTables = api.content): PerkText {
     return { ...base, ...weaponText(w.tiers[0], w.tags) };
   }
   if (k === "companion") return { ...base, ...petText(id as CompanionId, c) };
+  if (k === "shield") {
+    const sh = c.shields[id as ShieldId];
+    if (!sh) return { ...base, effect: "Unknown shield.", costs: [] };
+    return { ...base, ...shieldText(sh.tiers[0]) };
+  }
   const s = c.skills[id as SkillId];
   const line = SKILL_LINES[id as SkillId];
   if (!s || !line) return { ...base, effect: "Unknown skill.", costs: [] };
@@ -132,6 +159,10 @@ export function needsLine(id: PerkId, owned: readonly PerkId[], c: ContentTables
   if (id === "heavy-lifter" && !weaponTags.includes("heavy")) return "No Heavy weapon yet.";
   if (id === "pitcher" && !owned.some((p) => perkKind(p) === "weapon")) return "No weapon yet.";
   if (id === "whistle" && !owned.some((p) => perkKind(p) === "companion")) return "No pet yet.";
+  if (id === "pet-lover" && !owned.some((p) => perkKind(p) === "companion")) return "No pet yet.";
+  if (id === "trick-shot" && !weaponTags.includes("thrown")) return "No Thrown weapon yet.";
+  if (id === "junk-collector" && !owned.some((p) => perkKind(p) === "weapon")) return "No weapon yet.";
+  if (perkKind(id) === "shield" && owned.some((p) => p !== id && perkKind(p) === "shield")) return "Already carries a shield.";
   return null;
 }
 
@@ -162,6 +193,19 @@ export function perkNumbers(id: PerkId, c: ContentTables = api.content): { label
       { label: "Damage", value: String(d.dmg) }, { label: "Combo", value: `${d.combo}` }, { label: "Evade", value: `${d.evade}` },
       { label: "Max HP cost", value: `-${d.hpCostPct}%` },
     ];
+  }
+  if (k === "shield") {
+    const sh = c.shields[id as ShieldId];
+    if (!sh) return [];
+    const n = sh.tiers[0];
+    const rows = [{ label: "Block", value: sign(n.block) }];
+    if (n.thrownBlock !== 0) rows.push({ label: "Block against a throw", value: sign(n.thrownBlock) });
+    if (n.riposte !== 0) rows.push({ label: "Riposte", value: sign(n.riposte) });
+    if (n.armor !== 0) rows.push({ label: "Armor", value: sign(n.armor) });
+    if (n.damage !== 0) rows.push({ label: "Own damage", value: `${n.damage}%` });
+    if (n.tempo !== 0) rows.push({ label: "Turn time", value: `+${n.tempo}%` });
+    rows.push({ label: "Knocked off", value: `${n.knock}% of Disarm` });
+    return rows;
   }
   const s = c.skills[id as SkillId];
   if (!s?.move) return [];

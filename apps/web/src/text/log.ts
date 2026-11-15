@@ -3,7 +3,7 @@
  * bout in words (brief 3.15). Never names a sim unit: no clock, no turn order, no chances.
  * A `never` check fails the compiler when a step type is added and not written here.
  */
-import type { ActorId, BoutInit, CompanionId, FighterSnapshot, HeldId, Step } from "@rankzero/core";
+import type { ActorId, BoutInit, CompanionId, FighterSnapshot, HeldId, ShieldId, Step } from "@rankzero/core";
 import { NAMES } from "./names";
 
 export type ActorNames = Partial<Record<ActorId, string>>;
@@ -26,7 +26,7 @@ export function actorNames(init: BoutInit, a: FighterSnapshot, b: FighterSnapsho
   return out;
 }
 
-const item = (id: HeldId | null): string => (id === null || id === "fists" ? "bare fists" : `the ${NAMES[id]}`);
+const item = (id: HeldId | ShieldId | null): string => (id === null || id === "fists" ? "bare fists" : `the ${NAMES[id]}`);
 const lower = (id: HeldId): string => (id === "fists" ? "fists" : NAMES[id]);
 const hp = (n: number): string => `${n} HP`;
 
@@ -75,16 +75,16 @@ export function logLine(step: Step, names: ActorNames): string {
       return step.resisted
         ? `${n(step.target)} keeps hold of ${item(step.weapon)}.`
         : `${n(step.actor)} knocks ${item(step.weapon)} out of ${n(step.target)}'s hands.`;
-    case "doorOff":
-      return `${n(step.target)} loses the car door.`;
+    case "shieldOff":
+      return `${n(step.actor)} knocks ${item(step.shield)} off ${n(step.target)}'s arm.`;
     case "heal":
       return step.actor === step.target
         ? `${n(step.actor)} gets ${step.amount} HP back (${hp(step.hpAfter)}).`
         : `${n(step.target)} gets ${step.amount} HP back (${hp(step.hpAfter)}).`;
     case "snare":
-      return `${n(step.target)} is stuck under the tarp.`;
+      return `${n(step.target)} is pinned down and cannot fight back.`;
     case "free":
-      return step.cause === "hit" ? `The hit knocks ${n(step.actor)} free of the tarp.` : `${n(step.actor)} wriggles out from under the tarp.`;
+      return step.cause === "hit" ? `The hit knocks ${n(step.actor)} loose.` : `${n(step.actor)} wriggles free.`;
     case "flee":
       return `${n(step.actor)} runs off.`;
     case "ko":

@@ -124,7 +124,7 @@ function checkBout(v: unknown, warn: (w: string) => void): BoutRecord | null {
   if (v.xp !== 1 && v.xp !== 2) return null;
   const hp = isObj(res.hpPct) ? res.hpPct : {};
   const rec: BoutRecord = {
-    id: v.id, at: v.at, seed: v.seed, rulesVersion: 1, logVersion: 1, snapshotA: a.snap, snapshotB: b.snap,
+    id: v.id, at: v.at, seed: v.seed, rulesVersion: 1, logVersion: v.logVersion === 2 ? 2 : 1, snapshotA: a.snap, snapshotB: b.snap,
     result: { winner: res.winner, reason: res.reason, turns: isNat(res.turns) ? res.turns : 0,
       hpPct: { a: isNat(hp.a) ? hp.a : 0, b: isNat(hp.b) ? hp.b : 0 } },
     role: v.role === "defender" ? "defender" : "attacker", fighterId: v.fighterId, xp: v.xp,
@@ -132,8 +132,10 @@ function checkBout(v: unknown, warn: (w: string) => void): BoutRecord | null {
     before: { xp: before.xp, boutsUsed: before.boutsUsed },
   };
   // A log that names a perk we dropped cannot be played safely: keep the row, drop the log.
+  // So is a log written before content v2 (log version 1: the door, not the shields).
   const log = v.log;
-  if (isObj(log) && Array.isArray(log.steps) && isObj(log.init) && isObj(log.result) && a.dropped + b.dropped === 0) {
+  if (isObj(log) && Array.isArray(log.steps) && isObj(log.init) && isObj(log.result) && a.dropped + b.dropped === 0
+    && log.logVersion === 2) {
     rec.log = log as unknown as BoutLog;
   } else if (log !== undefined) {
     warn(`bout ${v.id}: its log could not be kept`);

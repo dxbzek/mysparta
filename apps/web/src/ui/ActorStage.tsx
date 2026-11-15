@@ -8,7 +8,7 @@
  * on the scrapper. A clip that does not loop plays, holds idle for `restMs`, and plays again.
  */
 import { useEffect, useRef } from "react";
-import type { CompanionId, HeldId, Look, StageId } from "@rankzero/core";
+import type { CompanionId, HeldId, Look, ShieldId, StageId } from "@rankzero/core";
 import type { DrawEnv, Place, Rig } from "@rankzero/rig";
 import { makeDrawEnv } from "../seams/canvas";
 import { rig as seamRig } from "../seams/rig";
@@ -16,7 +16,8 @@ import { rig as seamRig } from "../seams/rig";
 export interface ActorScene {
   look: Look;
   held?: HeldId | null;
-  door?: boolean;
+  /** The shield on the back arm (content v2), or none. */
+  shield?: ShieldId | null;
   clip?: string;
   companions?: readonly CompanionId[];
   /** 1 faces right (the default), -1 faces left (the rival in a face-off). */
@@ -77,11 +78,11 @@ export function drawActorStage(env: DrawEnv, rig: Rig, scene: ActorScene, t: num
   const { clip, t: ct } = clipTimeAt(rig, scene.clip ?? "idle", t, scene.restMs ?? 900);
   const scrapper = {
     y: FLOOR_Y,
-    draw: () => rig.drawActor(env, rig.samplePose("scrapper", clip, ct), { look: scene.look, held: scene.held ?? null, door: scene.door ?? false, scale: 1 }, { x: MARK_X, y: FLOOR_Y, facing }),
+    draw: () => rig.drawActor(env, rig.samplePose("scrapper", clip, ct), { look: scene.look, held: scene.held ?? null, shield: scene.shield ?? null, scale: 1 }, { x: MARK_X, y: FLOOR_Y, facing }),
   };
   const others = pets.map((p, i) => ({
     y: p.at.y,
-    draw: () => rig.drawActor(env, rig.samplePose(p.id, "idle", t + 300 * (i + 1)), { held: null, door: false, scale: 1 }, p.at),
+    draw: () => rig.drawActor(env, rig.samplePose(p.id, "idle", t + 300 * (i + 1)), { held: null, shield: null, scale: 1 }, p.at),
   }));
   // draw order by floor y, as on the fight stage
   for (const a of [scrapper, ...others].sort((p, q) => p.y - q.y)) a.draw();

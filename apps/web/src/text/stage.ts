@@ -1,7 +1,7 @@
 /**
  * Every word the stage paints on the canvas (fight-screen lane). The stage holds no player text.
  */
-import type { MoveId, SkillId } from "@rankzero/core";
+import type { MoveId, ProcId } from "@rankzero/core";
 import type { StageText } from "@rankzero/stage";
 import { NAMES } from "./names";
 
@@ -13,5 +13,5 @@ export const STAGE_TEXT: StageText = {
   crit: "CRIT",
   overtime: "OVERTIME",
   moveName: (id: MoveId) => NAMES[id].toUpperCase(),
-  skillName: (id: SkillId) => NAMES[id].toUpperCase(),
+  skillName: (id: ProcId) => NAMES[id].toUpperCase(),          // a skill, or the shield that blocked
 };
