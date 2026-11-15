@@ -6,3 +6,4 @@
 export * from "./contracts";
 export { createRig } from "./engine/createRig";
 export { gatePack, palette } from "./gate/pack";
+export { contentPack } from "./content/pack";
