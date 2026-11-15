@@ -266,8 +266,8 @@ async function sheetF(): Promise<string> {
     ["SKILLS", "passives and boosters: stamped badge · Moves: torn sticker · silhouettes show the pictogram alone", (SKILL_IDS as readonly SkillId[]).map((id) => [name(id), rig.icon(id)]), FRAME_PARTS],
     ["CONTENT UI", "", Object.entries(CONTENT_UI_ICONS).map(([id, a]) => [id.slice(3), iconArt(a, id as never)]), 0],
     ["STATS + CONTROLS (REDRAWN)", "offered to the rig lane for gate/icons.ts", [...Object.entries(STAT_ICONS_REDRAW), ...Object.entries(GATE_UI_ICONS_REDRAW)].map(([id, a]) => [id.split(":")[1]!, iconArt(a, id as never)]), 0],
-    ["SHIELDS", "heater frame, tone = rarity (needs a contract key)", (SHIELD_IDS as readonly ShieldId[]).map((id) => [name(id), iconArt(SHIELD_ICONS[id], id)]), FRAME_PARTS],
-    ["WEAPONS", "no frame: the object itself, cropped to its business end (proposed; needs wiring)", ([...WEAPON_IDS, "fists"] as HeldId[]).map((id) => [name(id), iconArt(WEAPON_ICONS[id], id)]), 0],
+    ["SHIELDS", "heater frame, tone = rarity", (SHIELD_IDS as readonly ShieldId[]).map((id) => [name(id), iconArt(SHIELD_ICONS[id], id)]), FRAME_PARTS],
+    ["WEAPONS", "no frame: the object itself, cropped to its business end", ([...WEAPON_IDS, "fists"] as HeldId[]).map((id) => [name(id), iconArt(WEAPON_ICONS[id], id)]), 0],
   ];
   const cols = 6, cw = 300, ch = 108;
   let rowsTotal = 0;

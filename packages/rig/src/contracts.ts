@@ -91,7 +91,10 @@ export interface BoneDef { id: string; parent: number /* index, -1 = root */; x:
   limit?: readonly [min: number, max: number] }
 export interface RigDef { id: RigId; height: number /* units */; bones: readonly BoneDef[] }
 /** One flat shape. `shade` is the single darker cel shape allowed per part. The outline is always Night Ink. */
-export interface Shape { bone: string; d: string; slot: ColourSlot; shade?: string; z: number }
+/** `flip` (items only): the path painted instead of `d` when the item is drawn mirrored (its
+ *  transform turns it over, as for a holder facing left), so lettering such as the stop sign's
+ *  never reads backwards. */
+export interface Shape { bone: string; d: string; slot: ColourSlot; shade?: string; z: number; flip?: string }
 export interface Key { t: number /* ms */; rot?: Readonly<Record<string, number>> /* degrees by bone id */;
   root?: readonly [number, number]; scale?: readonly [number, number] /* squash, 12% max */;
   face?: FaceId; ease?: Ease }
@@ -222,7 +225,9 @@ export interface WeaponSegment { length: number; shapes: readonly Omit<Shape, "b
 export interface WeaponArt extends PropArt { length: number;
   tip: { x: number; y: number }; grip2?: { x: number; y: number }; offhand?: true;
   segments?: readonly WeaponSegment[] }
-export interface IconArt { shapes: readonly { d: string; slot: ColourSlot | "self"; shade?: string }[] }  // 24-unit box
+/** 24-unit box. `w` is the ink outline width of one shape (default `LINE.icon`): a thin part of a
+ *  weapon icon takes a thinner line, or the outline swallows its fill. */
+export interface IconArt { shapes: readonly { d: string; slot: ColourSlot | "self"; shade?: string; w?: number }[] }
 export type FxKind = "burst" | "dust" | "spark" | "whoosh" | "tarp" | "tape" | "crackers"
   | "rings" /* Whistle, Air Horn */ | "plus" /* heal */ | "trail" /* Haymaker swing */;
 /** `progress` runs from 0 to 1 over the life of the effect. `seed` picks its cosmetic variation. */
@@ -260,7 +265,11 @@ export interface ContentPack {              // the content-art lane: packages/ri
   looks: AppearanceSet;                     // full LOOK_SPACE counts; re-uses the gate parts as its first entries
   companions: Record<CompanionId, { rig: RigDef; shapes: readonly Shape[]; clips: Record<CompanionClip, Clip> }>;
   fx: Record<"tarp" | "tape" | "crackers" | "rings" | "plus" | "trail", FxDraw>;
-  icons: Record<SkillId | `ui:${ContentUi}`, IconArt>;
+  /** Skills and content UI; since the review of 15 Nov 2026 also every shield and every held
+   *  item (fists, the gate's pipe and knife included), drawn for 28-64 px. `rig.icon` uses these
+   *  over the engine's whole-weapon drawing, which turns a long pole into a hairline and a
+   *  weapon drawn as links into an empty icon. */
+  icons: Record<SkillId | `ui:${ContentUi}` | ShieldId | HeldId, IconArt>;
   /** Animation pass (16 Nov 2026), optional: the clip variants a held item plays in place of a
    *  base clip (`uses[held][base]` names one of `variants`), so each weapon is used the way the
    *  real object is. A variant keeps its base clip's length and events (a rig test). */

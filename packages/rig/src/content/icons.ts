@@ -281,9 +281,8 @@ export const GATE_UI_ICONS_REDRAW: Record<`ui:${GateUi}`, IconArt> = {
 
 // ------------------------------------------------------------------------- shield icons
 /**
- * Shield icons in the heater-shield frame. The contract has no icon key for a shield
- * (`ContentPack.icons` is skills and content UI; `rig.icon(shieldId)` gives the plain ring), so
- * these are offered for a contract change; the art sheet shows them.
+ * Shield icons in the heater-shield frame, in `contentPack.icons` (review of 15 Nov 2026, item
+ * 6: before they were wired, `rig.icon(shieldId)` gave the plain ring).
  */
 const SHIELD_PICS: Record<ShieldId, IconShape[]> = {
   "car-door": [solid([[[5.6, 6.4], [15.4, 6.4], [18.6, 11.4], [18.6, 18.6], [5.6, 18.6]]], "wood"), flat([[[7, 7.6], [14.8, 7.6], [16.8, 11.2], [7, 11.2]]], "ink"), flat([roundRect(13, 13.4, 3.6, 1.4, 0.6)], "metal")],
@@ -307,8 +306,9 @@ export { dPoly };
  *  - a long weapon is cropped to its business end (the last 30 units: the head and some shaft);
  *  - a bending weapon is laid out straight from its links;
  *  - details smaller than about a unit at icon size are dropped, the big fills get the teal shadow.
- * The contract has no icon key for a weapon (`rig.icon(weaponId)` draws the engine's), so these
- * are offered for the lead to wire (see the WP6 handoff).
+ * In `contentPack.icons` since the review of 15 Nov 2026 (items 7 and 8), over the engine's
+ * whole-weapon drawing. A long thin part (tine, shaft, hook) is grown to `MIN_PART` and takes a
+ * thinner outline, so the ink does not swallow its lit fill at 28 px.
  */
 const clipLeft = (p: Poly, x0: number): Pt[] => {
   const out: Pt[] = [];
@@ -324,6 +324,31 @@ const clipLeft = (p: Poly, x0: number): Pt[] => {
 };
 function perimeterOf(p: Poly): number { let l = 0; for (let i = 0; i < p.length; i++) { const q = p[i]!; const r = p[(i + 1) % p.length]!; l += Math.hypot(r[0] - q[0], r[1] - q[1]); } return l || 1; }
 function polyAreaOf(p: Poly): number { let a = 0; for (let i = 0; i < p.length; i++) { const q = p[i]!; const r = p[(i + 1) % p.length]!; a += q[0] * r[1] - r[0] * q[1]; } return Math.abs(a / 2); }
+const MIN_PART = 2.2;
+/** A polygon pushed out by `d` along its vertex normals (miter capped), either winding. */
+function grow(p: Poly, d: number): Pt[] {
+  let sa = 0;
+  for (let i = 0; i < p.length; i++) { const q = p[i]!; const r = p[(i + 1) % p.length]!; sa += q[0] * r[1] - r[0] * q[1]; }
+  const out = sa > 0 ? 1 : -1;
+  const n = p.length;
+  return p.map((c, i) => {
+    const a = p[(i - 1 + n) % n]!;
+    const b = p[(i + 1) % n]!;
+    const e1 = [c[0] - a[0], c[1] - a[1]];
+    const e2 = [b[0] - c[0], b[1] - c[1]];
+    const l1 = Math.hypot(e1[0]!, e1[1]!) || 1;
+    const l2 = Math.hypot(e2[0]!, e2[1]!) || 1;
+    // edge normals pointing out of the shape
+    const n1 = [(out * e1[1]!) / l1, (-out * e1[0]!) / l1];
+    const n2 = [(out * e2[1]!) / l2, (-out * e2[0]!) / l2];
+    let mx = n1[0]! + n2[0]!;
+    let my = n1[1]! + n2[1]!;
+    const ml = Math.hypot(mx, my) || 1;
+    mx /= ml; my /= ml;
+    const cos = Math.max(0.5, mx * n1[0]! + my * n1[1]!);
+    return [c[0] + (mx * d) / cos, c[1] + (my * d) / cos] as Pt;
+  });
+}
 export function weaponIcon(art: WeaponArt, crop = 30, angle = -35): IconArt {
   // the drawing as plain (polys, slot) in item units, links laid straight
   let parts: { polys: Pt[][]; slot: ColourSlot }[] = [];
@@ -354,11 +379,24 @@ export function weaponIcon(art: WeaponArt, crop = 30, angle = -35): IconArt {
   const place = (q: Pt): Pt => [12 + (q[0] - (bx0 + bx1) / 2) * k, 12 + (q[1] - (by0 + by1) / 2) * k];
   const shapes: IconShape[] = [];
   for (const p of turned) {
-    const polys = p.polys.map((q) => q.map(place));
-    const area = polys.reduce((s, q) => s + polyAreaOf(q), 0);
+    const placed = p.polys.map((q) => q.map(place));
+    const area = placed.reduce((s, q) => s + polyAreaOf(q), 0);
     if (p.slot === "ink" ? area < 0.9 : area < 0.4) continue;
+    if (p.slot === "ink") { shapes.push(flat(placed, "ink")); continue; }
+    // a long part thinner than MIN_PART icon units (a tine, a shaft, a hook) is grown to it, so
+    // the ink outline does not swallow its lit fill at 28 px; small details (rivets, links) stay
+    const polys = placed.map((q) => {
+      const t = (2 * polyAreaOf(q)) / perimeterOf(q);
+      const len = perimeterOf(q) / 2;
+      return t < MIN_PART && len > 4 && len > 3 * t ? grow(q, (MIN_PART - t) / 2) : q;
+    });
     // black rubber reads as a hole on a dark card: icons lift it to the dull brown
-    shapes.push(p.slot === "ink" ? flat(polys, "ink") : solid(polys, p.slot === "hair" ? "bottom" : p.slot, area > 6, 0.3));
+    const s = solid(polys, p.slot === "hair" ? "bottom" : p.slot, area > 6, 0.3);
+    // a thin part (a tine, a shaft, a hook) takes a thinner outline so its lit fill still shows:
+    // the line eats half its width into the part on each side
+    const thick = Math.min(...polys.filter((q) => polyAreaOf(q) > 0.2).map((q) => (2 * polyAreaOf(q)) / perimeterOf(q)), Infinity);
+    const w = Math.max(0.7, Math.min(1.6, thick * 0.4));
+    shapes.push(w < 1.6 ? { ...s, w: Math.round(w * 100) / 100 } : s);
   }
   return { shapes };
 }

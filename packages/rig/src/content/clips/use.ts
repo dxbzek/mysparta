@@ -7,6 +7,7 @@
  *
  *   swing  -> swing-2h   Bat, Cricket Bat, Rebar: both hands at the grip end, a flat side swing
  *          -> swing-low  Golf Club, Hockey Stick: low to high
+ *          -> swing-flat Frying Pan, Wok: a one-hand flat forehand, like a tennis shot
  *   thrust -> thrust-1h  Plunger: a one-hand fencing jab
  *   flick  -> thrust-1h  Umbrella: a fencing lunge, closed; Garden Shears: the same lunge with
  *                        the back hand on the other handle (pinned by the engine), snipping shut
@@ -18,25 +19,27 @@ import type { HeldId } from "@rankzero/core";
 import { WEAPON_IDS, WEAPON_META } from "@rankzero/core";
 import type { Clip } from "../../contracts";
 import { SWING_2H, SWING_LOW } from "./swing-2h";
+import { SWING_FLAT } from "./swing-flat";
 import { THRUST, THRUST_1H } from "./thrust";
 import { THROW_FLICK, THROW_HEAVE, THROW_ROLL, THROW_SIDE } from "./throws";
 import { FOOTWORK } from "./footwork";
 
 export const VARIANTS: Readonly<Record<string, Clip>> = {
-  "swing-2h": SWING_2H, "swing-low": SWING_LOW, "thrust-1h": THRUST_1H,
+  "swing-2h": SWING_2H, "swing-low": SWING_LOW, "swing-flat": SWING_FLAT, "thrust-1h": THRUST_1H,
   "throw-side": THROW_SIDE, "throw-roll": THROW_ROLL, "throw-flick": THROW_FLICK, "throw-heave": THROW_HEAVE,
   // not weapon variants: the footwork clips the stage asks for by name (footwork.ts, movement pass 2)
   ...FOOTWORK,
 };
 /** The base clip each variant stands in for (its length and events are that clip's). */
 export const VARIANT_BASE: Readonly<Record<string, string>> = {
-  "swing-2h": "swing", "swing-low": "swing", "thrust-1h": "thrust",
+  "swing-2h": "swing", "swing-low": "swing", "swing-flat": "swing", "thrust-1h": "thrust",
   "throw-side": "throw", "throw-roll": "throw", "throw-flick": "throw", "throw-heave": "throw",
 };
 
 const OWN: Partial<Record<HeldId, Record<string, string>>> = {
   bat: { swing: "swing-2h" }, "cricket-bat": { swing: "swing-2h" }, rebar: { swing: "swing-2h" },
   "golf-club": { swing: "swing-low" }, "hockey-stick": { swing: "swing-low" },
+  "frying-pan": { swing: "swing-flat" }, wok: { swing: "swing-flat" },
   plunger: { thrust: "thrust-1h" }, umbrella: { flick: "thrust-1h" }, "garden-shears": { flick: "thrust-1h" },
   darts: { throw: "throw-flick" }, boomerang: { throw: "throw-side" }, hubcap: { throw: "throw-side" }, tyre: { throw: "throw-roll" },
 };
