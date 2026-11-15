@@ -16,7 +16,7 @@ import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
 import { StatBar } from "../../ui/StatBar";
 import { Sticker } from "../../ui/Sticker";
-import { reducedFrom } from "../../fight/FightScreen";
+import { reducedFrom } from "../../fight/reduced";
 import { DiceGlyph } from "../parts/Glyphs";
 import { PerkRow } from "../parts/Perk";
 import { useCountUp, useShortScreen } from "../parts/motion";

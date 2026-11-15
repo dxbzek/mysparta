@@ -150,11 +150,13 @@ describe("room between bodies, measured on every frame (real art)", () => {
   }
 });
 
-describe("a snared pet behind its owner (verifier, 15 Nov 2026: level 30 n 4, step 57)", () => {
+// The verifier's case (level 30 n 4, step 57) changed with the sim start pass; level 30 n 31,
+// step 21 is the same scene under it: a0 swings at the snared raccoon b1 standing behind b0.
+describe("a snared pet behind its owner (verifier, 15 Nov 2026: level 30 n 4, step 57; now n 31, step 21)", () => {
   it("the owner steps back past it, and its tarp is drawn with the pet, under him", () => {
-    const { log, a, b } = found(30, 4);
+    const { log, a, b } = found(30, 31);
     const p = playerFor(log, a, b, FULL);
-    const c = p.timeline.contacts.find((x) => x.step === 57)!;
+    const c = p.timeline.contacts.find((x) => x.step === 21)!;
     expect(c).toBeDefined();
     const f = p.frame(c.at);
     const atk = f.actors.find((x) => x.id === "a0")!;
@@ -162,7 +164,7 @@ describe("a snared pet behind its owner (verifier, 15 Nov 2026: level 30 n 4, st
     expect(owner.place.x - atk.place.x).toBeGreaterThanOrEqual(BODY_GAP.body - 0.5);
     // just before the blow (it knocks the tarp off), the owner in front of it
     const tarp = p.frame(c.at - 150).fx.find((e) => e.fx === "tarp");
-    expect(tarp?.under).toBe("b2");
+    expect(tarp?.under).toBe("b1");
   });
 });
 
@@ -173,5 +175,24 @@ describe("control: the feet walking in turns it red", () => {
     const p = playerFor(log, snap(l1Fists, 0, "gap-a"), snap(l1Knife, 1, "gap-b"), FULL, false, internal);
     const r = spacing(p, log);
     expect(r.gap.length + r.owner.length).toBeGreaterThan(0);
+  });
+});
+
+describe("a stop behind the attacker is stepped back to, never run (merge of the sim and stage fixes: level 30 n 24, step 8)", () => {
+  it("every run of a scrapper goes the way he faces", async () => {
+    const { facingAt } = await import("../src/track");
+    const { log, a, b } = found(30, 24);
+    const p = playerFor(log, a, b, FULL);
+    const bad: string[] = [];
+    for (const tr of p.tracks.actors) {
+      if (tr.rig !== "scrapper") continue;
+      for (const g of tr.segs) {
+        if (g.clip !== "dash-push" && g.clip !== "brake") continue;
+        const m = tr.moves.find((mv) => mv.from <= g.from + 0.5 && mv.to > g.from + 0.5);
+        if (m === undefined || Math.abs(m.x1 - m.x0) < 0.5) continue;
+        if (Math.sign(m.x1 - m.x0) !== facingAt(tr, g.from + 0.5)) bad.push(`${tr.id} ${g.clip} at ${Math.round(g.from)} ms: ${m.x0.toFixed(1)} to ${m.x1.toFixed(1)}`);
+      }
+    }
+    expect(bad).toEqual([]);
   });
 });

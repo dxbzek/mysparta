@@ -219,25 +219,31 @@ describe("control: pets back at their owner's feet turn it red", () => {
   });
 });
 
+// The verifier's bout (level 3 n 5) has no pet dodge since the sim start pass; these find-bout
+// bouts do (one to three hops each).
 describe("a pet's dodge hop stays in view (verifier, 15 Nov 2026: level 3 n 5, the crow hopped out of view)", () => {
   it("every pet's box stays inside the camera's bout frame while it hops", async () => {
     const { REALM_SALT, combineSeed, rivalSnapshot } = await import("@rankzero/core");
-    const a = rivalSnapshot(REALM_SALT, 3, 10);
-    const b = rivalSnapshot(REALM_SALT, 3, 11);
-    const log = simulateFight(combineSeed("find-bout", 5), a, b, 1);
+    const out: string[] = [];
+    let count = 0;
+    for (const [level, k] of [[3, 12], [5, 12], [6, 30], [8, 3], [8, 33]] as const) {
+    const a = rivalSnapshot(REALM_SALT, level, 2 * k);
+    const b = rivalSnapshot(REALM_SALT, level, 2 * k + 1);
+    const log = simulateFight(combineSeed("find-bout", k), a, b, 1);
     const p = playerFor(log, a, b, FULL);
     const hops = p.tracks.nudges.filter((n) => n.key === "hop" && p.tracks.byId.get(n.actor)!.rig !== "scrapper");
-    expect(hops.length).toBeGreaterThan(0);
+    count += hops.length;
     const span = frameSpan(p.tracks);
-    const out: string[] = [];
     for (const n of hops) {
       for (let t = n.from; t <= n.from + n.outMs + n.holdMs + n.backMs; t += FRAME_MS) {
         const x = p.frame(t).actors.find((q) => q.id === n.actor);
         if (x === undefined) continue;
         const box = drawnBox(FULL, FULL.samplePose(x.rig, x.clip, x.clipT, x.aim), x.dress, x.place);
-        if (box.x0 < span.x0 - 0.5 || box.x1 > span.x1 + 0.5) out.push(`${n.actor} at ${Math.round(t)} ms: ${box.x0.toFixed(1)} to ${box.x1.toFixed(1)}`);
+        if (box.x0 < span.x0 - 0.5 || box.x1 > span.x1 + 0.5) out.push(`L${level} n${k} ${n.actor} at ${Math.round(t)} ms: ${box.x0.toFixed(1)} to ${box.x1.toFixed(1)}`);
       }
     }
+    }
+    expect(count).toBeGreaterThan(4);
     expect(out.slice(0, 4)).toEqual([]);
   });
 });

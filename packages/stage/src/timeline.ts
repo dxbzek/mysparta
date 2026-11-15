@@ -317,11 +317,16 @@ export class Builder {
         this.face(id, from, tr.homeFacing);
         this.play(id, "backpedal", from, { until: from + ms });
       } else {
-        this.move(id, from, ms, tr.home.x, tr.home.y, 0, "inOut");
+        // a dodge hop still landing back (effects.evadeEarly) finishes first: run under it, the
+        // two offsets add up and carry it past its home, out of the camera's frame
+        const s0 = (this.nudgesOf.get(id) ?? []).reduce((t, n) => (n.key === "hop" && n.from < from
+          ? Math.max(t, n.from + n.outMs + n.holdMs + n.backMs) : t), from);
+        this.move(id, s0, ms, tr.home.x, tr.home.y, 0, "inOut");
         // a companion turns, runs home, and turns to face the fight again
-        this.face(id, from, tr.home.x < p.x ? -1 : 1);
-        this.play(id, "run", from, { until: from + ms });
-        this.face(id, from + ms, tr.homeFacing);
+        this.face(id, s0, tr.home.x < p.x ? -1 : 1);
+        this.play(id, "run", s0, { until: s0 + ms });
+        this.face(id, s0 + ms, tr.homeFacing);
+        ms += s0 - from;
       }
       if (ms > longest) longest = ms;
     }
@@ -375,7 +380,9 @@ export class Builder {
         y = tp.y;
         if (feet) {
           // a shuffle needs no brace before it: its own dip is the wind-up
-          way = planWay(this, p.actor, stop.x - from.x, y - from.floorY, p.mode === "dash", start);
+          // a stop behind him (a long weapon on a pet that ran out close to him) is shuffled back
+          // to, never run: the run clip only goes forward, so a backward run slides the feet
+          way = planWay(this, p.actor, stop.x - from.x, y - from.floorY, p.mode === "dash" && facing * (stop.x - from.x) > 0, start);
           contactAt = start + (way.kind === "run" ? BEAT.anticipationMs : 0) + way.ms + strikeIn;
         } else if (p.mode === "dash") {
           // a pet starts behind its owner (layout.homeMarks) and keeps behind his floor line until it

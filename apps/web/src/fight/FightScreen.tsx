@@ -58,11 +58,8 @@ export interface FightScreenExtraProps {
 /** Skip lands this long before the result card, on the knockout pose (brief 3.12). */
 export const SKIP_HOLD_MS = 300;
 
-export function reducedFrom(setting: Settings["reducedMotion"]): boolean {
-  if (setting === "on") return true;
-  if (setting === "off") return false;
-  return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
+import { reducedFrom } from "./reduced";
+export { reducedFrom };
 
 export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
   const { log, a, b, mode, settings, onSettings, onFinished, result, onResultAction } = props;

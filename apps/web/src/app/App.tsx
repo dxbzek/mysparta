@@ -23,14 +23,11 @@ import { createGameStore } from "../state/store";
 import { encodeSave } from "../state/saveCode";
 import { UI } from "../text/ui";
 import { loadFonts } from "../ui/fonts";
-import { BoutScreen } from "../screens/Bout/Bout";
 import { CardScreen } from "../screens/Card/Card";
 import { CreateScreen } from "../screens/Create/Create";
 import { LockerScreen } from "../screens/Locker/Locker";
-import { ReplayScreen } from "../screens/Replay/Replay";
-import { SettingsSheet } from "../screens/Settings/Settings";
 import { Unreadable } from "../screens/Settings/Unreadable";
-import { reducedFrom } from "../fight/FightScreen";
+import { reducedFrom } from "../fight/reduced";
 import { sharedAudio, unlockOnGestures } from "../audio/engine";
 import { playUiSounds } from "../audio/uiSounds";
 import { GameContext, useGame, useStatus } from "./context";
@@ -76,6 +73,13 @@ const SandboxChunk = retryable<object>(() => import("./debug/Sandbox").then((m) 
 const KitChunk = retryable<{ tab: KitTab }>(() => import("../screens/Kit/Kit").then((m) => ({ default: m.KitScreen })));
 const LevelUpChunk = retryable<object>(() => import("../screens/LevelUp/LevelUp").then((m) => ({ default: m.LevelUpScreen })));
 const BoutsChunk = retryable<object>(() => import("../screens/Bouts/Bouts").then((m) => ({ default: m.BoutsScreen })));
+/** The bout and the replay hold the fight screen and the whole stage: their own chunk, preloaded
+ *  after the first paint like the others, so the first screen's JS stays inside its budget. */
+const BoutChunk = retryable<{ id: string }>(() => import("../screens/Bout/Bout").then((m) => ({ default: m.BoutScreen })));
+const ReplayChunk = retryable<{ id: string }>(() => import("../screens/Replay/Replay").then((m) => ({ default: m.ReplayScreen })));
+/** The settings sheet opens over the locker on demand, so it is its own chunk too (the stage and
+ *  audio fixes of 15 Nov 2026 took the first screen's JS past its budget). */
+const SettingsChunk = retryable<{ open: boolean; onClose(): void }>(() => import("../screens/Settings/Settings").then((m) => ({ default: m.SettingsSheet })));
 type KitTab = Extract<Route, { name: "kit" }>["tab"];
 
 /** One route's own error boundary: a chunk that did not load shows Retry, not the whole-app card. */
@@ -255,7 +259,7 @@ function useFullRigAfterPaint(): void {
       timer = window.setTimeout(() => {
         void loadFullRig().catch((e: unknown) => console.warn("rig: the content art did not load yet", e));
         // the split screens too, so opening one later shows no loading frame
-        for (const c of [LevelUpChunk, KitChunk, BoutsChunk, InventoryChunk]) c.preload();
+        for (const c of [BoutChunk, ReplayChunk, LevelUpChunk, KitChunk, BoutsChunk, InventoryChunk, SettingsChunk]) c.preload();
       }, 0);
     });
     return () => { cancelAnimationFrame(frame); window.clearTimeout(timer); };
@@ -303,16 +307,27 @@ function Screen({ route }: { route: Route }) {
   switch (route.name) {
     case "create": return <CreateScreen />;
     case "card": return <CardScreen />;
-    case "bout": return <BoutScreen key={route.id} id={route.id} />;
+    case "bout": return <LazyRoute key={`bout:${route.id}`} chunk={BoutChunk} label={UI.appName} props={{ id: route.id }} />;
     case "levelup": return <LazyRoute key="levelup" chunk={LevelUpChunk} label={UI.appName} />;
     case "kit": return <LazyRoute key="kit" chunk={KitChunk} label={UI.kit.title} props={{ tab: route.tab }} />;
     case "bouts": return <LazyRoute key="bouts" chunk={BoutsChunk} label={UI.history.title} />;
     case "inventory": return <LazyRoute key="inventory" chunk={InventoryChunk} label={UI.inventory.title} />;
-    case "replay": return <ReplayScreen key={route.id} id={route.id} />;
+    case "replay": return <LazyRoute key={`replay:${route.id}`} chunk={ReplayChunk} label={UI.appName} props={{ id: route.id }} />;
     case "sandbox": return <LazyRoute key="sandbox" chunk={SandboxChunk} label={UI.sandbox.title} />;
     case "settings": return <SettingsRoute />;
     default: return <LockerScreen />;
   }
+}
+
+/** The settings sheet from its chunk: nothing over the screen while it loads, Retry if it fails. */
+function LazySheet({ onClose }: { onClose(): void }) {
+  const [n, setN] = useState(0);
+  const S = SettingsChunk.get();
+  return (
+    <RouteBoundary key={n} onRetry={() => { SettingsChunk.reset(); setN((x) => x + 1); }} onBack={onClose}>
+      <Suspense fallback={null}><S open onClose={onClose} /></Suspense>
+    </RouteBoundary>
+  );
 }
 
 function SettingsRoute() {
@@ -321,7 +336,7 @@ function SettingsRoute() {
   return (
     <>
       {hasFighter ? <LockerScreen /> : <CreateScreen />}
-      <SettingsSheet open onClose={() => go(hasFighter ? { name: "locker" } : { name: "create" })} />
+      <LazySheet onClose={() => go(hasFighter ? { name: "locker" } : { name: "create" })} />
     </>
   );
 }
