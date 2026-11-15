@@ -34,6 +34,8 @@ import { ReplayScreen } from "../screens/Replay/Replay";
 import { SettingsSheet } from "../screens/Settings/Settings";
 import { Unreadable } from "../screens/Settings/Unreadable";
 import { reducedFrom } from "../fight/FightScreen";
+import { sharedAudio, unlockOnGestures } from "../audio/engine";
+import { playUiSounds } from "../audio/uiSounds";
 import { SandboxScreen } from "./debug/Sandbox";
 import { GameContext, useGame, useStatus } from "./context";
 import type { Game } from "./context";
@@ -94,6 +96,7 @@ export function App(props: AppProps) {
   const { store, clock } = env;
   const { status, notice } = useStatus(store);
   useMotionFlag(store);
+  useAppAudio(store);
   useFullRigAfterPaint();
   const [toasts, setToasts] = useState<string[]>([]);
 
@@ -142,6 +145,10 @@ export function App(props: AppProps) {
     if (!sameRoute(asked, shown) || hash === "") location.replace(hrefOf(shown));
     setRoute(shown);
   }, [hash, hashN, ready, store, clock, env.core]);
+  const onLevelUp = route?.name === "levelup";
+  useEffect(() => {
+    if (onLevelUp) sharedAudio().play("level-up", 0);
+  }, [onLevelUp]);
 
   let body: ReactNode;
   if (status.kind === "loading" || (ready && route === null)) body = <main className={css.loading} aria-busy="true"><p>{UI.appName}</p></main>;
@@ -196,6 +203,23 @@ function useMotionFlag(store: Game["store"]): void {
   useEffect(() => {
     document.documentElement.dataset.motion = reducedFrom(setting) ? "reduce" : "full";
   }, [setting, systemTick]);
+}
+
+/**
+ * Sound at the app root: the first press anywhere creates and resumes the audio context and
+ * starts loading the sprites (so the first bout is not silent), later presses and the page
+ * coming back resume it, the sound setting applies everywhere, and buttons tap.
+ */
+function useAppAudio(store: Game["store"]): void {
+  const sound = useSyncExternalStore(store.subscribe, () => store.doc.settings.sound, () => store.doc.settings.sound);
+  useEffect(() => {
+    sharedAudio().enabled = sound;
+  }, [sound]);
+  useEffect(() => {
+    const audio = sharedAudio();
+    const off = [unlockOnGestures(audio), playUiSounds(audio, document)];
+    return () => { for (const f of off) f(); };
+  }, []);
 }
 
 function Screen({ route }: { route: Route }) {

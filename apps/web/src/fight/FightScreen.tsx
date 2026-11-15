@@ -20,7 +20,7 @@ import { playSpeed } from "../state/schema";
 import { UI } from "../text/ui";
 import { createCueDriver, engineSink } from "../audio/cues";
 import type { AudioEngine } from "../audio/engine";
-import { sharedAudio, unlockOnFirstGesture } from "../audio/engine";
+import { sharedAudio, unlockOnGestures } from "../audio/engine";
 import { rig as seamRig } from "../seams/rig";
 import { actorNames } from "../text/log";
 import { STAGE_TEXT } from "../text/stage";
@@ -92,7 +92,7 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
   clock.speed = playSpeed(settings);
   audio.enabled = settings.sound;
 
-  useEffect(() => unlockOnFirstGesture(audio), [audio]);
+  useEffect(() => unlockOnGestures(audio), [audio]);
 
   // The one frame loop: advance the clock, sound what it crossed, show the new time.
   useEffect(() => {
@@ -188,7 +188,7 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
   };
 
   return (
-    <div className={`${css.screen} ${mode === "replay" ? css.replayMode : ""}`} data-phase={hud.phase} data-t={Math.round(t)}>
+    <div className={`${css.screen} ${mode === "replay" ? css.replayMode : ""}`} data-sfx-quiet="" data-phase={hud.phase} data-t={Math.round(t)}>
       <Hud frame={hud} sides={sides} actors={log.init.actors} t={t} turn={state.turn} reduced={reduced} />
       <div className={css.stageArea}>
         <StageCanvas player={player} t={t} label={`${a.name} against ${b.name}`} />

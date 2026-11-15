@@ -73,6 +73,7 @@ export function LevelUpScreen() {
         type="button"
         className={`${css.card} ${side === "R" ? css.cardR : ""} ${glow} ${state}`}
         aria-pressed={isSel}
+        data-sfx="card-flip"
         disabled={taken !== null}
         onClick={() => setSel(side)}
         aria-label={UI.levelUp.cardLabel(cardTitle(c))}

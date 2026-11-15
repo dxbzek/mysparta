@@ -17,17 +17,21 @@ export const HIT_SET: Readonly<Record<HeldId | CompanionId, string>> = {
   machete: "hit-blade-big", "hand-axe": "hit-blade-big",
   pipe: "hit-pipe", crowbar: "hit-pipe", "tyre-iron": "hit-pipe", rebar: "hit-pipe", "monkey-wrench": "hit-pipe",
   bat: "hit-wood", broom: "hit-wood", "cricket-bat": "hit-wood", "hockey-stick": "hit-wood", "pool-cue": "hit-wood",
-  "folding-chair": "hit-wood", boomerang: "hit-wood",
+  // a steel folding chair: a hollow steel-frame bang, never a wood knock
+  "folding-chair": "hit-chair", boomerang: "hit-wood",
   sledgehammer: "hit-heavy", anvil: "hit-heavy", "ball-and-chain": "hit-heavy",
   "frying-pan": "hit-pan", wok: "hit-pan",
   shovel: "hit-shovel", "stop-sign": "hit-shovel",
-  "golf-club": "hit-light-metal", pitchfork: "hit-light-metal", pickaxe: "hit-light-metal",
+  "golf-club": "hit-light-metal",
+  // a pickaxe lands with its heavy steel head; a pitchfork stabs with its tines
+  pickaxe: "hit-heavy", pitchfork: "hit-stab",
   "rubber-chicken": "hit-squeak", plunger: "hit-plunger", umbrella: "hit-umbrella", "bike-chain": "hit-chain",
   darts: "hit-darts", bricks: "hit-brick", "paint-can": "hit-paint",
   "plastic-bottle": "hit-plastic", "lawn-flamingo": "hit-plastic", "rubber-ball": "hit-ball", hubcap: "hit-hubcap",
   "traffic-cone": "hit-rubber", tyre: "hit-rubber",
-  // a pet's bite, peck or swipe lands like a light blow; its voice plays on its own cue
-  raccoon: "hit-fist", goose: "hit-fist", boar: "hit-fist", "stray-dog": "hit-fist", crow: "hit-fist", "alley-cat": "hit-fist",
+  // a pet's contact sounds like the animal: a dog's or raccoon's bite snaps, a bird's beak pecks,
+  // a cat's claws rake, a boar's tusks gore with its grunt under the blow
+  "stray-dog": "hit-bite", raccoon: "hit-bite", crow: "hit-peck", goose: "hit-peck", "alley-cat": "hit-claw", boar: "hit-gore",
 };
 
 /** The swish of a swing, an evade or a draw, by the weight of what moves. */
@@ -48,11 +52,24 @@ export const SWISH_SET: Readonly<Record<HeldId | CompanionId, string>> = {
   "alley-cat": "swish-light",
 };
 
-/** The flight sound at a throw's release, where it differs from the plain throw whoosh. */
-export const THROW_SET: Readonly<Partial<Record<HeldId, string>>> = {
+/** The flight sound at a throw's release, for every held item (any of them can be thrown): a
+ *  spinning whirr for things that spin, a heavy whoomp for heavy things, a light swish for small
+ *  hard things, a plain air whoosh ("throw") for the rest. A throw with no item (a Move's tarp)
+ *  plays the family's set, the same neutral whoosh, never a blade swish. */
+export const THROW_SET: Readonly<Record<HeldId, string>> = {
   boomerang: "throw-spin", hubcap: "throw-spin", tyre: "throw-spin",
-  darts: "swish-light", "pocket-knife": "swish-light", screwdrivers: "swish-light",
-  bricks: "swish-heavy", "paint-can": "swish-heavy", anvil: "swish-heavy",
+  darts: "swish-light", "pocket-knife": "swish-light", screwdrivers: "swish-light", "knuckle-dusters": "swish-light",
+  "garden-shears": "swish-light", fists: "swish-light",
+  bricks: "swish-heavy", "paint-can": "swish-heavy", anvil: "swish-heavy", sledgehammer: "swish-heavy",
+  "ball-and-chain": "swish-heavy", pickaxe: "swish-heavy",
+  "bike-chain": "swish-whip",
+  machete: "swish-medium", "hand-axe": "swish-medium", pipe: "swish-medium", crowbar: "swish-medium",
+  "tyre-iron": "swish-medium", rebar: "swish-medium", "monkey-wrench": "swish-medium", bat: "swish-medium",
+  "cricket-bat": "swish-medium", "hockey-stick": "swish-medium", "pool-cue": "swish-medium", "folding-chair": "swish-medium",
+  "frying-pan": "swish-medium", wok: "swish-medium", shovel: "swish-medium", "stop-sign": "swish-medium",
+  "golf-club": "swish-medium", pitchfork: "swish-medium",
+  "plastic-bottle": "throw", "rubber-ball": "throw", "traffic-cone": "throw", "rubber-chicken": "throw",
+  "lawn-flamingo": "throw", umbrella: "throw", plunger: "throw", broom: "throw",
 };
 
 /** A blow taken on a shield, by the shield. */
@@ -71,9 +88,11 @@ export const DROP_SET: Readonly<Record<PropId, string>> = {
   "paint-can": "drop-metal", "folding-chair": "drop-metal",
   "stop-sign": "drop-sheet", hubcap: "drop-sheet", "car-door": "drop-sheet", "bin-lid": "drop-sheet", "ironing-board": "drop-sheet",
   bat: "drop-wood", broom: "drop-wood", "cricket-bat": "drop-wood", "hockey-stick": "drop-wood", "pool-cue": "drop-wood",
-  boomerang: "drop-wood", bricks: "drop-wood", "wooden-pallet": "drop-wood", skateboard: "drop-wood",
+  boomerang: "drop-wood", "wooden-pallet": "drop-wood", skateboard: "drop-wood",
   "rubber-chicken": "drop-soft", plunger: "drop-soft", umbrella: "drop-soft", "plastic-bottle": "drop-soft",
   "rubber-ball": "drop-soft", "traffic-cone": "drop-soft", tyre: "drop-soft", "lawn-flamingo": "drop-soft", "riot-shield": "drop-soft",
+  // a brick drops like stone
+  bricks: "drop-stone",
 };
 
 /** A pet's own call. */
@@ -98,7 +117,7 @@ export function itemSet(cue: Pick<Cue, "family" | "item" | "on">): string | null
     case "swing": case "whoosh":
       return has(SWISH_SET, item) ? SWISH_SET[item] : null;
     case "throw":
-      return has(THROW_SET, item) ? THROW_SET[item] ?? null : null;
+      return has(THROW_SET, item) ? THROW_SET[item] : null;
     case "drop":
       return has(DROP_SET, item) ? DROP_SET[item] : null;
     case "companion":
