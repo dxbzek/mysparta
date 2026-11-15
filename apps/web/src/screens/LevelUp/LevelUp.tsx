@@ -6,7 +6,7 @@
  */
 import { useMemo, useState } from "react";
 import type { HeldId, Pick as Side2, RouteCard, ScrapperRecord } from "@rankzero/core";
-import { perkKind } from "@rankzero/core";
+import { RARITY_OF, perkKind } from "@rankzero/core";
 import { activeRecord } from "../../app/guards";
 import { useDoc, useGame } from "../../app/context";
 import { STAT_KEYS, STAT_NAME } from "../../text/stats";
@@ -17,6 +17,7 @@ import { Panel } from "../../ui/Panel";
 import { Sticker } from "../../ui/Sticker";
 import { StatIconDot } from "../parts/MiniStats";
 import { RouteCardFace, cardTitle, previewCard } from "../parts/RouteCard";
+import { useShortScreen } from "../parts/motion";
 import common from "../common.module.css";
 import css from "./LevelUp.module.css";
 
@@ -31,6 +32,7 @@ export function LevelUpScreen() {
   const [sel, setSel] = useState<Side2 | null>(null);
   const [taken, setTaken] = useState<Side2 | null>(null);
   const [busy, setBusy] = useState(false);
+  const short = useShortScreen();
   const before = useMemo(() => (offer ? core.sheetOf(offer.rec) : null), [offer, core]);
   const snap = useMemo(() => (offer ? core.snapshotOf(offer.rec) : null), [offer, core]);
   if (!offer || !before || !snap || !live) return null;
@@ -64,11 +66,12 @@ export function LevelUpScreen() {
     const preview = previewCard(core, snap, c);
     const isSel = sel === side;
     const state = taken === null ? (isSel ? css.lifted : "") : taken === side ? css.taken : css.dimmed;
+    const glow = c.kind === "perk" ? css[`glow-${RARITY_OF[c.perk]}`] ?? "" : css.glowStat;
     return (
       <button
-        key={side}
+        key={`${offer.rec.picks.length}${side}`}
         type="button"
-        className={`${css.card} ${state}`}
+        className={`${css.card} ${side === "R" ? css.cardR : ""} ${glow} ${state}`}
         aria-pressed={isSel}
         disabled={taken !== null}
         onClick={() => setSel(side)}
@@ -84,9 +87,10 @@ export function LevelUpScreen() {
     <div className={`${common.screen} ${css.screen}`}>
       <main className={css.main}>
         <Panel tone="dark" flush className={css.hero}>
-          <ActorStage look={before.look} held={held} clip="power-up" restMs={700} height={170} floorAt={0.92} window={{ w: 300, h: 140 }} label={offer.rec.name} />
+          <ActorStage look={before.look} held={held} clip="power-up" restMs={700} height={short ? 124 : 170} floorAt={0.92} window={{ w: 300, h: 140 }} label={offer.rec.name} />
+          <span className={css.rays} aria-hidden="true" />
           <div className={css.heroText}>
-            <Sticker tone="hazard" size="big" tilt={-2}>{UI.levelUp.heading(level)}</Sticker>
+            <span className={css.slam}><Sticker tone="hazard" size="big" tilt={-2}>{UI.levelUp.heading(level)}</Sticker></span>
             <Sticker size="small" tilt={1.5}>{offer.rec.name}</Sticker>
           </div>
         </Panel>

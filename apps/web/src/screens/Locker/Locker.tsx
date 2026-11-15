@@ -66,6 +66,9 @@ export function LockerScreen() {
 
   return (
     <>
+      {/* display: contents; it only carries the energy styles (XP fill flash, the Level up! ring)
+          onto the fight-screen lane's view through stable ARIA hooks, without editing the view. */}
+      <div className={css.home} data-primary={view.primary.kind}>
       <LockerView
         roster={roster}
         activeId={rec.id}
@@ -95,6 +98,7 @@ export function LockerScreen() {
         onAllBouts={() => go({ name: "bouts" })}
         onTab={(t) => go(tabRoute(t))}
       />
+      </div>
       <Sheet open={perk !== null} title={UI.locker.perkSheet} onClose={() => setPerk(null)}>
         {perk ? <PerkDetail id={perk} owned={view.sheet.perks} /> : null}
         <div className={css.sheetFoot}>

@@ -116,6 +116,13 @@ export const UI = {
     pets: NAV.pets,
     shields: "Shields",
     empty: "Nothing in this part of the kit yet.",
+    /** One empty line per group, so an empty group says how to fill it. */
+    emptyFor: {
+      weapon: "No weapons yet. A level-up can offer one.",
+      skill: "No skills yet. A level-up can offer one.",
+      companion: "No pets yet. A level-up can offer one to fight beside you.",
+      shield: "No shield yet. A level-up can offer one for the back arm.",
+    },
     found: (n: number, total: number) => `Found ${n} of ${total}`,
     foundSub: "Every perk any of your scrappers has owned. Tap to see the full list.",
     foundTitle: (n: number, total: number) => `Found ${n} of ${total}`,

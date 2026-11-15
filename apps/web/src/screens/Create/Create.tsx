@@ -5,8 +5,8 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { REALM_SALT } from "@rankzero/core";
-import type { ScrapperRecord } from "@rankzero/core";
+import { RARITY_OF, REALM_SALT } from "@rankzero/core";
+import type { ScrapperRecord, StatKey } from "@rankzero/core";
 import { useDoc, useGame } from "../../app/context";
 import { SLOT_LIMIT } from "../../state/schema";
 import { STAT_KEYS } from "../../text/stats";
@@ -19,11 +19,14 @@ import { Sticker } from "../../ui/Sticker";
 import { reducedFrom } from "../../fight/FightScreen";
 import { DiceGlyph } from "../parts/Glyphs";
 import { PerkRow } from "../parts/Perk";
+import { useCountUp, useShortScreen } from "../parts/motion";
 import common from "../common.module.css";
 import css from "./Create.module.css";
 
 /** The reveal: four bars one after another, then the perk card flips. */
 export const REVEAL_BAR_MS = 550;
+/** The scrapper drops onto the stage first; the stats count up after it lands. */
+export const REVEAL_DROP_MS = 450;
 export const REVEAL_MS = REVEAL_BAR_MS * 4 + 900;
 
 /** True from 1100 px wide, where the preview stage is 520 px wide (brief 3.11 A). */
@@ -144,6 +147,7 @@ function Reveal({ rec, onDone }: { rec: ScrapperRecord; onDone(): void }) {
   const { core, store } = useGame();
   const sheet = useMemo(() => core.sheetOf(rec), [core, rec]);
   const reduced = reducedFrom(store.doc.settings.reducedMotion);
+  const short = useShortScreen();
   const [done, setDone] = useState(reduced);
   useEffect(() => {
     if (done) return undefined;
@@ -151,32 +155,38 @@ function Reveal({ rec, onDone }: { rec: ScrapperRecord; onDone(): void }) {
     return () => window.clearTimeout(id);
   }, [done]);
   const top = Math.max(6, ...STAT_KEYS.map((k) => sheet.effective[k]));
+  const hp = useCountUp(sheet.maxHp, REVEAL_DROP_MS, REVEAL_BAR_MS * 2, !done);
+  const rarity = RARITY_OF[sheet.startPerk];
   return (
     <div className={`${common.screen} ${css.screen}`} onClick={() => setDone(true)} data-reveal={done ? "done" : "playing"}>
       <main className={`${css.reveal} ${done ? css.revealDone : ""}`}>
         <Panel tone="dark" flush className={css.revealStage}>
-          <ActorStage look={sheet.look} clip="win" restMs={1400} height={220} floorAt={0.9} window={{ w: 280, h: 150 }} label={UI.create.revealHeading(rec.name)} />
-          <div className={css.stageName}><Sticker size="big" tilt={-2}>{rec.name}</Sticker></div>
+          <div className={css.drop}>
+            <ActorStage look={sheet.look} clip="win" restMs={1400} height={short ? 180 : 220} floorAt={0.9} window={{ w: 280, h: 150 }} label={UI.create.revealHeading(rec.name)} />
+          </div>
+          <h1 className={css.revealTitle}>{UI.create.revealHeading(rec.name)}</h1>
         </Panel>
-        <h1 className={common.h1}>{UI.create.revealHeading(rec.name)}</h1>
         <Panel className={css.revealStats}>
-          <div className={css.hpRow}><span>{UI.maxHp}</span><strong>{sheet.maxHp}</strong></div>
-          {STAT_KEYS.map((k, i) => (
-            <div key={k} className={css.bar} style={{ animationDelay: `${i * REVEAL_BAR_MS}ms` }}>
-              <StatBar stat={k} value={sheet.effective[k]} max={top} />
-            </div>
-          ))}
+          <div className={css.hpRow}><span>{UI.maxHp}</span><strong className={css.hpNum}>{hp}</strong></div>
+          {STAT_KEYS.map((k, i) => <RevealBar key={k} stat={k} value={sheet.effective[k]} max={top} delay={REVEAL_DROP_MS + i * REVEAL_BAR_MS} run={!done} />)}
         </Panel>
-        <div className={css.perk} style={{ animationDelay: `${REVEAL_BAR_MS * 4}ms` }}>
+        <div className={`${css.perk} ${css[`glow-${rarity}`] ?? ""}`} style={{ animationDelay: `${REVEAL_BAR_MS * 4}ms` }}>
           <p className={css.perkLabel}>{UI.create.startPerk}</p>
           <PerkRow id={sheet.startPerk} owned={sheet.perks} />
         </div>
-        {done ? (
-          <Button variant="primary" autoFocus onClick={onDone} className={css.toLocker}>{UI.create.toLocker}</Button>
-        ) : (
-          <p className={css.skip}>{UI.create.tapToSkip}</p>
-        )}
+        <div className={css.revealAction}>
+          {done ? (
+            <Button variant="primary" autoFocus onClick={onDone} className={css.toLocker}>{UI.create.toLocker}</Button>
+          ) : (
+            <p className={css.skip}>{UI.create.tapToSkip}</p>
+          )}
+        </div>
       </main>
     </div>
   );
+}
+
+function RevealBar({ stat, value, max, delay, run }: { stat: StatKey; value: number; max: number; delay: number; run: boolean }) {
+  const v = useCountUp(value, delay, REVEAL_BAR_MS, run);
+  return <div className={css.bar}><StatBar stat={stat} value={v} max={max} /></div>;
 }

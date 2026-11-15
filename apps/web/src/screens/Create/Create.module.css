@@ -1,5 +1,7 @@
 .screen {
   padding-bottom: 18px;
+  /* a slam or a flip in flight must never widen the page (a phone then zooms out) */
+  overflow-x: clip;
 }
 .logo {
   display: grid;
@@ -89,14 +91,38 @@
 
 /* ------------------------------------------------------------ reveal */
 .reveal {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  padding: 12px var(--gutter);
+  min-height: 100dvh;
+  padding: 12px var(--gutter) 0;
 }
 .revealStage {
   position: relative;
   height: 220px;
   overflow: hidden;
+}
+.drop {
+  height: 100%;
+}
+/* the heading is a hazard sticker slapped across the foot of the stage */
+.revealTitle {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  max-width: calc(100% - 20px);
+  margin: 0;
+  padding: 5px 10px 3px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  box-shadow: var(--shadow-hard);
+  background: var(--c-hazard);
+  color: var(--t-on-hazard);
+  font: 900 26px / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  transform: rotate(-3deg);
 }
 .revealStats {
   display: grid;
@@ -114,12 +140,12 @@
 }
 .hpRow strong {
   font-size: 34px;
+  font-variant-numeric: tabular-nums;
 }
 .bar {
-  animation: fill 520ms steps(8, end) both;
+  min-width: 0;
 }
 .perk {
-  animation: flip 600ms ease-out both;
   transform-origin: 50% 50%;
 }
 .perkLabel {
@@ -127,6 +153,16 @@
   font: 900 18px / 1 var(--font-display);
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: var(--t-on-page);
+}
+/* the action stays on screen on a short phone and inside a framed page */
+.revealAction {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  margin-top: auto;
+  padding: 8px 0 calc(12px + env(safe-area-inset-bottom));
 }
 .skip {
   margin: 0;
@@ -138,22 +174,69 @@
   text-transform: uppercase;
   color: var(--t-on-page-dim);
 }
-.revealDone .bar,
-.revealDone .perk {
-  animation: none;
+/* rarity glow on the starting perk */
+.glow-uncommon > :last-child { box-shadow: var(--shadow-hard), 0 0 0 3px var(--c-rarity-uncommon); }
+.glow-rare > :last-child { box-shadow: var(--shadow-hard), 0 0 0 3px var(--c-rarity-rare), 0 0 18px 2px var(--c-rarity-rare); }
+.glow-epic > :last-child { box-shadow: var(--shadow-hard), 0 0 0 3px var(--c-rarity-epic), 0 0 22px 4px var(--c-rarity-epic); }
+.glow-mythic > :last-child { box-shadow: var(--shadow-hard), 0 0 0 3px var(--c-rarity-mythic), 0 0 26px 6px var(--c-rarity-mythic); }
+
+:global(html[data-motion="full"]) .drop {
+  animation: drop 560ms cubic-bezier(0.5, 0, 0.75, 0) both;
 }
-@keyframes fill {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
+:global(html[data-motion="full"]) .revealStage {
+  animation: thud 320ms 500ms ease-out both;
+}
+:global(html[data-motion="full"]) .revealTitle {
+  animation: slam 420ms 600ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+:global(html[data-motion="full"]) .perk {
+  animation: flip 600ms ease-out both;
+}
+:global(html[data-motion="full"]) .toLocker {
+  animation: popIn 320ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.revealDone .drop,
+.revealDone .revealStage,
+.revealDone .revealTitle,
+.revealDone .perk {
+  animation: none !important;
+}
+@keyframes drop {
+  0% { transform: translateY(-105%); }
+  80% { transform: translateY(3%); }
+  100% { transform: translateY(0); }
+}
+@keyframes thud {
+  0% { transform: translateY(0); }
+  25% { transform: translateY(6px) scaleY(0.98); }
+  55% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+@keyframes slam {
+  from { transform: scale(2.4) rotate(-12deg); opacity: 0; }
+  to { transform: scale(1) rotate(-3deg); opacity: 1; }
 }
 @keyframes flip {
   from { transform: perspective(600px) rotateY(90deg); opacity: 0; }
   to { transform: perspective(600px) rotateY(0deg); opacity: 1; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .bar,
-  .perk {
-    animation: none;
+@keyframes popIn {
+  from { transform: scale(0.8); }
+  to { transform: scale(1); }
+}
+@media (max-height: 700px) {
+  .revealStage {
+    height: 180px;
+  }
+  .reveal {
+    gap: 8px;
+    padding-top: 8px;
+  }
+  .revealTitle {
+    font-size: 22px;
+  }
+  .hpRow strong {
+    font-size: 28px;
   }
 }
 

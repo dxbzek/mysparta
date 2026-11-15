@@ -84,10 +84,10 @@ function KitTabView({ rec, perks }: { rec: ScrapperRecord; perks: PerkId[] }) {
   const [retire, setRetire] = useState(false);
   const foundIds = useMemo(() => new Set(core.foundPerks([...doc.fighters, ...doc.retired])), [core, doc.fighters, doc.retired]);
   const groups = [
-    { title: UI.kit.weapons, ids: perks.filter((p) => perkKind(p) === "weapon") },
-    { title: UI.kit.skills, ids: perks.filter((p) => perkKind(p) === "skill") },
-    { title: UI.kit.pets, ids: perks.filter((p) => perkKind(p) === "companion") },
-    { title: UI.kit.shields, ids: perks.filter((p) => perkKind(p) === "shield") },
+    { title: UI.kit.weapons, empty: UI.kit.emptyFor.weapon, ids: perks.filter((p) => perkKind(p) === "weapon") },
+    { title: UI.kit.skills, empty: UI.kit.emptyFor.skill, ids: perks.filter((p) => perkKind(p) === "skill") },
+    { title: UI.kit.pets, empty: UI.kit.emptyFor.companion, ids: perks.filter((p) => perkKind(p) === "companion") },
+    { title: UI.kit.shields, empty: UI.kit.emptyFor.shield, ids: perks.filter((p) => perkKind(p) === "shield") },
   ];
   return (
     <>
@@ -99,7 +99,7 @@ function KitTabView({ rec, perks }: { rec: ScrapperRecord; perks: PerkId[] }) {
       {groups.map((g) => (
         <section key={g.title} aria-label={g.title}>
           <h2 className={css.groupTitle}>{g.title} <span className={css.groupCount}>{g.ids.length}</span></h2>
-          {g.ids.length === 0 ? <p className={css.empty}>{UI.kit.empty}</p> : (
+          {g.ids.length === 0 ? <p className={css.empty}>{g.empty}</p> : (
             <div className={css.list}>
               {g.ids.map((id, i) => <PerkRow key={`${id}${i}`} id={id} owned={perks} onOpen={setOpen} />)}
             </div>
