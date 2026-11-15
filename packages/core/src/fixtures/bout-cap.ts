@@ -13,14 +13,14 @@
 import type { BoutLog } from "../contracts/log";
 
 export const boutCap: BoutLog = {
-  logVersion: 1, rulesVersion: 1, seed: 1403,
+  logVersion: 2, rulesVersion: 1, seed: 1403,
   init: {
     actors: [
       { id: "a0", kind: "scrapper", maxHp: 61 },
       { id: "b0", kind: "scrapper", maxHp: 61 },
     ],
     bag: { a: [], b: [{ k: "weapon", id: "pocket-knife" }] },
-    door: { a: false, b: false },
+    shield: { a: null, b: null },
   },
   steps: [
     { t: "enter", turn: 0, actor: "a0" },

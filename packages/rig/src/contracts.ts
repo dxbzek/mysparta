@@ -24,6 +24,7 @@
  *    and `strikePoint`: a content clip name answers with its gate clip. Only a name outside
  *    `SCRAPPER_CLIPS` (or outside `COMPANION_CLIPS` for a companion) falls back to "idle", with
  *    one warning. The stage never applies a fallback and never needs to know which rig it has.
+ *    (Content v2 added a 24th scrapper clip, "block-shield": a block with the shield raised.)
  *    Two fallbacks change the timeline and the stage must cope: `throw` becomes a clip with a
  *    `contact` and no `release`, and `smash` becomes 280 with contact at 150. So the stage reads
  *    the strike of a clip with `strikeTime`, which takes `release` when there is no `contact`.
@@ -34,23 +35,24 @@
  *  - Gate-only rig. A rig built from the gate pack alone (`createRig(gatePack)`, the seam from
  *    the first integration to the content merge) still answers for everything the gate pack
  *    has no art for, with fixed stand-ins, never shipped:
- *      companions: a placeholder body at the rules' size (Raccoon 26 units tall, Goose 40, Boar
+ *      companions: a placeholder body at the rules' size (content v2 pets at the capsule rig's sizes; Raccoon 26 units tall, Goose 40, Boar
  *        52 tall and 70 long) with a mouth at its front end, and the clip times of
  *        `PLACEHOLDER_COMPANION_CLIPS` (attack 280 with contact at 150);
  *      a weapon outside `GATE_WEAPONS`: a straight bar `placeholderLength(reach)` long (Reach
  *        from WEAPON_META), gripped at one end at the item's own size, its `tip` at the far end,
  *        no `grip2`, no links (a weapon that bends is drawn straight), drawn in both hands for a
  *        pair. Its strike point is that far end;
- *      the Car Door: a `DOOR_PLACEHOLDER` panel held at its inner edge on the back forearm.
+ *      a shield: a `SHIELD_PLACEHOLDER` slab of its own size held at its inner edge on the back
+ *        forearm, in its own flat colour.
  *    `capsuleGateRig` follows the same rule, so the stage lane tests against what the real rig
  *    will do. A rig test checks `createRig(gatePack)` against this rule.
  *  - Aim. A clip with a `contact` bends toward a target height when the caller asks (`Aim`), so
  *    the striking end meets a short target or a tall one. See `samplePose` and `strikePoint`.
- *  - Things have one size. `Dress.scale` and the build size the body. A weapon, a door or a Move
+ *  - Things have one size. `Dress.scale` and the build size the body. A weapon, a shield or a Move
  *    prop is drawn at its own size in the hand, in flight and on the floor, so it never changes
  *    size when it is thrown, dropped or snatched.
  */
-import type { CompanionId, HeldId, Look, PerkId, PropId, SkillId, StageId, StatKey } from "@rankzero/core";
+import type { CompanionId, HeldId, Look, PerkId, PropId, ShieldId, SkillId, StageId, StatKey } from "@rankzero/core";
 
 export type RigId = "scrapper" | CompanionId;
 export const SCRAPPER_BONES = ["root","pelvis","torso","head","armB.up","armB.lo","handB",
@@ -59,7 +61,7 @@ export type BoneId = (typeof SCRAPPER_BONES)[number];
 
 export const SCRAPPER_CLIPS = ["idle","enter","dash","backpedal","brace","punch","flick","swing",
   "smash","thrust","throw","draw","hit-light","hit-heavy","block","evade","snared","power-up",
-  "drink","slam","slammed","ko-fall","win"] as const;                        // 23
+  "drink","slam","slammed","ko-fall","win","block-shield"] as const;         // 24 (content v2: block-shield)
 export const GATE_CLIPS = ["idle","enter","dash","backpedal","brace","punch","flick","swing",
   "draw","hit-light","evade","ko-fall","win"] as const;                      // 13
 export const COMPANION_CLIPS = ["idle","run","attack","hit","ko","flee"] as const;
@@ -71,7 +73,7 @@ export type CompanionClip = (typeof COMPANION_CLIPS)[number];
  *  (see "Clip fallback" above). */
 export const CLIP_FALLBACK: Record<ContentClip, GateClip> = { smash: "swing", thrust: "flick",
   throw: "flick", "hit-heavy": "hit-light", block: "brace", snared: "brace", "power-up": "win",
-  drink: "draw", slam: "swing", slammed: "ko-fall" };
+  drink: "draw", slam: "swing", slammed: "ko-fall", "block-shield": "brace" };
 
 export const GATE_WEAPONS = ["fists","pipe","pocket-knife"] as const;
 export type GateWeapon = (typeof GATE_WEAPONS)[number];
@@ -184,8 +186,10 @@ export type MoveProp = "can" | "whistle" | "horn";
  *  held item is a pair (`WEAPON_META[id].pair`: bare fists, Knuckle Dusters, Screwdrivers).
  *  The rig reads it only for a pair and ignores it for anything else. Default "F".
  *  `prop` is a Move's object, drawn in the back hand while the Move's clip plays, so a held
- *  weapon stays where it is. */
-export interface Dress { look?: Look; held: HeldId | null; door: boolean; scale: number; tint?: "white";
+ *  weapon stays where it is.
+ *  `shield` is the shield on the back forearm, or null. It turns with the forearm; the
+ *  "block-shield" clip raises it in front of the body. */
+export interface Dress { look?: Look; held: HeldId | null; shield: ShieldId | null; scale: number; tint?: "white";
   lead?: "F" | "B"; prop?: MoveProp }
 /** Where the feet stand, in stage units, and which way the actor faces (1 = right, -1 = left). */
 export interface Place { x: number; y: number; facing: 1 | -1 }
@@ -248,7 +252,9 @@ export interface GatePack {                 // the rig lane: packages/rig/src/ga
 export interface ContentPack {              // the content-art lane: packages/rig/src/content/pack.ts
   clips: Record<ContentClip, Clip>;
   weapons: Record<Exclude<HeldId, GateWeapon>, WeaponArt>;
-  door: WeaponArt;
+  /** Content v2: the six shields (they replace the one `door`). `grip` is the inner handle on
+   *  the back forearm; `tip` is the middle of the face that takes a blow. */
+  shields: Record<ShieldId, WeaponArt>;
   props: Record<MoveProp, PropArt>;
   stages: Record<Exclude<StageId, "yard">, StageDraw>;
   looks: AppearanceSet;                     // full LOOK_SPACE counts; re-uses the gate parts as its first entries
@@ -297,8 +303,12 @@ export const PLACEHOLDER_COMPANION_CLIPS: Readonly<Record<CompanionClip, ClipInf
 /** Length in units of the stand-in for a weapon with no art: 12 plus 10 for each point of Reach
  *  (12 for a Thrown weapon or Knuckle Dusters, 52 for a Bike Chain). */
 export function placeholderLength(reach: number): number { return 12 + 10 * reach; }
-/** The stand-in Car Door: a flat panel `w` wide and `h` tall, held at its inner edge. */
-export const DOOR_PLACEHOLDER = { w: 22, h: 32 } as const;
+/** The stand-in shields: a flat slab `w` wide and `h` tall, held at its inner edge (the Car Door
+ *  keeps the first panel's 22 x 32). */
+export const SHIELD_PLACEHOLDER: Readonly<Record<ShieldId, { w: number; h: number }>> = {
+  "car-door": { w: 22, h: 32 }, "bin-lid": { w: 18, h: 18 }, "wooden-pallet": { w: 26, h: 30 },
+  "ironing-board": { w: 12, h: 44 }, "skateboard": { w: 8, h: 30 }, "riot-shield": { w: 24, h: 42 },
+};
 
 /** Everything a consumer may call. The stage and the app get a Rig by injection. */
 export interface Rig {

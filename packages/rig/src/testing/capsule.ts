@@ -9,7 +9,7 @@
  * the yard only, the four gate effects, no Move props, placeholder companions with the times of
  * `PLACEHOLDER_COMPANION_CLIPS`, every weapon outside the gate a straight bar
  * `placeholderLength(reach)` long (so a weapon that bends does not bend), and the
- * `DOOR_PLACEHOLDER` panel. The stage lane tests the fallback path with it before the first
+ * `SHIELD_PLACEHOLDER` slabs. The stage lane tests the fallback path with it before the first
  * integration.
  *
  * Both doubles bend a clip with a contact toward an `Aim`: the waist, both shoulders and (for a
@@ -39,10 +39,11 @@
  *   companion idle 1200, hit 300, ko 600.
  */
 import { WEAPON_META } from "@rankzero/core";
-import type { CompanionId, HeldId, Look, PropId, StageId } from "@rankzero/core";
+import { isShieldId } from "@rankzero/core";
+import type { CompanionId, HeldId, Look, PropId, ShieldId, StageId } from "@rankzero/core";
 import type { Aim, Clip, ClipInfo, Ctx2D, DrawEnv, Dress, Ease, FaceId, FxKind, IconRef, Key, MoveProp, Offset,
   Place, Pose, Rig, RigId, SvgArt } from "../contracts";
-import { CLIP_FALLBACK, COMPANION_CLIPS, DOOR_PLACEHOLDER, GATE_CLIPS, GATE_WEAPONS, SCRAPPER_BONES, SCRAPPER_CLIPS,
+import { CLIP_FALLBACK, COMPANION_CLIPS, SHIELD_PLACEHOLDER, GATE_CLIPS, GATE_WEAPONS, SCRAPPER_BONES, SCRAPPER_CLIPS,
   TRAIL_LEN, TRAIL_STEP_MS, placeholderLength, strikeTime } from "../contracts";
 import type { CompanionClip, ContentClip, ScrapperClip } from "../contracts";
 
@@ -161,6 +162,12 @@ const SCRAPPER: Record<ScrapperClip, Clip> = {
     k(60, { torso: -36, head: -22, "armF.up": -110, "armF.lo": -30, "armB.up": -80, "armB.lo": -20, "legF.up": -30, "legF.lo": 30, "legB.up": 18 }, { root: [-6, 0], scale: [0.94, 1.06], face: "dazed", ease: "out" }),
     k(180, { torso: -28, head: -16, "armF.up": -90, "armF.lo": -40, "armB.up": -60, "armB.lo": -30, "legF.up": -22, "legF.lo": 24, "legB.up": 16 }, { root: [-5, 0], face: "dazed" }),
     k(300, I, { ease: "inOut" }),
+  ]),
+  "block-shield": clip(220, false, [], [
+    k(0, I),
+    k(60, { torso: -8, "armB.up": -70, "armB.lo": -60, "armF.up": -20, "armF.lo": -40, "legF.up": -18, "legF.lo": 26, "legB.up": 22 }, { face: "grit", ease: "out" }),
+    k(160, { torso: -12, "armB.up": -74, "armB.lo": -58, "armF.up": -22, "armF.lo": -42, "legF.up": -18, "legF.lo": 26, "legB.up": 24 }, { root: [-2, 0], face: "grit" }),
+    k(220, I, { ease: "inOut" }),
   ]),
   block: clip(220, false, [], [
     k(0, I),
@@ -497,7 +504,8 @@ const HAIR = ["#2B2233", "#5A3A29", "#8C5A2B", "#C98B2E", "#D8D2C4", "#B2413A", 
 const TOPS = ["#FF5A4E", "#22D3B6", "#FFD23F", "#4CC9F0", "#A78BFA", "#5BD66F", "#F4F5FA", "#FF9E3D",
   "#E86BA8", "#7FB7FF", "#B8E04A", "#C9CCE0"];
 const BOTTOMS = ["#3E4A8A", "#4A4458", "#2F5D62", "#6A4A3A", "#555B7A"];
-const COMPANION_FILL: Record<CompanionId, string> = { raccoon: "#8D93A8", goose: "#F4F5FA", boar: "#9A6B4F" };
+const COMPANION_FILL: Record<CompanionId, string> = { raccoon: "#8D93A8", goose: "#F4F5FA", boar: "#9A6B4F",
+  "stray-dog": "#B98A5A", crow: "#2B2233", "alley-cat": "#E39A4F" };
 const pickOf = (list: readonly string[], i: number | undefined): string => list[((i ?? 0) % list.length + list.length) % list.length]!;
 
 function line(ctx: Ctx2D, x0: number, y0: number, x1: number, y1: number, width: number, colour: string): void {
@@ -717,25 +725,14 @@ function drawScrapper(env: DrawEnv, pose: Pose, dress: Dress, at: Place, gateOnl
   // back limbs
   seg(B.legBup, 5.5, bottom); seg(B.legBlo, 5, bottom); seg(B.footB, 5.5, INK);
   seg(B.armBup, 4.6, top); seg(B.armBlo, 4.2, skin);
-  if (dress.door) {
+  if (dress.shield !== null && dress.shield !== undefined) {
     const q = j[B.armBlo]!;
     const [dx, dy] = m(q.ex, q.ey);
     ctx.save();
     ctx.translate(dx, dy);
-    ctx.scale(f, 1);                                      // the door has its own size too
+    ctx.scale(f, 1);                                      // the shield has its own size too
     ctx.rotate((q.rot + 8) * DEG);
-    ctx.fillStyle = tint ? WHITE : "#7FB7FF";
-    ctx.strokeStyle = INK;
-    ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.rect(-4, -26, DOOR_PLACEHOLDER.w, DOOR_PLACEHOLDER.h);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = tint ? WHITE : "#C9CCE0";
-    ctx.beginPath();
-    ctx.rect(0, -23, 14, 10);
-    ctx.fill();
-    ctx.stroke();
+    shieldSlab(ctx, dress.shield, tint);
     ctx.restore();
   }
   hand(B.handB, 3.6);
@@ -768,6 +765,9 @@ const BEASTS: Record<CompanionId, Beast> = {
   raccoon: { leg: 8, rx: 12, ry: 6.5, head: 5.5, neck: 0, tail: 13 },       // 26 units tall
   goose: { leg: 12, rx: 10, ry: 7, head: 4.2, neck: 12, tail: 6 },         // 40 units tall
   boar: { leg: 15, rx: 27, ry: 15, head: 11, neck: 0, tail: 8 },           // 52 tall, 70 long
+  "stray-dog": { leg: 12, rx: 15, ry: 7.5, head: 6, neck: 0, tail: 11 },   // content v2
+  crow: { leg: 9, rx: 7, ry: 7, head: 3.5, neck: 5, tail: 8 },
+  "alley-cat": { leg: 10, rx: 12, ry: 5, head: 5, neck: 0, tail: 15 },
 };
 /** One companion for one frame. Bones: root, body, head, legF, legB, tail. */
 interface BeastFigure { b: Beast; j: Joint[]; m: (x: number, y: number) => [number, number]; s: number }
@@ -901,25 +901,36 @@ function hitPoint(rig: RigId, dress: Dress, zone: "head" | "body", gateOnly: boo
   return { x, y };
 }
 
-function drawProp(env: DrawEnv, item: PropId, at: Place & { rot: number }, gateOnly: boolean): void {
-  const ctx = env.ctx;
-  if (item === "car-door") {
-    ctx.save();
-    ctx.translate(at.x, at.y);
-    ctx.scale(at.facing, 1);
-    ctx.rotate(at.rot * DEG);
-    ctx.fillStyle = "#7FB7FF";
-    ctx.strokeStyle = INK;
-    ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.rect(-4, -26, DOOR_PLACEHOLDER.w, DOOR_PLACEHOLDER.h);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = "#C9CCE0";
+/** One shield as a plain slab of its `SHIELD_PLACEHOLDER` size, held at its inner edge, in
+ *  its own flat colour. The Car Door keeps its window. */
+const SHIELD_FILL: Record<ShieldId, string> = { "car-door": "#7FB7FF", "bin-lid": "#9AA3B5", "wooden-pallet": "#C99A5B",
+  "ironing-board": "#F4F5FA", "skateboard": "#FF9E3D", "riot-shield": "#BFE3F2" };
+function shieldSlab(ctx: Ctx2D, id: ShieldId, tint: boolean): void {
+  const size = SHIELD_PLACEHOLDER[id];
+  ctx.fillStyle = tint ? WHITE : SHIELD_FILL[id];
+  ctx.strokeStyle = INK;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.rect(-4, 6 - size.h, size.w, size.h);
+  ctx.fill();
+  ctx.stroke();
+  if (id === "car-door") {
+    ctx.fillStyle = tint ? WHITE : "#C9CCE0";
     ctx.beginPath();
     ctx.rect(0, -23, 14, 10);
     ctx.fill();
     ctx.stroke();
+  }
+}
+
+function drawProp(env: DrawEnv, item: PropId, at: Place & { rot: number }, gateOnly: boolean): void {
+  const ctx = env.ctx;
+  if (isShieldId(item)) {
+    ctx.save();
+    ctx.translate(at.x, at.y);
+    ctx.scale(at.facing, 1);
+    ctx.rotate(at.rot * DEG);
+    shieldSlab(ctx, item, false);
     ctx.restore();
     return;
   }
@@ -1165,13 +1176,13 @@ function makeRig(gateOnly: boolean): Rig {
   };
 }
 
-/** The full double: all 23 scrapper clips, five arenas, every effect, the Move props. */
+/** The full double: all 24 scrapper clips, five arenas, every effect, the Move props. */
 export const capsuleRig: Rig = makeRig(false);
 /** The double as a gate-pack rig would behave: content clips answer with their gate clip
  *  (`CLIP_FALLBACK`), every arena draws the yard, content effects and Move props draw nothing. */
 export const capsuleGateRig: Rig = makeRig(true);
 
-/** The clip names the capsule rig holds, for tests: all 23 scrapper clips and the 6 companion clips. */
+/** The clip names the capsule rig holds, for tests: all 24 scrapper clips and the 6 companion clips. */
 export const CAPSULE_CLIPS = { scrapper: SCRAPPER_CLIPS, companion: COMPANION_CLIPS, gate: GATE_CLIPS } as const;
 /** Weapon length in the capsule double, for tests: 12 + 10 x Reach units. */
-export function capsuleWeaponLength(id: HeldId | PropId): number { return id === "fists" || id === "car-door" ? 0 : weaponLength(id); }
+export function capsuleWeaponLength(id: HeldId | PropId): number { return id === "fists" || isShieldId(id) ? 0 : weaponLength(id); }

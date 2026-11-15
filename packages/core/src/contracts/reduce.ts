@@ -13,7 +13,7 @@
  *   throw      the target's HP; the bag; unless `after` is "held" the thrower's hand is empty;
  *              on "gone" the weapon lands on the floor
  *   disarm     unless `resisted`: the target's hand is empty and the weapon lands on the floor
- *   doorOff    the target's door is off and lands on the floor
+ *   shieldOff  the target's shield is off and lands on the floor
  *   heal       the target's HP becomes hpAfter
  *   snare / free    the snared flag of the target / of the actor
  *   flee       the actor's status becomes "fled"
@@ -35,7 +35,7 @@ export function initialState(init: BoutInit): BoutState {
   for (const a of init.actors) {
     actors[a.id] = {
       id: a.id, kind: a.kind, hp: a.maxHp, maxHp: a.maxHp, status: "up", held: "fists",
-      snared: false, door: a.kind === "scrapper" ? init.door[sideOf(a.id)] : false,
+      snared: false, shield: a.kind === "scrapper" ? init.shield[sideOf(a.id)] : null,
     };
   }
   return {
@@ -45,7 +45,7 @@ export function initialState(init: BoutInit): BoutState {
   };
 }
 
-type Patch = Partial<Pick<ActorState, "hp" | "status" | "held" | "snared" | "door">>;
+type Patch = Partial<Pick<ActorState, "hp" | "status" | "held" | "snared" | "shield">>;
 
 /** One step forward. Pure and instant. An id that is not in the state is ignored, never thrown on. */
 export function reduce(s: BoutState, step: Step): BoutState {
@@ -107,9 +107,9 @@ export function reduce(s: BoutState, step: Step): BoutState {
         drop(step.weapon, step.target);
       }
       break;
-    case "doorOff":
-      patch(step.target, { door: false });
-      drop("car-door", step.target);
+    case "shieldOff":
+      patch(step.target, { shield: null });
+      drop(step.shield, step.target);
       break;
     case "heal":
       patch(step.target, { hp: step.hpAfter });

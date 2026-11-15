@@ -8,7 +8,8 @@ export type Result<T, E extends string> = { ok: true; value: T } | { ok: false; 
 export interface Settings { sound: boolean; speed: 1 | 2; reducedMotion: "system" | "on" | "off"; liveLog: boolean }
 /** One stored bout. `at` is a time in ms since 1970, from the injected `Clock`. `lineId` picks
  *  the one-line result text. */
-export interface BoutRecord { id: string; at: number; seed: number; rulesVersion: 1; logVersion: 1;
+/** `logVersion` 1 is a row stored before content v2 (contract rev 2): its log is never kept. */
+export interface BoutRecord { id: string; at: number; seed: number; rulesVersion: 1; logVersion: 1 | 2;
   snapshotA: FighterSnapshot; snapshotB: FighterSnapshot; result: BoutResult;
   role: "attacker" | "defender"; fighterId: string; xp: 1 | 2; lineId: number;
   watched: boolean; before: { xp: number; boutsUsed: number };   // the UI shows these until watched

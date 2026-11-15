@@ -6,7 +6,7 @@
  * and no number of the rules, so a retune never changes it.
  */
 import type { ActorId, ActorState, BagItem, BoutLog, BoutState, Proc, Side, Step } from "./log";
-import { COMPANION_IDS, isCompanionId, isMoveId, isSkillId, isWeaponId } from "./ids";
+import { COMPANION_IDS, isCompanionId, isMoveId, isProcId, isShieldId, isWeaponId } from "./ids";
 import { initialState, killStep, reduce, resultOf } from "./reduce";
 import { isScrapper, scrapperOf, sideOf } from "./log";
 
@@ -40,7 +40,7 @@ type Cause =
   | { kind: "move"; actor: ActorId; target: ActorId | null; slam: boolean }
   | { kind: "overtime"; actor: ActorId };
 interface Run { by: Cause; rank: number; mustFree: Set<ActorId> }
-const RANK_WORDS = "disarm, doorOff, free, ko";
+const RANK_WORDS = "disarm, shieldOff, free, ko";
 
 /** Every broken log rule, as plain sentences. An empty list means the log is well formed. */
 export function checkLog(log: BoutLog): string[] {
@@ -49,7 +49,7 @@ export function checkLog(log: BoutLog): string[] {
     out.push(step === null ? msg : `step ${i} (${step.t}, turn ${step.turn}): ${msg}`);
   };
 
-  if (log.logVersion !== 1) say(-1, null, "logVersion is not 1");
+  if (log.logVersion !== 2) say(-1, null, "logVersion is not 2");
   if (log.rulesVersion !== 1) say(-1, null, "rulesVersion is not 1");
   if (!isWhole(log.seed)) say(-1, null, "seed is not a whole number");
 
@@ -71,6 +71,8 @@ export function checkLog(log: BoutLog): string[] {
     }
   }
   for (const side of ["a", "b"] as const) {
+    const sh: unknown = (log.init.shield as Record<string, unknown> | undefined)?.[side];
+    if (sh !== null && (typeof sh !== "string" || !isShieldId(sh))) say(-1, null, `init: side ${side} carries an unknown shield "${String(sh)}"`);
     for (const it of log.init.bag[side]) {
       if (it.k === "weapon" && !isWeaponId(it.id)) say(-1, null, `init: bag ${side} holds an unknown weapon "${it.id}"`);
       if (it.k === "move" && (!isMoveId(it.id) || !isWhole(it.uses) || it.uses < 1)) say(-1, null, `init: bag ${side} holds a bad Move "${it.id}"`);
@@ -113,7 +115,7 @@ export function checkLog(log: BoutLog): string[] {
       if (list === undefined) return;
       for (const p of list) {
         get(p.by, "proc owner");
-        if (!isSkillId(p.skill)) err(`proc names an unknown skill "${p.skill}"`);
+        if (!isProcId(p.skill)) err(`proc names an unknown skill or shield "${p.skill}"`);
       }
     };
     const lastStand = (list: readonly Proc[] | undefined, target: ActorId): boolean =>
@@ -145,8 +147,8 @@ export function checkLog(log: BoutLog): string[] {
       err(`the turn in which the snare of ${timeoutOf} timed out was skipped: it holds the free step and an overtime loss only`);
     }
 
-    // The steps a hit causes come straight after it, in the order disarm, doorOff, free, ko.
-    const rank = step.t === "disarm" ? 0 : step.t === "doorOff" ? 1
+    // The steps a hit causes come straight after it, in the order disarm, shieldOff, free, ko.
+    const rank = step.t === "disarm" ? 0 : step.t === "shieldOff" ? 1
       : step.t === "free" && step.cause === "hit" ? 2 : step.t === "ko" ? 3 : -1;
     const before = order.run;
     const cause: Cause | null = before === null ? null : before.by;
@@ -165,8 +167,8 @@ export function checkLog(log: BoutLog): string[] {
     const open = (by: Cause, snaredHit: readonly ActorId[]): void => {
       order.run = { by, rank: -1, mustFree: new Set(snaredHit) };
     };
-    /** A disarm or a doorOff names the actor and the target of the step that caused it. */
-    const causedBy = (actor: ActorId, target: ActorId, stepCause: "hit" | "slam", door: boolean): void => {
+    /** A disarm or a shieldOff names the actor and the target of the step that caused it. */
+    const causedBy = (actor: ActorId, target: ActorId, stepCause: "hit" | "slam", shield: boolean): void => {
       if (cause === null) return;
       if (cause.kind === "overtime") { err("an overtime loss knocks nothing off"); return; }
       if (cause.actor !== actor || cause.target !== target) err("it must name the actor and the target of the step that caused it");
@@ -174,8 +176,8 @@ export function checkLog(log: BoutLog): string[] {
         if (!cause.slam || stepCause !== "slam") err(`after a Move only a Body Slam knocks things off, with cause "slam"`);
       } else {
         if (stepCause !== "hit") err(`after a swing the cause is "hit"`);
-        if (door ? cause.outcome === "evade" : cause.outcome !== "hit") {
-          err(door ? "an evaded swing cannot knock a door off" : "only a landed hit can disarm");
+        if (shield ? cause.outcome === "evade" : cause.outcome !== "hit") {
+          err(shield ? "an evaded swing cannot knock a shield off" : "only a landed hit can disarm");
         }
       }
     };
@@ -276,10 +278,10 @@ export function checkLog(log: BoutLog): string[] {
         causedBy(step.actor, step.target, step.cause, false);
         break;
       }
-      case "doorOff": {
+      case "shieldOff": {
         up(step.actor, "actor");
         const t = get(step.target, "target");
-        if (t !== null && !t.door) err("the target carries no door");
+        if (t !== null && t.shield !== step.shield) err(`knocks off ${step.shield} but the target carries ${String(t.shield)}`);
         causedBy(step.actor, step.target, step.cause, true);
         break;
       }
