@@ -144,10 +144,39 @@ describe("choreography", () => {
           else expect(tr.tags.some((g) => g.text === "SKILL:FIRM-GRIP")).toBe(true);
           break;
         case "body-slam": expect(mine.map((g) => g.clip)).toContain("slam"); expect(segsOf(s.target!).some((g) => g.clip === "slammed" && g.from >= at)).toBe(true); break;
+        case "sand-in-the-eyes": expect(mine.map((g) => g.clip)).toContain("throw"); expect(fx).toContain("dust"); break;
+        case "taunt": expect(mine.map((g) => g.clip)).toContain("win"); expect(fx).toContain("rings"); break;
+        case "second-wind": expect(mine.map((g) => g.clip)).toContain("power-up"); expect(fx).toContain("plus"); break;
+        case "grapple": expect(mine.map((g) => g.clip)).toContain("slam"); expect(mine.map((g) => g.clip)).toContain("dash");
+          // the hold snares with no tarp: the target plays its snared clip and no tarp lands on it
+          expect(segsOf(s.target!).some((g) => g.clip === "snared" && g.from >= at)).toBe(true);
+          expect(tr.fx.some((f) => f.fx === "tarp" && f.from >= at && f.from <= end && f.follow === s.target)).toBe(false);
+          break;
       }
       seen.add(s.move);
     });
-    expect(seen.size).toBe(8);
+    expect(seen.size).toBe(12);
+  });
+
+  it("raises the shield on a block made while one is carried, and knocks it to the floor on shieldOff", () => {
+    const p = fixturePlayer("bout-all-steps");
+    const log = BOUT_FIXTURES["bout-all-steps"].log;
+    const tr = p.tracks;
+    log.steps.forEach((s, i) => {
+      if (s.t !== "shieldOff") return;
+      const at = p.timeline.stepAt[i]!;
+      // the shield leaves the back arm: it flies as its own prop and ends on the floor
+      expect(tr.flights.some((f) => f.item === s.shield && f.after === "floor" && f.from >= at - 1), `flight ${i}`).toBe(true);
+      expect(tr.byId.get(s.target)!.shields.some((c) => c.shield === null && c.from >= at - 1), `off ${i}`).toBe(true);
+      expect(tr.fx.some((f) => f.fx === "spark" && Math.abs(f.from - at) < 1), `splinters ${i}`).toBe(true);
+    });
+    // The first block of the bout is made with the Car Door up: the block-shield clip, not the arms.
+    const first = log.steps.findIndex((s) => s.t === "attack" && s.outcome === "block");
+    const target = (log.steps[first] as { target: "a0" }).target;
+    const segs = tr.byId.get(target)!.segs.filter((g) => g.from >= p.timeline.stepAt[first]!);
+    expect(segs.map((g) => g.clip)).toContain("block-shield");
+    expect(tr.byId.get("a0")!.initialShield).toBe("car-door");
+    expect(tr.byId.get("b0")!.initialShield).toBe("bin-lid");
   });
 
   it("shows a skill tag for every step with procs, at most one per step; the OVERTIME sticker once", () => {

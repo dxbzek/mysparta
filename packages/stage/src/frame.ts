@@ -14,7 +14,7 @@ import type { EffectKey } from "./contracts";
 import { IMPACT_FAMILIES } from "./cues";
 import { pointAt } from "./flight";
 import type { Nudge, Seg, Tracks } from "./model";
-import { clipTime, doorAt, drawPlace, eased, heldAt, segAt } from "./track";
+import { clipTime, drawPlace, eased, heldAt, segAt, shieldAt } from "./track";
 import { CONTACT, FLIGHT } from "./tuning";
 
 export interface FrameActor {
@@ -69,7 +69,7 @@ export function frameAt(tr: Tracks, t: number): Frame {
     for (const n of p.nudges) if (n.key === "knockback" && n.contact !== null) present.push({ key: "knockback", contact: n.contact });
     const seg = segAt(a, t);
     if (seg !== null && seg.flinchOf !== undefined) present.push({ key: "flinch", contact: seg.flinchOf });
-    const dress: Dress = { held: a.rig === "scrapper" ? heldAt(a, t) : null, door: a.rig === "scrapper" ? doorAt(a, t, initialDoor(tr, a.id)) : false,
+    const dress: Dress = { held: a.rig === "scrapper" ? heldAt(a, t) : null, shield: a.rig === "scrapper" ? shieldAt(a, t) : null,
       scale: a.scale };
     if (a.look !== undefined) dress.look = a.look;
     if (white.has(a.id)) dress.tint = "white";
@@ -195,6 +195,3 @@ export function frameAt(tr: Tracks, t: number): Frame {
   return { t, shake: { x: sx, y: sy }, crowd, actors, floor, flights, fx, texts, tape, present };
 }
 
-function initialDoor(tr: Tracks, id: ActorId): boolean {
-  return tr.byId.get(id)?.initialDoor === true;
-}

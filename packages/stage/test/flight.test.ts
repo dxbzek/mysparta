@@ -20,7 +20,7 @@ function throwLog(weapon: WeaponId, after: "held" | "bag" | "gone"): BoutLog {
     { t: "throw", turn: 1, actor: "a0", target: "b0", weapon, outcome: "hit", damage: 9, crit: false, hpAfter: 81, n: 0, after, bagAfter: [] },
     { t: "end", turn: 2, winner: "a", reason: "cap" },
   ];
-  return { logVersion: 1, rulesVersion: 1, seed: 1400, init: { actors, bag: { a: [{ k: "weapon", id: weapon }], b: [] }, door: { a: false, b: false } },
+  return { logVersion: 2, rulesVersion: 1, seed: 1400, init: { actors, bag: { a: [{ k: "weapon", id: weapon }], b: [] }, shield: { a: null, b: null } },
     steps, result: { winner: "a", reason: "cap", turns: 2, hpPct: { a: 100, b: 90 } } };
 }
 function flightsOf(weapon: WeaponId, after: "held" | "bag" | "gone"): FlightItem[] {
@@ -81,6 +81,31 @@ describe("flights", () => {
     // gone: no way back
     expect(flightsOf("boomerang", "gone").length).toBe(2);       // the throw, then the drop to the floor
     expect(flightsOf("boomerang", "gone")[1]!.after).toBe("floor");
+  });
+
+  it("content v2: every new Thrown weapon flies its own way and arrives on the target's hit point", () => {
+    expect([WEAPON_META["plastic-bottle"].flight, WEAPON_META["paint-can"].flight, WEAPON_META["traffic-cone"].flight]).toEqual(["tumble", "tumble", "tumble"]);
+    // the Hubcap spins flat on a low arc
+    const [hub] = flightsOf("hubcap", "held");
+    expect(hub!.path.kind).toBe("spin");
+    expect(spin(hub!)).toBeGreaterThan(90);
+    // the Tyre is bowled: it runs below the line (shin height) and turns fast
+    const [tyre] = flightsOf("tyre", "held");
+    expect(tyre!.path.kind).toBe("roll");
+    expect(bow(tyre!)).toBeGreaterThan(20);
+    expect(spin(tyre!)).toBeGreaterThan(90);
+    // the Rubber Ball goes down to the floor, bounces once and comes up into the target
+    const [ball] = flightsOf("rubber-ball", "held");
+    expect(ball!.path.kind).toBe("bounce");
+    expect(bow(ball!)).toBeGreaterThan(25);
+    const low = pointAt(ball!.path, 0.6).y;
+    expect(low).toBeGreaterThan(pointAt(ball!.path, 0.3).y);
+    expect(low).toBeGreaterThan(pointAt(ball!.path, 0.9).y);
+    for (const id of ["plastic-bottle", "rubber-ball", "paint-can", "traffic-cone", "hubcap", "tyre"] as const) {
+      const [f] = flightsOf(id, "held");
+      const end = pointAt(f!.path, 1);
+      expect(Math.hypot(end.x - f!.path.x1, end.y - f!.path.y1), id).toBeLessThan(1e-9);
+    }
   });
 
   it("a weapon that goes back to the bag fades at the target; a gone one lies on the floor", () => {

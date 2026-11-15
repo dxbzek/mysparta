@@ -10,9 +10,16 @@
  *                 Stopped by Firm Grip: the tag, and no jump.
  *   Air Horn      power-up clip with the horn, rings across the stage; the flee steps follow.
  *   Body Slam     dash in, slam on the user and slammed on the target together, contact at the
- *                 floor hit with knockout-size shake; the weapon and door fly off after.
+ *                 floor hit with knockout-size shake; the weapon and shield fly off after.
+ * Content v2:
+ *   Sand in the Eyes  throw clip; a dust cloud bursts on the target's head.
+ *   Taunt         the win clip, a beckoning pose; rings from the head. No boost.
+ *   Second Wind   power-up clip, a breath; the heal step follows.
+ *   Grapple       dash in, the slam clip with the target held in its hit pose, contact at the
+ *                 squeeze; the snare step follows (the target stays held, no tarp lands).
  */
 import type { ActorId, StepOf } from "@rankzero/core";
+import { toStage } from "@rankzero/rig";
 import { hitSpot, land, moveBanner, overHead, skillTag } from "../effects";
 import { flightMs, makePath } from "../flight";
 import { STAGE_W } from "../layout";
@@ -45,6 +52,15 @@ export function move(b: Builder, step: MoveStep, i: number): Placed {
     case "firecrackers": return firecrackers(b, step, i, s, c);
     case "snatch": return snatch(b, step, i, s, c);
     case "body-slam": return bodySlam(b, step, i, s, c);
+    case "sand-in-the-eyes": return sand(b, step, i, s, c);
+    case "taunt": return taunt(b, step, i, s, c);
+    case "second-wind": {
+      const end = b.play(step.actor, "power-up", c).to;
+      b.cursor = end;
+      skillTag(b, step.procs, c);
+      return { at: s, apply: end };
+    }
+    case "grapple": return grapple(b, step, i, s, c);
     default: {
       const unknown: never = step.move;
       throw new Error(`stage: no staging for the Move ${String(unknown)}`);
@@ -155,6 +171,52 @@ function snatch(b: Builder, step: MoveStep, i: number, s: number, c: number): Pl
   skillTag(b, step.procs, at);
   b.cursor = Math.max(sw.end, apply) + BEAT.recoverMs;
   return { at: s, apply };
+}
+
+function sand(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
+  const target = step.target;
+  if (target === undefined || !b.has(target)) { b.cursor = c; return { at: s, apply: c }; }
+  const tp = b.place(target, c);
+  const t = throwClip(b, i, step.actor, tp.x, c);
+  const head = toStage(b.place(target, t.release), b.rig.hitPoint(b.track(target).rig, b.dress(target), "head"));
+  const ms = flightMs(Math.hypot(head.x - t.hand.x, head.y - t.hand.y));
+  const at = t.release + ms;
+  b.fx.push({ fx: "dust", from: at, to: at + MOVE.ringsMs, x: head.x, y: head.y, facing: tp.facing, seed: b.opts.cosmeticSeed + i,
+    contact: null });
+  b.play(target, "hit-light", at);
+  skillTag(b, step.procs, at);
+  b.cursor = Math.max(t.end, at + MOVE.ringsMs);
+  return { at: s, apply: at };
+}
+
+function taunt(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
+  const seg = b.play(step.actor, "win", c, { until: c + MOVE.ringsMs });
+  const head = overHead(b, step.actor, c);
+  const p = b.place(step.actor, c);
+  b.fx.push({ fx: "rings", from: c, to: c + MOVE.ringsMs, x: 0, y: 0, facing: p.facing, seed: b.opts.cosmeticSeed + i,
+    contact: null, follow: step.actor, dy: head.y + 12 - p.y });
+  skillTag(b, step.procs, c);
+  b.cursor = Math.max(seg.to, c + MOVE.ringsMs);
+  return { at: s, apply: c };
+}
+
+function grapple(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
+  const target = step.target;
+  const hit = step.hits?.[0];
+  if (target === undefined || !b.has(target)) { b.cursor = c; return { at: s, apply: c }; }
+  const hitStop = b.hitStopFor(i, false);
+  const sw = b.swing({ i, actor: step.actor, target, clip: "slam", dress: b.dress(step.actor), zone: "body", start: c,
+    mode: "dash", combo: false, hitStop, slow: i === b.killStep });
+  let ci: number | null = null;
+  if (hit !== undefined) {
+    ci = land(b, { i, at: sw.contactAt, attacker: step.actor, target, outcome: "hit", damage: hit.damage, crit: false,
+      hpAfter: hit.hpAfter, weapon: null, hitStop });
+    for (const sg of sw.segs) sg.strikes = ci;
+  }
+  skillTag(b, step.procs, sw.contactAt);
+  b.cause = { step: i, at: sw.contactAt, actor: step.actor, hitStop };
+  b.cursor = sw.end + BEAT.recoverMs;
+  return { at: s, apply: sw.contactAt };
 }
 
 function bodySlam(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {

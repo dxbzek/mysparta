@@ -3,15 +3,19 @@
  *   straight  Darts: a straight line, point first, no spin.
  *   tumble    Bricks: a lob on an arc, turning over and over.
  *   return    Boomerang: a curve, spinning flat; it comes back to the hand on its own flight.
+ *   spin      Hubcap (and any thrown melee weapon): spinning on a low arc.
+ *   roll      Tyre: bowled low, it drops to shin height early and rolls in, turning fast.
+ *   bounce    Rubber Ball: down to the floor, one bounce, up into the target.
  * Anything else that is thrown (a Pitcher throw of a held weapon) spins on a low arc, and a
  * weapon knocked out of a hand goes up in an arc and comes down ("pop").
  *
  * A path is plain data; `pointAt` is a pure function of the share of the flight done.
  * `rot` is in the item's own frame before mirroring, as `rig.drawProp` takes it.
  */
+import type { ThrownFlight } from "@rankzero/core";
 import { FLIGHT } from "./tuning";
 
-export type FlightKind = "straight" | "tumble" | "return" | "spin" | "pop";
+export type FlightKind = "straight" | "tumble" | "return" | "spin" | "pop" | "roll" | "bounce";
 export interface FlightPath { kind: FlightKind; x0: number; y0: number; x1: number; y1: number;
   facing: 1 | -1; ms: number;
   /** Arc height in units (up is positive). */
@@ -19,7 +23,7 @@ export interface FlightPath { kind: FlightKind; x0: number; y0: number; x1: numb
   /** Starting angle and spin in degrees per ms (0 for a straight flight). */
   rot0: number; spin: number }
 
-export function flightKindOf(meta: { flight?: "straight" | "tumble" | "return" } | undefined): FlightKind {
+export function flightKindOf(meta: { flight?: ThrownFlight } | undefined): FlightKind {
   return meta?.flight ?? "spin";
 }
 
@@ -41,6 +45,10 @@ export function makePath(kind: FlightKind, x0: number, y0: number, x1: number, y
       return { kind, x0, y0, x1, y1, facing, ms, arc: dist * FLIGHT.returnBow, rot0, spin: FLIGHT.spinPerMs * 1.6 };
     case "pop":
       return { kind, x0, y0, x1, y1, facing, ms, arc: 46, rot0, spin: FLIGHT.spinPerMs * 0.8 };
+    case "roll":
+      return { kind, x0, y0, x1, y1, facing, ms, arc: FLIGHT.rollDrop, rot0, spin: FLIGHT.tumblePerMs * 1.5 };
+    case "bounce":
+      return { kind, x0, y0, x1, y1, facing, ms, arc: FLIGHT.bounceDip, rot0, spin: FLIGHT.spinPerMs * 0.5 };
     case "spin":
     default:
       return { kind: "spin", x0, y0, x1, y1, facing, ms, arc: dist * 0.08, rot0, spin: FLIGHT.spinPerMs };
@@ -66,6 +74,17 @@ export function pointAt(p: FlightPath, u: number): { x: number; y: number; rot: 
     // the end point. A lob (tumble) goes up instead.
     const bow = 6.75 * v * v * (1 - v) * p.arc;
     return { x, y: y + bow, rot: p.rot0 + p.spin * ms };
+  }
+  if (p.kind === "roll") {
+    // down to shin height in the first quarter, then rolling in; `arc` is how far below the
+    // straight line it gets, and it still ends on the end point
+    const sag = v < 0.25 ? p.arc * (v / 0.25) : p.arc * ((1 - v) / 0.75);
+    return { x, y: y + sag, rot: p.rot0 + p.spin * ms };
+  }
+  if (p.kind === "bounce") {
+    // down to the floor at 60% of the way, then straight up into the end point
+    const dip = v <= 0.6 ? p.arc * (v / 0.6) * (v / 0.6) : p.arc * (1 - (v - 0.6) / 0.4);
+    return { x, y: y + dip, rot: p.rot0 + p.spin * ms };
   }
   // tumble, spin and pop: a parabola, highest in the middle.
   const lift = 4 * v * (1 - v) * p.arc;

@@ -111,6 +111,8 @@ export const FLIGHT = {
   tumblePerMs: 0.9,
   vanishMs: 160,           // a weapon going back to the bag fades over this
   dropFallMs: 260,         // a "gone" weapon falls from the target to the floor
+  rollDrop: 26,            // a rolled Tyre runs this far below the straight line (shin height)
+  bounceDip: 34,           // a Rubber Ball dips this far down to the floor before it bounces up
 } as const;
 
 /** Moves. */
