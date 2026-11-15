@@ -19,7 +19,7 @@ import type { ContactMark, Cue, EffectKey, PlayerOpts, SfxFamily, SfxItem, SfxOn
 import { finishCues, pickVariant } from "./cues";
 import { HOME, aimZone, homeFacing, homeMarks, stopFor } from "./layout";
 import type { ActorTrack, BagEvent, Crowd, Flash, FlightItem, FloorItem, FxItem, HpEvent, Move, Nudge, NumberItem,
-  Seg, Shake, TagItem, Tracks } from "./model";
+  Seg, Shake, Spot, TagItem, Tracks } from "./model";
 import type { MotionRules } from "./motion";
 import { motionRules } from "./motion";
 import { basePos, clipTime, drawPlace, facingAt, nudgeAt, segAt } from "./track";
@@ -32,6 +32,8 @@ export interface Internal {
   shiftEffect?: { key: EffectKey; ms: number; contact?: number };
   /** Move every attacker's stop by this many units along its facing. */
   stopError?: number;
+  /** Multiply every screen shake by this (a planted fault for the calm-motion test). */
+  shakeScale?: number;
 }
 
 export type Zone = "head" | "body";
@@ -70,8 +72,10 @@ export class Builder {
   readonly shakes: Shake[] = [];
   readonly flashes: Flash[] = [];
   readonly crowds: Crowd[] = [];
+  readonly spots: Spot[] = [];
   readonly extraBusy: [number, number][] = [];
   tape: { from: number; to: number } | null = null;
+  koFocus: { at: number; x: number; y: number; back: 1 | -1 } | null = null;
 
   /** Actors away from home that walk back at the next flush. */
   readonly out = new Set<ActorId>();
@@ -207,6 +211,18 @@ export class Builder {
     const p = drawPlace(tr, this.nudgesOf.get(id) ?? [], t);
     const d = this.dress(id, undefined, s?.lead);
     return this.rig.handAnchor(this.poseAt(id, t), d, { x: p.x, y: p.y, facing: p.facing });
+  }
+
+  /** The leading hand's grip sampled every `step` ms from `from` to `to`, for an effect carried in
+   *  the hand (frame.ts draws it between the samples). Call it after the clips there are planned. */
+  handTrack(id: ActorId, from: number, to: number, step = 30): { t: number; x: number; y: number }[] {
+    const out: { t: number; x: number; y: number }[] = [];
+    for (let t = from; ; t = Math.min(to, t + step)) {
+      const h = this.handAt(id, t);
+      out.push({ t, x: h.x, y: h.y });
+      if (t >= to) break;
+    }
+    return out;
   }
 
   /** How an actor is dressed for aiming and hit points: its look, what it holds, its shield. */
@@ -479,7 +495,9 @@ export function buildTimeline(log: BoutLog, a: FighterSnapshot, b: FighterSnapsh
     shakes: B.shakes,
     flashes: B.flashes,
     crowds: B.crowds,
+    spots: B.spots,
     tape: B.tape,
+    koFocus: B.koFocus,
     applyAt: stepEnd,
     outroAt: B.outroAt,
     winner: B.winner,

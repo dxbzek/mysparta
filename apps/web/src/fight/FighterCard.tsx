@@ -81,7 +81,8 @@ export interface FighterCardProps {
 function SkillTile({ id, glow, pulse, side }: { id: SkillId; glow: number; pulse: number; side: Side }) {
   const on = glow > 0;
   const kind = api.content.skills[id]?.kind;
-  const style = on ? { transform: `scale(${(1 + 0.06 * glow * pulse).toFixed(3)})` } : undefined;
+  // a lit tile glows; it does not grow (calm fight). `pulse` is kept for hosts that pass one.
+  const style = on && pulse > 0 ? { outlineWidth: `${(2 + glow * pulse).toFixed(2)}px` } : undefined;
   return (
     <li className={`${css.skill} ${on ? (side === "a" ? css.skillOnA : css.skillOnB) : ""}`} style={style} data-lit={on ? "1" : undefined}>
       <PerkIcon id={id} size={28} />

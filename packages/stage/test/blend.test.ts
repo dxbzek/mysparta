@@ -38,9 +38,15 @@ function worstTurn(name: BoutFixtureName, blend = true): { deg: number; at: numb
         const seg = segAt(tr, t);
         const own = seg === null ? null : [rig.samplePose("scrapper", seg.clip, clipTime(seg, Math.max(seg.from, t - FRAME)), seg.aim).rot,
           rig.samplePose("scrapper", seg.clip, clipTime(seg, t), seg.aim).rot] as const;
+        // a frame that crosses from a strike into its hit-stop hold of the same clip is still the
+        // clip's own motion (the strike reached on the far side of the boundary)
+        const segP = segAt(tr, t - FRAME);
+        const across = seg !== null && segP !== null && segP !== seg && segP.clip === seg.clip && segP.to === seg.from
+          ? [rig.samplePose("scrapper", segP.clip, clipTime(segP, t - FRAME), segP.aim).rot, rig.samplePose("scrapper", seg.clip, clipTime(seg, t), seg.aim).rot] as const
+          : null;
         idx.forEach((i, k) => {
           const d = Math.abs(arc(prev![i]!, rot[i]!));
-          const o = own === null ? 0 : Math.abs(arc(own[0][i]!, own[1][i]!));
+          const o = Math.max(own === null ? 0 : Math.abs(arc(own[0][i]!, own[1][i]!)), across === null ? 0 : Math.abs(arc(across[0][i]!, across[1][i]!)));
           if (o > LIMIT) worst.rigOwn.push(`${tr.id} ${seg!.clip} ${BONES[k]} ${o.toFixed(0)} deg at ${Math.round(t)} ms`);
           const over = d - Math.max(LIMIT, o + SLACK);
           if (d > LIMIT && over > worst.deg - LIMIT) worst = { ...worst, deg: Math.max(LIMIT, o + SLACK) === LIMIT ? d : LIMIT + over, at: Math.round(t), id: tr.id, bone: BONES[k]! };

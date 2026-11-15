@@ -1,53 +1,101 @@
 /**
- * A Move (brief 3.12, "What each Move looks like"). Every Move starts with the 500 ms banner
- * over its user, then:
- *   Haymaker      power-up clip; the next swing is boosted (attack.ts draws its trail).
- *   Energy Drink  drink clip with the can in the back hand; the heal step follows.
- *   Tarp          throw clip; the tarp flies to the target and drops over it; the snare follows.
- *   Whistle       power-up clip with the whistle, three sound rings from the head; the heal follows.
- *   Firecrackers  throw clip; the crackers burst at every enemy hit, all at one contact moment.
- *   Snatch        dash in, flick clip, the weapon jumps from the target's hand to the user's.
- *                 Stopped by Firm Grip: the tag, and no jump.
- *   Air Horn      power-up clip with the horn, rings across the stage; the flee steps follow.
- *   Body Slam     dash in, slam on the user and slammed on the target together, contact at the
- *                 floor hit with knockout-size shake; the weapon and shield fly off after.
- * Content v2:
- *   Sand in the Eyes  throw clip; a dust cloud bursts on the target's head.
- *   Taunt         the win clip, a beckoning pose; rings from the head. No boost.
- *   Second Wind   power-up clip, a breath; the heal step follows.
- *   Grapple       dash in, the slam clip with the target held in its hit pose, contact at the
- *                 squeeze; the snare step follows (the target stays held, no tarp lands).
+ * A Move (brief 3.12, "What each Move looks like"; skills pass after the owner's "proper use of
+ * skill is not it, not satisfied", 15 Nov 2026). Every Move is staged like a fighting game's
+ * special move, in three beats:
+ *
+ *   1. Wind-up (420 ms). The action pauses on the user: it draws a deep breath (the power-up
+ *      clip's breath part, with the Move's object already in hand), the arena dims, a ring glows
+ *      on the floor under it and the host shows the banner (name, icon, one-line effect). The
+ *      opponent waits in its idle.
+ *   2. The action, with the real object:
+ *      Haymaker      he coils into the charge, fist cocked back, sparks crackling on the fist.
+ *      Energy Drink  he lifts the can and chugs it, head back (drink clip, the can in hand).
+ *      Tarp          he throws; the tarp flies over the target, drops and wraps it.
+ *      Whistle       he blows the whistle (rings from the head); the pet runs to his side.
+ *      Firecrackers  the lit bundle fizzes in his hand, he throws, it lands at the enemy's feet
+ *                    and pops all round it.
+ *      Snatch        he dashes in and flicks the weapon out of the enemy's hand into his own.
+ *      Air Horn      he holds the horn up and blasts it: rings across the stage, the enemy
+ *                    covers its ears, its pets run off.
+ *      Body Slam     he dashes in, grabs, hauls the enemy over his head and slams it into the
+ *                    floor (slam on the user, slammed on the target, contact at the floor hit).
+ *      Sand in the Eyes  he throws a handful at the enemy's face; it rubs its eyes.
+ *      Taunt         a gesture: the fist pump and the shout, rings from the head.
+ *      Second Wind   he holds a deep breath in a green glow.
+ *      Grapple       he dashes in and squeezes the enemy in a bear hug; it struggles in the hold.
+ *   3. The visible result: a heal's green number, the snared target under the tarp, the weapon in
+ *      the other hand, and a result tag in the host's words with the Move's icon ("-25 AIM",
+ *      "SNARED", "2x NEXT HIT").
+ * Everything is timed from the log and is a pure function of time like the rest of the stage.
  */
-import type { ActorId, StepOf } from "@rankzero/core";
+import type { ActorId, MoveId, StepOf } from "@rankzero/core";
+import { sideOf } from "@rankzero/core";
+import type { MoveProp } from "@rankzero/rig";
 import { toStage } from "@rankzero/rig";
-import { hitSpot, land, moveBanner, overHead, skillTag } from "../effects";
+import { hitSpot, land, moveBanner, overHead, resultTag, skillTag } from "../effects";
 import { flightMs, makePath } from "../flight";
-import { STAGE_W } from "../layout";
+import { CORAL, GREEN, SKY, VOLT } from "../palette";
 import type { Builder } from "../timeline";
 import { BEAT, MOVE } from "../tuning";
 import type { Placed } from "./index";
 
 type MoveStep = StepOf<"move">;
 
+/** The object a Move carries in the hand from its wind-up on. */
+const PROP_OF: Partial<Record<MoveId, MoveProp>> = { "energy-drink": "can", whistle: "whistle", "air-horn": "horn" };
+/** The colour of a Move's spotlight ring. */
+const SPOT_OF: Partial<Record<MoveId, string>> = { "energy-drink": GREEN, "second-wind": GREEN, whistle: SKY, taunt: SKY };
+
 export function move(b: Builder, step: MoveStep, i: number): Placed {
   const s = b.cursor;
   if (!b.has(step.actor)) return { at: s, apply: s };
+  const c = windUp(b, step, i, s);
+  const placed = action(b, step, i, s, c);
+  const spot = { from: s, to: Math.max(b.cursor, placed.apply) + 150, actor: step.actor, colour: SPOT_OF[step.move] ?? VOLT };
+  b.spots.push(step.move === "second-wind" ? { ...spot, aura: true } : spot);
+  return placed;
+}
+
+type Span = readonly [from: number, to: number];
+/** The three parts of the power-up clip, from its `step` events (clip ms). */
+export function powerParts(b: Builder, actor: ActorId): { breath: Span; charge: Span; blow: Span } {
+  const info = b.info(b.track(actor).rig, "power-up");
+  const d = info.durationMs;
+  const marks = info.events.filter((e) => e.name === "step").map((e) => e.t).sort((x, y) => x - y);
+  const [m0, m1, m2] = marks.length >= 3 ? marks : MOVE.partShares.map((k) => Math.round(d * k));
+  return { breath: [0, m0!], charge: [m0!, m1!], blow: [m2!, d] };
+}
+/** The clip time of the slam clip's grab pose, from its `step` event. */
+function grabTime(b: Builder, actor: ActorId): number {
+  const info = b.info(b.track(actor).rig, "slam");
+  return info.events.find((e) => e.name === "step")?.t ?? Math.round(b.strikeOf(info) * MOVE.partShares[0]);
+}
+
+/** The wind-up: the banner, the sound, the bag, the breath. Returns when the action starts. */
+function windUp(b: Builder, step: MoveStep, i: number, s: number): number {
   const tr = b.track(step.actor);
   moveBanner(b, step.actor, s, MOVE.bannerMs, b.opts.text.moveName(step.move));
   b.cue(s, i, "move");
   b.bag(tr.side, s, step.bagAfter);
-  b.busy(s, s + MOVE.bannerMs);
-  const c = s + MOVE.bannerMs;
+  const [b0, b1] = powerParts(b, step.actor).breath;
+  const prop = PROP_OF[step.move];
+  b.play(step.actor, "power-up", s, { c0: b0, rate: (b1 - b0) / MOVE.windUpMs, until: s + MOVE.windUpMs, ...(prop ? { prop } : {}) });
+  b.busy(s, s + MOVE.windUpMs);
+  return s + MOVE.windUpMs;
+}
+
+function action(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
   switch (step.move) {
-    case "haymaker": return powerUp(b, step, i, s, c, undefined);
+    case "haymaker": return haymaker(b, step, i, s, c);
     case "energy-drink": {
       const end = b.play(step.actor, "drink", c, { prop: "can" }).to;
-      b.cursor = end;
+      // the heal shows as he finishes the gulp
+      b.cursor = c + Math.round((end - c) * 0.72);
       skillTag(b, step.procs, c);
-      return { at: s, apply: end };
+      return { at: s, apply: c };
     }
-    case "whistle": return powerUp(b, step, i, s, c, "whistle");
-    case "air-horn": return powerUp(b, step, i, s, c, "horn");
+    case "whistle": return blow(b, step, i, s, c, "whistle");
+    case "air-horn": return blow(b, step, i, s, c, "horn");
     case "tarp": return tarp(b, step, i, s, c);
     case "firecrackers": return firecrackers(b, step, i, s, c);
     case "snatch": return snatch(b, step, i, s, c);
@@ -55,10 +103,11 @@ export function move(b: Builder, step: MoveStep, i: number): Placed {
     case "sand-in-the-eyes": return sand(b, step, i, s, c);
     case "taunt": return taunt(b, step, i, s, c);
     case "second-wind": {
-      const end = b.play(step.actor, "power-up", c).to;
-      b.cursor = end;
+      // he holds the full breath in a green glow; the heal step shows its number during it
+      b.play(step.actor, "power-up", c, { c0: powerParts(b, step.actor).breath[1], rate: 0, until: c + MOVE.breathHoldMs });
+      b.cursor = c + 160;
       skillTag(b, step.procs, c);
-      return { at: s, apply: end };
+      return { at: s, apply: c };
     }
     case "grapple": return grapple(b, step, i, s, c);
     default: {
@@ -68,26 +117,51 @@ export function move(b: Builder, step: MoveStep, i: number): Placed {
   }
 }
 
-function powerUp(b: Builder, step: MoveStep, i: number, s: number, c: number, prop: "whistle" | "horn" | undefined): Placed {
-  const seg = b.play(step.actor, "power-up", c, prop !== undefined ? { prop } : {});
-  let end = seg.to;
-  if (prop !== undefined) {
-    // sound rings: from the head for the Whistle; from the head and across the stage for the Air Horn
-    const head = overHead(b, step.actor, c);
-    const p = b.place(step.actor, c);
-    b.fx.push({ fx: "rings", from: c, to: c + MOVE.ringsMs, x: 0, y: 0, facing: p.facing, seed: b.opts.cosmeticSeed + i,
-      contact: null, follow: step.actor, dy: head.y + 12 - p.y });
-    if (prop === "horn") {
-      b.fx.push({ fx: "rings", from: c + 80, to: c + 80 + MOVE.ringsMs, x: STAGE_W / 2, y: 130, facing: 1,
-        seed: b.opts.cosmeticSeed + i + 1, contact: null });
-      b.fleeAt = c + 160;
+/** The enemy scrapper of an actor, when it is in the bout and standing. */
+function enemyOf(b: Builder, id: ActorId): ActorId | null {
+  const e: ActorId = sideOf(id) === "a" ? "b0" : "a0";
+  return b.has(e) && b.status.get(e) === "up" ? e : null;
+}
+
+function haymaker(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
+  const [c0, c1] = powerParts(b, step.actor).charge;
+  b.play(step.actor, "power-up", c, { c0, rate: (c1 - c0) / MOVE.chargeMs, until: c + MOVE.chargeMs });
+  // sparks crackle on the cocked fist
+  const p = b.place(step.actor, c);
+  b.fx.push({ fx: "spark", from: c + 140, to: c + MOVE.chargeMs, x: p.x, y: p.y, facing: p.facing, seed: b.opts.cosmeticSeed + i,
+    contact: null, loopMs: 130, track: b.handTrack(step.actor, c + 140, c + MOVE.chargeMs) });
+  resultTag(b, "haymaker", step.actor, c + 180, VOLT);
+  b.boosted.add(step.actor);
+  skillTag(b, step.procs, c);
+  b.cursor = c + MOVE.chargeMs;
+  return { at: s, apply: c };
+}
+
+/** Whistle or Air Horn: the object up at the face, the blast, the rings. */
+function blow(b: Builder, step: MoveStep, i: number, s: number, c: number, prop: "whistle" | "horn"): Placed {
+  const [w0, w1] = powerParts(b, step.actor).blow;
+  b.play(step.actor, "power-up", c, { c0: w0, rate: (w1 - w0) / MOVE.blowMs, until: c + MOVE.blowMs, prop });
+  const head = overHead(b, step.actor, c);
+  const p = b.place(step.actor, c);
+  b.fx.push({ fx: "rings", from: c, to: c + MOVE.ringsMs, x: 0, y: 0, facing: p.facing, seed: b.opts.cosmeticSeed + i,
+    contact: null, follow: step.actor, dy: head.y + 80 - p.y });   // the rings draw 66 above `at`: centred on the mouth
+  if (prop === "horn") {
+    // the blast crosses the stage: rings at a third and two thirds of the way to the enemy, then
+    // the enemy scrapper covers its ears and its pets run (the flee steps follow, at `fleeAt`)
+    const enemy = enemyOf(b, step.actor);
+    const ex = enemy !== null ? b.place(enemy, c).x : p.x + p.facing * 120;
+    for (const k of [1, 2]) {
+      b.fx.push({ fx: "rings", from: c + 70 * k, to: c + 70 * k + MOVE.ringsMs, x: p.x + ((ex - p.x) * k) / 3, y: p.y + 4, facing: p.facing,
+        seed: b.opts.cosmeticSeed + i + k, contact: null });
     }
-    end = Math.max(end, c + MOVE.ringsMs);
-  } else {
-    b.boosted.add(step.actor);
+    if (enemy !== null) {
+      b.play(enemy, "snared", c + 160, { until: c + 160 + MOVE.earsMs, busy: false });
+      resultTag(b, "air-horn", enemy, c + 200, CORAL);
+    }
+    b.fleeAt = c + 220;
   }
   skillTag(b, step.procs, c);
-  b.cursor = end;
+  b.cursor = prop === "whistle" ? c + Math.round(MOVE.ringsMs * 0.6) : c + MOVE.blowMs;
   return { at: s, apply: c };
 }
 
@@ -117,6 +191,7 @@ function tarp(b: Builder, step: MoveStep, i: number, s: number, c: number): Plac
   b.fx.push({ fx: "tarp", from: t.release, to: landing, x: spot.x, y: spot.y, facing: spot.facing, seed: b.opts.cosmeticSeed + i,
     contact: null, fly: { x0: t.hand.x, y0: t.hand.y + 40, ms: MOVE.tarpFlightMs, arc: 30 } });
   b.tarpLanding = { target, at: landing };
+  resultTag(b, "tarp", target, landing + 60, CORAL);
   b.cursor = Math.max(t.end, landing);
   return { at: s, apply: landing };
 }
@@ -126,22 +201,26 @@ function firecrackers(b: Builder, step: MoveStep, i: number, s: number, c: numbe
   if (hits.length === 0) { b.cursor = c; return { at: s, apply: c }; }
   const first = b.place(hits[0]!.target, c);
   const t = throwClip(b, i, step.actor, first.x, c);
-  // every cracker lands at one moment: the farthest flight sets it
+  const lit = MOVE.crackersLit;
+  const seed = b.opts.cosmeticSeed + i;
+  // the lit bundle fizzes in the throwing hand until it leaves it
+  b.fx.push({ fx: "crackers", from: c, to: t.release, x: t.hand.x, y: t.hand.y, facing: 1, seed, contact: null,
+    track: b.handTrack(step.actor, c, t.release, 25), p0: 0, p1: lit * 0.6 });
+  // a bundle flies to each target's feet; they all land at one moment (the farthest sets it)
   let ms = 0;
   for (const h of hits) {
-    const p = hitSpot(b, h.target, t.release + 200);
-    ms = Math.max(ms, flightMs(Math.hypot(p.x - t.hand.x, p.y - t.hand.y)));
+    const p = b.place(h.target, t.release + 200);
+    ms = Math.max(ms, flightMs(Math.hypot(p.x - t.hand.x, p.y - 8 - t.hand.y)));
   }
   const at = t.release + ms;
-  const kill = i === b.killStep;
   const hitStop = b.hitStopFor(i, false);
   let ci: number | undefined;
   for (const h of hits) {
-    const p = hitSpot(b, h.target, at);
-    b.fx.push({ fx: "crackers", from: t.release, to: at, x: p.x, y: p.y, facing: 1, seed: b.opts.cosmeticSeed + i,
-      contact: null, fly: { x0: t.hand.x, y0: t.hand.y, ms, arc: 26 } });
+    const p = b.place(h.target, at);
+    b.fx.push({ fx: "crackers", from: t.release, to: at, x: p.x, y: p.y - 8, facing: 1, seed, contact: null,
+      fly: { x0: t.hand.x, y0: t.hand.y, ms, arc: 26 }, p0: lit * 0.6, p1: lit });
     ci = land(b, { i, at, attacker: step.actor, target: h.target, outcome: "hit", damage: h.damage, crit: false,
-      hpAfter: h.hpAfter, weapon: null, hitStop, burstFx: "crackers", ...(kill ? { bigShake: true } : {}) }, ci);
+      hpAfter: h.hpAfter, weapon: null, hitStop, burstFx: "crackers" }, ci);
   }
   skillTag(b, step.procs, at);
   b.cause = { step: i, at, actor: step.actor, hitStop };
@@ -166,6 +245,9 @@ function snatch(b: Builder, step: MoveStep, i: number, s: number, c: number): Pl
     b.setHeld(step.actor, at + MOVE.snatchJumpMs, step.taken);
     b.heldNow.set(step.actor, step.taken);
     b.cue(at, i, "whoosh", 0, step.taken);
+    // the robbed hand jerks back, empty
+    b.play(target, "hit-light", at, { busy: false });
+    resultTag(b, "snatch", step.actor, at + MOVE.snatchJumpMs, VOLT);
     apply = at + MOVE.snatchJumpMs;
   }
   skillTag(b, step.procs, at);
@@ -180,67 +262,102 @@ function sand(b: Builder, step: MoveStep, i: number, s: number, c: number): Plac
   const t = throwClip(b, i, step.actor, tp.x, c);
   const head = toStage(b.place(target, t.release), b.rig.hitPoint(b.track(target).rig, b.dress(target), "head"));
   const ms = flightMs(Math.hypot(head.x - t.hand.x, head.y - t.hand.y));
+  // the handful leaves the hand as a few puffs, one after another, and bursts on the face
+  for (let k = 0; k < 3; k++) {
+    const from = t.release + k * MOVE.sandGapMs;
+    b.fx.push({ fx: "dust", from, to: from + ms, x: head.x, y: head.y + (k - 1) * 3, facing: tp.facing, seed: b.opts.cosmeticSeed + i + k,
+      contact: null, fly: { x0: t.hand.x, y0: t.hand.y, ms, arc: 8 }, p0: 0.15, p1: 0.45 });
+  }
   const at = t.release + ms;
-  b.fx.push({ fx: "dust", from: at, to: at + MOVE.ringsMs, x: head.x, y: head.y, facing: tp.facing, seed: b.opts.cosmeticSeed + i,
+  b.fx.push({ fx: "dust", from: at, to: at + MOVE.ringsMs + 200, x: head.x, y: head.y, facing: tp.facing, seed: b.opts.cosmeticSeed + i,
     contact: null });
-  b.play(target, "hit-light", at);
+  // it rubs its eyes
+  b.play(target, "snared", at, { until: at + MOVE.rubMs, busy: false });
+  resultTag(b, "sand-in-the-eyes", target, at + 80, CORAL);
   skillTag(b, step.procs, at);
-  b.cursor = Math.max(t.end, at + MOVE.ringsMs);
+  b.cursor = Math.max(t.end, at + 360);
   return { at: s, apply: at };
 }
 
 function taunt(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
-  const seg = b.play(step.actor, "win", c, { until: c + MOVE.ringsMs });
+  const seg = b.play(step.actor, "win", c, { until: c + 700 });
   const head = overHead(b, step.actor, c);
   const p = b.place(step.actor, c);
   b.fx.push({ fx: "rings", from: c, to: c + MOVE.ringsMs, x: 0, y: 0, facing: p.facing, seed: b.opts.cosmeticSeed + i,
-    contact: null, follow: step.actor, dy: head.y + 12 - p.y });
+    contact: null, follow: step.actor, dy: head.y + 80 - p.y });   // the rings draw 66 above `at`: centred on the mouth
+  resultTag(b, "taunt", step.actor, c + 160, SKY);
   skillTag(b, step.procs, c);
   b.cursor = Math.max(seg.to, c + MOVE.ringsMs);
   return { at: s, apply: c };
+}
+
+/** Body Slam and Grapple close in the same way: a dash to stand right against the target. */
+function closeIn(b: Builder, i: number, actor: ActorId, target: ActorId, c: number): { at: number; facing: 1 | -1 } {
+  const me = b.place(actor, c);
+  const tp = b.place(target, c);
+  const facing: 1 | -1 = tp.x >= me.x ? 1 : -1;
+  const stopX = tp.x - facing * MOVE.grappleGap;
+  const dashMs = Math.max(BEAT.dashMinMs, Math.round((Math.abs(stopX - me.x) / BEAT.dashSpeed) * 1000));
+  b.face(actor, c, facing);
+  b.play(actor, "brace", c, { until: c + BEAT.anticipationMs });
+  b.move(actor, c + BEAT.anticipationMs, dashMs, stopX, tp.y, 0, "inOut");
+  b.play(actor, "dash", c + BEAT.anticipationMs, { until: c + BEAT.anticipationMs + dashMs });
+  b.cue(c + BEAT.anticipationMs, i, "dash");
+  b.out.add(actor);
+  if (b.track(target).rig === "scrapper" && b.status.get(target) === "up") {
+    b.play(target, "brace", c + BEAT.anticipationMs, { until: c + BEAT.anticipationMs + dashMs, busy: false });
+  }
+  return { at: c + BEAT.anticipationMs + dashMs, facing };
 }
 
 function grapple(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
   const target = step.target;
   const hit = step.hits?.[0];
   if (target === undefined || !b.has(target)) { b.cursor = c; return { at: s, apply: c }; }
-  const hitStop = b.hitStopFor(i, false);
-  const sw = b.swing({ i, actor: step.actor, target, clip: "slam", dress: b.dress(step.actor), zone: "body", start: c,
-    mode: "dash", combo: false, hitStop, slow: i === b.killStep });
-  let ci: number | null = null;
+  const g = closeIn(b, i, step.actor, target, c).at;
+  // the grab, then the squeeze: the grab pose held while the target struggles in the hold
+  const grab = grabTime(b, step.actor);
+  b.play(step.actor, "slam", g, { until: g + grab });
+  b.play(step.actor, "slam", g + grab, { c0: grab, rate: 0, until: g + grab + MOVE.squeezeMs });
+  b.play(target, "snared", g + grab, { until: g + grab + MOVE.squeezeMs, busy: false });
+  const at = g + grab + MOVE.squeezeHitMs;
   if (hit !== undefined) {
-    ci = land(b, { i, at: sw.contactAt, attacker: step.actor, target, outcome: "hit", damage: hit.damage, crit: false,
-      hpAfter: hit.hpAfter, weapon: null, hitStop });
-    for (const sg of sw.segs) sg.strikes = ci;
+    land(b, { i, at, attacker: step.actor, target, outcome: "hit", damage: hit.damage, crit: false,
+      hpAfter: hit.hpAfter, weapon: null, hitStop: 0, ownClip: true });
   }
-  skillTag(b, step.procs, sw.contactAt);
-  b.cause = { step: i, at: sw.contactAt, actor: step.actor, hitStop };
-  b.cursor = sw.end + BEAT.recoverMs;
-  return { at: s, apply: sw.contactAt };
+  resultTag(b, "grapple", target, at + 80, CORAL);
+  skillTag(b, step.procs, at);
+  b.cause = { step: i, at, actor: step.actor, hitStop: 0 };
+  b.cursor = g + grab + MOVE.squeezeMs;
+  return { at: s, apply: at };
 }
 
 function bodySlam(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
   const target = step.target;
   const hit = step.hits?.[0];
   if (target === undefined || !b.has(target)) { b.cursor = c; return { at: s, apply: c }; }
-  const hitStop = b.hitStopFor(i, false);
-  const sw = b.swing({ i, actor: step.actor, target, clip: "slam", dress: b.dress(step.actor), zone: "body", start: c,
-    mode: "dash", combo: false, hitStop, slow: i === b.killStep });
+  const g = closeIn(b, i, step.actor, target, c).at;
+  const seg = b.play(step.actor, "slam", g);
+  const at = g + b.strikeOf(b.info(b.track(step.actor).rig, "slam"));
   // the target's slammed clip runs with the slam, so it hits the floor at the contact
   const ttr = b.track(target);
   const slammed = ttr.rig === "scrapper" ? "slammed" : "hit";
   const info = b.info(ttr.rig, slammed);
   const landAt = info.events.find((e) => e.name === "land")?.t ?? b.strikeOf(info);
-  const from = Math.max(c, sw.contactAt - landAt);
-  const seg = b.play(target, slammed, from);
-  let ci: number | null = null;
+  const tseg = b.play(target, slammed, Math.max(g, at - landAt));
+  const hitStop = b.hitStopFor(i, false);
   if (hit !== undefined) {
-    ci = land(b, { i, at: sw.contactAt, attacker: step.actor, target, outcome: "hit", damage: hit.damage, crit: false,
-      hpAfter: hit.hpAfter, weapon: null, hitStop, ownClip: true, bigShake: true });
-    for (const sg of sw.segs) sg.strikes = ci;
+    const ci = land(b, { i, at, attacker: step.actor, target, outcome: "hit", damage: hit.damage, crit: false,
+      hpAfter: hit.hpAfter, weapon: null, hitStop, ownClip: true });
+    seg.strikes = ci;
   }
-  skillTag(b, step.procs, sw.contactAt);
-  b.cause = { step: i, at: sw.contactAt, actor: step.actor, hitStop };
-  b.cursor = Math.max(sw.end, seg.to) + BEAT.recoverMs;
-  return { at: s, apply: sw.contactAt };
+  // the floor takes the blow
+  const p = b.place(target, at);
+  b.fx.push({ fx: "dust", from: at, to: at + 420, x: p.x - p.facing * 20, y: p.y, facing: p.facing, seed: b.opts.cosmeticSeed + i, contact: null });
+  b.cue(at, i, "landing");
+  resultTag(b, "body-slam", target, at + 80, CORAL);
+  skillTag(b, step.procs, at);
+  b.cause = { step: i, at, actor: step.actor, hitStop };
+  b.cursor = Math.max(seg.to, tseg.to) + BEAT.recoverMs;
+  return { at: s, apply: at };
 }

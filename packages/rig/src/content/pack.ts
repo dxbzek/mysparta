@@ -18,6 +18,7 @@ import { CLIP_FALLBACK } from "../contracts";
 import { GATE_CLIP_ART } from "../gate/clips";
 import { THROW } from "../gate/clips/throw";
 import { GATE_LOOKS } from "../gate/parts";
+import { CONTENT_CLIPS } from "./clips";
 import { CONTENT_FX, PROPS } from "./fx";
 import { CONTENT_UI_ICONS, SKILL_ICONS } from "./icons";
 import { PET_ART } from "./pets";
@@ -28,7 +29,7 @@ import { CONTENT_WEAPONS } from "./weapons";
 const fallbackClips = Object.fromEntries((Object.keys(CLIP_FALLBACK) as ContentClip[]).map((c) => [c, c === "throw" ? THROW : GATE_CLIP_ART[CLIP_FALLBACK[c]]])) as Record<ContentClip, Clip>;
 
 export const contentPack: ContentPack = {
-  clips: fallbackClips,
+  clips: { ...fallbackClips, ...CONTENT_CLIPS },
   weapons: CONTENT_WEAPONS,
   shields: SHIELD_ART,
   props: PROPS,

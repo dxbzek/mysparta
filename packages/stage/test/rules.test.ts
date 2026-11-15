@@ -149,44 +149,148 @@ describe("choreography", () => {
     for (const t of STEP_TYPES) expect(existsHandlerFile(t)).toBe(true);
   });
 
-  it("stages every Move with its own beat and its real object", () => {
+  it("stages every Move like a special move: a wind-up of 300 ms or more, its banner, its real object and a visible result", () => {
     const p = fixturePlayer("bout-all-steps");
     const log = BOUT_FIXTURES["bout-all-steps"].log;
     const tr = p.tracks;
     const segsOf = (id: string) => tr.byId.get(id as "a0")!.segs;
     const seen = new Set<string>();
+    /** The steps right after step i in the same turn (its heal, snare, flee). */
+    const after = (i: number) => {
+      const out: { s: (typeof log.steps)[number]; j: number }[] = [];
+      for (let j = i + 1; j < log.steps.length && log.steps[j]!.turn === log.steps[i]!.turn; j++) out.push({ s: log.steps[j]!, j });
+      return out;
+    };
+    const greenOver = (id: string, from: number) => tr.numbers.some((n) => n.from >= from && n.text.startsWith("+") && n.colour === "#5BD66F"
+      && tr.hp.some((h) => h.actor === id && h.kind === "gain" && h.at === n.from));
+    const resultOver = (id: string, move: string, from: number) => tr.tags.some((g) => g.actor === id && g.from >= from
+      && g.text === `RESULT:${move.toUpperCase()}` && g.icon === move);
     log.steps.forEach((s, i) => {
       if (s.t !== "move") return;
       const at = p.timeline.stepAt[i]!;
-      const end = p.timeline.stepEnd[i]! + 1200;
+      const end = p.timeline.stepEnd[i]! + 1500;
       const mine = segsOf(s.actor).filter((g) => g.from >= at && g.from <= end);
-      const fx = tr.fx.filter((f) => f.from >= at && f.from <= end).map((f) => f.fx);
-      // the banner over its user
-      expect(tr.tags.some((g) => g.from === at && g.text === `MOVE:${s.move.toUpperCase()}` && g.actor === s.actor), `banner ${i}`).toBe(true);
+      const fx = tr.fx.filter((f) => f.from >= at && f.from <= end);
+      const kinds = fx.map((f) => f.fx);
+      const why = `${s.move} (step ${i})`;
+      // 1. the wind-up: the user's power-up breath for 300 ms or more from the step's start, a
+      //    spotlight on it, and nobody else starting anything in that time (the opponent waits)
+      const wind = mine.find((g) => g.from === at);
+      expect(wind?.clip, why).toBe("power-up");
+      expect(wind!.to - wind!.from, why).toBeGreaterThanOrEqual(300);
+      expect(wind!.to - wind!.from, why).toBeLessThanOrEqual(500);
+      expect(tr.spots.some((sp) => sp.actor === s.actor && sp.from === at && sp.to >= wind!.to), why).toBe(true);
+      for (const other of tr.actors) {
+        if (other.id === s.actor) continue;
+        expect(other.segs.some((g) => g.busy && g.from >= at && g.from < wind!.to), `${why}: ${other.id} moves in the wind-up`).toBe(false);
+        expect(other.moves.some((m) => m.from >= at && m.from < wind!.to), `${why}: ${other.id} walks in the wind-up`).toBe(false);
+      }
+      // 2. the banner over its user, from the start of the wind-up
+      expect(tr.tags.some((g) => g.from === at && g.text === `MOVE:${s.move.toUpperCase()}` && g.actor === s.actor), why).toBe(true);
+      // 3. the real object, and 4. a visible result
+      const next = after(i);
       switch (s.move) {
-        case "haymaker": expect(mine.map((g) => g.clip)).toContain("power-up"); expect(tr.fx.some((f) => f.fx === "trail" && f.from > at)).toBe(true); break;
-        case "energy-drink": expect(mine.some((g) => g.clip === "drink" && g.prop === "can")).toBe(true); expect(fx).toContain("plus"); break;
-        case "whistle": expect(mine.some((g) => g.clip === "power-up" && g.prop === "whistle")).toBe(true); expect(fx).toContain("rings"); expect(fx).toContain("plus"); break;
-        case "air-horn": expect(mine.some((g) => g.clip === "power-up" && g.prop === "horn")).toBe(true); expect(fx.filter((f) => f === "rings").length).toBe(2); break;
-        case "tarp": expect(mine.map((g) => g.clip)).toContain("throw"); expect(fx).toContain("tarp"); break;
-        case "firecrackers": expect(mine.map((g) => g.clip)).toContain("throw"); expect(fx.filter((f) => f === "crackers").length).toBeGreaterThanOrEqual(2 * (s.hits?.length ?? 0)); break;
-        case "snatch": expect(mine.map((g) => g.clip)).toContain("flick"); expect(mine.map((g) => g.clip)).toContain("dash");
-          if (s.taken !== undefined) expect(tr.flights.some((f) => f.item === s.taken && f.after === "held")).toBe(true);
-          else expect(tr.tags.some((g) => g.text === "SKILL:FIRM-GRIP")).toBe(true);
+        case "haymaker":
+          expect(mine.filter((g) => g.clip === "power-up").length, why).toBeGreaterThanOrEqual(2);
+          expect(fx.some((f) => f.fx === "spark" && f.track !== undefined), why).toBe(true);
+          expect(resultOver(s.actor, s.move, at), why).toBe(true);
+          expect(tr.fx.some((f) => f.fx === "trail" && f.from > at), why).toBe(true);
           break;
-        case "body-slam": expect(mine.map((g) => g.clip)).toContain("slam"); expect(segsOf(s.target!).some((g) => g.clip === "slammed" && g.from >= at)).toBe(true); break;
-        case "sand-in-the-eyes": expect(mine.map((g) => g.clip)).toContain("throw"); expect(fx).toContain("dust"); break;
-        case "taunt": expect(mine.map((g) => g.clip)).toContain("win"); expect(fx).toContain("rings"); break;
-        case "second-wind": expect(mine.map((g) => g.clip)).toContain("power-up"); expect(fx).toContain("plus"); break;
-        case "grapple": expect(mine.map((g) => g.clip)).toContain("slam"); expect(mine.map((g) => g.clip)).toContain("dash");
+        case "energy-drink":
+          expect(mine.some((g) => g.clip === "drink" && g.prop === "can"), why).toBe(true);
+          expect(kinds, why).toContain("plus");
+          expect(greenOver(s.actor, at), why).toBe(true);
+          break;
+        case "whistle": {
+          expect(mine.some((g) => g.clip === "power-up" && g.prop === "whistle" && g.from > at), why).toBe(true);
+          expect(kinds, why).toContain("rings");
+          const pet = next.find((n) => n.s.t === "heal")!.s as { target: string };
+          expect(greenOver(pet.target, at), why).toBe(true);
+          break;
+        }
+        case "air-horn": {
+          expect(mine.some((g) => g.clip === "power-up" && g.prop === "horn" && g.from > at), why).toBe(true);
+          expect(kinds.filter((f) => f === "rings").length, why).toBe(3);
+          const enemy = s.actor.startsWith("a") ? "b0" : "a0";
+          expect(resultOver(enemy, s.move, at), why).toBe(true);
+          expect(segsOf(enemy).some((g) => g.clip === "snared" && g.from > at), `${why}: covers its ears`).toBe(true);
+          for (const n of next) if (n.s.t === "flee") expect(tr.tags.some((g) => g.actor === n.s.actor && g.text === "FLED:AIR-HORN"), why).toBe(true);
+          break;
+        }
+        case "tarp":
+          expect(mine.map((g) => g.clip), why).toContain("throw");
+          expect(fx.some((f) => f.fx === "tarp" && f.fly !== undefined), why).toBe(true);
+          expect(tr.fx.some((f) => f.fx === "tarp" && f.follow === s.target && f.from >= at), `${why}: wrapped`).toBe(true);
+          expect(resultOver(s.target!, s.move, at), why).toBe(true);
+          break;
+        case "firecrackers": {
+          expect(mine.map((g) => g.clip), why).toContain("throw");
+          // lit in the hand, then flying, then popping round each target
+          expect(fx.some((f) => f.fx === "crackers" && f.track !== undefined && (f.p1 ?? 1) <= 0.2), `${why}: lit in the hand`).toBe(true);
+          expect(fx.filter((f) => f.fx === "crackers" && f.fly !== undefined).length, why).toBe(s.hits!.length);
+          expect(fx.filter((f) => f.fx === "crackers" && f.key === "burst").length, why).toBe(s.hits!.length);
+          for (const h of s.hits!) expect(tr.numbers.some((n) => n.from > at && n.text === `-${h.damage}`), why).toBe(true);
+          break;
+        }
+        case "snatch":
+          expect(mine.map((g) => g.clip), why).toContain("flick");
+          expect(mine.map((g) => g.clip), why).toContain("dash");
+          if (s.taken !== undefined) {
+            expect(tr.flights.some((f) => f.item === s.taken && f.after === "held" && f.from > at), why).toBe(true);
+            expect(tr.byId.get(s.actor)!.helds.some((h) => h.held === s.taken && h.from > at), `${why}: in the other hand`).toBe(true);
+            expect(resultOver(s.actor, s.move, at), why).toBe(true);
+          } else {
+            expect(tr.tags.some((g) => g.text === "SKILL:FIRM-GRIP!" && g.icon === "firm-grip" && g.from > at), `${why}: Firm Grip`).toBe(true);
+          }
+          break;
+        case "body-slam":
+          expect(mine.map((g) => g.clip), why).toContain("slam");
+          expect(segsOf(s.target!).some((g) => g.clip === "slammed" && g.from >= at), why).toBe(true);
+          expect(tr.numbers.some((n) => n.from > at && n.text === `-${s.hits![0]!.damage}`), why).toBe(true);
+          expect(resultOver(s.target!, s.move, at), why).toBe(true);
+          break;
+        case "sand-in-the-eyes":
+          expect(mine.map((g) => g.clip), why).toContain("throw");
+          expect(fx.filter((f) => f.fx === "dust" && f.fly !== undefined).length, `${why}: the handful flies`).toBeGreaterThanOrEqual(2);
+          expect(segsOf(s.target!).some((g) => g.clip === "snared" && g.from > at), `${why}: rubs its eyes`).toBe(true);
+          expect(resultOver(s.target!, s.move, at), why).toBe(true);
+          break;
+        case "taunt":
+          expect(mine.map((g) => g.clip), why).toContain("win");
+          expect(kinds, why).toContain("rings");
+          expect(resultOver(s.actor, s.move, at), why).toBe(true);
+          break;
+        case "second-wind":
+          expect(mine.filter((g) => g.clip === "power-up" && g.rate === 0).length, `${why}: holds the breath`).toBe(1);
+          expect(tr.spots.some((sp) => sp.actor === s.actor && sp.aura === true && sp.from === at), `${why}: glow`).toBe(true);
+          expect(greenOver(s.actor, at), why).toBe(true);
+          break;
+        case "grapple":
+          expect(mine.map((g) => g.clip), why).toContain("slam");
+          expect(mine.map((g) => g.clip), why).toContain("dash");
+          expect(mine.some((g) => g.clip === "slam" && g.rate === 0), `${why}: the squeeze holds`).toBe(true);
           // the hold snares with no tarp: the target plays its snared clip and no tarp lands on it
-          expect(segsOf(s.target!).some((g) => g.clip === "snared" && g.from >= at)).toBe(true);
-          expect(tr.fx.some((f) => f.fx === "tarp" && f.from >= at && f.from <= end && f.follow === s.target)).toBe(false);
+          expect(segsOf(s.target!).some((g) => g.clip === "snared" && g.from >= at), why).toBe(true);
+          expect(tr.fx.some((f) => f.fx === "tarp" && f.from >= at && f.from <= end && f.follow === s.target), why).toBe(false);
+          expect(resultOver(s.target!, s.move, at), why).toBe(true);
           break;
       }
       seen.add(s.move);
     });
     expect(seen.size).toBe(12);
+  });
+
+  it("tags a passive that decides a roll with its icon and an exclamation mark, long enough to read", () => {
+    const p = fixturePlayer("bout-all-steps");
+    const log = BOUT_FIXTURES["bout-all-steps"].log;
+    log.steps.forEach((s) => {
+      if (!("procs" in s) || s.procs === undefined || s.procs.length === 0) return;
+      const pr = s.procs[0]!;
+      const tag = p.tracks.tags.find((g) => g.actor === pr.by && g.text === `SKILL:${pr.skill.toUpperCase()}!`);
+      expect(tag, pr.skill).toBeDefined();
+      expect(tag!.icon, pr.skill).toBe(pr.skill);
+      expect(tag!.to - tag!.from, pr.skill).toBeGreaterThanOrEqual(800);
+    });
   });
 
   it("raises the shield on a block made while one is carried, and knocks it to the floor on shieldOff", () => {
@@ -213,7 +317,7 @@ describe("choreography", () => {
   it("shows a skill tag for every step with procs, at most one per step; the OVERTIME sticker once", () => {
     const p = fixturePlayer("bout-all-steps");
     const log = BOUT_FIXTURES["bout-all-steps"].log;
-    const skillTags = p.tracks.tags.filter((g) => g.text.startsWith("SKILL:"));
+    const skillTags = p.tracks.tags.filter((g) => g.text.startsWith("SKILL:") && g.text.endsWith("!"));
     const withProcs = log.steps.filter((s) => "procs" in s && s.procs !== undefined && s.procs.length > 0);
     expect(skillTags.length).toBe(withProcs.length);
     expect(p.tracks.tags.filter((g) => g.text === "OVERTIME").length).toBe(1);

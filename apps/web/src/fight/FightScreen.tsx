@@ -145,7 +145,8 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
   const cards = useMemo(() => ({ a: cardInfo("a", a, log.init.actors), b: cardInfo("b", b, log.init.actors) }), [a, b, log]);
   const beats = useMemo(() => beatsOf(log, tl), [log, tl]);
   const lit = litAt(beats, t);
-  const pulse = reduced ? 0 : 0.5 + 0.5 * Math.sin(t * 0.02);
+  // lit tiles hold still (calm fight): no pulsing scale
+  const pulse = 0;
   const [logOpen, setLogOpen] = useState(false);
   const closeLog = useCallback(() => setLogOpen(false), []);
   const winner = state.ended?.winner ?? hud.winner ?? log.result.winner;

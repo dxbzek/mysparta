@@ -7,6 +7,7 @@ import type { StepOf } from "@rankzero/core";
 import { scrapperOf } from "@rankzero/core";
 import { INK } from "../palette";
 import type { Builder } from "../timeline";
+import { basePos, facingAt } from "../track";
 import { OUTRO } from "../tuning";
 import type { Placed } from "./index";
 
@@ -26,6 +27,8 @@ export function end(b: Builder, step: StepOf<"end">, i: number): Placed {
     const land = fall.events.find((e) => e.name === "land")?.t ?? fall.durationMs;
     b.cue(f + OUTRO.capFlinchMs + land, i, "landing");
     b.status.set(loser, "ko");
+    const at = basePos(tr, f + OUTRO.capFlinchMs);
+    b.koFocus = { at: f + OUTRO.capFlinchMs, x: at.x, y: at.floorY, back: facingAt(tr, f) === 1 ? -1 : 1 };
     outro = f + OUTRO.capFlinchMs + fall.durationMs;
   }
   if (b.has(winner) && b.status.get(winner) === "up") {

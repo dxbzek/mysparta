@@ -4,17 +4,18 @@
  * banners) moves with the camera shake. The 360 x 240 stage is fitted into the view and
  * centred; the backing store is `view.w x view.h x view.dpr` pixels.
  */
-import type { DrawEnv, Pose, Rig } from "@rankzero/rig";
+import type { DrawEnv, Pose, Rig, SvgArt } from "@rankzero/rig";
 import type { PlayerOpts } from "./contracts";
 import type { Frame, FrameText } from "./frame";
 import { STAGE_H, STAGE_W } from "./layout";
 import type { CameraView } from "./camera";
-import { INK, STREAK } from "./palette";
+import { INK } from "./palette";
 
-/** Screen px of shake per unit of the tuning's shake size, under the camera. */
-const SHAKE_PX = 2.4;
-/** Contact bursts drawn this much bigger under the camera. */
-const BIG_FX = { burst: 1.45, spark: 1.3, whoosh: 1.2 } as const;
+/** Screen px of shake per unit of the tuning's shake size, under the camera: the tuning's shake
+ *  is in CSS px (calm camera). */
+const SHAKE_PX = 1;
+/** Contact bursts drawn a little bigger under the camera: a short local burst at the contact. */
+const BIG_FX = { burst: 1.1, spark: 1.1 } as const;
 
 export function fitView(view: { w: number; h: number; dpr: number }): { k: number; ox: number; oy: number } {
   const dpr = view.dpr > 0 ? view.dpr : 1;
@@ -48,9 +49,10 @@ const MARGIN = 6;
 /** Numbers and tags stay below this band at the top of the canvas, where the host's controls sit. */
 const TOP_BAND = 52;
 /** Extra screen px a tag is lifted under the camera. */
-const TAG_LIFT = 30;
+const TAG_LIFT = 12;
 
-function text(env: DrawEnv, t: FrameText, fonts: PlayerOpts["fonts"], at: Placed, view: { w: number; h: number }, dpr: number, topBand = 0): void {
+function text(env: DrawEnv, t: FrameText, fonts: PlayerOpts["fonts"], at: Placed, view: { w: number; h: number }, dpr: number, topBand = 0,
+  icon: SvgArt | null = null): void {
   const c = env.ctx;
   c.save();
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -61,7 +63,9 @@ function text(env: DrawEnv, t: FrameText, fonts: PlayerOpts["fonts"], at: Placed
   const size = at.size;
   c.font = `${size.toFixed(2)}px ${t.kind === "tag" ? fonts.body : fonts.display}`;
   const tw = c.measureText(t.text).width;
-  const boxW = t.kind === "number" ? tw : tw + size * 0.9;
+  // a skill's icon sits at the left of the words, inside the sticker
+  const iconW = icon !== null && t.kind !== "number" ? size * 1.25 : 0;
+  const boxW = t.kind === "number" ? tw : tw + size * 0.9 + iconW;
   const boxH = t.kind === "number" ? size : size * 1.35;
   // keep every word inside the canvas: a number rising over a tall head, a sticker near an edge
   const half = boxW / 2 + MARGIN;
@@ -93,35 +97,51 @@ function text(env: DrawEnv, t: FrameText, fonts: PlayerOpts["fonts"], at: Placed
     c.strokeStyle = t.ink;
     c.stroke();
     c.fillStyle = INK;
-    c.fillText(t.text, 0, boxH * 0.04);
+    c.fillText(t.text, iconW / 2, boxH * 0.04);
+    if (icon !== null && iconW > 0) {
+      const k = (size * 1.1) / 24;
+      c.translate(-boxW / 2 + size * 0.3, -size * 0.55);
+      c.scale(k, k);
+      for (const p of icon.parts) {
+        if (p.transform !== undefined) continue;
+        const path = env.path(p.d);
+        if (p.stroke !== undefined) {
+          c.strokeStyle = p.stroke;
+          c.lineWidth = (p.strokeWidth ?? 1) * 1.4;
+          c.stroke(path);
+        }
+        c.fillStyle = p.fill;
+        c.fill(path);
+      }
+    }
   }
   c.restore();
 }
 
-/** Speed lines behind a dashing actor: four streaks trailing its back, in stage units. */
-function speedLines(env: DrawEnv, a: Frame["actors"][number], tall: number): void {
-  const seg = a.seg;
-  if (seg === null) return;
-  const span = seg.to - seg.from;
-  const u = span > 0 && span !== Infinity && seg.rate > 0 ? (a.clipT - seg.c0) / (span * seg.rate) : 0.5;
-  const fade = u <= 0 || u >= 1 ? 0 : Math.sin(Math.PI * u);
-  if (fade <= 0.02) return;
+/** A Move's spotlight: a dim over the arena (drawn before the actors, so they stay bright), the
+ *  ring that glows on the floor under the user, and the user's aura when the Move has one. */
+function spotUnder(env: DrawEnv, s: Frame["spots"][number]): void {
   const c = env.ctx;
   c.save();
-  c.globalAlpha = 0.75 * fade;
-  c.strokeStyle = STREAK;
-  const back = -a.place.facing;
-  const rows = [0.22, 0.42, 0.6, 0.8];
-  rows.forEach((r, i) => {
-    const y = a.place.y - tall * r;
-    const from = a.place.x + back * (10 + (i % 2) * 4);
-    const len = (18 + ((i * 7) % 11)) * fade;
-    c.lineWidth = i % 2 === 0 ? 1.6 : 1.1;
+  c.globalAlpha = 0.3 * s.dim;
+  c.fillStyle = INK;
+  c.fillRect(0, 0, STAGE_W, STAGE_H);
+  c.globalAlpha = 0.9 * s.dim;
+  c.strokeStyle = s.colour;
+  c.lineWidth = 2.2;
+  c.beginPath();
+  c.ellipse(s.x, s.floorY, 24, 5.5, 0, 0, Math.PI * 2);
+  c.stroke();
+  if (s.aura) {
+    c.globalAlpha = 0.22 * s.dim;
+    c.fillStyle = s.colour;
     c.beginPath();
-    c.moveTo(from, y);
-    c.lineTo(from + back * len, y);
+    c.ellipse(s.x, s.floorY - 42, 24, 48, 0, 0, Math.PI * 2);
+    c.fill();
+    c.globalAlpha = 0.6 * s.dim;
+    c.lineWidth = 1.6;
     c.stroke();
-  });
+  }
   c.restore();
 }
 
@@ -154,8 +174,8 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
     rig.drawProp(env, p.item, { x: p.x, y: p.y, facing: p.facing, rot: p.rot });
     c.restore();
   }
+  for (const s of f.spots) spotUnder(env, s);
   for (const a of f.actors) {
-    if (cam && !opts.reducedMotion && a.clip === "dash") speedLines(env, a, a.rig === "scrapper" ? 80 : 30);
     rig.drawActor(env, pose ? pose(a) : rig.samplePose(a.rig, a.clip, a.clipT, a.aim), a.dress, a.place);
   }
   for (const p of f.flights) {
@@ -200,6 +220,8 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
     const shaken = t.kind === "number" || t.kind === "tag";
     // a tag (CRIT, BLOCK, a skill) sits higher than at the old scale, clear of the number it labels
     const lift = cam && t.kind === "tag" ? TAG_LIFT : 0;
-    text(env, t, opts.fonts, { x: t.x * k + ox + (shaken ? sx : 0), y: t.y * k + oy + (shaken ? sy : 0) - lift, size: t.size * tk }, css, dpr, cam ? TOP_BAND : 0);
+    const icon = t.icon !== undefined ? rig.icon(t.icon) : null;
+    text(env, t, opts.fonts, { x: t.x * k + ox + (shaken ? sx : 0), y: t.y * k + oy + (shaken ? sy : 0) - lift, size: t.size * tk }, css, dpr,
+      cam ? TOP_BAND : 0, icon);
   }
 }

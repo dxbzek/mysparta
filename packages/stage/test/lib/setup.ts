@@ -17,7 +17,7 @@ export function optsFor(log: BoutLog, reduced = false, cosmeticSeed = 7): Player
   return {
     reducedMotion: reduced, cosmeticSeed, stage: stageFor(log.seed),
     text: { fight: "FIGHT", wins: (n) => `${n} WINS`, block: "BLOCK", miss: "MISS", crit: "CRIT", overtime: "OVERTIME",
-      moveName: (id) => `move:${id}`, skillName: (id) => `skill:${id}` },
+      moveName: (id) => `move:${id}`, skillName: (id) => `skill:${id}`, moveResult: (id, part) => (part === "pet" ? `fled:${id}` : `result:${id}`) },
     fonts: { display: "sans-serif", body: "sans-serif" },
   };
 }

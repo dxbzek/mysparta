@@ -8,7 +8,7 @@
  * offset, a burst, a number, an HP change, a shake, a crowd bounce, a sound cue that plays in
  * this millisecond), not from the contact's `starts` record.
  */
-import type { ActorId, PropId } from "@rankzero/core";
+import type { ActorId, PerkId, PropId } from "@rankzero/core";
 import type { Aim, Dress, FxKind, Place, RigId } from "@rankzero/rig";
 import type { EffectKey } from "./contracts";
 import { IMPACT_FAMILIES } from "./cues";
@@ -24,7 +24,9 @@ export interface FrameActor {
 export interface FrameProp { item: PropId; x: number; y: number; rot: number; facing: 1 | -1; alpha: number }
 export interface FrameFx { fx: FxKind; progress: number; at: Place; seed: number }
 export interface FrameText { text: string; x: number; y: number; size: number; colour: string; ink: string; alpha: number;
-  kind: "number" | "tag" | "banner" | "sticker" }
+  kind: "number" | "tag" | "banner" | "sticker"; icon?: PerkId }
+/** A Move's spotlight in this frame: how dim the arena is (0 to 1), and the user's glow. */
+export interface FrameSpot { dim: number; x: number; floorY: number; colour: string; aura: boolean; actor: ActorId }
 export interface Present { key: EffectKey; contact: number }
 export interface Frame {
   t: number;
@@ -36,8 +38,12 @@ export interface Frame {
   fx: FrameFx[];
   texts: FrameText[];
   tape: number | null;
+  spots: FrameSpot[];
   present: Present[];
 }
+
+/** How long a spotlight takes to come up and to go. */
+const SPOT_FADE_MS = 160;
 
 const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -123,6 +129,11 @@ export function frameAt(tr: Tracks, t: number): Frame {
       y = who.floorY + (e.dy ?? 0);
       facing = who.place.facing;
     }
+    if (e.track !== undefined && e.track.length > 0) {
+      const q = trackAt(e.track, t);
+      x = q.x;
+      y = q.y;
+    }
     if (e.fly !== undefined) {
       const u = clamp01((t - e.from) / e.fly.ms);
       const v = eased("out", u);
@@ -130,6 +141,7 @@ export function frameAt(tr: Tracks, t: number): Frame {
       y = e.fly.y0 + (y - e.fly.y0) * v - 4 * v * (1 - v) * e.fly.arc;
       progress = e.fx === "tarp" ? (u < 1 ? 0.2 : clamp01((t - e.from - e.fly.ms) / Math.max(1, span - e.fly.ms))) : u;
     }
+    if (e.p0 !== undefined || e.p1 !== undefined) progress = (e.p0 ?? 0) + ((e.p1 ?? 1) - (e.p0 ?? 0)) * progress;
     fx.push({ fx: e.fx, progress, at: { x, y, facing }, seed: e.seed });
     if (e.key !== undefined && e.contact !== null) present.push({ key: e.key, contact: e.contact });
   }
@@ -149,13 +161,16 @@ export function frameAt(tr: Tracks, t: number): Frame {
   for (const g of tr.tags) {
     if (t < g.from || t >= g.to) continue;
     const e = t - g.from;
-    const pop = e < 90 ? 1.3 - 0.3 * (e / 90) : 1;
+    // a sticker settles in gently (calm camera: no slam)
+    const pop = e < 120 ? 1.1 - 0.1 * eased("out", e / 120) : 1;
     const left = g.to - t;
     const alpha = left < 120 ? left / 120 : 1;
     let x = g.x;
     const y = g.y;
-    if (g.kind === "banner" && e < 160) x = g.x - (1 - eased("out", e / 160)) * 40;
-    texts.push({ text: g.text, x, y, size: g.size * pop, colour: g.colour, ink: g.ink, alpha, kind: g.kind });
+    if (g.kind === "banner" && e < 200) x = g.x - (1 - eased("out", e / 200)) * 12;
+    const ft: FrameText = { text: g.text, x, y, size: g.size * pop, colour: g.colour, ink: g.ink, alpha, kind: g.kind };
+    if (g.icon !== undefined) ft.icon = g.icon;
+    texts.push(ft);
   }
 
   // ---- HP changes that are happening now (for the contact measurement)
@@ -178,9 +193,10 @@ export function frameAt(tr: Tracks, t: number): Frame {
   for (const s of tr.shakes) {
     const e = t - s.from;
     if (e < 0 || e >= s.ms) continue;
+    // a short tremor that dies out: mostly sideways, a little up and down (at most 1.08 x amp)
     const k = s.amp * (1 - e / s.ms);
     sx += k * Math.sin(e * 0.11 + s.seed);
-    sy += k * 0.6 * Math.cos(e * 0.13 + s.seed * 0.5);
+    sy += k * 0.4 * Math.cos(e * 0.13 + s.seed * 0.5);
     if (s.contact !== null) present.push({ key: "shake", contact: s.contact });
   }
   let crowd = 0;
@@ -191,7 +207,32 @@ export function frameAt(tr: Tracks, t: number): Frame {
     if (c.contact !== null) present.push({ key: "crowd", contact: c.contact });
   }
 
+  // ---- spotlights: the arena dims while a Move plays, the user's floor ring glows
+  const spots: FrameSpot[] = [];
+  for (const s of tr.spots) {
+    if (t < s.from || t >= s.to) continue;
+    const who = placeOf.get(s.actor);
+    if (who === undefined) continue;
+    const dim = Math.min(1, (t - s.from) / SPOT_FADE_MS, (s.to - t) / SPOT_FADE_MS);
+    spots.push({ dim, x: who.place.x, floorY: who.floorY, colour: s.colour, aura: s.aura === true, actor: s.actor });
+  }
+
   const tape = tr.tape !== null && t >= tr.tape.from && t < tr.tape.to ? (t - tr.tape.from) / (tr.tape.to - tr.tape.from) : null;
-  return { t, shake: { x: sx, y: sy }, crowd, actors, floor, flights, fx, texts, tape, present };
+  return { t, shake: { x: sx, y: sy }, crowd, actors, floor, flights, fx, texts, tape, spots, present };
+}
+
+/** The point of a sampled track at `t` (held at its ends). */
+function trackAt(track: readonly { t: number; x: number; y: number }[], t: number): { x: number; y: number } {
+  const first = track[0]!;
+  if (t <= first.t) return first;
+  for (let i = 1; i < track.length; i++) {
+    const b = track[i]!;
+    if (t <= b.t) {
+      const a = track[i - 1]!;
+      const u = b.t > a.t ? (t - a.t) / (b.t - a.t) : 1;
+      return { x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u };
+    }
+  }
+  return track[track.length - 1]!;
 }
 
