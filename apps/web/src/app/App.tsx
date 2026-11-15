@@ -47,15 +47,22 @@ import css from "./app.module.css";
  * retry makes a fresh one.
  */
 interface Chunk<P> { get(): ComponentType<P>; reset(): void; preload(): void }
-/** Once a chunk has arrived, `get` hands back the screen itself, so a prefetched screen mounts at
- *  once with no loading frame (the level-up cards deal in on time). */
+/**
+ * `get` returns ONE component type per load attempt, never a different one later: React unmounts a
+ * screen whose element type changes, so a lazy wrapper that later turned into the screen itself
+ * would reset the screen's state on the next re-render of the app (a toast, a save from another
+ * tab). The first `get` decides: if the chunk had already arrived (prefetched), it is the screen
+ * itself, so it mounts at once with no loading frame (the level-up cards deal in on time);
+ * otherwise it is the lazy wrapper, which renders the screen without suspending once loaded.
+ * `reset` (Retry) starts a new attempt.
+ */
 export function retryable<P extends object = object>(load: () => Promise<{ default: ComponentType<P> }>): Chunk<P> {
   let loaded: ComponentType<P> | null = null;
   const fetch = (): Promise<{ default: ComponentType<P> }> => load().then((m) => { loaded = m.default; return m; });
-  let C = lazy(fetch);
+  let pinned: ComponentType<P> | null = null;
   return {
-    get: () => loaded ?? C,
-    reset: () => { C = lazy(fetch); },
+    get: () => (pinned ??= loaded ?? lazy(fetch)),
+    reset: () => { pinned = null; },
     preload: () => { if (!loaded) void fetch().catch(() => undefined); },
   };
 }
@@ -273,12 +280,12 @@ function Screen({ route }: { route: Route }) {
     case "create": return <CreateScreen />;
     case "card": return <CardScreen />;
     case "bout": return <BoutScreen key={route.id} id={route.id} />;
-    case "levelup": return <LazyRoute chunk={LevelUpChunk} label={UI.appName} />;
-    case "kit": return <LazyRoute chunk={KitChunk} label={UI.kit.title} props={{ tab: route.tab }} />;
-    case "bouts": return <LazyRoute chunk={BoutsChunk} label={UI.history.title} />;
-    case "inventory": return <LazyRoute chunk={InventoryChunk} label={UI.inventory.title} />;
+    case "levelup": return <LazyRoute key="levelup" chunk={LevelUpChunk} label={UI.appName} />;
+    case "kit": return <LazyRoute key="kit" chunk={KitChunk} label={UI.kit.title} props={{ tab: route.tab }} />;
+    case "bouts": return <LazyRoute key="bouts" chunk={BoutsChunk} label={UI.history.title} />;
+    case "inventory": return <LazyRoute key="inventory" chunk={InventoryChunk} label={UI.inventory.title} />;
     case "replay": return <ReplayScreen key={route.id} id={route.id} />;
-    case "sandbox": return <LazyRoute chunk={SandboxChunk} label={UI.sandbox.title} />;
+    case "sandbox": return <LazyRoute key="sandbox" chunk={SandboxChunk} label={UI.sandbox.title} />;
     case "settings": return <SettingsRoute />;
     default: return <LockerScreen />;
   }

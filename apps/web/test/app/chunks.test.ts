@@ -27,6 +27,25 @@ describe("lazy screens", () => {
     expect(chunk.get()).not.toBe(first);
   });
 
+  it("keeps one component type after the chunk arrives, so the open screen is not remounted", async () => {
+    const Screen = (): null => null;
+    const chunk = retryable<object>(() => Promise.resolve({ default: Screen }));
+    const first = chunk.get();                // asked for before the chunk arrived: the lazy wrapper
+    expect(first).not.toBe(Screen);
+    chunk.preload();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(chunk.get()).toBe(first);          // the app re-renders: same type, the screen keeps its state
+  });
+
+  it("a chunk prefetched before its first use mounts as the screen itself", async () => {
+    const Screen = (): null => null;
+    const chunk = retryable<object>(() => Promise.resolve({ default: Screen }));
+    chunk.preload();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(chunk.get()).toBe(Screen);
+    expect(chunk.get()).toBe(Screen);
+  });
+
   it("a stale chunk reloads the page once, not in a loop", () => {
     const { win, fire } = fakeWindow();
     const reload = vi.fn();

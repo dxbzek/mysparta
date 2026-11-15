@@ -4,7 +4,7 @@ import { IDBFactory } from "fake-indexeddb";
 import { StorageUnsureError, idbKv, localKv, memoryKv, openIdb, resilientKv, LOCAL_KEY, type Kv, type KvTx } from "../../src/state/idb";
 import { SCHEMA_VERSION, emptyDoc } from "../../src/state/schema";
 import { SLOT_KEYS, createSaveStore } from "../../src/state/slots";
-import { createGameStore } from "../../src/state/store";
+import { NEWER_SAVE_NOTICE, SaveError, createGameStore } from "../../src/state/store";
 import { createGameActions } from "../../src/state/actions";
 import { fixedClock } from "../../src/state/day";
 import { T0 } from "./helpers";
@@ -143,5 +143,68 @@ describe("a slot written by a newer build (finding 72)", () => {
     kv.data.set(SLOT_KEYS[1], newer);
     expect(await s.write(emptyDoc(T0), 1)).toEqual({ ok: false, why: "stale" });
     expect(kv.data.get(SLOT_KEYS[1])).toBe(newer);
+  });
+
+  it("the game store says a newer version saved here and to reload, not 'another tab'", async () => {
+    quiet();
+    const kv = memoryKv({
+      [SLOT_KEYS[0]]: JSON.stringify({ ...emptyDoc(T0), rev: 3 }),
+      [SLOT_KEYS[1]]: JSON.stringify({ ...emptyDoc(T0), schemaVersion: SCHEMA_VERSION + 1, rev: 4 }),
+    });
+    const store = createGameStore(createSaveStore(kv), () => T0);
+    await store.load();
+    store.clearNotice();
+    const touch = (d: typeof store.doc) => ({ doc: { ...d, updatedAt: d.updatedAt + 1 }, value: null });
+    const err = await store.commit(touch).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(SaveError);
+    expect((err as SaveError).why).toBe("newer");
+    expect(store.notice).toBe(NEWER_SAVE_NOTICE);
+    expect(store.notice).not.toMatch(/another tab/);
+  });
+});
+
+/** localStorage that is full: setItem throws once the key holds a value, getItem keeps the old text. */
+function fullStorage(old: string): Storage & { map: Map<string, string> } {
+  const s = fakeStorage();
+  s.map.set(LOCAL_KEY, old);
+  s.setItem = () => { throw Object.assign(new Error("quota"), { name: "QuotaExceededError" }); };
+  return s;
+}
+
+describe("local storage that is full (findings 11 and 71 together)", () => {
+  const oldBlob = JSON.stringify({ [SLOT_KEYS[0]]: JSON.stringify({ ...emptyDoc(T0), rev: 1 }) });
+
+  it("writes keep working from memory instead of reloading the old copy each step", async () => {
+    const s = createSaveStore(localKv(fullStorage(oldBlob)));
+    const l = await s.load();
+    expect(l.state === "ok" && l.doc.rev).toBe(1);
+    expect(await s.write(emptyDoc(T0), 1)).toEqual({ ok: true, rev: 2 });
+    expect(await s.write(emptyDoc(T0), 2)).toEqual({ ok: true, rev: 3 });
+    expect(await s.write(emptyDoc(T0), 3)).toEqual({ ok: true, rev: 4 });
+  });
+
+  it("IndexedDB failing mid-session: the seeded fallback is not replaced by the old local copy", async () => {
+    quiet();
+    const idb = breakable(memoryKv({ [SLOT_KEYS[0]]: JSON.stringify({ ...emptyDoc(T0), rev: 5 }) }));
+    const s = createSaveStore(resilientKv(idb, (seed) => localKv(fullStorage(oldBlob), seed)));
+    const l = await s.load();
+    expect(l.state === "ok" && l.doc.rev).toBe(5);
+    idb.on = true;
+    expect(await s.write(emptyDoc(T0), 5)).toEqual({ ok: true, rev: 6 });
+    expect(await s.write(emptyDoc(T0), 6)).toEqual({ ok: true, rev: 7 });
+  });
+
+  it("still takes another tab's newer copy when local storage did change", async () => {
+    const storage = fakeStorage();
+    const a = createSaveStore(localKv(storage));
+    const b = createSaveStore(localKv(storage));
+    await a.load();
+    await b.load();
+    expect(await a.write(emptyDoc(T0), 0)).toEqual({ ok: true, rev: 1 });
+    expect(await a.write(emptyDoc(T0), 1)).toEqual({ ok: true, rev: 2 });
+    expect(await b.write(emptyDoc(T0), 0)).toEqual({ ok: false, why: "stale" });
+    expect(await b.write(emptyDoc(T0), 2)).toEqual({ ok: true, rev: 3 });
+    const r = await a.load();
+    expect(r.state === "ok" && r.doc.rev).toBe(3);
   });
 });

@@ -133,15 +133,26 @@ export function memoryKv(init: Record<string, unknown> = {}): Kv & { data: Map<s
  *
  * `seed` is what this session already knows (the values read from or written to IndexedDB before
  * it failed). It wins over what localStorage holds, so the first write after a switch passes the
- * rev check instead of finding an empty store. Each transaction re-reads localStorage first, so
- * a second tab in the same mode never writes over the first tab's newer copy unseen.
+ * rev check instead of finding an empty store. Each transaction looks at localStorage first: when
+ * its text differs from the text this session last read or wrote, another tab wrote it, and that
+ * copy is taken, so a second tab in the same mode never writes over the first tab's newer copy
+ * unseen. When a write did not reach localStorage (full or blocked), the text there is still the
+ * one this session saw, so memory (newer) is kept and the session plays on from memory.
  */
 export const LOCAL_KEY = "rankzero.kv";
 export function localKv(storage: Storage | undefined = (globalThis as { localStorage?: Storage }).localStorage,
   seed?: ReadonlyMap<string, unknown>): Kv {
-  const read = (): Record<string, unknown> | null => {
+  /** The localStorage text as this session last saw it (read, or written successfully). */
+  let lastRaw: string | null = null;
+  const rawNow = (): string | null => {
     try {
-      const raw = storage?.getItem(LOCAL_KEY);
+      return storage?.getItem(LOCAL_KEY) ?? null;
+    } catch {
+      return null;
+    }
+  };
+  const parse = (raw: string | null): Record<string, unknown> | null => {
+    try {
       return raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
     } catch {
       return null;
@@ -149,12 +160,15 @@ export function localKv(storage: Storage | undefined = (globalThis as { localSto
   };
   const persist = (data: Map<string, unknown>): void => {
     try {
-      storage?.setItem(LOCAL_KEY, JSON.stringify(Object.fromEntries(data)));
+      const text = JSON.stringify(Object.fromEntries(data));
+      storage?.setItem(LOCAL_KEY, text);
+      lastRaw = text;
     } catch {
       /* storage full or blocked: the session still plays from memory */
     }
   };
-  const mem = memoryKv(read() ?? {});
+  lastRaw = rawNow();
+  const mem = memoryKv(parse(lastRaw) ?? {});
   if (seed && seed.size > 0) {
     for (const [k, v] of seed) {
       if (v === undefined) mem.data.delete(k);
@@ -165,8 +179,11 @@ export function localKv(storage: Storage | undefined = (globalThis as { localSto
   return {
     atomic<T>(fn: (tx: KvTx) => Promise<T>): Promise<T> {
       return mem.atomic(async (tx) => {
-        // Inside the chain, before any read: take what another tab may have written since.
-        const now = read();
+        // Inside the chain, before any read: take what another tab may have written since. Text
+        // this session already saw is not news (a write of ours that did not fit leaves it there).
+        const raw = rawNow();
+        const now = raw !== lastRaw ? parse(raw) : null;
+        lastRaw = raw;
         if (now) {
           mem.data.clear();
           for (const [k, v] of Object.entries(now)) mem.data.set(k, v);

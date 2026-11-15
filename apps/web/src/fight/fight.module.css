@@ -370,12 +370,20 @@
 }
 
 /* ------------------------------------------------------------------ 4. fighter cards */
+/* The cards and the result card share one grid cell, both in the flow: the lower area is as tall
+   as the taller of the two, so the result card never covers the log strip (finding 61) and its
+   buttons are never pushed below the screen. When the result needs more room than the cards, the
+   stage gives it up (it is the 1fr row), and below the stage's floor the screen scrolls. The
+   minimum is the usual result card's height, so in most bouts the stage keeps its size at the end. */
 .lower {
   grid-area: lower;
   position: relative;
-  /* Room for the result card from the start, so it never covers the log strip (finding 61) and
-     the stage never changes size when the bout ends. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 228px;
+}
+.lower > * {
+  grid-area: 1 / 1;
 }
 .cards {
   display: grid;
@@ -733,11 +741,9 @@
 
 /* ------------------------------------------------------------------ result card (over the cards) */
 .result {
-  position: absolute;
-  left: 6px;
-  right: 6px;
-  top: 4px;
-  min-height: calc(100% - 4px);
+  position: relative;
+  align-self: stretch;
+  margin: 4px 6px 0;
   z-index: 2;
   padding: 10px 12px 12px;
   border: var(--line) solid var(--c-ink);
@@ -910,8 +916,9 @@
     left: 50%;
     right: auto;
     top: auto;
-    min-height: 0;
     bottom: 0;
+    margin: 0;
+    grid-area: auto;
     width: 460px;
     margin-left: -230px;
   }
