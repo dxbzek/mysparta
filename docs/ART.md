@@ -89,6 +89,47 @@ the way a real club meets its target; a straight arm forward points the item up.
 - Eases: `in` = u^1.7 (a strike), `out` = 1-(1-u)^2 (a settle), `inOut` cubic. A segment that
   must turn a big angle fast can be `linear` (no ease) to stay under 45 degrees a frame.
 
+## A real body (anatomy lines, owner 15 Nov 2026: "arms are twisting")
+
+What made the arms twist in the first bout, measured on every 60 fps frame (before / after,
+all 13 gate clips plus the throw, plain and aimed at two heights): forearms and hands turning
+up to 78 degrees in one frame (83 frames over 25 / 0), wrists bent to 91 degrees (13 / 0),
+upper arms swung up behind the back to 159 (12 / 0), arms pulled to 99% of their length
+(41 / 0), and, in the bout itself, clip switches that turned a forearm 164 to 180 degrees
+between two frames (brace to dash, dash to swing). No elbow or knee ever flipped side: the IK
+was not the cause; the keys and the clip ends were. The rules that keep it fixed:
+
+- **IK.** `engine/ik.ts` bends every elbow and knee to its own side only (from the bone's
+  limit: elbows negative, knees positive), keeps the solution continuous (the upper bone stays
+  within 180 degrees of its last angle) and can cap the reach (`maxReach`). A planted leg is
+  never pulled straight: the engine sinks the hips instead (`PLANT_REACH`, 98.5%).
+- **Folded arms by angles, long arms by IK.** A wrist target close to the shoulder (a guard at
+  the chin, a fist cocked by the ear) makes two-bone IK ill-conditioned: a small move of the
+  target swings the upper arm a long way. Key a folded arm as `{ up, lo }` (the stance's back
+  arm, every free arm, the swing and throw wind-ups) and use `at` only for an arm that reaches
+  out (35% of its length or more).
+- **`ANATOMY` in skeleton.ts**: arm reach at most 95% (move the hips, not the arm), leg 99%;
+  wrist -70 to +80; shoulder from -185 (past overhead) to 65 (behind the back); a forearm or a
+  hand turns at most 25 degrees a frame (2 more when an aim at the far end of the height range
+  adds its bend); no near forearm in the back of the trunk, no held item through the head or
+  the trunk. `test/gate/anatomy.test.ts` checks all of it on every frame, each line with a
+  planted-fault control.
+- **Clip ends in the guard.** The stage cuts between clips with no blend, so every clip starts
+  and ends within 30 degrees of the stance (forearm and hand), and the loops it can leave at any
+  frame (idle, dash, backpedal) stay there all through: the run keeps the guard up, the free fist
+  pumps only a little. The jump-in start, the knockout's end and the win loop are exempt.
+- **Kinetic chain.** Strikes move proximal to distal, the way people do (standard
+  biomechanics, no motion data or game animation was copied): punch = weight back, then the back
+  leg pushes, hips turn in, chest follows, the arm straightens last with the forearm on the line
+  of the punch, the rear fist stays at the chin; club swing = hips, then chest, then the upper
+  arm drives down, the elbow opens, the wrist snaps last, the free arm pulls back against it;
+  knife = a short hip-shoulder push with the elbow tucked along the ribs; hit = the head snaps
+  first, then the chest, then the hips, and the back foot steps back to catch the weight;
+  knockout = the knees buckle, the hips drop, the back lands, the arms trail. Joint angles were
+  set by these rules and the ranges above; the free CMU motion capture data was not used.
+- A strike's weapon turns at an even rate through the delivery (linear keys from the top of
+  the wind-up to the contact): an eased 280 ms swing would need a wrist faster than a real one.
+
 ## Weapons
 
 `WeaponArt` in the weapon's own units, +x along it, the grip at `grip`. `tip` is the part the

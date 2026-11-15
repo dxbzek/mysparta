@@ -98,5 +98,31 @@ export const BUILDS = [
  *  in the fist points forward and a little up (the thumb side of a relaxed fist faces forward). */
 export const GRIP_ROT = -10;
 
+/**
+ * A real body's range, read in the side view (degrees as in the sign rules above). Checked on
+ * every 60 fps frame of every clip by `test/gate/anatomy.test.ts`; the clip kit refuses a key
+ * that breaks them (owner, 15 Nov 2026: "animations aren't realistic, arms are twisting").
+ *  - reach: a wrist target is at most 95% of shoulder-to-wrist length away (an arm is never
+ *    pulled dead straight by IK; a punch moves the body in instead); a leg at most 99%;
+ *  - wrist: the hand against the forearm, -70 to +80 (flexion and extension of a real wrist);
+ *  - shoulder: the upper arm against the torso, from past overhead (-185) to 65 behind the back
+ *    (the most a shoulder extends, seen from the side);
+ *  - turnPerFrame: a forearm or a hand turns at most 25 degrees in one 60 fps frame (1500 deg/s,
+ *    the top of a real fast strike); `aimTurn` more when a strike is bent to a target at the far
+ *    ends of the height range (the bend adds its own turn on top of the clip's);
+ *  - the trunk: a hand or forearm never inside the back part of the chest (half depth 5.5).
+ */
+export const ANATOMY = {
+  reach: 0.95,
+  legReach: 0.99,
+  wrist: [-70, 80] as const,
+  shoulder: [-185, 65] as const,
+  turnPerFrame: 25,
+  aimTurn: 2,
+  trunkHalfDepth: 5.5,
+  trunkCore: 0.35,
+  headRadius: 4,
+} as const;
+
 /** The foot bones: what "feet on the floor" is measured on. */
 export const FEET = ["footB", "footF"] as const;

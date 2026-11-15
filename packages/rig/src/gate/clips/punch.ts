@@ -1,13 +1,17 @@
-/** Punch (fists): a straight from the guard. The fist cocks back and down while the hips turn
- *  away, then the hip, the shoulder and the arm go in that order; the fist passes the contact
- *  pose and comes back to the guard. Contact at 150 of 280 (timing table). */
+/** Punch (fists): a lead straight that starts in the back foot. Weight sinks onto the back leg
+ *  and the fist draws in to the chin (the wind-up); then the back leg pushes, the hips turn in,
+ *  the chest follows and the shoulder throws the arm, which only straightens at the end, the
+ *  forearm staying on the line of the punch (a straight punch does not swing). The rear fist stays
+ *  home at the chin. The fist carries a little past the contact and comes back the way it went.
+ *  Contact at 150 of 280 (timing table). */
 import { clip, BOTH_FEET, STANCE } from "./kit";
 
 export const PUNCH = clip(280, false, [{ t: 150, name: "contact" }], [
   [0, STANCE],
-  [78, { root: [-4.5, 4.4], pelvis: -6, torso: -8, head: 8, F: { at: [2, -56], hand: 25 }, B: { up: -40, lo: -110, hand: 10 }, face: "grit", ease: "out" }],
-  [150, { root: [6, 4.8], pelvis: 5, torso: 22, head: -16, F: { at: [37.5, -61.5], hand: 0 }, B: { up: 28, lo: -125, hand: -25 }, face: "shout", ease: "in" }],
-  [195, { root: [9.5, 5.6], torso: 28, head: -12, F: { at: [43, -60], hand: -5 }, B: { up: 34, lo: -128, hand: -25 }, ease: "out" }],
-  [236, { root: [3, 4.6], pelvis: 2, torso: 19, head: -10, F: { at: [24, -57], hand: -10 }, B: { up: 20, lo: -122, hand: -15 }, ease: "inOut" }],
-  [280, { ...STANCE, ease: "inOut" }],
-], { plant: BOTH_FEET, lag: { head: 32, "armB.up": 76, "armB.lo": 76, handB: 76 } });
+  [72, { root: [-4, 4.8], pelvis: -5, torso: 3, head: 6, F: { at: [3, -59], hand: 28 }, B: { up: 4, lo: -142, hand: 0 }, face: "grit" }],
+  [112, { root: [0.5, 4.8], pelvis: 2, torso: 13, head: -10, F: { at: [16, -61], hand: 16 }, B: { up: -20, lo: -145, hand: 0 }, ease: "in" }],
+  [150, { root: [6, 4.8], pelvis: 5, torso: 22, head: -14, F: { at: [37.5, -61.5], hand: 0 }, B: { up: -22, lo: -146, hand: -5 }, face: "shout", ease: "in" }],
+  [178, { root: [9.5, 5.6], pelvis: 6, torso: 27, head: -12, F: { at: [43, -60], hand: -4 }, B: { up: -16, lo: -145, hand: -5 }, ease: "out" }],
+  [232, { root: [2, 4.2], pelvis: 1, torso: 14, head: -8, F: { at: [17, -55], hand: 22 }, B: { up: -4, lo: -142, hand: 0 } }],
+  [280, STANCE],
+], { plant: BOTH_FEET, lag: { head: 32, "armB.up": 70, "armB.lo": 70, handB: 70 } });
