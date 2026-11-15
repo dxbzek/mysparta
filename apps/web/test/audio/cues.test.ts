@@ -1,7 +1,7 @@
 /**
  * Sound on the fight clock (brief 3.13, plan WP4 gate): every cue of a fixture bout plays at or
  * after its contact time, no two impact cues fall inside 60 ms, a seek plays no sound, and at 2x
- * the same cues play (faster in real time, same pitch).
+ * and 3x (VIP) the same cues play (faster in real time, same pitch), reduced motion or not.
  */
 import { describe, expect, it } from "vitest";
 import { stageFor } from "@rankzero/core";
@@ -21,7 +21,7 @@ const timelineOf = (name: BoutFixtureName, reducedMotion = false): Timeline => {
 };
 
 /** Plays a bout through the real clock in frames of `frameMs` real time, the way FightScreen does. */
-function playThrough(tl: Timeline, speed: 1 | 2, frameMs = 1000 / 60) {
+function playThrough(tl: Timeline, speed: 1 | 2 | 3, frameMs = 1000 / 60) {
   const clock = createFightClock(tl.durationMs);
   clock.speed = speed;
   const heard: { cue: Cue; clockAt: number }[] = [];
@@ -56,11 +56,30 @@ describe.each(["bout-gate", "bout-all-steps", "bout-cap"] as const)("cues of %s"
     for (let i = 1; i < at.length; i++) expect(at[i]! - at[i - 1]!).toBeGreaterThanOrEqual(60);
   });
 
-  it.each([1, 2] as const)("playing at %ix sounds every cue once, in order, never before its time", (speed) => {
+  it.each([1, 2, 3] as const)("playing at %ix sounds every cue once, in order, never before its time", (speed) => {
     const heard = playThrough(tl, speed);
     expect(heard.map((h) => h.cue)).toEqual(tl.cues.filter((c) => c.at > 0 || heard.some((h) => h.cue === c)));
     for (const h of heard) expect(h.clockAt).toBeGreaterThanOrEqual(h.cue.at);
-    // a frame is at most one frame late: 16.7 ms at 1x, 33.3 ms of clock time at 2x
+    // a frame is at most one frame late: 16.7 ms at 1x, 33.3 ms of clock time at 2x, 50 ms at 3x
+    for (const h of heard) expect(h.clockAt - h.cue.at).toBeLessThanOrEqual((1000 / 60) * speed + 1e-6);
+  });
+
+  it("at 3x each cue sounds exactly once, none early, and a 3x run hears what a 1x run hears", () => {
+    const at1 = playThrough(tl, 1).map((h) => h.cue);
+    const heard = playThrough(tl, 3);
+    const counts = new Map<Cue, number>();
+    for (const h of heard) counts.set(h.cue, (counts.get(h.cue) ?? 0) + 1);
+    expect([...counts.values()].every((n) => n === 1)).toBe(true);
+    expect(heard.every((h) => h.clockAt >= h.cue.at)).toBe(true);
+    expect(heard.map((h) => h.cue)).toEqual(at1);
+  });
+
+  it.each([1, 2, 3] as const)("reduced motion at %ix: the same rules hold on the reduced timeline", (speed) => {
+    const rtl = timelineOf(name, true);
+    const heard = playThrough(rtl, speed);
+    expect(heard.map((h) => h.cue)).toEqual(rtl.cues.filter((c) => c.at > 0 || heard.some((h) => h.cue === c)));
+    expect(new Set(heard.map((h) => h.cue)).size).toBe(heard.length);
+    for (const h of heard) expect(h.clockAt).toBeGreaterThanOrEqual(h.cue.at);
     for (const h of heard) expect(h.clockAt - h.cue.at).toBeLessThanOrEqual((1000 / 60) * speed + 1e-6);
   });
 });

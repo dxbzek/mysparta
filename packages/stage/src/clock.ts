@@ -15,7 +15,7 @@ export const createFightClock: CreateFightClock = (durationMs: number): FightClo
     paused: false,
     tick(realDtMs: number): number {
       if (this.paused || !(realDtMs > 0)) return t;
-      t = hold(t + (this.speed === 2 ? 2 : 1) * realDtMs);
+      t = hold(t + (this.speed === 3 ? 3 : this.speed === 2 ? 2 : 1) * realDtMs);
       return t;
     },
     seek(tMs: number): void {

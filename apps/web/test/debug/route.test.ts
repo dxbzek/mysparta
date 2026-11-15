@@ -11,7 +11,8 @@ describe("debug routes", () => {
     });
   });
   it("reads a seed route", () => {
-    expect(parseDebugRoute("#/debug/bout?seed=1234&t=0")).toMatchObject({ page: "bout", fixture: null, seed: 1234, paused: false, speed: 1 });
+    expect(parseDebugRoute("#/debug/bout?seed=1234&t=0")).toMatchObject({ page: "bout", fixture: null, seed: 1234, paused: false, speed: 1, vip: false });
+    expect(parseDebugRoute("#/debug/bout?speed=3&vip=1")).toMatchObject({ speed: 3, vip: true });
   });
   it("defaults to the gate bout, and ignores a bad fixture name", () => {
     expect(parseDebugRoute("#/debug/bout")).toMatchObject({ fixture: "bout-gate", t: 0 });

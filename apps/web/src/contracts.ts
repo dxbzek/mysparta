@@ -5,7 +5,11 @@
 import type { BoutLog, BoutResult, DayKey, FighterSnapshot, Pick, ScrapperRecord } from "@rankzero/core";
 
 export type Result<T, E extends string> = { ok: true; value: T } | { ok: false; error: E };
-export interface Settings { sound: boolean; speed: 1 | 2; reducedMotion: "system" | "on" | "off"; liveLog: boolean }
+/** CONTRACT_REV 4: `speed` 3 is a VIP perk; `isVip` says whether this save has it (false until the
+ *  shop exists, plan 13.13; the Settings sheet has a temporary "VIP (test)" switch). A save that is
+ *  not VIP never plays at 3x: the fight screen and the save check both drop it to 2x. */
+export interface Settings { sound: boolean; speed: 1 | 2 | 3; reducedMotion: "system" | "on" | "off"; liveLog: boolean;
+  isVip: boolean }
 /** One stored bout. `at` is a time in ms since 1970, from the injected `Clock`. `lineId` picks
  *  the one-line result text. */
 /** `logVersion` 1 is a row stored before content v2 (contract rev 2): its log is never kept. */
@@ -14,7 +18,8 @@ export interface BoutRecord { id: string; at: number; seed: number; rulesVersion
   role: "attacker" | "defender"; fighterId: string; xp: 1 | 2; lineId: number;
   watched: boolean; before: { xp: number; boutsUsed: number };   // the UI shows these until watched
   log?: BoutLog }                                                // kept for the last 50
-export interface SaveDoc { schemaVersion: 1; rev: number; updatedAt: number; settings: Settings;
+/** Schema version 2 (CONTRACT_REV 4): `settings.isVip` added; migration 1 to 2 sets it false. */
+export interface SaveDoc { schemaVersion: 2; rev: number; updatedAt: number; settings: Settings;
   activeId: string | null;                                       // the scrapper shown in the Locker
   fighters: ScrapperRecord[]; retired: ScrapperRecord[]; history: BoutRecord[] }
 export type LoadResult = { state: "empty" } | { state: "ok"; doc: SaveDoc }

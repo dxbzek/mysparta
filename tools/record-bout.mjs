@@ -17,7 +17,7 @@
  * contact, no two impact cues within 60 ms, the peak below clipping, and the longest silence.
  * An agent cannot hear: a person must still listen (brief 3.13).
  *
- * Flags: --fixture <name> | --seed <n> | --find <n> --level <L> (a find-bout candidate), --speed 1|2,
+ * Flags: --fixture <name> | --seed <n> | --find <n> --level <L> (a find-bout candidate), --speed 1|2|3,
  * --at <ms,ms,...> extra phone shots [--only-at], --out-dir <dir>, --fps <n> (60), --out <file.mp4>,
  * --reduced, --audio, --realtime [--seconds 8], --shots, --port <n>, --copy-to <file>.
  * Output defaults to <main checkout>/.review/wp4/.
@@ -202,10 +202,10 @@ async function mixCues({ cues, contacts, durationMs, speed }) {
 
 async function recordVideo(browser, base) {
   const fps = Number(arg("fps", 60));
-  const speed = Number(arg("speed", 1)) === 2 ? 2 : 1;
+  const speed = [2, 3].includes(Number(arg("speed", 1))) ? Number(arg("speed", 1)) : 1;
   const name = arg("find") ? `find-${arg("find")}-l${arg("level", "1")}` : arg("seed") ? `seed-${arg("seed")}` : arg("fixture", "bout-gate");
   mkdirSync(OUT_DIR, { recursive: true });
-  const out = resolve(arg("out", join(OUT_DIR, `${name}-capsule${flag("reduced") ? "-reduced" : ""}${speed === 2 ? "-2x" : ""}.mp4`)));
+  const out = resolve(arg("out", join(OUT_DIR, `${name}-capsule${flag("reduced") ? "-reduced" : ""}${speed > 1 ? `-${speed}x` : ""}.mp4`)));
   const page = await openPage(browser, PHONE, { reducedMotion: flag("reduced") });
   await page.goto(debugUrl(base, { paused: 1, t: 0, sound: 0 }));
   await waitReady(page);

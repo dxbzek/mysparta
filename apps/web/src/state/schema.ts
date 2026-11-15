@@ -7,14 +7,20 @@ import { LOOK_SPACE, isPerkId } from "@rankzero/core";
 import type { BoutLog, FighterSnapshot, Look, PerkId, ScrapperRecord } from "@rankzero/core";
 import type { BoutRecord, SaveDoc, Settings } from "../contracts";
 
-export const SCHEMA_VERSION = 1 as const;
+/** 2 since CONTRACT_REV 4: `settings.isVip` (migration 1 to 2 in migrations.ts). */
+export const SCHEMA_VERSION = 2 as const;
 /** Scrappers on one save. A fourth needs one retired first. */
 export const SLOT_LIMIT = 3;
 /** History: the last 50 bouts keep their logs, the last 200 are kept as summaries. */
 export const HISTORY_LOGS = 50;
 export const HISTORY_ROWS = 200;
 
-export const DEFAULT_SETTINGS: Settings = { sound: true, speed: 1, reducedMotion: "system", liveLog: true };
+export const DEFAULT_SETTINGS: Settings = { sound: true, speed: 1, reducedMotion: "system", liveLog: true, isVip: false };
+
+/** The speed a bout really plays at: 3x is a VIP perk, so a save that is not VIP plays 3x as 2x. */
+export function playSpeed(s: Pick<Settings, "speed" | "isVip">): 1 | 2 | 3 {
+  return s.speed === 3 && !s.isVip ? 2 : s.speed;
+}
 
 export function emptyDoc(now: number): SaveDoc {
   return { schemaVersion: SCHEMA_VERSION, rev: 0, updatedAt: now, settings: { ...DEFAULT_SETTINGS }, activeId: null,
@@ -53,7 +59,8 @@ function checkSettings(v: unknown, warn: (w: string) => void): Settings {
   }
   const s: Settings = { ...DEFAULT_SETTINGS };
   if (typeof v.sound === "boolean") s.sound = v.sound;
-  if (v.speed === 1 || v.speed === 2) s.speed = v.speed;
+  if (typeof v.isVip === "boolean") s.isVip = v.isVip;
+  if (v.speed === 1 || v.speed === 2 || v.speed === 3) s.speed = playSpeed({ speed: v.speed, isVip: s.isVip });
   if (v.reducedMotion === "system" || v.reducedMotion === "on" || v.reducedMotion === "off") s.reducedMotion = v.reducedMotion;
   if (typeof v.liveLog === "boolean") s.liveLog = v.liveLog;
   return s;

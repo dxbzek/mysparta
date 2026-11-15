@@ -8,7 +8,9 @@ export const RULES_VERSION = 1 as const;
 export const LOG_VERSION = 2 as const;
 /** 2: content v2 (owner amendment 13.8): more weapons, Thrown weapons, skills, pets, and shields. */
 /** 3: sound cues name what made them (stage `Cue.item`, `Cue.on`) and a `swing` family (owner, 15 Nov 2026). */
-export const CONTRACT_REV = 3;
+/** 4: fight speed 3x (owner, 15 Nov 2026: "Add x1, x2 and x3 for VIP"): `Settings.speed` and
+ *  `FightClock.speed` are 1 | 2 | 3, `Settings.isVip` gates 3x, and the save is schema version 2. */
+export const CONTRACT_REV = 4;
 export const REALM_SALT = "yard-1";
 /** Rivals in the pool at each level, index 0 to 239. */
 export const RIVALS_PER_LEVEL = 240;

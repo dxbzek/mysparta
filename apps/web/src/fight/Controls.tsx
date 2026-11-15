@@ -1,5 +1,7 @@
 /**
- * Fight controls (brief 3.12): pause / play (Replay at the end), speed 1x / 2x, skip, sound.
+ * Fight controls (brief 3.12): pause / play (Replay at the end), speed 1x / 2x / 3x, skip, sound.
+ * 3x is a VIP perk (owner, 15 Nov 2026): without VIP its button shows a small lock and a tap
+ * calls `onLocked` (the fight screen shows a toast) instead of changing speed.
  * Fight screen v2: they sit small over the top corners of the stage, out of the fight's way, as
  * ink discs with light glyphs. Every one is still a real 44 px button, labelled in words.
  */
@@ -9,11 +11,15 @@ import css from "./fight.module.css";
 export interface ControlsProps {
   paused: boolean;
   ended: boolean;
-  speed: 1 | 2;
+  speed: 1 | 2 | 3;
+  /** Whether 3x is open. */
+  vip: boolean;
   sound: boolean;
   canSkip: boolean;
   onPlayPause(): void;
-  onSpeed(speed: 1 | 2): void;
+  onSpeed(speed: 1 | 2 | 3): void;
+  /** The locked 3x button was tapped. */
+  onLocked(): void;
   onSkip(): void;
   onSound(on: boolean): void;
 }
@@ -23,16 +29,19 @@ const Pause = () => (<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden
 const Again = () => (<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 12a7 7 0 1 0 2.2-5.1" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /><path d="M4 3.5v5h5" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>);
 const Skip = () => (<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 5v14l9-7zM13 5v14l7-7z" fill="currentColor" /></svg>);
 const SoundOn = () => (<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" /><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>);
+const Lock = () => (<svg className={css.ctlLock} viewBox="0 0 12 14" width="12" height="14" aria-hidden="true"><path d="M3.5 6V4.5a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" strokeWidth="1.8" /><rect x="1.5" y="6" width="9" height="7" rx="1.5" fill="currentColor" /></svg>);
 const SoundOff = () => (<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" /><path d="M16 9l5 6M21 9l-5 6" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>);
 
-function Ctl({ label, onClick, disabled, pressed, wide, hot, children }: { label: string; onClick(): void; disabled?: boolean; pressed?: boolean; wide?: boolean; hot?: boolean; children: ReactNode }) {
+function Ctl({ label, onClick, disabled, pressed, wide, hot, locked, children }: { label: string; onClick(): void; disabled?: boolean; pressed?: boolean; wide?: boolean; hot?: boolean; locked?: boolean; children: ReactNode }) {
   return (
-    <button type="button" className={`${css.ctl} ${wide ? css.ctlWide : ""} ${hot ? css.ctlHot : ""}`} onClick={onClick} disabled={disabled}
+    <button type="button" className={`${css.ctl} ${wide ? css.ctlWide : ""} ${hot ? css.ctlHot : ""} ${locked ? css.ctlLocked : ""}`} onClick={onClick} disabled={disabled}
       aria-label={label} title={label} aria-pressed={pressed}>
       <span className={css.ctlDisc}>{children}</span>
     </button>
   );
 }
+
+const SPEEDS = [1, 2, 3] as const;
 
 export function Controls(p: ControlsProps) {
   const playLabel = p.ended ? "Replay" : p.paused ? "Play" : "Pause";
@@ -40,9 +49,18 @@ export function Controls(p: ControlsProps) {
     <>
       <div className={`${css.controls} ${css.controlsLeft}`} role="toolbar" aria-label="Bout controls">
         <Ctl label={playLabel} onClick={p.onPlayPause} hot={p.paused || p.ended}>{p.ended ? <Again /> : p.paused ? <Play /> : <Pause />}</Ctl>
-        <Ctl label={`Speed ${p.speed}x. Switch to ${p.speed === 2 ? 1 : 2}x`} wide hot={p.speed === 2} onClick={() => p.onSpeed(p.speed === 2 ? 1 : 2)}>
-          <span className={css.ctlWord}>{p.speed}x</span>
-        </Ctl>
+        <span className={css.speeds} role="group" aria-label="Speed">
+          {SPEEDS.map((s) => {
+            const locked = s === 3 && !p.vip;
+            return (
+              <Ctl key={s} label={locked ? `Speed ${s}x, a VIP perk` : `Speed ${s}x`} pressed={p.speed === s} hot={p.speed === s} locked={locked}
+                onClick={() => (locked ? p.onLocked() : p.onSpeed(s))}>
+                <span className={css.ctlWord}>{s}x</span>
+                {locked ? <Lock /> : null}
+              </Ctl>
+            );
+          })}
+        </span>
       </div>
       <div className={`${css.controls} ${css.controlsRight}`} role="toolbar" aria-label="More bout controls">
         <Ctl label="Skip to the end" onClick={p.onSkip} disabled={!p.canSkip}><Skip /></Ctl>

@@ -248,10 +248,10 @@ describe("floor props", () => {
   });
 });
 
-describe("2x", () => {
-  it("a clock at 2x crosses every cue exactly once, at the timeline's times; numbers and HP are the timeline's", () => {
+describe("2x and 3x", () => {
+  it("a clock at 2x or 3x crosses every cue exactly once, at the timeline's times; numbers and HP are the timeline's", () => {
     const p = fixturePlayer("bout-gate");
-    for (const speed of [1, 2] as const) {
+    for (const speed of [1, 2, 3] as const) {
       const clock = createFightClock(p.timeline.durationMs);
       clock.speed = speed;
       const played: number[] = [];
