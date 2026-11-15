@@ -11,14 +11,15 @@
  *    handed to WP6. Their timeline therefore differs from the timing table for smash (280 / 150,
  *    not 380 / 240), as the contract's fallback rule says;
  *  - companion clips other than idle hold the idle pose for the placeholder timeline;
- *  - looks: the gate's two looks (every list wraps), not yet the LOOK_SPACE counts (batch 6a).
+ *
+ * Looks: the full LOOK_SPACE set (content/looks), the gate's two looks first.
  */
 import type { ContentPack } from "../contracts";
-import { GATE_LOOKS } from "../gate/parts";
 import { CONTENT_CLIPS } from "./clips";
 import { HIT_LIGHT_STEP } from "./clips/reactions";
 import { USES, VARIANTS } from "./clips/use";
 import { CONTENT_FX, PROPS } from "./fx";
+import { CONTENT_LOOKS } from "./looks";
 import { CONTENT_UI_ICONS, SHIELD_ICONS, SKILL_ICONS, WEAPON_ICONS } from "./icons";
 import { PET_ART } from "./pets";
 import { SHIELD_ART } from "./shields";
@@ -34,7 +35,7 @@ export const contentPack: ContentPack = {
   shields: SHIELD_ART,
   props: PROPS,
   stages: CONTENT_STAGES,
-  looks: GATE_LOOKS,
+  looks: CONTENT_LOOKS,
   companions: PET_ART,
   fx: CONTENT_FX,
   icons: { ...SKILL_ICONS, ...CONTENT_UI_ICONS, ...SHIELD_ICONS, ...WEAPON_ICONS },

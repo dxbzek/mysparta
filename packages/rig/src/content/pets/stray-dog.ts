@@ -22,6 +22,7 @@ import { Anatomy, band, ellipse, line, smooth } from "./anatomy";
 import type { PetArt } from "./kind";
 import type { DogFrame } from "./dog-frames";
 import { GALLOP_FRAMES } from "./dog-frames";
+import { addLitLegs } from "./frames";
 
 const P = PLACEHOLDER_COMPANION_CLIPS;
 /** The head joint stands this high over the floor in the standing frame. */
@@ -47,8 +48,12 @@ const STAND: DogFrame = (() => {
     [-7.5, 17.4], [-7.7, 15.6], [-8.0, 12], [-8.8, 8.4], [-8.8, 6.6]], 3), dx);
   const hind = (dx: number): Pt[] => mv(S([[-19.0, 5.0], [-18.3, 9.6], [-20.0, 12.4], [-21.9, 14.4], [-21.8, 17.4], [-20.0, 18.2], [-19.6, 18.6], [-19.8, 19], [-23.6, 19],
     [-23.7, 17.8], [-24.4, 14.4], [-25.6, 12.6], [-27.6, 9.8], [-28.4, 6.2]], 3), dx);
-  return { lift: 0, tail: TAIL_AT, body: [torso, fore(0), hind(0)], shade: [fore(-2.3), hind(1.8)] };
+  return { lift: 0, tail: TAIL_AT, body: [torso, fore(-2.3), hind(1.8), fore(0), hind(0)], shade: [fore(-2.3), hind(1.8)] };
 })();
+/** The standing frame's near legs, for the lit overlay (`addLitLegs`), each with where it is cut. */
+const STAND_NEAR: readonly (readonly [Pt[], number])[] = [[STAND.body[3]! as Pt[], -9], [STAND.body[4]! as Pt[], -9]];
+/** The standing dog's near hind leg is cut here (just under the hock) for its own lit shank. */
+const DOG_HOCK = 13.8;
 /** Lying on its chest (frame 7): floor at y = 6.5, forelegs out in front, the hind legs folded. */
 const LIE: DogFrame = (() => {
   const torso = S([[2, -1.0], [-3, -1.3], [-9, -1.0], [-15, -0.8], [-21, -0.4], [-25.6, 1.2], [-28.4, 3.8], [-27.8, 6.5], [-20, 6.5], [-10, 6.5], [-3, 6.5], [0.2, 4.8], [2, 2]]);
@@ -88,6 +93,12 @@ export function strayDog(): PetArt & { anatomy: Anatomy } {
     if (n >= DOG_FRAME.stand && f.shade.length > 0) shape.shade = dPolys(f.shade.map((p) => a.local("body", clockwise(p)) as Poly));
     a.shapes.push(shape);
   });
+
+  // the near legs of the standing dog keep a lit front (the far ones stay in shadow behind)
+  addLitLegs(a, [DOG_FRAME.stand], STAND_NEAR);
+  // the near hind leg below the hock on its own over that: the whole leg's light offset is set by
+  // the thigh, which left the thin shank and paw in shadow but for a sliver
+  addLitLegs(a, [DOG_FRAME.stand], [[STAND.body[4]! as Pt[], DOG_HOCK]], 20.012);
 
   // the drawn tail, for the frames drawn by hand (the traced frames carry the hound's own):
   // bushy, carried in a sickle, a pale tip

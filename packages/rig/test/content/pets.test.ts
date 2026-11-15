@@ -35,7 +35,7 @@ const LEGS: Record<Pet, readonly Leg[]> = { goose: goose().anatomy.legs, raccoon
 const QUADS = ["raccoon", "boar"] as const;
 const BIRDS = ["goose", "crow"] as const;
 /** Each pet's share of a fighter's height (owner, 15 Nov 2026), within 3 points. */
-const SHARE: Record<Pet | "stray-dog" | "alley-cat", number> = { "stray-dog": 0.30, goose: 0.35, raccoon: 0.22, "alley-cat": 0.25, crow: 0.20, boar: 0.42 };
+const SHARE: Record<Pet | "stray-dog" | "alley-cat", number> = { "stray-dog": 0.30, goose: 0.35, raccoon: 0.22, "alley-cat": 0.25, crow: 0.20, boar: 0.40 };
 
 function framesAt(id: CompanionId, clip: string, t: number): { fr: Xf[]; index: ReadonlyMap<string, number> } {
   const p = rig.samplePose(id, clip, t);

@@ -43,6 +43,94 @@ const NECK: Pt[] = [[3.2, -11.6], [4.4, -13.0], [5.5, -15.4], [6.2, -17.4], [6.8
 const NECK_W = [1.6, 1.5, 1.42, 1.34, 1.27, 1.21, 1.16, 1.12, 1.1];
 const NECK_JOINT = [1, 3, 5, 7];       // neck1, neck2, neck3, head
 
+/** The neck's centre line, half widths and joint indices, for the tests. */
+export const GOOSE_NECK = { line: NECK, width: NECK_W, joints: NECK_JOINT } as const;
+
+/**
+ * The joint line at NECK[j] that the piece below the joint is cut on: 45 degrees, from the back
+ * edge level with the joint to the throat edge two half widths further up the neck. `n` is the
+ * cut edge's outward normal (up the neck and toward its back: toward the lamp in a standing neck
+ * and, all but a hair, in one stretched out flat); points p with (p - J) . n <= c are kept.
+ */
+export function neckCut(j: number): { J: Pt; u: Pt; n: Pt; c: number } {
+  const J = NECK[j]!;
+  const ax = NECK[j + 1]![0] - NECK[j - 1]![0];
+  const ay = NECK[j + 1]![1] - NECK[j - 1]![1];
+  const al = Math.hypot(ax, ay) || 1;
+  const u: Pt = [ax / al, ay / al];          // up the neck
+  const v: Pt = [u[1], -u[0]];               // toward the back of the neck
+  return { J, u, n: [(u[0] + v[0]) / Math.SQRT2, (u[1] + v[1]) / Math.SQRT2], c: NECK_W[j]! / Math.SQRT2 };
+}
+function cutTop(poly: readonly Pt[], j: number): Pt[] {
+  const { J, n, c } = neckCut(j);
+  const g = (p: Pt): number => (p[0] - J[0]) * n[0] + (p[1] - J[1]) * n[1] - c;
+  const out: Pt[] = [];
+  poly.forEach((p, i) => {
+    const q = poly[(i + 1) % poly.length]!;
+    const gp = g(p);
+    const gq = g(q);
+    if (gp <= 0) out.push(p);
+    if ((gp <= 0) !== (gq <= 0)) { const t = gp / (gp - gq); out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]); }
+  });
+  return out;
+}
+/**
+ * The three neck pieces in world rest coordinates, body end first. Each piece below a joint lies
+ * OVER the one above it and is cut on the joint line (`neckCut`), so the only edge showing at a
+ * joint faces the lamp and the neck shades as one tube (owner review 15 Nov 2026: "zebra" neck).
+ * The piece above starts square at the joint with a round tail (a half disc about the joint)
+ * tucked under the piece below: a disc about the joint stays put however far the joint bends, so
+ * no corner pokes out of the neck's outline, and its own shadow edge stays under the piece below.
+ * The last piece ends in a round cap that the head's back covers.
+ */
+export function gooseNeckPieces(): Pt[][] {
+  return [0, 1, 2].map((k) => {
+    const i0 = NECK_JOINT[k]!;
+    const i1 = NECK_JOINT[k + 1]!;
+    const last = k === 2;
+    const poly = neckPiece(k === 0 ? 0 : i0, Math.min(NECK.length - 1, i1 + (last ? 1 : 2)), last, k > 0);
+    return last ? poly : cutTop(poly, i1);
+  });
+}
+/** The neck strip between two points of the centre line: a round cap at the top if `cap`, a
+ *  half disc about the first point behind it if `tail`. */
+function neckPiece(i0: number, i1: number, cap: boolean, tail: boolean): Pt[] {
+  const side = (sign: number): Pt[] => {
+    const out: Pt[] = [];
+    const pts = line(NECK.slice(i0, i1 + 1), 4);
+    const ws = line(NECK_W.slice(i0, i1 + 1).map((w, j) => [j, w] as Pt), 4).map((p) => p[1]);
+    for (let j = 0; j < pts.length; j++) {
+      const p = pts[Math.min(pts.length - 1, j + 1)]!;
+      const q = pts[Math.max(0, j - 1)]!;
+      const dx = p[0] - q[0];
+      const dy = p[1] - q[1];
+      const l = Math.hypot(dx, dy) || 1;
+      const w = ws[j]! * (cap && j > pts.length - 3 ? 0.94 : 1);
+      out.push([pts[j]![0] + (dy / l) * w * sign, pts[j]![1] - (dx / l) * w * sign]);
+    }
+    return out;
+  };
+  const front = side(-1);   // +x side for a neck going up (the throat)
+  const back = side(1);
+  // a half circle about c from the side point `from` to the side point `to`, bulging toward `dir`
+  const half = (c: Pt, r: number, from: Pt, dir: number): Pt[] => {
+    const a0 = Math.atan2(from[1] - c[1], from[0] - c[0]);
+    let turn = dir - a0;
+    while (turn > Math.PI) turn -= 2 * Math.PI;
+    while (turn < -Math.PI) turn += 2 * Math.PI;
+    const sweep = turn >= 0 ? Math.PI : -Math.PI;
+    const arc: Pt[] = [];
+    for (let k = 1; k < 8; k++) { const g = a0 + (sweep * k) / 8; arc.push([c[0] + Math.cos(g) * r, c[1] + Math.sin(g) * r]); }
+    return arc;
+  };
+  const top = NECK[i1]!;
+  const capArc = cap ? half(top, NECK_W[i1]! * 0.94, front[front.length - 1]!, Math.atan2(top[1] - NECK[i1 - 1]![1], top[0] - NECK[i1 - 1]![0])) : [];
+  const J = NECK[i0]!;
+  const tailArc = tail ? half(J, NECK_W[i0]!, back[0]!, Math.atan2(J[1] - NECK[i0 + 1]![1], J[0] - NECK[i0 + 1]![0])) : [];
+  return [...front, ...capArc, ...back.reverse(), ...tailArc];
+}
+
+
 export function goose(): PetArt & { anatomy: Anatomy } {
   const rest: Rot = { body: 0, tail: 0, neck1: 0, neck2: 0, neck3: 0, head: 0, jaw: 0, wingF: 0, "wingF.mid": 0, "wingF.tip": 0, wingB: 0, "wingB.mid": 0, "wingB.tip": 0 };
   restLeg(rest, "legF", "foot", 0, LEG, 0);
@@ -96,14 +184,8 @@ export function goose(): PetArt & { anatomy: Anatomy } {
   // the body traced from a CC0 photograph of a walking goose (traced-torsos.ts); the tail's own feathers
   a.fill("body", GOOSE_TORSO, "skin", 20.05);
   a.ink("tail", [[[-10.5, -13.6], [-13.5, -14.4]], [[-10.8, -12.6], [-13.0, -13.0]]], 0.18, 20.06);
-  // the neck: three overlapping pieces, each cut on a slant at its base (back side higher) so the
-  // lit side runs on unbroken; the head's back covers the top of the last
-  const pieces = ["neck1", "neck2", "neck3"];
-  pieces.forEach((id, k) => {
-    const i0 = NECK_JOINT[k]!;
-    const i1 = NECK_JOINT[k + 1]!;
-    a.fill(id, neckPiece(k === 0 ? 0 : i0 - 1, Math.min(NECK.length - 1, i1 + 1), k > 0), "skin", 20.1 + k * 0.05);
-  });
+  // the neck: three pieces, each lower one laid over the one above it (`gooseNeckPieces`)
+  gooseNeckPieces().forEach((poly, k) => a.fill(`neck${k + 1}`, poly, "skin", 20.2 - k * 0.05));
   a.fill("jaw", [[9.0, -25.2], [12.4, -25.1], [12.2, -26.6], [9.2, -26.6]], "ink", 20.27);                                    // inside the bill
   a.fill("jaw", S([[8.7, -25.25], [10.5, -25.05], [12.6, -24.95], [12.7, -24.6], [11.0, -24.25], [9.2, -24.3]], 3), "accent", 20.28);
   a.fill("jaw", [[9.6, -25.15], [11.6, -25.1], [11.2, -25.7], [9.8, -25.6]], "accent", 20.275);                              // tongue
@@ -119,36 +201,6 @@ export function goose(): PetArt & { anatomy: Anatomy } {
   // near side
   legParts("legF", [0, 0], 40, false);
   wing("wingF", [0, 0], 45, false);
-
-  function neckPiece(i0: number, i1: number, slant: boolean): Pt[] {
-    // offset the centre line both ways by the half width; at a slanted base the back edge starts
-    // higher up the neck than the front edge
-    const side = (sign: number): Pt[] => {
-      const out: Pt[] = [];
-      const pts = line(NECK.slice(i0, i1 + 1), 4);
-      const ws = line(NECK_W.slice(i0, i1 + 1).map((w, j) => [j, w] as Pt), 4).map((p) => p[1]);
-      for (let j = 0; j < pts.length; j++) {
-        const p = pts[Math.min(pts.length - 1, j + 1)]!;
-        const q = pts[Math.max(0, j - 1)]!;
-        const dx = p[0] - q[0];
-        const dy = p[1] - q[1];
-        const l = Math.hypot(dx, dy) || 1;
-        const w = ws[j]! * (j > pts.length - 3 ? 0.94 : 1);
-        out.push([pts[j]![0] + (dy / l) * w * sign, pts[j]![1] - (dx / l) * w * sign]);
-      }
-      return out;
-    };
-    const front = side(-1);   // +x side for a neck going up
-    const back = side(1);
-    const skip = slant ? 4 : 0;   // the back edge starts one span later
-    const b = back.slice(skip);
-    const top = NECK[i1]!;
-    const tw = NECK_W[i1]! * 0.94;
-    const cap: Pt[] = [];
-    const dir = Math.atan2(NECK[i1]![1] - NECK[i1 - 1]![1], NECK[i1]![0] - NECK[i1 - 1]![0]);
-    for (let k = 1; k < 6; k++) { const g = dir - Math.PI / 2 + (Math.PI * k) / 6; cap.push([top[0] + Math.cos(g) * tw, top[1] + Math.sin(g) * tw]); }
-    return [...front, ...cap, ...b.reverse()];
-  }
 
   a.settleFeet();
   return { rig: a.rig("goose", 29), shapes: a.shapes, clips: gooseClips(a), anatomy: a };
