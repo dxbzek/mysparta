@@ -4,6 +4,7 @@
  */
 import type { DayKey, FighterSnapshot, Pick as Side2, ScrapperRecord } from "../contracts/fighter";
 import { RIVALS_PER_LEVEL } from "../contracts/ids";
+import { RARITY_OF } from "../contracts/content";
 import { combineSeed, makeRng } from "../prng";
 import { randomName, rollLook } from "./create";
 import { walk, walkWith } from "./route";
@@ -14,7 +15,8 @@ import { levelOf } from "./xp";
 /** A rival takes the perk card (or the split that replaced it) 65% of the time. */
 export const RIVAL_PERK_PCT = 65;
 export const CARD_SIZE = 6;
-/** At levels 1 to 3 the card holds at least this many rivals with no weapon. */
+/** At levels 1 to 3 the card holds at least this many rivals whose weapons are all Common (every
+ *  scrapper starts with a weapon since the 15 November pet pass, so none is unarmed). */
 export const FAIR_UNARMED = 2;
 export const FAIR_MAX_LEVEL = 3;
 
@@ -61,12 +63,12 @@ export function cardIndices(rec: ScrapperRecord, realmSalt: string, today: DayKe
   const hand: number[] = [];
   for (let i = 0; i < CARD_SIZE; i++) hand.push(draw());
   if (level <= FAIR_MAX_LEVEL) {
-    const unarmed = (i: number): boolean => weaponsOf(rivalSnapshot(realmSalt, level, i).perks).length === 0;
-    // Redraw the last armed cards from the pool until two hold no weapon. The pool is finite, so
+    const easy = (i: number): boolean => weaponsOf(rivalSnapshot(realmSalt, level, i).perks).every((w) => RARITY_OF[w] === "common");
+    // Redraw the last cards from the pool until two hold only Common weapons. The pool is finite, so
     // after every index has been seen the loop stops; a test proves the rule holds.
     let slot = CARD_SIZE - 1;
-    while (hand.filter(unarmed).length < FAIR_UNARMED && used.size < RIVALS_PER_LEVEL) {
-      while (slot >= 0 && unarmed(hand[slot]!)) slot -= 1;
+    while (hand.filter(easy).length < FAIR_UNARMED && used.size < RIVALS_PER_LEVEL) {
+      while (slot >= 0 && easy(hand[slot]!)) slot -= 1;
       if (slot < 0) break;
       hand[slot] = draw();
     }

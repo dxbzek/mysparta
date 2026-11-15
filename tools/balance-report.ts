@@ -1,14 +1,16 @@
 /**
  * Balance report (work package 1). Run: pnpm balance [--out <file>] [--quick]
  *
- * Runs the two blocking balance tests of the rules, at levels 10 and 30:
+ * Runs the two blocking balance tests of the rules, at levels 3, 5, 10 and 30:
  *   Ownership test     40,000 random pairs of same-level rivals per level. For each perk, the bouts
  *                      where exactly one side owns it, and how often that side won. Limits, only for
  *                      perks with 1,000 or more such bouts: no Common or Uncommon perk and no Raccoon
  *                      above 62%; no perk below 40%.
  *   With-and-without   For each perk, 4,000 bouts per level of a random rival against a copy of
- *                      itself that also owns the perk, sides swapped every bout. No perk below 47%.
- *                      Whistle is tested only on rivals that own a companion.
+ *                      itself that also owns the perk, sides swapped every bout. No perk below 47%,
+ *                      and none above the upper limit of its rarity (WW_MAX); companions 65%.
+ *                      A perk is added only where the Route could offer it (`fits`): Whistle and
+ *                      Pet Lover need a companion, a weapon passive a weapon it works with.
  * Also reported, not limited: win rate by starting perk at level 1, and bout length.
  *
  * The sample sizes are part of the gate: with fewer bouts a correct perk fails by chance.
@@ -18,12 +20,12 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { FighterSnapshot, PerkId } from "../packages/core/src/index";
-import { PERK_IDS, REALM_SALT, RARITY_OF, isCompanionId, isShieldId, makeRng, combineSeed } from "../packages/core/src/index";
+import type { FighterSnapshot, PerkId, Rarity } from "../packages/core/src/index";
+import { PERK_IDS, REALM_SALT, RARITY_OF, isCompanionId, makeRng, combineSeed } from "../packages/core/src/index";
+import { fits } from "../packages/core/src/progress/perks";
 import { rivalSnapshot } from "../packages/core/src/progress/rivals";
 import { simulateFight } from "../packages/core/src/sim/simulate";
 import { applyPerkToStats, draftOf, freeze } from "../packages/core/src/progress/stats";
-import { COMPANIONS } from "../packages/core/src/content/companions";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -35,7 +37,7 @@ const quick = args.includes("--quick");
 const div = quick ? 10 : 1;
 const PAIRS = Math.floor(Number(opt("--pairs") ?? 40000) / div);
 const PER_PERK = Math.floor(Number(opt("--per-perk") ?? 4000) / div);
-const LEVELS = (opt("--levels") ?? "10,30").split(",").map(Number);
+const LEVELS = (opt("--levels") ?? "3,5,10,30").split(",").map(Number);
 const ONLY = opt("--perks")?.split(",") as PerkId[] | undefined;
 const OUT = resolve(ROOT, opt("--out") ?? ".review/wp1/balance-report.md");
 const POOL = 1_000_000;
@@ -44,20 +46,14 @@ const OWN_MAX = 62;
 const OWN_MIN = 40;
 const OWN_MIN_BOUTS = 1000;
 const WW_MIN = 47;
+/** Upper limit of the with-and-without test, by rarity (pet pass, 15 November 2026). A pet is held
+ *  to its own, tighter limit: before this gate, pets won 85-93% at level 3 and every row said ok. */
+const WW_MAX: Readonly<Record<Rarity, number>> = { common: 80, uncommon: 80, rare: 82, epic: 85, mythic: 88 };
+const WW_MAX_COMPANION = 65;
 
-/** Whether `perk` can be added to a kit: not owned (Raccoon up to two), companion limits and three pets at most,
- *  one shield at most, Whistle needs a companion. */
+/** Whether `perk` can be added to a kit: the Route's own rule without the booster roll. */
 function canAdd(s: FighterSnapshot, perk: PerkId): boolean {
-  if (isCompanionId(perk)) {
-    const def = COMPANIONS[perk];
-    if (s.perks.filter((p) => p === perk).length >= def.limit) return false;
-    if (s.perks.filter((p) => isCompanionId(p)).length >= 3) return false;
-    return !def.excludes.some((x) => s.perks.includes(x));
-  }
-  if (s.perks.includes(perk)) return false;
-  if (isShieldId(perk) && s.perks.some((p) => isShieldId(p))) return false;
-  if (perk === "whistle") return s.perks.some((p) => isCompanionId(p));
-  return true;
+  return fits(perk, s.perks);
 }
 
 function withPerk(s: FighterSnapshot, perk: PerkId): FighterSnapshot {
@@ -175,6 +171,8 @@ for (const level of LEVELS) {
       if (r < OWN_MIN) notes.push(`ownership ${r.toFixed(1)}% < ${OWN_MIN}%`);
     }
     if (x.n > 0 && (100 * x.w) / x.n < WW_MIN) notes.push(`with-and-without ${pct(x.w, x.n)}% < ${WW_MIN}%`);
+    const max = isCompanionId(p) ? WW_MAX_COMPANION : WW_MAX[rar];
+    if (x.n > 0 && (100 * x.w) / x.n > max) notes.push(`with-and-without ${pct(x.w, x.n)}% > ${max}%`);
     if (x.n < PER_PERK) notes.push(`only ${x.n} with-and-without bouts`);
     for (const note of notes) failures.push(`level ${level} ${p}: ${note}`);
     say(`| ${p} | ${rar} | ${o.n} | ${pct(o.w, o.n)} | ${pct(x.w, x.n)} | ${notes.length === 0 ? "ok" : notes.join("; ")} |`);

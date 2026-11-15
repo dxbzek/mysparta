@@ -50,7 +50,8 @@ export interface CoreApi {
   afterBout(rec: ScrapperRecord, xp: 1 | 2, today: DayKey): ScrapperRecord;
   afterPick(rec: ScrapperRecord, pick: Pick): ScrapperRecord;
   rivalSnapshot(realmSalt: string, level: number, index: number): FighterSnapshot;
-  /** 6 rivals at the scrapper's level. At levels 1 to 3 at least 2 of them own no weapon. */
+  /** 6 rivals at the scrapper's level. At levels 1 to 3 at least 2 of them own only Common weapons
+   *  (every scrapper starts with a weapon since the 15 November 2026 pet pass). */
   tonightsCard(rec: ScrapperRecord, realmSalt: string, today: DayKey): FighterSnapshot[];
   /** Every perk any of these records has owned. For the "Found N of 92" list. */
   foundPerks(records: readonly ScrapperRecord[]): PerkId[];

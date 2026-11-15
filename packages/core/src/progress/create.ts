@@ -7,7 +7,7 @@ import { LOOK_SPACE } from "../contracts/fighter";
 import type { PerkId } from "../contracts/ids";
 import { combineSeed, hashString, makeRng } from "../prng";
 import { FIRST_PARTS, SECOND_PARTS } from "../content/names";
-import { allowed, rollPerk } from "./perks";
+import { rollPerk, startable } from "./perks";
 
 export const NAME_MIN = 3;
 export const NAME_MAX = 14;
@@ -43,12 +43,12 @@ export function rollLook(seed: number, lookSalt: number, colourSalt: number): Lo
   return out as unknown as Look;
 }
 
-/** The starting perk: rolled from the pool again until it is allowed on an empty kit. */
+/** The starting perk: rolled from the pool again until it is a weapon (see `startable`). */
 export function startPerk(seed: number): PerkId {
   const rng = makeRng(combineSeed(seed, "start"));
   for (;;) {
     const id = rollPerk(rng);
-    if (allowed(id, [], rng)) return id;
+    if (startable(id)) return id;
   }
 }
 

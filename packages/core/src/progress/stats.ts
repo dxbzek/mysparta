@@ -51,11 +51,12 @@ export function companionCostPct(perks: readonly PerkId[]): number {
   return total;
 }
 
-/** Max HP = 44 + 7 x Health + level, then minus the companion cost. Never below 1.
- *  (Was 30 + 7 x Health + 3 x level: a larger base lengthens low-level bouts, a smaller level
- *  term keeps level-30 bouts inside the 12 to 20 turn target. docs/RULES.md section 9.) */
-export const HP_BASE = 44;
-export const HP_PER_LEVEL = 1;
+/** Max HP = 54 + 7 x Health (HP_PER_LEVEL x level, now 0), then minus the companion cost. Never
+ *  below 1. (Was 30 + 7 x Health + 3 x level, then 44 + 7 x Health + level; the pet pass of
+ *  15 November 2026 moved it so weapon starts do not shorten level-1 bouts and bigger pets do not
+ *  lengthen level-30 ones. docs/RULES.md section 9.) */
+export const HP_BASE = 54;
+export const HP_PER_LEVEL = 0;
 export function maxHpOf(effectiveHealth: number, level: number, costPct: number): number {
   const base = HP_BASE + 7 * effectiveHealth + HP_PER_LEVEL * level;
   const after = Math.floor((base * (100 - costPct)) / 100);

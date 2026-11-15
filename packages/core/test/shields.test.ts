@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import type { CompanionId, ShieldId } from "../src/contracts/ids";
 import { SHIELD_IDS, SHIELD_META, checkLog, isShieldId } from "../src/index";
 import { SHIELDS } from "../src/content/shields";
-import { COMPANIONS, companionScale } from "../src/content/companions";
+import { COMPANIONS, COMPANION_HP_GROWTH, companionScale } from "../src/content/companions";
 import { WEAPONS } from "../src/content/weapons";
 import { CAP, combatValues, valuesOf } from "../src/sim/combatant";
 import { knockChance } from "../src/sim/bout";
@@ -120,7 +120,7 @@ describe("every new pet keeps its role (one test per id)", () => {
   it("stray-dog", () => {
     const d = COMPANIONS["stray-dog"];
     const { pet } = petOf(["stray-dog"], "stray-dog");
-    expect(pet.maxHp).toBe(companionScale(d.hp, 10));
+    expect(pet.maxHp).toBe(companionScale(d.hp, 10, COMPANION_HP_GROWTH));
     expect(valuesOf(pet).disarm).toBe(d.disarm);
     // The all-rounder that grabs a weapon now and then, and never shares a side with the cat.
     expect(d.excludes).toEqual(["alley-cat"]);

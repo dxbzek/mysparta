@@ -2,7 +2,7 @@
  * Feet on the floor in real bouts (movement pass 2; owner, 16 Nov 2026: "make sure characters have
  * animation for walks, run, dodge etc, block properly"). Measured on the drawn feet of the real art
  * (the gate and content packs), every 60 fps frame of the three fixture bouts and of two find-bout
- * bouts (level 10 candidate 1, level 30 candidate 2), see lib/feet.ts:
+ * bouts (level 10 candidate 1, level 30 candidate 30; it was candidate 2 until the pet pass changed the sim), see lib/feet.ts:
  *  - no toe or heel on the floor slides more than 0.5 units along it during footwork (the brace,
  *    the run, the brake, the shuffle, both dodges, both blocks, the idle and the cuts between them);
  *    before this pass the worst was 53.8 units in the fixtures (the eased dash, the walk home
@@ -39,7 +39,7 @@ function found(level: number, n: number): { log: BoutLog; a: FighterSnapshot; b:
 const BOUTS: readonly { name: string; log: BoutLog; a: FighterSnapshot; b: FighterSnapshot }[] = [
   ...FIXTURE_NAMES.map((name) => ({ ...BOUT_FIXTURES[name], name })),
   { name: "find-bout level 10 n 1", ...found(10, 1) },
-  { name: "find-bout level 30 n 2", ...found(30, 2) },
+  { name: "find-bout level 30 n 30", ...found(30, 30) },
 ];
 const cache = new Map<string, StagePlayer>();
 function player(name: string, internal?: Internal): StagePlayer {
@@ -88,7 +88,7 @@ describe("feet on the floor in real bouts, measured on the drawn feet", () => {
       m + tr.segs.filter((g) => g.clip === clip && tr.rig === "scrapper").length, 0), 0);
     for (const clip of ["dash-push", "brake", "shuffle", "slip", "evade", "block", "block-shield"]) expect(count(clip), clip).toBeGreaterThan(0);
     // the find-bout bout at level 30 alone has every one of them
-    const l30 = player("find-bout level 30 n 2").tracks.actors.flatMap((tr) => tr.segs.map((g) => g.clip));
+    const l30 = player("find-bout level 30 n 30").tracks.actors.flatMap((tr) => tr.segs.map((g) => g.clip));
     for (const clip of ["dash-push", "brake", "shuffle", "slip", "evade"]) expect(l30, clip).toContain(clip);
   });
 

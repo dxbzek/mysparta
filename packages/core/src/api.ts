@@ -16,6 +16,7 @@ import { rivalSnapshot, tonightsCard } from "./progress/rivals";
 import { foundPerks, sheetOf, snapshotOf, snapshotSheet } from "./progress/snapshot";
 import { afterPick, xpForBout, xpToNext } from "./progress/xp";
 import { simulateFight } from "./sim/simulate";
+export { SIM_VERSION } from "./sim/version";
 import { canonical } from "./canonical";
 
 export const content: ContentTables = { weapons: WEAPONS, skills: SKILLS, companions: COMPANIONS, shields: SHIELDS };
