@@ -63,10 +63,18 @@ describe("the old build's keys", () => {
   });
 
   it("no file of the app's state names browser storage other than IndexedDB, or the old prefix", () => {
+    // One exception: idb.ts mirrors the save to localStorage under its own `rankzero.` key when
+    // a browser refuses IndexedDB writes (an embedded frame on iOS). It never reads other keys.
     const dir = fileURLToPath(new URL("../../src/state/", import.meta.url));
     for (const f of readdirSync(dir)) {
       const text = readFileSync(join(dir, f), "utf8");
-      expect(text, f).not.toMatch(/localStorage|sessionStorage|document\.cookie/);
+      if (f === "idb.ts") {
+        expect(text).not.toMatch(/sessionStorage|document\.cookie/);
+        expect(text).toContain('LOCAL_KEY = "rankzero.kv"');
+        expect(text.match(/\.(getItem|setItem)\(([^)]*)\)/g)?.every((c) => c.includes("LOCAL_KEY"))).toBe(true);
+      } else {
+        expect(text, f).not.toMatch(/localStorage|sessionStorage|document\.cookie/);
+      }
       expect(text.toLowerCase(), f).not.toContain(OLD);
     }
   });

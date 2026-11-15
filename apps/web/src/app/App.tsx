@@ -15,7 +15,7 @@ import type { CoreApi } from "@rankzero/core";
 import type { Clock, OpponentSource } from "../contracts";
 import { createGameActions } from "../state/actions";
 import { deviceClock } from "../state/day";
-import { idbKv, memoryKv, openIdb } from "../state/idb";
+import { idbKv, openIdb, localKv, resilientKv } from "../state/idb";
 import type { Kv, KvTx } from "../state/idb";
 import { LocalRivalSource } from "../state/opponents";
 import { createSaveStore, requestPersist } from "../state/slots";
@@ -60,10 +60,10 @@ function lazyKv(open: () => Promise<Kv>): Kv {
 
 async function defaultKv(): Promise<Kv> {
   try {
-    return idbKv(await openIdb());
+    return resilientKv(idbKv(await openIdb()), () => localKv());
   } catch (error) {
-    console.warn("save: IndexedDB is not available here; this session will not be kept", error);
-    return memoryKv();
+    console.warn("save: IndexedDB is not available here; keeping the save in local storage", error);
+    return localKv();
   }
 }
 

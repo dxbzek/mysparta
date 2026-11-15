@@ -113,3 +113,55 @@ export function memoryKv(init: Record<string, unknown> = {}): Kv & { data: Map<s
   };
   return kv;
 }
+
+/**
+ * A memory store mirrored to localStorage under one key, for browsers that open IndexedDB but
+ * refuse its writes (an embedded frame on iOS, some in-app browsers). Every access is guarded:
+ * if localStorage throws too, it is a plain memory store for this session.
+ */
+export const LOCAL_KEY = "rankzero.kv";
+export function localKv(storage: Storage | undefined = (globalThis as { localStorage?: Storage }).localStorage): Kv {
+  let init: Record<string, unknown> = {};
+  try {
+    const raw = storage?.getItem(LOCAL_KEY);
+    if (raw) init = JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    init = {};
+  }
+  const mem = memoryKv(init);
+  return {
+    atomic<T>(fn: (tx: KvTx) => Promise<T>): Promise<T> {
+      return mem.atomic(fn).then((out) => {
+        try {
+          storage?.setItem(LOCAL_KEY, JSON.stringify(Object.fromEntries(mem.data)));
+        } catch {
+          /* storage full or blocked: the session still plays from memory */
+        }
+        return out;
+      });
+    },
+  };
+}
+
+/**
+ * Uses `primary` until one of its transactions fails, then moves to `fallback()` for the rest of
+ * the session and runs the same step there. Save steps return their refusals (a stale rev, a
+ * failed backup) as values and never throw, so any throw here is the storage itself.
+ */
+export function resilientKv(primary: Kv, fallback: () => Kv, isStorageError: (e: unknown) => boolean = () => true): Kv {
+  let current: Kv = primary;
+  let switched = false;
+  return {
+    async atomic<T>(fn: (tx: KvTx) => Promise<T>): Promise<T> {
+      try {
+        return await current.atomic(fn);
+      } catch (error) {
+        if (switched || !isStorageError(error)) throw error;
+        console.warn("save: IndexedDB refused a write here; keeping the save in local storage instead", error);
+        switched = true;
+        current = fallback();
+        return current.atomic(fn);
+      }
+    },
+  };
+}
