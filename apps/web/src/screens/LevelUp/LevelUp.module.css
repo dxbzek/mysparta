@@ -1,5 +1,7 @@
 .screen {
   padding-bottom: 18px;
+  /* a slam or a flip in flight must never widen the page (a phone then zooms out) */
+  overflow-x: clip;
 }
 .main {
   display: grid;
@@ -124,14 +126,115 @@
   background: var(--c-hazard);
   color: var(--t-on-hazard);
 }
+/* the action stays on screen on a short phone and inside a framed page */
 .actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
   display: grid;
-  margin-top: 6px;
+  margin-top: 0;
+  padding: 6px 0 calc(10px + env(safe-area-inset-bottom));
+}
+
+/* ------------------------------------------------------------ the reward */
+.rays {
+  position: absolute;
+  inset: -60%;
+  pointer-events: none;
+  background: repeating-conic-gradient(from 0deg at 50% 50%, color-mix(in srgb, var(--c-hazard) 30%, transparent) 0deg 7deg, transparent 7deg 18deg);
+  mix-blend-mode: screen;
+}
+.slam {
+  display: inline-block;
+}
+.card:active:not(:disabled) {
+  transform: translate(2px, 3px);
+  box-shadow: none;
+}
+/* rarity: a coloured frame and a glow; rarer glows wider */
+.glowStat { border-top: 8px solid var(--c-ink); }
+.glow-common { border-top: 8px solid var(--c-rarity-common); }
+.glow-uncommon { border-top: 8px solid var(--c-rarity-uncommon); box-shadow: var(--shadow-hard), 0 0 0 3px var(--c-rarity-uncommon); }
+.glow-rare { border-top: 8px solid var(--c-rarity-rare); box-shadow: var(--shadow-hard), 0 0 0 3px var(--c-rarity-rare), 0 0 20px 3px var(--c-rarity-rare); }
+.glow-epic { border-top: 8px solid var(--c-rarity-epic); box-shadow: var(--shadow-hard), 0 0 0 3px var(--c-rarity-epic), 0 0 24px 5px var(--c-rarity-epic); }
+.glow-mythic { border-top: 8px solid var(--c-rarity-mythic); box-shadow: var(--shadow-hard), 0 0 0 3px var(--c-rarity-mythic), 0 0 30px 8px var(--c-rarity-mythic); }
+
+:global(html[data-motion="full"]) .rays {
+  animation: spin 14s linear infinite;
+}
+:global(html[data-motion="full"]) .slam {
+  animation: slam 460ms 120ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+:global(html[data-motion="full"]) .card {
+  animation: dealIn 520ms 260ms cubic-bezier(0.2, 1.2, 0.4, 1) backwards;
+}
+:global(html[data-motion="full"]) .cardR {
+  animation-delay: 400ms;
+}
+:global(html[data-motion="full"]) .glow-rare:not(.dimmed),
+:global(html[data-motion="full"]) .glow-epic:not(.dimmed),
+:global(html[data-motion="full"]) .glow-mythic:not(.dimmed) {
+  animation: dealIn 520ms 400ms cubic-bezier(0.2, 1.2, 0.4, 1) backwards, pulse 1.4s 1s ease-in-out infinite alternate;
+}
+:global(html[data-motion="full"]) .card.taken.taken {
+  animation: pop 380ms cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+:global(html[data-motion="full"]) .stamp {
+  animation: stamp 300ms cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes slam {
+  from { transform: scale(2.6) rotate(-14deg); opacity: 0; }
+  to { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes dealIn {
+  from { transform: perspective(700px) translateY(40px) rotateY(-100deg); opacity: 0; }
+  to { transform: perspective(700px) translateY(0) rotateY(0deg); opacity: 1; }
+}
+@keyframes pulse {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.12) saturate(1.2); }
+}
+@keyframes pop {
+  0% { transform: translateY(-6px) scale(1); }
+  45% { transform: translateY(-14px) scale(1.06); }
+  100% { transform: translateY(-6px) scale(1); }
+}
+@keyframes stamp {
+  from { transform: translate(-50%, 0) rotate(-8deg) scale(1.6); opacity: 0; }
+  to { transform: translate(-50%, 0) rotate(-8deg) scale(1); opacity: 1; }
+}
+@media (max-height: 700px) {
+  .main {
+    gap: 8px;
+    padding-top: 8px;
+  }
+  .hero {
+    height: 124px;
+  }
+  .statChip {
+    min-height: 44px;
+  }
+  .statChip b {
+    font-size: 19px;
+  }
+  .pick {
+    margin: 0;
+    font-size: 22px;
+  }
+  .card {
+    min-height: 0;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .card {
     transition: none;
   }
+}
+:global(html[data-motion="reduce"]) .card {
+  transition: none;
 }
 @media (min-width: 900px) {
   .main {

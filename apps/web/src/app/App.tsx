@@ -6,7 +6,7 @@
  * (`import { mountApp } from "./app/App";`). Everything else, the stylesheet and the fonts
  * included, is loaded from here.
  */
-import { StrictMode, useCallback, useEffect, useMemo, useState } from "react";
+import { StrictMode, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import "../tokens.css";
@@ -33,6 +33,7 @@ import { LockerScreen } from "../screens/Locker/Locker";
 import { ReplayScreen } from "../screens/Replay/Replay";
 import { SettingsSheet } from "../screens/Settings/Settings";
 import { Unreadable } from "../screens/Settings/Unreadable";
+import { reducedFrom } from "../fight/FightScreen";
 import { SandboxScreen } from "./debug/Sandbox";
 import { GameContext, useGame, useStatus } from "./context";
 import type { Game } from "./context";
@@ -88,6 +89,7 @@ export function App(props: AppProps) {
   });
   const { store, clock } = env;
   const { status, notice } = useStatus(store);
+  useMotionFlag(store);
   const [toasts, setToasts] = useState<string[]>([]);
 
   useEffect(() => {
@@ -154,6 +156,26 @@ export function App(props: AppProps) {
   );
 }
 
+/**
+ * `data-motion` on <html>: "full" or "reduce", from the setting (which may override the system).
+ * Every screen animation in the app lane is written under `html[data-motion="full"]`, so the
+ * reduced-motion setting turns all of them off at once (brief 3.15).
+ */
+function useMotionFlag(store: Game["store"]): void {
+  const setting = useSyncExternalStore(store.subscribe, () => store.doc.settings.reducedMotion, () => store.doc.settings.reducedMotion);
+  const [systemTick, setSystemTick] = useState(0);
+  useEffect(() => {
+    if (typeof matchMedia !== "function") return undefined;
+    const m = matchMedia("(prefers-reduced-motion: reduce)");
+    const on = (): void => setSystemTick((n) => n + 1);
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
+  useEffect(() => {
+    document.documentElement.dataset.motion = reducedFrom(setting) ? "reduce" : "full";
+  }, [setting, systemTick]);
+}
+
 function Screen({ route }: { route: Route }) {
   switch (route.name) {
     case "create": return <CreateScreen />;
@@ -182,6 +204,9 @@ function SettingsRoute() {
 
 /** One line for main.tsx: `mountApp(root)`. */
 export function mountApp(root: HTMLElement, props: AppProps = {}): void {
+  // index.html paints the body dark before the CSS loads. Once the app runs, tokens.css owns the
+  // page (concrete): an inline dark body put ink headings on asphalt at 1.1:1 (owner: "not visible").
+  root.ownerDocument.body.style.removeProperty("background");
   createRoot(root).render(
     <StrictMode>
       <App {...props} />

@@ -144,7 +144,7 @@
   cursor: pointer;
 }
 .tileName {
-  font: 900 13px / 1.05 var(--font-display);
+  font: 900 14px / 1.05 var(--font-display);
   letter-spacing: 0.02em;
   text-transform: uppercase;
   text-align: center;
@@ -244,7 +244,7 @@
 }
 .startLabel {
   margin-left: auto;
-  font: 900 13px / 1 var(--font-display);
+  font: 900 14px / 1 var(--font-display);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--t-on-raised-dim);
@@ -358,4 +358,8 @@
   .nodeCards {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+.tab:active {
+  transform: translate(2px, 3px);
+  box-shadow: none;
 }

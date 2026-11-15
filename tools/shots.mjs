@@ -195,7 +195,7 @@ async function shootInner(browser, sizeName, base, ctx) {
   await page.locator("main section button[aria-label]").first().click();
   await shot("kit-perk", 500);
   await page.keyboard.press("Escape");
-  await page.locator("button", { hasText: /Found \d+ of 63/ }).first().click();
+  await page.locator("button", { hasText: /Found \d+ of \d+/ }).first().click();
   await shot("kit-found", 500);
   await page.keyboard.press("Escape");
   await btn("Retire this scrapper").click();
