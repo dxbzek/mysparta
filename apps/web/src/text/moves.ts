@@ -19,7 +19,7 @@ const LINES: Readonly<Record<MoveId, (v: N) => string>> = {
   "whistle": (v) => `Pet heals ${v.healPct!}% and acts next`,
   "firecrackers": (v) => `${v.damageMin!} to ${v.damageMax!} damage, cannot be dodged`,
   "snatch": () => "Takes the enemy's weapon",
-  "air-horn": (v) => `Enemy pets ${v.fleeChance!}% to run off, enemy acts later`,
+  "air-horn": (v) => `Enemy pets ${v.fleeChance!}% to run off, enemy acts ${v.clockPush!} beats later (${v.clockPushNoPet!} with no pet)`,
   "body-slam": (v) => `${v.base!} + ${v.perStrength!} per Strength, knocks the weapon off`,
   "sand-in-the-eyes": (v) => `Enemy Aim -${Math.abs(v.aimLoss!)} for the rest of the bout`,
   "taunt": (v) => `Riposte +${v.riposte!} until its next turn`,

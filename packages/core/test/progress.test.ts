@@ -293,13 +293,13 @@ describe("rivals", () => {
     r = api.afterBout(r, 1, DAY);
     expect(cardIndices(r, REALM_SALT, DAY)).not.toEqual(cardIndices(rec("Marla"), REALM_SALT, DAY));
   });
-  it("at levels 1 to 3 always holds at least 2 rivals with only Common weapons", () => {
+  it("at levels 1 to 3 always holds at least 2 rivals with no weapon", () => {
     for (let i = 0; i < 400; i++) {
       for (const lvl of [1, 2, 3]) {
         const r = rec(api.randomName(i), Array.from({ length: lvl - 1 }, () => "L" as Side2));
         for (const day of ["2026-11-14", "2026-11-15"]) {
           const card = api.tonightsCard(r, REALM_SALT, day);
-          const unarmed = card.filter((s) => s.perks.every((p) => perkKind(p) !== "weapon" || RARITY_OF[p] === "common")).length;
+          const unarmed = card.filter((s) => !s.perks.some((p) => perkKind(p) === "weapon")).length;
           expect(unarmed).toBeGreaterThanOrEqual(2);
           for (const s of card) expect(Number(s.id.split(":").pop())).toBeLessThan(RIVALS_PER_LEVEL);
         }

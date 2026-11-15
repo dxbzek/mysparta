@@ -5,5 +5,7 @@
  * played again from its seed only when the result comes out as it was stored (apps/web Replay).
  *   1: up to the sim-feel pass (15 November 2026).
  *   2: the pet pass (15 November 2026): pet growth, weapon starts, perk rerolls, redraw, Air Horn.
+ *   3: the start pass (15 November 2026): 25 weapon rows retuned so no starting weapon, Thrown
+ *      or melee, decides level-1 bouts.
  */
-export const SIM_VERSION = 2;
+export const SIM_VERSION = 3;

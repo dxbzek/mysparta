@@ -1,7 +1,8 @@
 /**
  * The sim findings of the 15 November 2026 review (pet pass): pet growth, the starting perk, the
  * perk reroll, what a perk needs before it is offered, Air Horn's fallback, Haymaker with a Thrown
- * weapon, the sure redraw after a throw, and the Draw weights of rare weapons.
+ * weapon, the sure redraw after a throw, the Draw weights of rare weapons, the level-1 start
+ * spread, and the easy cards of levels 1 to 3.
  */
 import { describe, expect, it } from "vitest";
 import type { PerkId } from "../src/contracts/ids";
@@ -13,7 +14,11 @@ import { hasTag, weaponNumbers } from "../src/content/weapons";
 import { fighterSeed, randomName, startPerk } from "../src/progress/create";
 import { fits } from "../src/progress/perks";
 import { walkWith } from "../src/progress/route";
-import { rivalSnapshot } from "../src/progress/rivals";
+import { cardIndices, rivalSnapshot } from "../src/progress/rivals";
+import { simulateFight } from "../src/sim/simulate";
+import { combineSeed, makeRng } from "../src/prng";
+import { api } from "../src/api";
+import type { Pick as Side2, ScrapperRecord } from "../src/contracts/fighter";
 import { moveReady, playMove } from "../src/sim/moves";
 import { takeTurn } from "../src/sim/turn";
 import { queue, scripted, setup, snap } from "./helpers";
@@ -157,5 +162,76 @@ describe("Draw weights (finding 50)", () => {
       if (RARITY_OF[w] === "epic") expect(weaponNumbers(w).draw, w).toBeGreaterThan(common);
       if (RARITY_OF[w] === "mythic") expect(weaponNumbers(w).draw, w).toBeGreaterThan(common + 1);
     }
+  });
+});
+
+/** Level-1 bouts of random rivals, scored by each side's starting weapon. */
+function rec(name: string, picks: Side2[]): ScrapperRecord {
+  return { ...api.createRecord({ id: `id-${name}`, name, realmSalt: REALM_SALT, lookSalt: 0, colourSalt: 0, today: "2026-11-15" }), picks };
+}
+
+function startTable(n: number): Map<string, { w: number; n: number }> {
+  const rng = makeRng(combineSeed("review-fixes", "start-table"));
+  const by = new Map<string, { w: number; n: number }>();
+  for (let i = 0; i < n; i++) {
+    const a = rivalSnapshot(REALM_SALT, 1, rng.int(1_000_000));
+    const b = rivalSnapshot(REALM_SALT, 1, rng.int(1_000_000));
+    const log = simulateFight(rng.int(2 ** 31), a, b, 1);
+    for (const [s, side] of [[a, "a"], [b, "b"]] as const) {
+      const e = by.get(s.perks[0]!) ?? { w: 0, n: 0 };
+      e.n += 1;
+      if (log.result.winner === side) e.w += 1;
+      by.set(s.perks[0]!, e);
+    }
+  }
+  return by;
+}
+
+describe("the starting weapon does not decide level-1 bouts (findings 12 and 48)", () => {
+  const table = startTable(6000);
+  const rate = (id: string): number => { const e = table.get(id)!; return (100 * e.w) / e.n; };
+  const common = [...table.keys()].filter((id) => RARITY_OF[id as PerkId] === "common");
+  it("every Common and Uncommon start wins 40-62% of its level-1 bouts (was 37.7-64.2)", () => {
+    for (const [id, e] of table) {
+      const r = RARITY_OF[id as PerkId];
+      if ((r === "common" || r === "uncommon") && e.n >= 200) {
+        expect(rate(id), id).toBeGreaterThanOrEqual(40);
+        expect(rate(id), id).toBeLessThanOrEqual(62);
+      }
+    }
+  });
+  it("a Common throw beats the best Common melee start by at most 4 points (was 9.8)", () => {
+    const melee = Math.max(...common.filter((id) => !hasTag(id as never, "thrown")).map(rate));
+    for (const id of common.filter((x) => hasTag(x as never, "thrown"))) expect(rate(id) - melee, id).toBeLessThanOrEqual(4);
+  });
+});
+
+describe("the easy cards of levels 1 to 3 (fair-card rule)", () => {
+  it("are the last 2 cards, own no weapon, keep their rival's stats, and a random scrapper beats them 85% or more", () => {
+    const rng = makeRng(combineSeed("review-fixes", "easy-cards"));
+    let w = 0;
+    let n = 0;
+    for (let i = 0; i < 40; i++) {
+      for (const lvl of [1, 2, 3]) {
+        const r = rec(randomName(i), Array.from({ length: lvl - 1 }, () => "L" as Side2));
+        const card = api.tonightsCard(r, REALM_SALT, "2026-11-15");
+        const idx = cardIndices(r, REALM_SALT, "2026-11-15");
+        for (const [slot, s] of card.entries()) {
+          const full = rivalSnapshot(REALM_SALT, lvl, idx[slot]!);
+          if (slot < 4) { expect(s).toEqual(full); continue; }
+          expect(s.perks.some((p) => perkKind(p) === "weapon")).toBe(false);
+          expect(s.stats).toEqual(full.stats);
+          const me = rivalSnapshot(REALM_SALT, lvl, 10_000 + rng.int(1_000_000));
+          if (simulateFight(rng.int(2 ** 31), me, s, 1).result.winner === "a") w += 1;
+          n += 1;
+        }
+      }
+    }
+    expect((100 * w) / n).toBeGreaterThanOrEqual(85);
+  });
+  it("level 4 and up has no easy card", () => {
+    const r = rec("Marla", ["L", "L", "L"]);
+    const card = api.tonightsCard(r, REALM_SALT, "2026-11-15");
+    expect(card.every((s) => !s.id.includes(":unarmed:"))).toBe(true);
   });
 });

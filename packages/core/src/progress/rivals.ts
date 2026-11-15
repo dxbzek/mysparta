@@ -3,20 +3,20 @@
  * from a seed of its own, then levelled by walking its own Route with a seeded policy.
  */
 import type { DayKey, FighterSnapshot, Pick as Side2, ScrapperRecord } from "../contracts/fighter";
-import { RIVALS_PER_LEVEL } from "../contracts/ids";
-import { RARITY_OF } from "../contracts/content";
+import { RIVALS_PER_LEVEL, perkKind } from "../contracts/ids";
 import { combineSeed, makeRng } from "../prng";
 import { randomName, rollLook } from "./create";
 import { walk, walkWith } from "./route";
-import { weaponsOf } from "./perks";
 import { boutsUsedToday } from "./daily";
 import { levelOf } from "./xp";
 
 /** A rival takes the perk card (or the split that replaced it) 65% of the time. */
 export const RIVAL_PERK_PCT = 65;
 export const CARD_SIZE = 6;
-/** At levels 1 to 3 the card holds at least this many rivals whose weapons are all Common (every
- *  scrapper starts with a weapon since the 15 November pet pass, so none is unarmed). */
+/** At levels 1 to 3 this many cards of the hand own no weapon: the same rival, weapons left at
+ *  home. Every scrapper starts with a weapon since the 15 November 2026 pet pass, so the pool has no
+ *  unarmed rival of its own; a random scrapper beats one of these about 96% of the time at levels 1
+ *  to 3 (a Common-weapons rule picked rivals the player beat only 51-53% of the time). */
 export const FAIR_UNARMED = 2;
 export const FAIR_MAX_LEVEL = 3;
 
@@ -62,22 +62,21 @@ export function cardIndices(rec: ScrapperRecord, realmSalt: string, today: DayKe
   };
   const hand: number[] = [];
   for (let i = 0; i < CARD_SIZE; i++) hand.push(draw());
-  if (level <= FAIR_MAX_LEVEL) {
-    const easy = (i: number): boolean => weaponsOf(rivalSnapshot(realmSalt, level, i).perks).every((w) => RARITY_OF[w] === "common");
-    // Redraw the last cards from the pool until two hold only Common weapons. The pool is finite, so
-    // after every index has been seen the loop stops; a test proves the rule holds.
-    let slot = CARD_SIZE - 1;
-    while (hand.filter(easy).length < FAIR_UNARMED && used.size < RIVALS_PER_LEVEL) {
-      while (slot >= 0 && easy(hand[slot]!)) slot -= 1;
-      if (slot < 0) break;
-      hand[slot] = draw();
-    }
-  }
   return hand;
 }
 
-/** Six rivals at the scrapper's level, redrawn after every bout and at day rollover. */
+/** A rival with its weapons left at home: the same name, look, stats and other perks, its own id.
+ *  Weapons change no stat, so the stat block stays right. */
+export function unarmedRival(realmSalt: string, level: number, index: number): FighterSnapshot {
+  const s = rivalSnapshot(realmSalt, level, index);
+  return { ...s, id: `rival:${realmSalt}:${s.level}:unarmed:${index}`, perks: s.perks.filter((p) => perkKind(p) !== "weapon") };
+}
+
+/** Six rivals at the scrapper's level, redrawn after every bout and at day rollover. At levels 1
+ *  to 3 the last FAIR_UNARMED of them own no weapon (the frozen rule of tonightsCard). */
 export function tonightsCard(rec: ScrapperRecord, realmSalt: string, today: DayKey): FighterSnapshot[] {
   const level = levelOf(rec);
-  return cardIndices(rec, realmSalt, today).map((i) => rivalSnapshot(realmSalt, level, i));
+  const bare = level <= FAIR_MAX_LEVEL ? FAIR_UNARMED : 0;
+  return cardIndices(rec, realmSalt, today).map((i, slot) =>
+    slot >= CARD_SIZE - bare ? unarmedRival(realmSalt, level, i) : rivalSnapshot(realmSalt, level, i));
 }

@@ -71,7 +71,7 @@ Companions use their own weights: Raccoon 90, Goose 5, Boar 5, Stray Dog 30, Cro
 
 - 6 bouts a day per scrapper, 8 on the day it was made. The day key (`YYYY-MM-DD`, local) is passed in by the app; the core never reads a clock. A stored day older than today means a full day. A clock that moves back resets nothing.
 - **Rivals.** `rivalSeed = hash(realmSalt, "rival", level, index)`. A rival is made from that seed by the same code as a player's scrapper, named from our lists, and levelled by walking its own Route: it takes the perk card (or the split that replaced it) 65% of the time. A level N rival has N - 1 picks. There are 240 rivals per level.
-- **Tonight's Card.** 6 different rivals at the scrapper's level, drawn from `hash(seed, dayKey, bouts used today)`, so it changes after every bout and at day rollover. At levels 1 to 3 the card always holds at least 2 rivals whose weapons are all Common: the last other cards are drawn again from the pool until it does. (It was "no weapon" until every scrapper started with a weapon.)
+- **Tonight's Card.** 6 different rivals at the scrapper's level, drawn from `hash(seed, dayKey, bouts used today)`, so it changes after every bout and at day rollover. At levels 1 to 3 the last 2 cards own no weapon: the same rival, its weapons left at home (name, look, stats and other perks unchanged, its own id). Every scrapper starts with a weapon since the pet pass, so the pool has none of its own. A random scrapper beats one of these about 96% of the time at levels 1 to 3; a rule that asked for Common weapons only (pet pass) picked rivals it beat 51 to 53% of the time, and about half the pool met it with no redraw.
 - **Bout seed** = `hash(fighter id, opponent id, the fighter's lifetime bout count)`.
 
 ## 5. The fight
@@ -179,47 +179,47 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Weapon | Rarity | Tags | Clip | Tempo | Dmg | Reach | Draw | Aim | Pierce | Block | Evade | Riposte | Combo | Disarm | Crit |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Fists | - | - | punch | 100 | 5 | 0 | - | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| Pipe | Common | - | swing | 110 | 12 | 1 | 5 | 0 | 0 | 12 | 0 | 5 | 0 | 10 | 10 |
-| Pocket Knife | Common | Light, Blade | flick | 65 | 6 | 0 | 5 | 25 | 0 | 0 | 5 | 0 | 35 | 0 | 10 |
+| Pipe | Common | - | swing | 110 | 13 | 1 | 5 | 0 | 0 | 12 | 0 | 5 | 0 | 10 | 10 |
+| Pocket Knife | Common | Light, Blade | flick | 60 | 7 | 0 | 5 | 25 | 0 | 0 | 5 | 0 | 35 | 0 | 15 |
 | Broom | Common | Pole | thrust | 100 | 6 | 3 | 4 | 0 | 0 | 20 | 5 | 28 | 10 | 15 | 5 |
-| Machete | Common | Blade | swing | 115 | 11 | 1 | 5 | 5 | 0 | 5 | 0 | 5 | 5 | 5 | 30 |
-| Hand Axe | Common | Heavy, Blade | swing | 145 | 16 | 1 | 4 | 0 | 15 | -5 | 0 | 0 | 0 | 5 | 15 |
+| Machete | Common | Blade | swing | 115 | 13 | 1 | 5 | 5 | 0 | 5 | 0 | 5 | 5 | 5 | 30 |
+| Hand Axe | Common | Heavy, Blade | swing | 130 | 17 | 1 | 4 | 0 | 15 | -5 | 0 | 0 | 0 | 5 | 15 |
 | Bat | Uncommon | - | swing | 120 | 12 | 2 | 5 | 0 | 10 | 5 | 0 | 18 | 0 | 5 | 15 |
-| Pitchfork | Uncommon | Pole | thrust | 130 | 14 | 3 | 3 | 0 | 0 | 5 | 0 | 0 | 0 | 5 | 10 |
+| Pitchfork | Uncommon | Pole | thrust | 130 | 15 | 3 | 3 | 0 | 0 | 5 | 0 | 0 | 0 | 5 | 10 |
 | Crowbar | Uncommon | Heavy | swing | 140 | 16 | 1 | 4 | -10 | 20 | 5 | 0 | 0 | 0 | 25 | 5 |
-| Knuckle Dusters | Uncommon | Light | punch | 70 | 7 | 0 | 5 | 10 | 10 | 0 | 5 | 0 | 28 | 0 | 10 |
-| Shovel | Uncommon | Heavy, Pole | smash | 150 | 15 | 2 | 3 | -10 | 10 | 18 | -5 | 5 | -10 | 10 | 5 |
-| Sledgehammer | Uncommon | Heavy | smash | 180 | 34 | 1 | 5 | -30 | 30 | -20 | -20 | -20 | -40 | 10 | 10 |
+| Knuckle Dusters | Uncommon | Light | punch | 70 | 8 | 0 | 5 | 10 | 10 | 0 | 5 | 0 | 28 | 0 | 10 |
+| Shovel | Uncommon | Heavy, Pole | smash | 150 | 16 | 2 | 3 | 0 | 10 | 18 | -5 | 5 | -10 | 10 | 5 |
+| Sledgehammer | Uncommon | Heavy | smash | 160 | 34 | 1 | 5 | -20 | 30 | -20 | -20 | -20 | -40 | 10 | 10 |
 | Darts | Uncommon | Thrown, Light | throw | 45 | 3 | - | 5 | 0 | 0 | -5 | 12 | 0 | 30 | 0 | 5 |
 | Bike Chain | Rare | Pole | swing | 140 | 10 | 4 | 5 | 30 | -10 | -15 | 20 | -5 | 30 | 25 | 0 |
-| Monkey Wrench | Rare | Heavy | swing | 130 | 12 | 1 | 4 | 0 | 10 | 10 | 0 | 0 | 0 | 60 | 5 |
-| Pickaxe | Rare | Heavy | smash | 160 | 19 | 2 | 4 | -15 | 100 | -10 | -10 | 0 | -10 | 10 | 10 |
-| Rebar | Rare | Heavy | swing | 170 | 23 | 2 | 5 | 10 | -10 | 5 | -15 | 0 | 0 | 10 | 10 |
-| Screwdrivers | Rare | Light | flick | 65 | 6 | 0 | 5 | 20 | 0 | 15 | 5 | 0 | 35 | 45 | 5 |
+| Monkey Wrench | Rare | Heavy | swing | 140 | 10 | 1 | 4 | 0 | 10 | 10 | 0 | 0 | 0 | 60 | 5 |
+| Pickaxe | Rare | Heavy | smash | 150 | 19 | 2 | 4 | 0 | 100 | -10 | -10 | 0 | -10 | 10 | 10 |
+| Rebar | Rare | Heavy | swing | 160 | 23 | 2 | 5 | 20 | -10 | 5 | -15 | 0 | 0 | 10 | 10 |
+| Screwdrivers | Rare | Light | flick | 70 | 5 | 0 | 5 | 10 | 0 | 5 | 5 | 0 | 10 | 45 | 5 |
 | Garden Shears | Rare | Light, Blade | flick | 75 | 8 | 1 | 4 | 15 | 0 | 5 | 0 | 5 | 20 | 10 | 15 |
-| Stop Sign | Rare | Pole, Heavy, Blade | smash | 175 | 23 | 3 | 3 | -30 | 0 | 10 | 0 | 0 | 5 | 10 | 5 |
-| Boomerang | Rare | Thrown | throw | 70 | 8 | - | 4 | 0 | 0 | -5 | 10 | 0 | 20 | 10 | 10 |
-| Anvil | Epic | Heavy | smash | 240 | 50 | 1 | 6 | -30 | 50 | -30 | -30 | -20 | -40 | 15 | 5 |
-| Ball and Chain | Epic | Heavy | smash | 215 | 34 | 2 | 6 | -30 | 100 | -40 | -25 | 0 | 12 | -10 | 0 |
+| Stop Sign | Rare | Pole, Heavy, Blade | smash | 175 | 23 | 3 | 3 | -15 | 0 | 10 | 0 | 0 | 5 | 10 | 5 |
+| Boomerang | Rare | Thrown | throw | 70 | 6 | - | 4 | -5 | 0 | -5 | 10 | 0 | 15 | 10 | 10 |
+| Anvil | Epic | Heavy | smash | 225 | 50 | 1 | 6 | -30 | 50 | -30 | -30 | -20 | -40 | 15 | 5 |
+| Ball and Chain | Epic | Heavy | smash | 200 | 34 | 2 | 6 | -30 | 100 | -40 | -25 | 0 | 12 | -10 | 0 |
 | Umbrella | Epic | Light | flick | 50 | 4 | 1 | 6 | 40 | 0 | -30 | 45 | 40 | 40 | -20 | 0 |
-| Pool Cue | Epic | Pole, Light | thrust | 85 | 8 | 3 | 6 | 20 | 0 | 10 | 10 | 10 | 22 | 10 | 10 |
+| Pool Cue | Epic | Pole, Light | thrust | 95 | 7 | 3 | 6 | 20 | 0 | 10 | 10 | 10 | 22 | 10 | 10 |
 | Bricks | Epic | Thrown, Heavy | throw | 100 | 13 | - | 6 | -10 | 0 | -10 | 0 | 0 | 0 | 20 | 15 |
 | Rubber Chicken | Mythic | Light | swing | 90 | 5 | 1 | 7 | 35 | 100 | -20 | 0 | 60 | 70 | 0 | 0 |
 | Lawn Flamingo | Mythic | Pole | thrust | 120 | 13 | 4 | 7 | 20 | 0 | 0 | 30 | 30 | 20 | 30 | 35 |
 | Frying Pan | Common | - | swing | 105 | 11 | 1 | 5 | 0 | 0 | 22 | 0 | 28 | -5 | 5 | 5 |
 | Tyre Iron | Common | - | swing | 100 | 11 | 1 | 5 | 5 | 15 | 5 | 0 | 0 | 5 | 10 | 15 |
 | Golf Club | Uncommon | - | swing | 125 | 15 | 2 | 4 | 5 | 0 | 0 | 0 | 5 | 0 | 5 | 30 |
-| Hockey Stick | Uncommon | Pole | swing | 115 | 11 | 2 | 4 | 10 | 0 | 10 | 5 | 10 | 10 | 30 | 5 |
+| Hockey Stick | Uncommon | Pole | swing | 125 | 9 | 2 | 4 | 5 | 0 | 10 | 5 | 10 | 10 | 30 | 5 |
 | Folding Chair | Uncommon | Heavy | smash | 160 | 20 | 1 | 4 | -15 | 15 | 20 | -10 | 0 | -15 | 15 | 5 |
-| Cricket Bat | Rare | Heavy | swing | 140 | 19 | 2 | 4 | 5 | 10 | 15 | 0 | 20 | 0 | 10 | 15 |
+| Cricket Bat | Rare | Heavy | swing | 150 | 17 | 2 | 4 | 5 | 10 | 15 | 0 | 20 | 0 | 10 | 15 |
 | Wok | Rare | Heavy | swing | 135 | 16 | 1 | 4 | 0 | 10 | 30 | 0 | 20 | -10 | 10 | 10 |
 | Plunger | Mythic | Light | thrust | 90 | 7 | 2 | 7 | 40 | 40 | 0 | 10 | 20 | 30 | 70 | 10 |
-| Plastic Bottle | Common | Thrown, Light | throw | 70 | 7 | - | 5 | 5 | 0 | 0 | 10 | 0 | 25 | 0 | 5 |
-| Rubber Ball | Common | Thrown, Light | throw | 75 | 7 | - | 5 | 10 | 30 | 0 | 5 | 0 | 25 | 0 | 5 |
-| Paint Can | Uncommon | Thrown, Heavy | throw | 105 | 14 | - | 4 | -5 | 0 | -5 | 0 | 0 | 0 | 15 | 15 |
-| Traffic Cone | Uncommon | Thrown | throw | 95 | 11 | - | 4 | 15 | 0 | 0 | 5 | 0 | 10 | 5 | 10 |
-| Hubcap | Rare | Thrown | throw | 90 | 14 | - | 4 | 10 | 25 | -5 | 5 | 0 | 15 | 5 | 20 |
-| Tyre | Epic | Thrown, Heavy | throw | 120 | 25 | - | 6 | 0 | 40 | -10 | -5 | 0 | 0 | 25 | 10 |
+| Plastic Bottle | Common | Thrown, Light | throw | 70 | 6 | - | 5 | 5 | 0 | 0 | 10 | 0 | 15 | 0 | 5 |
+| Rubber Ball | Common | Thrown, Light | throw | 75 | 6 | - | 5 | 10 | 30 | 0 | 5 | 0 | 25 | 0 | 5 |
+| Paint Can | Uncommon | Thrown, Heavy | throw | 105 | 11 | - | 4 | -5 | 0 | -5 | 0 | 0 | 0 | 15 | 15 |
+| Traffic Cone | Uncommon | Thrown | throw | 95 | 9 | - | 4 | 15 | 0 | 0 | 5 | 0 | 10 | 5 | 10 |
+| Hubcap | Rare | Thrown | throw | 90 | 9 | - | 4 | 10 | 25 | -5 | 5 | 0 | 15 | 5 | 20 |
+| Tyre | Epic | Thrown, Heavy | throw | 130 | 16 | - | 6 | 0 | 40 | -10 | -5 | 0 | 0 | 25 | 10 |
 
 Roles of the content v2 weapons (our own, from our sim): Frying Pan the common parry tool (the Bin Lid's old place), Tyre Iron a quick club with Pierce, Golf Club the long crit swing, Hockey Stick the hooking stick (Disarm at Reach 2), Folding Chair a blocking smash, Cricket Bat the heavy hitter with an answer, Wok the highest Block of any weapon, Plunger the Mythic joke disarmer. Thrown: Plastic Bottle and Rubber Ball the cheap lobs (the ball's bounce gives Pierce), Paint Can and Tyre the heavy throws, Traffic Cone the aimed one, Hubcap the spinning disc that crits most.
 
@@ -429,14 +429,14 @@ Balance gate after the pass (`pnpm balance`, full sample): PASS, no limit broken
 The full review of 15 November found pets far too strong (with-and-without 85 to 93% at level 3, and still 66 to 73% at level 30), a gate that could not see it (no upper limit), a starting perk that decided level-1 bouts by the name alone (8% to 98% wins), perk cards turning into splits more often as a scrapper levelled, perks offered where they could never work, and a few smaller rule gaps. The structural changes, each written above where it applies:
 
 - **Pets grow with their owner** (section 5): level-1 HP and Strength are small and grow 15% (HP) and 60% (Strength) of that value per level, so a pet is worth about the same at every level. With the old 3% growth no number set could hold a pet near 60% at both level 3 and level 30.
-- **Every scrapper starts with a weapon** (section 2). The rivals' easy-card rule at levels 1 to 3 now asks for Common weapons only (section 4).
+- **Every scrapper starts with a weapon** (section 2). The easy cards of levels 1 to 3 are now rivals with their weapons left at home (section 4, start pass below).
 - **A rejected perk card is rolled again** up to 3 times before it becomes a split (section 3).
 - **Offer only what can work** (section 3): Pet Lover needs a companion like the Whistle; Sharpening Stone, Heavy Lifter, Trick Shot, Junk Collector, Pitcher, Firm Grip and Quick Swap need a weapon they work with.
 - **Air Horn** fires with no enemy pet and then pushes the enemy scrapper 60 beats (section 7).
 - **Haymaker** is not called while a Thrown weapon is in the hand (section 8).
 - **The sure redraw**: no Move roll in the turn right after a throw while a weapon waits in the bag (section 5, step 2). Before, a Move took that turn about 10% of the time.
 - **The gate** runs at levels 3, 5, 10 and 30 and has an upper limit per rarity and 65% for every pet (above).
-- **Sim version**: `SIM_VERSION` (packages/core/src/sim/version.ts) is 2. The golden digests are tied to it, so a sim change cannot ship without a bump, and the app replays a bout with no stored log only when the rebuilt result equals the stored one.
+- **Sim version**: `SIM_VERSION` (packages/core/src/sim/version.ts) is 2 (3 after the start pass below). The golden digests are tied to it, so a sim change cannot ship without a bump, and the app replays a bout with no stored log only when the rebuilt result equals the stored one.
 
 Number changes:
 
@@ -483,3 +483,46 @@ Results, full gate (`pnpm balance`, 4,000 bouts per perk, 40,000 pairs per level
 Gate verdict: before, at levels 3, 5, 10 and 30 with the old limits, 18 limits broken (all at levels 3 and 5) and every pet row "ok"; after, with the new limits, PASS. Median turns: level 1 15 to 13, level 3 13 to 13, level 5 13 to 13, level 10 14 to 14, level 30 18 to 16; overtime 0.0%; no bout under 6 turns. Level-1 win rate by starting perk (300 or more bouts): 15.2% (Junk Collector) to 80.5% (Traffic Cone) before, 37.5% (Pickaxe) to 76.9% (Screwdrivers) after. Pet Lover and Junk Collector still own under 40% at level 3, on samples under the 1,000-bout limit (few level-3 kits qualify); both pass every limit from level 5 up.
 
 Changing the Route and the starting perk changes the kit of every existing scrapper on its next walk (only picks are stored).
+
+### Start pass (15 November 2026)
+
+The pet pass lowered every number but left the gap between starting weapons: at level 1 a Common throw won 58.8 to 62.6% and a Common melee start 37.7 to 52.8%, and the spread of all starts with 300 or more bouts was 37.5 to 76.9%. Throws skip intercept and riposte and halve evade and block, so they were cut, and the weakest melee starts were raised. Numbers from `pnpm balance`, full sample; the weapon table in section 6 holds the new rows.
+
+| Weapon | Changed | Was | Now | Level-1 start win %, before / after |
+|---|---|---|---|---|
+| Plastic Bottle | Dmg, Combo | 7, 25 | 6, 15 | 62.6 / 51.3 |
+| Rubber Ball | Dmg | 7 | 6 | 58.8 / 49.7 |
+| Paint Can | Dmg | 14 | 11 | 64.2 / 53.7 |
+| Traffic Cone | Dmg | 11 | 9 | 62.3 / 53.1 |
+| Hubcap | Dmg | 14 | 9 | 73.3 / 56.7 |
+| Tyre | Tempo, Dmg | 120, 25 | 130, 16 | 77.1 / 68.7 (83 bouts) |
+| Boomerang | Dmg, Aim, Combo | 8, 0, 20 | 6, -5, 15 | 70.4 / 60.1 |
+| Screwdrivers | Tempo, Dmg, Aim, Block, Combo | 65, 6, 20, 15, 35 | 70, 5, 10, 5, 10 | 76.9 / 60.4 |
+| Monkey Wrench | Tempo, Dmg | 130, 12 | 140, 10 | 64.7 / 57.1 |
+| Hockey Stick | Tempo, Dmg, Aim | 115, 11, 10 | 125, 9, 5 | 64.2 / 57.7 |
+| Cricket Bat | Tempo, Dmg | 140, 19 | 150, 17 | 65.1 / 56.6 |
+| Pool Cue | Tempo, Dmg | 85, 8 | 95, 7 | 66.2 / 59.7 (77 bouts) |
+| Pocket Knife | Tempo, Dmg, Crit | 65, 6, 10 | 60, 7, 15 | 37.7 / 47.5 |
+| Pipe | Dmg | 12 | 13 | 46.0 / 47.8 |
+| Machete | Dmg | 11 | 13 | 41.2 / 48.0 |
+| Hand Axe | Tempo, Dmg | 145, 16 | 130, 17 | 40.0 / 47.1 |
+| Pitchfork | Dmg | 14 | 15 | 45.1 / 46.2 |
+| Knuckle Dusters | Dmg | 7 | 8 | 40.4 / 49.2 |
+| Shovel | Dmg, Aim | 15, -10 | 16, 0 | 41.5 / 48.1 |
+| Sledgehammer | Tempo, Aim | 180, -30 | 160, -20 | 38.4 / 51.2 |
+| Pickaxe | Tempo, Aim | 160, -15 | 150, 0 | 37.5 / 47.5 |
+| Rebar | Tempo, Aim | 170, 10 | 160, 20 | 41.7 / 45.5 |
+| Stop Sign | Aim | -30 | -15 | 38.7 / 47.4 |
+| Anvil | Tempo | 240 | 225 | 47.8 / 54.3 (92 bouts) |
+| Ball and Chain | Tempo | 215 | 200 | 44.7 / 40.8 (76 bouts) |
+
+Results:
+
+- **Level 1, starts with 300 or more bouts**: 45.5% (Rebar) to 60.4% (Screwdrivers), was 37.5 to 76.9%. Common starts 47.1 to 51.8%, was 37.7 to 62.6%; the Common throws (51.3, 49.7) sit inside the Common melee range (47.1 to 51.8). Epic and Mythic starts are under 100 bouts each and are not read.
+- **Level 3 ownership**: Common throws 49.9 and 51.8%, Common melee 48.2 to 50.4%; Uncommon throws 51.8 and 53.3%, Uncommon melee 48.0 to 54.5%; Hubcap 54.4% (was 67.0), Tyre 59.3% on 280 bouts (was 67.9).
+- **Gate**: PASS at levels 3, 5, 10 and 30. Median turns 13, 13, 13, 14 and 17 at levels 1, 3, 5, 10 and 30; overtime 0.0%.
+- **Easy cards** (section 4): the last 2 cards at levels 1 to 3 are rivals with their weapons left at home, so the frozen rule of `tonightsCard` ("at least 2 of them own no weapon") holds again as written. A random scrapper beats them about 96% of the time.
+- **Sim version 3**: the golden digests changed with the weapon rows.
+
+Open for the owner (not decided here): every start is still a weapon (the pet pass's design change); saved scrappers get a new start and kit on their next walk with no migration and no notice, and `rulesVersion` stays 1; a replay with no stored log is still re-simulated by result equality only, as no bout carries its sim version.
+

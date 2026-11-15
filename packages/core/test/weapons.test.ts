@@ -213,10 +213,13 @@ describe("weapon table", () => {
   it("matches spot values of the rules (rows the balance pass did not move)", () => {
     expect(WEAPONS.fists.tiers[0]).toEqual({ tempo: 100, dmg: 5, reach: 0, draw: 0, aim: 0, pierce: 0, block: 0,
       evade: 0, riposte: 0, combo: 0, disarm: 0, crit: 0 });
-    expect(WEAPONS["pocket-knife"].tiers[0]).toEqual({ tempo: 65, dmg: 6, reach: 0, draw: 5, aim: 25, pierce: 0,
-      block: 0, evade: 5, riposte: 0, combo: 35, disarm: 0, crit: 10 });
-    // Pitchfork Dmg 13 -> 14 in the content v2 balance pass (docs/RULES.md); the rest of its row is the brief's.
-    expect(WEAPONS.pitchfork.tiers[0]).toEqual({ tempo: 130, dmg: 14, reach: 3, draw: 3, aim: 0, pierce: 0,
+    // Pocket Knife Tempo 65 -> 60, Dmg 6 -> 7, Crit 10 -> 15 in the start pass of 15 November 2026
+    // (it was the weakest starting weapon, 37.7% at level 1; docs/RULES.md).
+    expect(WEAPONS["pocket-knife"].tiers[0]).toEqual({ tempo: 60, dmg: 7, reach: 0, draw: 5, aim: 25, pierce: 0,
+      block: 0, evade: 5, riposte: 0, combo: 35, disarm: 0, crit: 15 });
+    // Pitchfork Dmg 13 -> 14 in the content v2 balance pass, 14 -> 15 in the start pass (docs/RULES.md);
+    // the rest of its row is the brief's.
+    expect(WEAPONS.pitchfork.tiers[0]).toEqual({ tempo: 130, dmg: 15, reach: 3, draw: 3, aim: 0, pierce: 0,
       block: 5, evade: 0, riposte: 0, combo: 0, disarm: 5, crit: 10 });
     expect(WEAPONS.darts.tiers[0]).toMatchObject({ tempo: 45, dmg: 3, reach: null, combo: 30 });
   });
