@@ -65,7 +65,7 @@ export function SandboxScreen() {
   const [a, setA] = useState<PerkId[]>([...EVERYTHING_A]);
   const [b, setB] = useState<PerkId[]>([...EVERYTHING_B]);
   const [bout, setBout] = useState<{ log: BoutLog; a: FighterSnapshot; b: FighterSnapshot } | null>(null);
-  const [settings, setSettings] = useState<Settings>({ sound: true, speed: 1, reducedMotion: "system", liveLog: true });
+  const [settings, setSettings] = useState<Settings>({ sound: true, speed: 1, reducedMotion: "system", liveLog: true, isVip: false });
   /** Shields: one at most, so picking a shield replaces the other. */
   const toggle = (set: (f: (p: PerkId[]) => PerkId[]) => void) => (id: PerkId) => set((p) => {
     if (p.includes(id)) return p.filter((x) => x !== id);

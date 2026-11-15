@@ -94,6 +94,8 @@ export const UI = {
     /** While the weapon and arena art loads before a fight (a second at most on a phone). */
     loading: "Setting up the ring…",
     loadFailed: "The fight art did not load. Check the connection and try again.",
+    /** Tapping the locked 3x speed button. */
+    vipSpeed: "3x speed is a VIP perk",
     retry: "Try again",
   },
 
@@ -202,6 +204,9 @@ export const UI = {
     title: "Settings",
     testArena: "Test arena",
     testArenaHelp: "Two test scrappers with any weapon, skill, pet and shield, up to level 60. Nothing is saved.",
+    // TEMPORARY: the VIP test switch, until the shop sells VIP (plan 13.13). Remove with it.
+    vipTest: "VIP (test)",
+    vipTestHelp: "Temporary test switch: turns on VIP so you can try 3x fight speed. It goes away when the shop arrives.",
     sound: "Sound",
     on: "On",
     off: "Off",

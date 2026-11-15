@@ -256,6 +256,21 @@
   font: 900 17px / 1 var(--font-display);
   letter-spacing: 0.03em;
 }
+/* speed 1x / 2x / 3x: three discs side by side; 3x shows a lock until VIP */
+.speeds { display: flex; }
+.speeds .ctlWord { font-size: 15px; }
+.ctlDisc { position: relative; }
+.ctlLocked .ctlWord { opacity: 0.55; }
+.ctlLock {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  padding: 1px;
+  border-radius: 4px;
+  background: var(--c-ink);
+  color: var(--c-sodium);
+  box-sizing: content-box;
+}
 
 /* replay scrub bar */
 .replay {

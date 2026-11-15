@@ -61,7 +61,7 @@ function boutFor(route: Extract<DebugRoute, { page: "bout" }>): { log: BoutLog; 
 
 function DebugBout({ route }: { route: Extract<DebugRoute, { page: "bout" }> }) {
   const bout = useMemo(() => boutFor(route), [route]);
-  const [settings, setSettings] = useState<Settings>({ sound: route.sound, speed: route.speed, reducedMotion: route.reduced, liveLog: true });
+  const [settings, setSettings] = useState<Settings>({ sound: route.sound, speed: route.speed, reducedMotion: route.reduced, liveLog: true, isVip: route.vip });
   const [fontsReady, setFontsReady] = useState(false);
   const [handle, setHandle] = useState<FightHandle | null>(null);
   useEffect(() => {

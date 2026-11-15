@@ -1,6 +1,7 @@
 /**
  * The settings sheet (brief 3.11): sound, reduced motion (follow system / on / off), the live log,
- * export and import of the save code, credits.
+ * export and import of the save code, credits. Plus a TEMPORARY "VIP (test)" switch under the
+ * test arena, so the owner can try 3x fight speed before the shop sells VIP (plan 13.13).
  */
 import { useState } from "react";
 import { useDoc, useGame } from "../../app/context";
@@ -44,6 +45,11 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose(): voi
           <h3 className={css.blockTitle}>{UI.settings.testArena}</h3>
           <p className={css.help}>{UI.settings.testArenaHelp}</p>
           <Button onClick={() => { location.hash = "#/sandbox"; }}>{UI.settings.testArena}</Button>
+          {/* TEMPORARY: VIP test switch. Remove when the shop sells VIP (plan 13.13). Turning it
+              off drops a 3x speed to 2x, so the save never keeps a speed it cannot play. */}
+          <Choice label={UI.settings.vipTest} value={s.isVip} options={onOff}
+            onPick={(v) => set(v ? { isVip: true } : { isVip: false, speed: s.speed === 3 ? 2 : s.speed })} />
+          <p className={css.help}>{UI.settings.vipTestHelp}</p>
         </section>
 
         <section className={css.block}>

@@ -398,6 +398,10 @@ describe("the fight clock", () => {
     expect(c.tick(100)).toBe(100);
     c.speed = 2;
     expect(c.tick(100)).toBe(300);
+    c.speed = 3;
+    expect(c.tick(100)).toBe(600);
+    c.speed = 2;
+    c.seek(300);
     c.paused = true;
     expect(c.tick(100)).toBe(300);
     c.paused = false;

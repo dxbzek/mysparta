@@ -7,7 +7,7 @@
  * Sound: each frame, the cues the clock crossed by PLAYING are sounded; a seek (skip, scrub,
  * replay, the debug handle) sounds nothing.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { stageFor } from "@rankzero/core";
 import type { Side } from "@rankzero/core";
@@ -15,6 +15,9 @@ import type { Rig } from "@rankzero/rig";
 import { createFightClock, createFightPlayer } from "@rankzero/stage";
 import type { Cue, FightClock, FightPlayer } from "@rankzero/stage";
 import type { FightScreenProps, Settings } from "../contracts";
+import { GameContext } from "../app/context";
+import { playSpeed } from "../state/schema";
+import { UI } from "../text/ui";
 import { createCueDriver, engineSink } from "../audio/cues";
 import type { AudioEngine } from "../audio/engine";
 import { sharedAudio, unlockOnFirstGesture } from "../audio/engine";
@@ -63,6 +66,8 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
   const rig = props.rig ?? seamRig;
   const audio = props.audio ?? sharedAudio();
   const reduced = reducedFrom(settings.reducedMotion);
+  // The toast strip, when the app is around it (the debug routes have none).
+  const game = useContext(GameContext);
 
   const player: FightPlayer = useMemo(
     () => createFightPlayer(log, a, b, rig, { reducedMotion: reduced, cosmeticSeed: log.seed, stage: stageFor(log.seed), text: STAGE_TEXT, fonts: STAGE_FONTS }),
@@ -84,7 +89,7 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
     finished.current = false;
   }, [clock]);
 
-  clock.speed = settings.speed;
+  clock.speed = playSpeed(settings);
   audio.enabled = settings.sound;
 
   useEffect(() => unlockOnFirstGesture(audio), [audio]);
@@ -191,11 +196,13 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
         <Controls
           paused={paused}
           ended={ended}
-          speed={settings.speed}
+          speed={playSpeed(settings)}
+          vip={settings.isVip}
           sound={settings.sound}
           canSkip={!ended && t < tl.resultAt - SKIP_HOLD_MS}
           onPlayPause={onPlayPause}
           onSpeed={(speed) => onSettings({ speed })}
+          onLocked={() => game?.toast(UI.bout.vipSpeed)}
           onSkip={onSkip}
           onSound={(on) => {
             if (on) void audio.unlock();

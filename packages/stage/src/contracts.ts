@@ -3,7 +3,7 @@
  *
  * THE RULE OF THIS CONTRACT: the timeline is built once from the log, and every frame is a
  * pure function of `t`. `t` is presentation time at 1x, in ms, with hit-stop and slow motion
- * already inside it. 2x means the fight clock adds 2 x dt. Nothing keeps state between frames.
+ * already inside it. 2x means the fight clock adds 2 x dt, 3x (CONTRACT_REV 4) 3 x dt. Nothing keeps state between frames.
  * Pause, speed, skip, seek, the debug route, Node video and browser recording are then the same
  * call with a different `t`.
  *
@@ -91,7 +91,8 @@ export type CreateFightPlayer = (log: BoutLog, a: FighterSnapshot, b: FighterSna
   opts: PlayerOpts) => FightPlayer;
 /** The one fight clock. `tick` adds `speed x realDtMs` unless paused and returns the new `t`.
  *  `seek` jumps without sound. `t` is held inside 0 to the bout's length. */
-export interface FightClock { readonly t: number; speed: 1 | 2; paused: boolean;
+/** `speed` 3 since CONTRACT_REV 4 (3x, a VIP perk the web app gates; the clock does not care). */
+export interface FightClock { readonly t: number; speed: 1 | 2 | 3; paused: boolean;
   tick(realDtMs: number): number; seek(tMs: number): void }
 /** Makes the clock for one bout: it starts at t = 0, at speed 1, not paused. The fight screen
  *  gets its clock from here and never writes a second one. */
