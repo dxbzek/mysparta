@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import type { AudioContextLike, AudioHost } from "../../src/audio/engine";
 import { createAudioEngine, unlockOnFirstGesture } from "../../src/audio/engine";
+import { soundFor } from "../../src/audio/cues";
 
 function fakeHost() {
   const calls: string[] = [];
@@ -20,7 +21,11 @@ function fakeHost() {
   const host: AudioHost = {
     createContext: () => { calls.push("context"); return ctx; },
     fetchBytes: async (url) => { calls.push(`bytes ${url}`); return new ArrayBuffer(8); },
-    fetchJson: async (url) => { calls.push(`json ${url}`); return { version: 1, file: "sfx.mp3", families: { fist: [{ start: 100, dur: 250 }] } }; },
+    fetchJson: async (url) => {
+      calls.push(`json ${url}`);
+      return { version: 2, files: ["sfx.mp3", "sfx-content.mp3"], families: { fist: "hit-fist" },
+        sets: { "hit-fist": [{ start: 100, dur: 250, f: 0 }], "hit-blade-small": [{ start: 40, dur: 110, f: 1 }] } };
+    },
   };
   return { host, calls, started };
 }
@@ -48,9 +53,11 @@ describe("audio engine", () => {
     expect(listeners.size).toBe(0);           // once
     await engine.unlock();
     expect(engine.state).toBe("ready");
-    expect(f.calls.filter((c) => c.startsWith("json") || c.startsWith("bytes"))).toEqual(["json /base/audio/sfx.json", "bytes /base/audio/sfx.mp3"]);
-    expect(engine.play("fist", 0)).toBe(true);
-    expect(f.started).toEqual([[0, 0.1, 0.25]]);
+    await engine.content();
+    expect(f.calls.filter((c) => c.startsWith("json") || c.startsWith("bytes"))).toEqual(["json /base/audio/sfx.json", "bytes /base/audio/sfx.mp3", "bytes /base/audio/sfx-content.mp3"]);
+    expect(engine.play("fist", 0)).toBe(true);          // a family plays its set
+    expect(engine.play("hit-blade-small", 0)).toBe(true); // a set from the content sprite
+    expect(f.started).toEqual([[0, 0.1, 0.25], [0, 0.04, 0.11]]);
     expect(engine.play("fist", 7)).toBe(false);   // unknown variant: ignored
   });
 
@@ -61,5 +68,36 @@ describe("audio engine", () => {
     engine.enabled = false;
     expect(engine.play("fist", 0)).toBe(false);
     expect(f.started).toEqual([]);
+  });
+});
+
+describe("the content sprite", () => {
+  it("loads after the core; until then its sets report size 0 and a cue falls back to its family", async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => { release = r; });
+    const started: number[] = [];
+    const ctx: AudioContextLike = {
+      currentTime: 0, state: "running", resume: async () => undefined, destination: {},
+      decodeAudioData: async () => ({}),
+      createBufferSource: () => ({ buffer: null, connect: () => undefined, start: (_w, o) => { started.push(o); } }),
+    };
+    const host: AudioHost = {
+      createContext: () => ctx,
+      fetchBytes: async (url) => { if (url.endsWith("sfx-content.mp3")) await gate; return new ArrayBuffer(8); },
+      fetchJson: async () => ({ version: 2, files: ["sfx.mp3", "sfx-content.mp3"], families: { blade: "hit-blade-small", fist: "hit-fist" },
+        sets: { "hit-blade-small": [{ start: 10, dur: 110, f: 0 }], "hit-pipe": [{ start: 500, dur: 600, f: 1 }] } }),
+    };
+    const engine = createAudioEngine("./", host);
+    await engine.unlock();
+    expect(engine.state).toBe("ready");
+    expect(engine.size("hit-pipe")).toBe(0);
+    const pipe = { at: 0, step: 0, family: "blunt" as const, variant: 0, item: "pipe" as const, on: "body" as const };
+    expect(soundFor(pipe, (n) => engine.size(n))).toBeNull();          // no blunt alias in this map, content not in
+    const knife = { at: 0, step: 0, family: "blade" as const, variant: 0, item: "pocket-knife" as const, on: "body" as const };
+    expect(soundFor(knife, (n) => engine.size(n))).toEqual({ name: "hit-blade-small", variant: 0 });
+    release();
+    await engine.content();
+    expect(engine.size("hit-pipe")).toBe(1);
+    expect(soundFor(pipe, (n) => engine.size(n))).toEqual({ name: "hit-pipe", variant: 0 });
   });
 });

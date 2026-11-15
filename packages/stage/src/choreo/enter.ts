@@ -27,6 +27,6 @@ export function enter(b: Builder, step: StepOf<"enter">, i: number): Placed {
   tr.showFrom = at;
   b.move(step.actor, at, INTRO.companionsRunMs, tr.home.x, tr.home.y, 0, "out");
   b.play(step.actor, "run", at, { until: at + INTRO.companionsRunMs });
-  b.cue(at, i, "companion");
+  b.cue(at, i, "companion", 0, b.soundItem(step.actor));
   return { at, apply: at + INTRO.companionsRunMs };
 }

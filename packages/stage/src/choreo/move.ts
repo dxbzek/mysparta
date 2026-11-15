@@ -165,7 +165,7 @@ function snatch(b: Builder, step: MoveStep, i: number, s: number, c: number): Pl
     b.heldNow.set(target, "fists");
     b.setHeld(step.actor, at + MOVE.snatchJumpMs, step.taken);
     b.heldNow.set(step.actor, step.taken);
-    b.cue(at, i, "whoosh");
+    b.cue(at, i, "whoosh", 0, step.taken);
     apply = at + MOVE.snatchJumpMs;
   }
   skillTag(b, step.procs, at);

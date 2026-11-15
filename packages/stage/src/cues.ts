@@ -17,7 +17,7 @@ export function noise(seed: number, a: number, b = 0): number {
 
 const FAMILY_SALT: Readonly<Record<SfxFamily, number>> = {
   fist: 1, blunt: 2, blade: 3, block: 4, whoosh: 5, dash: 6, landing: 7, throw: 8,
-  drop: 9, crowd: 10, companion: 11, move: 12, win: 13, loss: 14,
+  drop: 9, crowd: 10, companion: 11, move: 12, win: 13, loss: 14, swing: 15,
 };
 
 export function pickVariant(seed: number, step: number, family: SfxFamily, n = 0): number {

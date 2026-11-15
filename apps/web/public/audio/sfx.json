@@ -1,216 +1,680 @@
 {
- "version": 1,
- "file": "sfx.mp3",
- "note": "Offsets in ms, measured on the decoded MP3 (not planned). Built by tools/build-audio.mjs. Credits: see `credits` and CREDITS.md.",
- "families": {
-  "fist": [
+ "version": 2,
+ "files": [
+  "sfx.mp3",
+  "sfx-content.mp3"
+ ],
+ "note": "Offsets in ms, measured on the decoded MP3 (not planned); `f` is the index in `files`. Built by tools/build-audio.mjs. Credits: see `credits` and CREDITS.md.",
+ "sets": {
+  "hit-fist": [
    {
-    "start": 120,
+    "f": 0,
+    "start": 50,
     "dur": 358.9
    },
    {
-    "start": 598.9,
+    "f": 0,
+    "start": 458.9,
     "dur": 360
    },
    {
-    "start": 1078.9,
+    "f": 0,
+    "start": 868.9,
     "dur": 360
    }
   ],
-  "blunt": [
+  "hit-blade-small": [
    {
-    "start": 1558.9,
+    "f": 0,
+    "start": 1278.9,
+    "dur": 110
+   },
+   {
+    "f": 0,
+    "start": 1438.9,
+    "dur": 110
+   },
+   {
+    "f": 0,
+    "start": 1598.9,
+    "dur": 110
+   }
+  ],
+  "hit-pipe": [
+   {
+    "f": 0,
+    "start": 1758.9,
     "dur": 598.5
    },
    {
-    "start": 2277.4,
+    "f": 0,
+    "start": 2407.4,
     "dur": 599.9
    },
    {
-    "start": 2997.3,
-    "dur": 584.2
-   },
-   {
-    "start": 3701.5,
-    "dur": 414.4
+    "f": 0,
+    "start": 3057.3,
+    "dur": 531.9
    }
   ],
-  "blade": [
+  "block-arms": [
    {
-    "start": 4235.9,
-    "dur": 377.8
+    "f": 0,
+    "start": 3639.2,
+    "dur": 300
    },
    {
-    "start": 4733.7,
-    "dur": 377.8
-   },
-   {
-    "start": 5231.5,
-    "dur": 380
-   },
-   {
-    "start": 5731.5,
-    "dur": 375.7
+    "f": 0,
+    "start": 3989.2,
+    "dur": 300
    }
   ],
-  "block": [
+  "swish-medium": [
    {
-    "start": 6227.3,
-    "dur": 328.8
-   },
-   {
-    "start": 6676.1,
-    "dur": 232.3
-   },
-   {
-    "start": 7028.5,
-    "dur": 358.8
-   }
-  ],
-  "whoosh": [
-   {
-    "start": 7507.3,
+    "f": 0,
+    "start": 4339.2,
     "dur": 339.9
    },
    {
-    "start": 7967.2,
+    "f": 0,
+    "start": 4729.1,
     "dur": 247.5
    },
    {
-    "start": 8334.7,
+    "f": 0,
+    "start": 5026.6,
     "dur": 110.4
+   }
+  ],
+  "throw": [
+   {
+    "f": 0,
+    "start": 5186.9,
+    "dur": 379.9
+   }
+  ],
+  "drop-metal": [
+   {
+    "f": 0,
+    "start": 5616.9,
+    "dur": 480
+   },
+   {
+    "f": 0,
+    "start": 6146.9,
+    "dur": 480
+   }
+  ],
+  "voice-dog": [
+   {
+    "f": 0,
+    "start": 6676.9,
+    "dur": 194
+   },
+   {
+    "f": 0,
+    "start": 6920.9,
+    "dur": 232.5
+   },
+   {
+    "f": 0,
+    "start": 7203.4,
+    "dur": 420
    }
   ],
   "dash": [
    {
-    "start": 8565,
+    "f": 0,
+    "start": 7673.4,
     "dur": 229.4
    },
    {
-    "start": 8914.4,
+    "f": 0,
+    "start": 7952.8,
     "dur": 213.5
    }
   ],
   "landing": [
    {
-    "start": 9247.9,
+    "f": 0,
+    "start": 8216.3,
     "dur": 487.3
    },
    {
-    "start": 9855.3,
+    "f": 0,
+    "start": 8753.6,
     "dur": 513.9
-   }
-  ],
-  "throw": [
-   {
-    "start": 10489.1,
-    "dur": 379.9
-   }
-  ],
-  "drop": [
-   {
-    "start": 10989,
-    "dur": 480
-   },
-   {
-    "start": 11589,
-    "dur": 330.9
    }
   ],
   "crowd": [
    {
-    "start": 12039.9,
+    "f": 0,
+    "start": 9317.5,
     "dur": 650
    },
    {
-    "start": 12809.9,
+    "f": 0,
+    "start": 10017.5,
     "dur": 650
-   }
-  ],
-  "companion": [
-   {
-    "start": 13579.9,
-    "dur": 420
-   },
-   {
-    "start": 14119.9,
-    "dur": 194
-   },
-   {
-    "start": 14433.9,
-    "dur": 420
    }
   ],
   "move": [
    {
-    "start": 14973.9,
+    "f": 0,
+    "start": 10717.5,
     "dur": 463.5
    },
    {
-    "start": 15557.4,
+    "f": 0,
+    "start": 11231,
     "dur": 580
    },
    {
-    "start": 16257.5,
+    "f": 0,
+    "start": 11861,
     "dur": 650
    },
    {
-    "start": 17027.5,
+    "f": 0,
+    "start": 12561,
     "dur": 230.7
    }
   ],
   "win": [
    {
-    "start": 17378.1,
+    "f": 0,
+    "start": 12841.7,
     "dur": 1957.9
    }
   ],
   "loss": [
    {
-    "start": 19456,
+    "f": 0,
+    "start": 14849.6,
     "dur": 815.7
    }
   ],
   "ui-tap": [
    {
-    "start": 20391.7,
+    "f": 0,
+    "start": 15715.3,
     "dur": 41.2
    },
    {
-    "start": 20552.9,
+    "f": 0,
+    "start": 15806.5,
     "dur": 39.7
    }
   ],
   "card-flip": [
    {
-    "start": 20712.6,
+    "f": 0,
+    "start": 15896.2,
     "dur": 199.6
    }
   ],
   "level-up": [
    {
-    "start": 21032.2,
+    "f": 0,
+    "start": 16145.8,
     "dur": 895.9
+   }
+  ],
+  "hit-knuckle": [
+   {
+    "f": 1,
+    "start": 50,
+    "dur": 351.1
+   },
+   {
+    "f": 1,
+    "start": 451.1,
+    "dur": 360
+   }
+  ],
+  "hit-blade-big": [
+   {
+    "f": 1,
+    "start": 861.1,
+    "dur": 360
+   },
+   {
+    "f": 1,
+    "start": 1271.1,
+    "dur": 357.3
+   }
+  ],
+  "hit-wood": [
+   {
+    "f": 1,
+    "start": 1678.5,
+    "dur": 399.3
+   },
+   {
+    "f": 1,
+    "start": 2127.8,
+    "dur": 394.2
+   },
+   {
+    "f": 1,
+    "start": 2572,
+    "dur": 415.3
+   }
+  ],
+  "hit-heavy": [
+   {
+    "f": 1,
+    "start": 3037.3,
+    "dur": 650
+   },
+   {
+    "f": 1,
+    "start": 3737.3,
+    "dur": 635.6
+   }
+  ],
+  "hit-pan": [
+   {
+    "f": 1,
+    "start": 4422.8,
+    "dur": 599.9
+   },
+   {
+    "f": 1,
+    "start": 5072.7,
+    "dur": 597.1
+   }
+  ],
+  "hit-shovel": [
+   {
+    "f": 1,
+    "start": 5719.9,
+    "dur": 415.2
+   },
+   {
+    "f": 1,
+    "start": 6185.1,
+    "dur": 394.2
+   }
+  ],
+  "hit-light-metal": [
+   {
+    "f": 1,
+    "start": 6629.3,
+    "dur": 380
+   },
+   {
+    "f": 1,
+    "start": 7059.3,
+    "dur": 380
+   }
+  ],
+  "hit-squeak": [
+   {
+    "f": 1,
+    "start": 7489.3,
+    "dur": 298.9
+   },
+   {
+    "f": 1,
+    "start": 7838.2,
+    "dur": 300
+   }
+  ],
+  "hit-plunger": [
+   {
+    "f": 1,
+    "start": 8188.2,
+    "dur": 299.1
+   },
+   {
+    "f": 1,
+    "start": 8537.3,
+    "dur": 300
+   }
+  ],
+  "hit-umbrella": [
+   {
+    "f": 1,
+    "start": 8887.3,
+    "dur": 360
+   }
+  ],
+  "hit-chain": [
+   {
+    "f": 1,
+    "start": 9297.3,
+    "dur": 399.5
+   },
+   {
+    "f": 1,
+    "start": 9746.8,
+    "dur": 403.4
+   }
+  ],
+  "hit-darts": [
+   {
+    "f": 1,
+    "start": 10200.2,
+    "dur": 121.5
+   },
+   {
+    "f": 1,
+    "start": 10371.7,
+    "dur": 194.4
+   }
+  ],
+  "hit-brick": [
+   {
+    "f": 1,
+    "start": 10616.1,
+    "dur": 450
+   },
+   {
+    "f": 1,
+    "start": 11116.1,
+    "dur": 415.7
+   }
+  ],
+  "hit-paint": [
+   {
+    "f": 1,
+    "start": 11581.9,
+    "dur": 387.7
+   }
+  ],
+  "hit-plastic": [
+   {
+    "f": 1,
+    "start": 12019.6,
+    "dur": 246.5
+   },
+   {
+    "f": 1,
+    "start": 12316,
+    "dur": 250
+   }
+  ],
+  "hit-ball": [
+   {
+    "f": 1,
+    "start": 12616,
+    "dur": 348
+   },
+   {
+    "f": 1,
+    "start": 13014,
+    "dur": 450
+   }
+  ],
+  "hit-hubcap": [
+   {
+    "f": 1,
+    "start": 13514,
+    "dur": 387.8
+   },
+   {
+    "f": 1,
+    "start": 13951.8,
+    "dur": 387.7
+   }
+  ],
+  "hit-rubber": [
+   {
+    "f": 1,
+    "start": 14389.5,
+    "dur": 320
+   },
+   {
+    "f": 1,
+    "start": 14759.5,
+    "dur": 319.1
+   }
+  ],
+  "block-parry": [
+   {
+    "f": 1,
+    "start": 15128.6,
+    "dur": 328.8
+   },
+   {
+    "f": 1,
+    "start": 15507.4,
+    "dur": 273.9
+   }
+  ],
+  "block-sheet": [
+   {
+    "f": 1,
+    "start": 15831.4,
+    "dur": 364.3
+   },
+   {
+    "f": 1,
+    "start": 16245.6,
+    "dur": 449.9
+   }
+  ],
+  "block-tin": [
+   {
+    "f": 1,
+    "start": 16745.5,
+    "dur": 338.1
+   },
+   {
+    "f": 1,
+    "start": 17133.6,
+    "dur": 333.3
+   }
+  ],
+  "block-plastic": [
+   {
+    "f": 1,
+    "start": 17516.9,
+    "dur": 298.7
+   },
+   {
+    "f": 1,
+    "start": 17865.6,
+    "dur": 299.6
+   }
+  ],
+  "block-wood": [
+   {
+    "f": 1,
+    "start": 18215.2,
+    "dur": 205.6
+   },
+   {
+    "f": 1,
+    "start": 18470.8,
+    "dur": 270.6
+   },
+   {
+    "f": 1,
+    "start": 18791.4,
+    "dur": 232.3
+   }
+  ],
+  "block-frame": [
+   {
+    "f": 1,
+    "start": 19073.7,
+    "dur": 420
+   }
+  ],
+  "swish-light": [
+   {
+    "f": 1,
+    "start": 19543.7,
+    "dur": 65.4
+   },
+   {
+    "f": 1,
+    "start": 19659.2,
+    "dur": 56.7
+   },
+   {
+    "f": 1,
+    "start": 19765.9,
+    "dur": 220
+   }
+  ],
+  "swish-heavy": [
+   {
+    "f": 1,
+    "start": 20035.9,
+    "dur": 520
+   },
+   {
+    "f": 1,
+    "start": 20605.9,
+    "dur": 519.9
+   }
+  ],
+  "swish-whip": [
+   {
+    "f": 1,
+    "start": 21175.7,
+    "dur": 380
+   }
+  ],
+  "throw-spin": [
+   {
+    "f": 1,
+    "start": 21605.7,
+    "dur": 467.7
+   }
+  ],
+  "drop-wood": [
+   {
+    "f": 1,
+    "start": 22123.4,
+    "dur": 330.9
+   },
+   {
+    "f": 1,
+    "start": 22504.2,
+    "dur": 420
+   }
+  ],
+  "drop-soft": [
+   {
+    "f": 1,
+    "start": 22974.2,
+    "dur": 299.5
+   },
+   {
+    "f": 1,
+    "start": 23323.8,
+    "dur": 300
+   }
+  ],
+  "drop-sheet": [
+   {
+    "f": 1,
+    "start": 23673.8,
+    "dur": 405.7
+   }
+  ],
+  "voice-crow": [
+   {
+    "f": 1,
+    "start": 24129.5,
+    "dur": 450
+   },
+   {
+    "f": 1,
+    "start": 24629.5,
+    "dur": 450
+   }
+  ],
+  "voice-goose": [
+   {
+    "f": 1,
+    "start": 25129.5,
+    "dur": 400
+   }
+  ],
+  "voice-raccoon": [
+   {
+    "f": 1,
+    "start": 25579.5,
+    "dur": 255
+   },
+   {
+    "f": 1,
+    "start": 25884.5,
+    "dur": 337.6
+   }
+  ],
+  "voice-boar": [
+   {
+    "f": 1,
+    "start": 26272.1,
+    "dur": 308
+   },
+   {
+    "f": 1,
+    "start": 26630,
+    "dur": 337.2
+   },
+   {
+    "f": 1,
+    "start": 27017.2,
+    "dur": 400
+   }
+  ],
+  "voice-cat": [
+   {
+    "f": 1,
+    "start": 27467.2,
+    "dur": 600
+   },
+   {
+    "f": 1,
+    "start": 28117.2,
+    "dur": 539.2
    }
   ]
  },
+ "families": {
+  "fist": "hit-fist",
+  "blunt": "hit-pipe",
+  "blade": "hit-blade-small",
+  "block": "block-arms",
+  "whoosh": "swish-medium",
+  "dash": "dash",
+  "landing": "landing",
+  "throw": "throw",
+  "drop": "drop-metal",
+  "crowd": "crowd",
+  "companion": "voice-dog",
+  "move": "move",
+  "win": "win",
+  "loss": "loss",
+  "swing": "swish-medium",
+  "ui-tap": "ui-tap",
+  "card-flip": "card-flip",
+  "level-up": "level-up"
+ },
  "sources": [
   {
-   "family": "fist",
+   "set": "hit-fist",
    "variant": 0,
    "files": [
     "hits37:hits/hit10.mp3.flac"
    ]
   },
   {
-   "family": "fist",
+   "set": "hit-fist",
    "variant": 1,
    "files": [
     "hits37:hits/hit11.mp3.flac"
    ]
   },
   {
-   "family": "fist",
+   "set": "hit-fist",
    "variant": 2,
    "files": [
     "qpunch:qubodupPunch/qubodupPunch05.flac",
@@ -218,7 +682,28 @@
    ]
   },
   {
-   "family": "blunt",
+   "set": "hit-blade-small",
+   "variant": 0,
+   "files": [
+    "rpgaudio:OGG/knifeSlice2.ogg"
+   ]
+  },
+  {
+   "set": "hit-blade-small",
+   "variant": 1,
+   "files": [
+    "rpg80:blade_01.ogg"
+   ]
+  },
+  {
+   "set": "hit-blade-small",
+   "variant": 2,
+   "files": [
+    "rpg80:blade_03.ogg"
+   ]
+  },
+  {
+   "set": "hit-pipe",
    "variant": 0,
    "files": [
     "castiron:cast iron clangs - Marker #11.wav",
@@ -226,7 +711,7 @@
    ]
   },
   {
-   "family": "blunt",
+   "set": "hit-pipe",
    "variant": 1,
    "files": [
     "castiron:cast iron clangs - Marker #9.wav",
@@ -234,97 +719,94 @@
    ]
   },
   {
-   "family": "blunt",
+   "set": "hit-pipe",
    "variant": 2,
    "files": [
-    "wood35:wood_impact/crack10.mp3.flac",
-    "qpunch:qubodupPunch/qubodupPunch03.flac"
-   ]
-  },
-  {
-   "family": "blunt",
-   "variant": 3,
-   "files": [
-    "break75:bfh1_metal_hit_04.ogg",
+    "sfx100:metal_07.ogg",
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ]
   },
   {
-   "family": "blade",
+   "set": "block-arms",
    "variant": 0,
    "files": [
-    "rpg80:blade_01.ogg",
-    "qpunch:qubodupPunch/qubodupPunch03.flac"
+    "qpunch:qubodupPunch/qubodupPunch04.flac",
+    "rpgaudio:OGG/cloth3.ogg"
    ]
   },
   {
-   "family": "blade",
+   "set": "block-arms",
    "variant": 1,
    "files": [
-    "rpg80:blade_03.ogg",
-    "qpunch:qubodupPunch/qubodupPunch03.flac"
+    "qpunch:qubodupPunch/qubodupPunch02.flac",
+    "rpgaudio:OGG/cloth1.ogg"
    ]
   },
   {
-   "family": "blade",
-   "variant": 2,
-   "files": [
-    "rpgaudio:OGG/knifeSlice2.ogg",
-    "qpunch:qubodupPunch/qubodupPunch02.flac"
-   ]
-  },
-  {
-   "family": "blade",
-   "variant": 3,
-   "files": [
-    "rpgaudio:OGG/chop.ogg",
-    "qpunch:qubodupPunch/qubodupPunch04.flac"
-   ]
-  },
-  {
-   "family": "block",
-   "variant": 0,
-   "files": [
-    "break75:bfh1_metal_hit_02.ogg"
-   ]
-  },
-  {
-   "family": "block",
-   "variant": 1,
-   "files": [
-    "rpg80:wood_03.ogg"
-   ]
-  },
-  {
-   "family": "block",
-   "variant": 2,
-   "files": [
-    "shields:impact.4.ogg"
-   ]
-  },
-  {
-   "family": "whoosh",
+   "set": "swish-medium",
    "variant": 0,
    "files": [
     "battle:battle_sound_effects/swish_3.wav"
    ]
   },
   {
-   "family": "whoosh",
+   "set": "swish-medium",
    "variant": 1,
    "files": [
     "battle:battle_sound_effects/swish_4.wav"
    ]
   },
   {
-   "family": "whoosh",
+   "set": "swish-medium",
    "variant": 2,
    "files": [
     "swishes:swishes/swish-7.wav"
    ]
   },
   {
-   "family": "dash",
+   "set": "throw",
+   "variant": 0,
+   "files": [
+    "sword20:sword - StarNinjas/sword.5.ogg"
+   ]
+  },
+  {
+   "set": "drop-metal",
+   "variant": 0,
+   "files": [
+    "break75:bfh1_metal_falling_02.ogg"
+   ]
+  },
+  {
+   "set": "drop-metal",
+   "variant": 1,
+   "files": [
+    "metalwood:metal_falling_02.ogg"
+   ]
+  },
+  {
+   "set": "voice-dog",
+   "variant": 0,
+   "files": [
+    "dogsounds:Dog/Dog Bark 1.wav"
+   ]
+  },
+  {
+   "set": "voice-dog",
+   "variant": 1,
+   "files": [
+    "dogsounds:Dog/Dog Bark 3.wav"
+   ]
+  },
+  {
+   "set": "voice-dog",
+   "variant": 2,
+   "files": [
+    "dogsnarl:dog/dog-growl.flac"
+   ]
+  },
+  {
+   "set": "dash",
    "variant": 0,
    "files": [
     "rpgaudio:OGG/footstep01.ogg",
@@ -332,7 +814,7 @@
    ]
   },
   {
-   "family": "dash",
+   "set": "dash",
    "variant": 1,
    "files": [
     "rpgaudio:OGG/footstep08.ogg",
@@ -340,7 +822,7 @@
    ]
   },
   {
-   "family": "landing",
+   "set": "landing",
    "variant": 0,
    "files": [
     "hits37:hits/hit30.mp3.flac",
@@ -348,7 +830,7 @@
    ]
   },
   {
-   "family": "landing",
+   "set": "landing",
    "variant": 1,
    "files": [
     "break75:bfh1_hit_02.ogg",
@@ -356,129 +838,611 @@
    ]
   },
   {
-   "family": "throw",
-   "variant": 0,
-   "files": [
-    "sword20:sword - StarNinjas/sword.5.ogg"
-   ]
-  },
-  {
-   "family": "drop",
-   "variant": 0,
-   "files": [
-    "break75:bfh1_metal_falling_02.ogg"
-   ]
-  },
-  {
-   "family": "drop",
-   "variant": 1,
-   "files": [
-    "break75:bfh1_wood_falling_02.ogg"
-   ]
-  },
-  {
-   "family": "crowd",
+   "set": "crowd",
    "variant": 0,
    "files": [
     "cheer:Gregor Quendel - Free Crowd Cheering Sounds - MP3/Gregor Quendel - Crowd Cheering Sounds - 03 - Strong cheering - I.mp3"
    ]
   },
   {
-   "family": "crowd",
+   "set": "crowd",
    "variant": 1,
    "files": [
     "crowdshout:crowd_shouting.ogg"
    ]
   },
   {
-   "family": "companion",
-   "variant": 0,
-   "files": [
-    "doggrunt:dog-frieda-grunt-96khz-01.flac"
-   ]
-  },
-  {
-   "family": "companion",
-   "variant": 1,
-   "files": [
-    "dogsounds:Dog/Dog Bark 1.wav"
-   ]
-  },
-  {
-   "family": "companion",
-   "variant": 2,
-   "files": [
-    "crowcaw:crow_caw.wav"
-   ]
-  },
-  {
-   "family": "move",
+   "set": "move",
    "variant": 0,
    "files": [
     "jingles:OGG/jingles_HIT/jingles_HIT01.ogg"
    ]
   },
   {
-   "family": "move",
+   "set": "move",
    "variant": 1,
    "files": [
     "jingles:OGG/jingles_HIT/jingles_HIT04.ogg"
    ]
   },
   {
-   "family": "move",
+   "set": "move",
    "variant": 2,
    "files": [
     "jingles:OGG/jingles_HIT/jingles_HIT11.ogg"
    ]
   },
   {
-   "family": "move",
+   "set": "move",
    "variant": 3,
    "files": [
     "jingles:OGG/jingles_HIT/jingles_HIT12.ogg"
    ]
   },
   {
-   "family": "win",
+   "set": "win",
    "variant": 0,
    "files": [
     "winjingle:WinBrass.wav"
    ]
   },
   {
-   "family": "loss",
+   "set": "loss",
    "variant": 0,
    "files": [
     "jingles:OGG/jingles_SAX/jingles_SAX01.ogg"
    ]
   },
   {
-   "family": "ui-tap",
+   "set": "ui-tap",
    "variant": 0,
    "files": [
     "interface:Audio/click_001.ogg"
    ]
   },
   {
-   "family": "ui-tap",
+   "set": "ui-tap",
    "variant": 1,
    "files": [
     "interface:Audio/select_001.ogg"
    ]
   },
   {
-   "family": "card-flip",
+   "set": "card-flip",
    "variant": 0,
    "files": [
     "rpgaudio:OGG/bookFlip3.ogg"
    ]
   },
   {
-   "family": "level-up",
+   "set": "level-up",
    "variant": 0,
    "files": [
     "jingles:OGG/jingles_STEEL/jingles_STEEL04.ogg"
+   ]
+  },
+  {
+   "set": "hit-knuckle",
+   "variant": 0,
+   "files": [
+    "hits37:hits/hit10.mp3.flac",
+    "metalwood:metal_hit_01.ogg"
+   ]
+  },
+  {
+   "set": "hit-knuckle",
+   "variant": 1,
+   "files": [
+    "qpunch:qubodupPunch/qubodupPunch05.flac",
+    "metalwood:metal_hit_05.ogg"
+   ]
+  },
+  {
+   "set": "hit-blade-big",
+   "variant": 0,
+   "files": [
+    "rpgaudio:OGG/chop.ogg",
+    "qpunch:qubodupPunch/qubodupPunch04.flac"
+   ]
+  },
+  {
+   "set": "hit-blade-big",
+   "variant": 1,
+   "files": [
+    "rpg80:blade_02.ogg",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
+  },
+  {
+   "set": "hit-wood",
+   "variant": 0,
+   "files": [
+    "metalwood:wood_hit_09.ogg",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
+  },
+  {
+   "set": "hit-wood",
+   "variant": 1,
+   "files": [
+    "metalwood:wood_hammer_02.ogg",
+    "qpunch:qubodupPunch/qubodupPunch04.flac"
+   ]
+  },
+  {
+   "set": "hit-wood",
+   "variant": 2,
+   "files": [
+    "metalwood:wood_hit_08.ogg",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
+  },
+  {
+   "set": "hit-heavy",
+   "variant": 0,
+   "files": [
+    "qpunch:qubodupPunch/qubodupPunch03.flac",
+    "sfx100:gong_02.ogg"
+   ]
+  },
+  {
+   "set": "hit-heavy",
+   "variant": 1,
+   "files": [
+    "sfx100:metal_08.ogg",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
+  },
+  {
+   "set": "hit-pan",
+   "variant": 0,
+   "files": [
+    "castiron:cast iron clangs - Marker #18.wav",
+    "qpunch:qubodupPunch/qubodupPunch04.flac"
+   ]
+  },
+  {
+   "set": "hit-pan",
+   "variant": 1,
+   "files": [
+    "castiron:cast iron clangs - Marker #10.wav",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
+  },
+  {
+   "set": "hit-shovel",
+   "variant": 0,
+   "files": [
+    "metalwood:metal_sheet_02.ogg",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
+  },
+  {
+   "set": "hit-shovel",
+   "variant": 1,
+   "files": [
+    "metalwood:metal_sheet_05.ogg",
+    "qpunch:qubodupPunch/qubodupPunch04.flac"
+   ]
+  },
+  {
+   "set": "hit-light-metal",
+   "variant": 0,
+   "files": [
+    "metalwood:metal_hit_03.ogg",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
+  },
+  {
+   "set": "hit-light-metal",
+   "variant": 1,
+   "files": [
+    "metalwood:metal_hit_04.ogg",
+    "qpunch:qubodupPunch/qubodupPunch04.flac"
+   ]
+  },
+  {
+   "set": "hit-squeak",
+   "variant": 0,
+   "files": [
+    "squeakyrat:qubodupSqueakyRat/qubodupSqueakyRatAttack.flac",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
+  },
+  {
+   "set": "hit-squeak",
+   "variant": 1,
+   "files": [
+    "squeakyrat:qubodupSqueakyRat/qubodupSqueakyRatPain.flac",
+    "qpunch:qubodupPunch/qubodupPunch04.flac"
+   ]
+  },
+  {
+   "set": "hit-plunger",
+   "variant": 0,
+   "files": [
+    "pop5:pop5.ogg",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
+  },
+  {
+   "set": "hit-plunger",
+   "variant": 1,
+   "files": [
+    "pop7:pop7.ogg",
+    "qpunch:qubodupPunch/qubodupPunch04.flac"
+   ]
+  },
+  {
+   "set": "hit-umbrella",
+   "variant": 0,
+   "files": [
+    "rpgaudio:OGG/cloth1.ogg",
+    "metalwood:wood_hit_06.ogg"
+   ]
+  },
+  {
+   "set": "hit-chain",
+   "variant": 0,
+   "files": [
+    "rpg80:chain_01.ogg",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
+  },
+  {
+   "set": "hit-chain",
+   "variant": 1,
+   "files": [
+    "rpg80:chain_02.ogg",
+    "qpunch:qubodupPunch/qubodupPunch04.flac"
+   ]
+  },
+  {
+   "set": "hit-darts",
+   "variant": 0,
+   "files": [
+    "metalwood:wood_hit_05.ogg",
+    "metalwood:metal_hit_01.ogg"
+   ]
+  },
+  {
+   "set": "hit-darts",
+   "variant": 1,
+   "files": [
+    "metalwood:wood_hit_06.ogg",
+    "metalwood:metal_hit_05.ogg"
+   ]
+  },
+  {
+   "set": "hit-brick",
+   "variant": 0,
+   "files": [
+    "break75:bfh1_hit_02.ogg",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
+  },
+  {
+   "set": "hit-brick",
+   "variant": 1,
+   "files": [
+    "sfx100:slam_04.ogg",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
+  },
+  {
+   "set": "hit-paint",
+   "variant": 0,
+   "files": [
+    "metalwood:metal_slam_01.ogg",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
+  },
+  {
+   "set": "hit-plastic",
+   "variant": 0,
+   "files": [
+    "sfx100:plop_02.ogg",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
+  },
+  {
+   "set": "hit-plastic",
+   "variant": 1,
+   "files": [
+    "sfx100:plop_01.ogg",
+    "qpunch:qubodupPunch/qubodupPunch04.flac"
+   ]
+  },
+  {
+   "set": "hit-ball",
+   "variant": 0,
+   "files": [
+    "boings:bung_01.mp3"
+   ]
+  },
+  {
+   "set": "hit-ball",
+   "variant": 1,
+   "files": [
+    "boing:boing.flac"
+   ]
+  },
+  {
+   "set": "hit-hubcap",
+   "variant": 0,
+   "files": [
+    "metalwood:metal_sheet_01.ogg",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
+  },
+  {
+   "set": "hit-hubcap",
+   "variant": 1,
+   "files": [
+    "metalwood:metal_sheet_04.ogg",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
+  },
+  {
+   "set": "hit-rubber",
+   "variant": 0,
+   "files": [
+    "thwack:PCM/thwack-02.wav",
+    "qpunch:qubodupPunch/qubodupPunch03.flac"
+   ]
+  },
+  {
+   "set": "hit-rubber",
+   "variant": 1,
+   "files": [
+    "thwack:PCM/thwack-05.wav",
+    "qpunch:qubodupPunch/qubodupPunch04.flac"
+   ]
+  },
+  {
+   "set": "block-parry",
+   "variant": 0,
+   "files": [
+    "break75:bfh1_metal_hit_02.ogg"
+   ]
+  },
+  {
+   "set": "block-parry",
+   "variant": 1,
+   "files": [
+    "metalwood:metal_hit_04.ogg"
+   ]
+  },
+  {
+   "set": "block-sheet",
+   "variant": 0,
+   "files": [
+    "metalwood:metal_slam_01.ogg",
+    "metalwood:metal_sheet_02.ogg"
+   ]
+  },
+  {
+   "set": "block-sheet",
+   "variant": 1,
+   "files": [
+    "metalwood:metal_sheet_06.ogg",
+    "qpunch:qubodupPunch/qubodupPunch02.flac"
+   ]
+  },
+  {
+   "set": "block-tin",
+   "variant": 0,
+   "files": [
+    "metalwood:metal_sheet_01.ogg",
+    "sfx100:metal_02.ogg"
+   ]
+  },
+  {
+   "set": "block-tin",
+   "variant": 1,
+   "files": [
+    "metalwood:metal_sheet_04.ogg"
+   ]
+  },
+  {
+   "set": "block-plastic",
+   "variant": 0,
+   "files": [
+    "sfx100:hit_03.ogg"
+   ]
+  },
+  {
+   "set": "block-plastic",
+   "variant": 1,
+   "files": [
+    "sfx100:hit_04.ogg"
+   ]
+  },
+  {
+   "set": "block-wood",
+   "variant": 0,
+   "files": [
+    "metalwood:wood_slam_01.ogg"
+   ]
+  },
+  {
+   "set": "block-wood",
+   "variant": 1,
+   "files": [
+    "metalwood:wood_slam_04.ogg"
+   ]
+  },
+  {
+   "set": "block-wood",
+   "variant": 2,
+   "files": [
+    "rpg80:wood_03.ogg"
+   ]
+  },
+  {
+   "set": "block-frame",
+   "variant": 0,
+   "files": [
+    "metalwood:metal_hit_03.ogg",
+    "break75:bfh1_metal_falling_02.ogg"
+   ]
+  },
+  {
+   "set": "swish-light",
+   "variant": 0,
+   "files": [
+    "swishes:swishes/swish-11.wav"
+   ]
+  },
+  {
+   "set": "swish-light",
+   "variant": 1,
+   "files": [
+    "swishes:swishes/swish-13.wav"
+   ]
+  },
+  {
+   "set": "swish-light",
+   "variant": 2,
+   "files": [
+    "sword20:sword - StarNinjas/sword.6.ogg"
+   ]
+  },
+  {
+   "set": "swish-heavy",
+   "variant": 0,
+   "files": [
+    "swishes:swishes/swish-3.wav",
+    "metalint:metal_interactions/metal_swing1.wav"
+   ]
+  },
+  {
+   "set": "swish-heavy",
+   "variant": 1,
+   "files": [
+    "swishes:swishes/swish-8.wav",
+    "metalint:metal_interactions/metal_swing1.wav"
+   ]
+  },
+  {
+   "set": "swish-whip",
+   "variant": 0,
+   "files": [
+    "sword20:sword - StarNinjas/sword.5.ogg",
+    "rpg80:chain_03.ogg"
+   ]
+  },
+  {
+   "set": "throw-spin",
+   "variant": 0,
+   "files": [
+    "spin:car_spinning.wav"
+   ]
+  },
+  {
+   "set": "drop-wood",
+   "variant": 0,
+   "files": [
+    "break75:bfh1_wood_falling_02.ogg"
+   ]
+  },
+  {
+   "set": "drop-wood",
+   "variant": 1,
+   "files": [
+    "metalwood:wood_falling_01.ogg"
+   ]
+  },
+  {
+   "set": "drop-soft",
+   "variant": 0,
+   "files": [
+    "thwack:PCM/thwack-05.wav"
+   ]
+  },
+  {
+   "set": "drop-soft",
+   "variant": 1,
+   "files": [
+    "thwack:PCM/thwack-07.wav"
+   ]
+  },
+  {
+   "set": "drop-sheet",
+   "variant": 0,
+   "files": [
+    "metalwood:metal_slam_01.ogg",
+    "metalwood:metal_sheet_03.ogg"
+   ]
+  },
+  {
+   "set": "voice-crow",
+   "variant": 0,
+   "files": [
+    "crowcaw:crow_caw.wav"
+   ]
+  },
+  {
+   "set": "voice-crow",
+   "variant": 1,
+   "files": [
+    "crow:crow.ogg"
+   ]
+  },
+  {
+   "set": "voice-goose",
+   "variant": 0,
+   "files": [
+    "bikehorn:bicycle-horn-1.wav"
+   ]
+  },
+  {
+   "set": "voice-raccoon",
+   "variant": 0,
+   "files": [
+    "creature80:cute_07.ogg"
+   ]
+  },
+  {
+   "set": "voice-raccoon",
+   "variant": 1,
+   "files": [
+    "creature80:cute_08.ogg"
+   ]
+  },
+  {
+   "set": "voice-boar",
+   "variant": 0,
+   "files": [
+    "pig:pig_hit1.mp3"
+   ]
+  },
+  {
+   "set": "voice-boar",
+   "variant": 1,
+   "files": [
+    "pig2:pig_hit2.mp3"
+   ]
+  },
+  {
+   "set": "voice-boar",
+   "variant": 2,
+   "files": [
+    "creature80:grunt_02.ogg"
+   ]
+  },
+  {
+   "set": "voice-cat",
+   "variant": 0,
+   "files": [
+    "catsfx:Cat 7.wav"
+   ]
+  },
+  {
+   "set": "voice-cat",
+   "variant": 1,
+   "files": [
+    "catsfx8:Cat 8.wav"
    ]
   }
  ],
@@ -520,15 +1484,6 @@
    "fetched": "2026-11-15"
   },
   {
-   "pack": "wood35",
-   "name": "35 wooden cracks/hits/destructions",
-   "author": "Independent.nu",
-   "licence": "CC0 1.0",
-   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-   "page": "https://opengameart.org/content/35-wooden-crackshitsdestructions",
-   "fetched": "2026-11-15"
-  },
-  {
    "pack": "break75",
    "name": "75 CC0 breaking / falling / hit sfx",
    "author": "rubberduck",
@@ -544,15 +1499,6 @@
    "licence": "CC0 1.0",
    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
    "page": "https://opengameart.org/content/80-cc0-rpg-sfx",
-   "fetched": "2026-11-15"
-  },
-  {
-   "pack": "shields",
-   "name": "10 Impact/Shield Blocks",
-   "author": "StarNinjas",
-   "licence": "CC0 1.0",
-   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-   "page": "https://opengameart.org/content/10-impactshield-blocks",
    "fetched": "2026-11-15"
   },
   {
@@ -589,15 +1535,6 @@
    "licence": "CC BY 4.0",
    "licenceUrl": "https://creativecommons.org/licenses/by/4.0/",
    "page": "https://opengameart.org/content/free-crowd-cheering-sounds",
-   "fetched": "2026-11-15"
-  },
-  {
-   "pack": "doggrunt",
-   "name": "Dog Grunt",
-   "author": "qubodup",
-   "licence": "CC0 1.0",
-   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-   "page": "https://opengameart.org/content/dog-grunt",
    "fetched": "2026-11-15"
   },
   {
@@ -652,6 +1589,168 @@
    "licence": "CC0 1.0",
    "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
    "page": "https://opengameart.org/content/85-short-music-jingles",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "metalwood",
+   "name": "100 CC0 metal and wood SFX",
+   "author": "rubberduck",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/100-cc0-metal-and-wood-sfx",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "sfx100",
+   "name": "100 CC0 SFX",
+   "author": "rubberduck",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/100-cc0-sfx",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "metalint",
+   "name": "Metal Interactions",
+   "author": "qubodup",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/metal-interactions",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "thwack",
+   "name": "Thwack Sounds",
+   "author": "Jordan Irwin (AntumDeluge)",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/thwack-sounds",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "squeakyrat",
+   "name": "Squeaky Rat",
+   "author": "qubodup",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/squeaky-rat",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "pop5",
+   "name": "Pop sounds (pop5)",
+   "author": "cogitollc",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/pop-sounds",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "pop7",
+   "name": "Pop sounds (pop7)",
+   "author": "cogitollc",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/pop-sounds",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "boings",
+   "name": "Boings",
+   "author": "EZduzziteh",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/boings",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "boing",
+   "name": "BOING!",
+   "author": "Aeva",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/boing",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "spin",
+   "name": "Spin",
+   "author": "Rocha57",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/spin",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "dogsnarl",
+   "name": "Dog Snarl Grunt Grumble",
+   "author": "qubodup",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/dog-snarl-grunt-grumble",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "crow",
+   "name": "Crow",
+   "author": "fvcalderan",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/crow",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "bikehorn",
+   "name": "Bicycle Horn",
+   "author": "Jordan Irwin (AntumDeluge)",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/bicycle-horn",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "creature80",
+   "name": "80 CC0 creature SFX",
+   "author": "rubberduck",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "https://opengameart.org/content/80-cc0-creature-sfx",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "pig",
+   "name": "Pig SFX Pack (pig_hit1)",
+   "author": "Vinrax",
+   "licence": "CC BY 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+   "page": "https://opengameart.org/content/pig-sfx-pack",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "pig2",
+   "name": "Pig SFX Pack (pig_hit2)",
+   "author": "Vinrax",
+   "licence": "CC BY 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+   "page": "https://opengameart.org/content/pig-sfx-pack",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "catsfx",
+   "name": "Cat SFX (Cat 7)",
+   "author": "Dan Knoflicek (Macro)",
+   "licence": "CC BY 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+   "page": "https://opengameart.org/content/cat-sfx",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "catsfx8",
+   "name": "Cat SFX (Cat 8)",
+   "author": "Dan Knoflicek (Macro)",
+   "licence": "CC BY 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
+   "page": "https://opengameart.org/content/cat-sfx",
    "fetched": "2026-11-15"
   }
  ]

@@ -15,7 +15,7 @@ import type { ActorId, BagItem, BoutLog, FighterSnapshot, HeldId, ShieldId, Side
 import { WEAPON_META, isScrapper, killStep as findKillStep, sideOf } from "@rankzero/core";
 import type { Aim, ClipInfo, Dress, Pose, Rig, RigId } from "@rankzero/rig";
 import { strikeTime } from "@rankzero/rig";
-import type { ContactMark, Cue, EffectKey, PlayerOpts, SfxFamily } from "./contracts";
+import type { ContactMark, Cue, EffectKey, PlayerOpts, SfxFamily, SfxItem, SfxOn } from "./contracts";
 import { finishCues, pickVariant } from "./cues";
 import { HOME, aimZone, homeFacing, homeMarks, stopFor } from "./layout";
 import type { ActorTrack, BagEvent, Crowd, Flash, FlightItem, FloorItem, FxItem, HpEvent, Move, Nudge, NumberItem,
@@ -219,8 +219,18 @@ export class Builder {
     return d;
   }
 
-  cue(at: number, step: number, family: SfxFamily, n = 0): void {
-    this.cues.push({ at, step, family, variant: pickVariant(this.opts.cosmeticSeed, step, family, n) });
+  /** A sound at `at`. `item` is what made it and `on` what an impact struck (contract rev 3). */
+  cue(at: number, step: number, family: SfxFamily, n = 0, item?: SfxItem | null, on?: SfxOn): void {
+    const c: Cue = { at, step, family, variant: pickVariant(this.opts.cosmeticSeed, step, family, n) };
+    if (item !== undefined && item !== null) c.item = item;
+    if (on !== undefined) c.on = on;
+    this.cues.push(c);
+  }
+  /** What an actor swings with for sound: its held item, or the companion itself. */
+  soundItem(id: ActorId, held?: HeldId | null): SfxItem {
+    const tr = this.track(id);
+    if (tr.rig !== "scrapper") return tr.rig;
+    return held ?? this.heldNow.get(id) ?? "fists";
   }
   busy(from: number, to: number): void { if (to > from) this.extraBusy.push([from, to]); }
   addContact(step: number, at: number, starts: Partial<Record<EffectKey, number | null>>): number {
@@ -330,7 +340,7 @@ export class Builder {
       this.move(p.actor, p.start + BEAT.anticipationMs, dashMs, stop.x, y, 0, "inOut");
       this.play(p.actor, atr.rig === "scrapper" ? "dash" : "run", p.start + BEAT.anticipationMs, { until: swingStart });
       this.cue(p.start + BEAT.anticipationMs, p.i, "dash");
-      if (atr.rig !== "scrapper") this.cue(p.start, p.i, "companion");
+      if (atr.rig !== "scrapper") this.cue(p.start, p.i, "companion", 0, atr.rig);
     } else {
       const stepMs = Math.min(BEAT.stepMs, strikeIn);
       if (Math.abs(stop.x - from.x) > 0.01 || Math.abs(y - from.floorY) > 0.01) this.move(p.actor, p.start, stepMs, stop.x, y, 0, "out");
@@ -342,6 +352,7 @@ export class Builder {
     const lead = p.dress.lead;
     const extra = { aim, ...(lead !== undefined ? { lead } : {}) };
     const segs: Seg[] = [];
+    this.cue(swingStart, p.i, "swing", 0, this.soundItem(p.actor, p.dress.held));
     segs.push(this.play(p.actor, p.clip, swingStart, { rate: strike / strikeIn, until: contactAt, ...extra }));
     segs.push(this.play(p.actor, p.clip, contactAt, { c0: strike, rate: 0, until: contactAt + p.hitStop, ...extra }));
     const rest = info.durationMs - strike;
@@ -378,7 +389,7 @@ export class Builder {
       oldest.fadeTo = at;
     }
     this.floor.push({ item, x, y, rot, facing, from: at, fadeFrom: Infinity, fadeTo: Infinity });
-    this.cue(at, step, "drop", this.floor.length);
+    this.cue(at, step, "drop", this.floor.length, item);
   }
 
   bag(side: Side, at: number, bag: readonly BagItem[]): void {

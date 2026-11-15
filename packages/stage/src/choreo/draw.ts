@@ -13,7 +13,7 @@ export function draw(b: Builder, step: StepOf<"draw">, i: number): Placed {
   const inHand = s + Math.round(dur / 2);
   b.setHeld(step.actor, inHand, step.weapon);
   b.heldNow.set(step.actor, step.weapon);
-  b.cue(s, i, "whoosh");
+  b.cue(s, i, "whoosh", 0, step.weapon);
   b.cursor = s + dur;
   return { at: s, apply: inHand };
 }
