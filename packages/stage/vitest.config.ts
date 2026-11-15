@@ -4,6 +4,8 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     include: ["test/**/*.test.ts"],
+    // a clip the rig does not have fails the test (lib/no-missing-clips.ts)
+    setupFiles: ["test/lib/no-missing-clips.ts"],
     minWorkers: 1,
     maxWorkers: 2,
     testTimeout: 30000,

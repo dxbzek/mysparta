@@ -6,7 +6,7 @@
 import type { StepOf } from "@rankzero/core";
 import { isScrapper } from "@rankzero/core";
 import type { Builder } from "../timeline";
-import { basePos, facingAt } from "../track";
+import { fallFocus } from "./fall";
 import { KNOCKOUT } from "../tuning";
 import type { Placed } from "./index";
 
@@ -41,8 +41,8 @@ export function ko(b: Builder, step: StepOf<"ko">, i: number): Placed {
   b.out.delete(step.actor);
   if (kill) {
     b.koShown = true;
-    const at = basePos(tr, k);
-    b.koFocus = { at: k, x: at.x, y: at.floorY, back: facingAt(tr, k) === 1 ? -1 : 1 };
+    // the reframe takes in the body as drawn, and no pet lies under it (choreo/fall.ts)
+    b.koFocus = fallFocus(b, step.actor, k, clip);
     if (b.cursor < fallEnd) b.cursor = fallEnd;
   } else if (b.cursor < k + 200) b.cursor = k + 200;
   return { at: k, apply: k };

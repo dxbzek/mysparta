@@ -12,21 +12,21 @@
  *  - One actor at a time: the next actor starts when the last one's dash back is 60% done.
  */
 import type { ActorId, ActorInit, BagItem, BoutLog, FighterSnapshot, HeldId, ShieldId, Side, Step } from "@rankzero/core";
-import { WEAPON_META, isScrapper, killStep as findKillStep, sideOf } from "@rankzero/core";
+import { WEAPON_META, isScrapper, killStep as findKillStep, scrapperOf, sideOf } from "@rankzero/core";
 import type { Aim, ClipInfo, Dress, Pose, Rig, RigId } from "@rankzero/rig";
 import { strikeTime } from "@rankzero/rig";
 import type { ContactMark, Cue, EffectKey, PlayerOpts, SfxFamily, SfxItem, SfxOn } from "./contracts";
 import { finishCues, pickVariant } from "./cues";
 import type { Zone } from "./layout";
-import { HOME, PET_SCALE, homeFacing, homeMarks, reachFor, stopFor } from "./layout";
+import { BODY_GAP, FLOOR_Y, HOME, PET_MARKS, PET_SCALE, SCRAPPER_REACH, STAGE_W, homeFacing, homeMarks, reachFor, stopFor } from "./layout";
 import type { ActorTrack, BagEvent, Crowd, Flash, FlightItem, FloorItem, FxItem, HpEvent, Move, Nudge, NumberItem,
   Seg, Shake, Aura, TagItem, Tracks } from "./model";
 import type { MotionRules } from "./motion";
 import { motionRules } from "./motion";
 import { basePos, clipTime, drawPlace, facingAt, nudgeAt, segAt } from "./track";
-import { BEAT, FLOOR, HIT_STOP, IDLE, INTRO, KNOCKOUT } from "./tuning";
+import { BEAT, CONTACT, FLOOR, HIT_STOP, IDLE, INTRO, KNOCKOUT } from "./tuning";
 import type { Plan } from "./footwork";
-import { layWay, planWay, readyAt } from "./footwork";
+import { drawnScale, layWay, planWay, readyAt } from "./footwork";
 import { dispatch } from "./choreo/index";
 
 /** Test hooks. Never set by the host: a planted fault for the controls of ground rule 13. */
@@ -85,7 +85,7 @@ export class Builder {
   readonly auras: Aura[] = [];
   readonly extraBusy: [number, number][] = [];
   tape: { from: number; to: number } | null = null;
-  koFocus: { at: number; x: number; y: number; back: 1 | -1 } | null = null;
+  koFocus: Tracks["koFocus"] = null;
 
   /** Actors away from home that walk back at the next flush. */
   readonly out = new Set<ActorId>();
@@ -187,10 +187,12 @@ export class Builder {
     return from + this.info(this.track(id).rig, clip).durationMs;
   }
 
-  move(id: ActorId, from: number, ms: number, x: number, y: number, arc = 0, ease: Move["ease"] = "inOut"): void {
+  move(id: ActorId, from: number, ms: number, x: number, y: number, arc = 0, ease: Move["ease"] = "inOut", knockback?: number): void {
     const tr = this.track(id);
     const p = basePos(tr, from);
-    insertSorted(tr.moves, { from, to: from + Math.max(1, ms), x0: p.x, y0: p.floorY, x1: x, y1: y, arc, ease });
+    const m: Move = { from, to: from + Math.max(1, ms), x0: p.x, y0: p.floorY, x1: x, y1: y, arc, ease };
+    if (knockback !== undefined) m.knockback = knockback;
+    insertSorted(tr.moves, m);
   }
   face(id: ActorId, from: number, facing: 1 | -1): void { insertSorted(this.track(id).facings, { from, facing }); }
   setHeld(id: ActorId, from: number, held: HeldId): void { insertSorted(this.track(id).helds, { from, held }); }
@@ -345,41 +347,58 @@ export class Builder {
     const atr = this.track(p0.actor);
     // a scrapper still on its way somewhere (home, a dodge) finishes that first
     const p: SwingPlan = atr.rig === "scrapper" && this.internal.easedDash !== true
-      ? { ...p0, start: Math.max(p0.start, readyAt(this, p0.actor)) } : p0;
+      ? { ...p0, start: Math.max(p0.start, readyAt(this, p0.actor)) } : { ...p0 };
     const ttr = this.track(p.target);
     const info = this.info(atr.rig, p.clip);
     const strike = this.strikeOf(info);
     const strikeIn = p.combo ? BEAT.comboStrikeMs : strike;
     const from = basePos(atr, p.start);
-    const tDress = this.dress(p.target);
     // a scrapper crosses the floor with real footwork (footwork.ts); a pet runs as before
     const feet = atr.rig === "scrapper" && this.internal.easedDash !== true;
-    let contactAt = p.start + (p.mode === "dash" ? BEAT.anticipationMs + BEAT.dashMinMs : 0) + strikeIn;
+    // a pet attacked behind its owner steps out in front of him first (layout.BODY_GAP)
+    const met = p.mode === "dash" ? this.petMeets(p, from.x) : null;
+    let contactAt = 0;
     let stop = { x: from.x, aimY: 0 };
     let facing: 1 | -1 = atr.homeFacing;
     let dashMs = 0;
-    let way: Plan | null = null;
+    let way = null as Plan | null;
     let y = from.floorY;
-    for (let k = 0; k < 4; k++) {
-      const tp = this.place(p.target, contactAt);
-      facing = tp.x > from.x ? 1 : tp.x < from.x ? -1 : atr.homeFacing;
-      const s = stopFor(this.rig, { rig: atr.rig, dress: p.dress, clip: p.clip, facing },
-        { rig: ttr.rig, dress: tDress, x: tp.x, facing: tp.facing }, p.zone);
-      stop = { x: s.x + facing * (this.internal.stopError ?? 0), aimY: s.aimY };
-      y = tp.y;
-      if (feet) {
-        // a shuffle needs no brace before it: its own dip is the wind-up
-        way = planWay(this, p.actor, stop.x - from.x, y - from.floorY, p.mode === "dash", p.start);
-        contactAt = p.start + (way.kind === "run" ? BEAT.anticipationMs : 0) + way.ms + strikeIn;
-      } else if (p.mode === "dash") {
-        // a pet starts behind its owner (layout.homeMarks) and keeps behind his floor line until it
-        // reaches its target's, so it passes behind him (he draws over it), never through him
-        const dist = Math.hypot(stop.x - from.x, y - from.floorY);
-        dashMs = Math.max(BEAT.dashMinMs, Math.round((dist / BEAT.dashSpeed) * 1000));
-        contactAt = p.start + BEAT.anticipationMs + dashMs + strikeIn;
-      } else {
-        contactAt = p.start + strikeIn;
+    let zone = p.zone;
+    const plan = (start: number): void => {
+      contactAt = start + (p.mode === "dash" ? BEAT.anticipationMs + BEAT.dashMinMs : 0) + strikeIn;
+      for (let k = 0; k < 4; k++) {
+        const tp = this.place(p.target, contactAt);
+        facing = tp.x > from.x ? 1 : tp.x < from.x ? -1 : atr.homeFacing;
+        const s = this.stopClear(p, zone, facing, tp);
+        zone = s.zone;
+        stop = { x: s.x + facing * (this.internal.stopError ?? 0), aimY: s.aimY };
+        y = tp.y;
+        if (feet) {
+          // a shuffle needs no brace before it: its own dip is the wind-up
+          way = planWay(this, p.actor, stop.x - from.x, y - from.floorY, p.mode === "dash", start);
+          contactAt = start + (way.kind === "run" ? BEAT.anticipationMs : 0) + way.ms + strikeIn;
+        } else if (p.mode === "dash") {
+          // a pet starts behind its owner (layout.homeMarks) and keeps behind his floor line until it
+          // reaches its target's, so it passes behind him (he draws over it), never through him
+          const dist = Math.hypot(stop.x - from.x, y - from.floorY);
+          dashMs = Math.max(BEAT.dashMinMs, Math.round((dist / BEAT.dashSpeed) * 1000));
+          contactAt = start + BEAT.anticipationMs + dashMs + strikeIn;
+        } else {
+          contactAt = start + strikeIn;
+        }
       }
+    };
+    plan(p.start);
+    // the pet is set on its new spot before the blow lands
+    if (met !== null && contactAt < met + BEAT.restMs) {
+      p.start += met + BEAT.restMs - contactAt;
+      plan(p.start);
+    }
+    // a pet that cannot come out (snared, or held at the stage edge): its owner steps back past it
+    const gave = p.mode === "dash" ? this.ownerGives(p, from.x, stop.x, facing) : null;
+    if (gave !== null && contactAt < gave + BEAT.restMs) {
+      p.start += gave + BEAT.restMs - contactAt;
+      plan(p.start);
     }
     const swingStart = contactAt - strikeIn;
     this.face(p.actor, p.start, facing);
@@ -444,16 +463,128 @@ export class Builder {
     return { contactAt, end, stopX: stop.x, aimY: stop.aimY, segs, facing };
   }
 
+  /**
+   * A blow drives a scrapper back a step (review finding 17: a nudge slid both planted feet over
+   * the floor). The flinch clips step with it, the front toe holding its spot while he is pushed
+   * off it, as in a block (rig content/clips/reactions.ts KNOCK_STEP draws the same distances), so
+   * every flinch a scrapper plays comes with it. He stays there and shuffles home at the next way
+   * home. It is his own footwork, so reduced motion keeps it whole, as it keeps the block's step.
+   * False (nothing done) for a companion or a rig without footwork: they get the nudge.
+   */
+  knockStep(id: ActorId, at: number, heavy: boolean, dir: 1 | -1, contact?: number): boolean {
+    if (this.track(id).rig !== "scrapper" || this.internal.easedDash === true) return false;
+    const step = (heavy ? CONTACT.knockStep.heavy : CONTACT.knockStep.light) * drawnScale(this, id);
+    const p = this.place(id, at);
+    this.move(id, at, CONTACT.knockbackOutMs, p.x + dir * step, p.y, 0, "out", contact);
+    this.out.add(id);
+    return true;
+  }
+
+  /** Where a swing stops (layout.stopFor), kept clear of the target's body (layout.BODY_GAP): a
+   *  scrapper never stands nearer another than `BODY_GAP.body`. A blow at the head that would stop
+   *  nearer goes for the body, which the arc meets further out; failing that the feet stop at the
+   *  gap. Returns the zone it ends up aimed at. */
+  stopClear(p: SwingPlan, zone0: Zone, facing: 1 | -1, tp: { x: number; facing: 1 | -1 }): { x: number; aimY: number; zone: Zone } {
+    const atr = this.track(p.actor);
+    const ttr = this.track(p.target);
+    const tDress = this.dress(p.target);
+    const at = (z: Zone): { x: number; aimY: number } => stopFor(this.rig, { rig: atr.rig, dress: p.dress, clip: p.clip, facing },
+      { rig: ttr.rig, dress: tDress, x: tp.x, facing: tp.facing }, z);
+    let s = at(zone0);
+    let zone = zone0;
+    if (atr.rig !== "scrapper" || ttr.rig !== "scrapper") return { ...s, zone };
+    const gap = BODY_GAP.body * Math.max(drawnScale(this, p.actor), drawnScale(this, p.target));
+    const room = (x: number): number => facing * (tp.x - x);
+    if (zone === "head" && room(s.x) < gap) {
+      const b = at("body");
+      if (room(b.x) > room(s.x)) { s = b; zone = "body"; }
+    }
+    if (room(s.x) < gap) s = { ...s, x: tp.x - facing * gap };
+    return { ...s, zone };
+  }
+
+  /**
+   * A pet attacked while it stands behind its owner (seen from the attacker) runs out in front of
+   * him first, onto a line just behind his floor line, its box `BODY_GAP.petClear` clear of his drawn front, and far
+   * enough out that a scrapper hitting it stops `BODY_GAP.body` short of him (review finding 1: the
+   * attacker walked through the owner to reach it). Returns when it is set there, or null when it
+   * stays where it is. It runs home at the next flush.
+   */
+  petMeets(p: SwingPlan, fromX: number): number | null {
+    const ttr = this.track(p.target);
+    if (ttr.rig === "scrapper" || this.status.get(p.target) !== "up" || this.snared.has(p.target)) return null;
+    const owner = scrapperOf(ttr.side);
+    if (!this.has(owner) || this.status.get(owner) !== "up") return null;
+    const o = this.place(owner, p.start);
+    const q = this.place(p.target, p.start);
+    // toward the attacker, seen from the owner
+    const f: 1 | -1 = fromX < o.x ? -1 : 1;
+    const r = ttr.reach;
+    let x = o.x + f * (SCRAPPER_REACH.front * drawnScale(this, owner) + BODY_GAP.petClear + r.back);
+    const atr = this.track(p.actor);
+    if (atr.rig === "scrapper") {
+      // the attacker's stop on the pet there, kept the body gap short of the owner
+      const s = stopFor(this.rig, { rig: atr.rig, dress: p.dress, clip: p.clip, facing: f === -1 ? 1 : -1 },
+        { rig: ttr.rig, dress: this.dress(p.target), x, facing: f }, p.zone);
+      const gap = BODY_GAP.body * Math.max(drawnScale(this, p.actor), drawnScale(this, owner));
+      const short = gap - f * (s.x - o.x);
+      if (short > 0) x += f * short;
+    }
+    const lo = PET_MARKS.edge + Math.max(r.back, r.front);
+    x = Math.min(STAGE_W - lo, Math.max(lo, x));
+    // already out in front of him: it stays
+    if (f * (q.x - x) >= -0.5) return null;
+    const ms = Math.max(BEAT.dashMinMs, Math.round((Math.abs(x - q.x) / BEAT.dashSpeed) * 1000));
+    this.face(p.target, p.start, f);
+    // just behind its owner's floor line, so the attacker comes in on (nearly) his own and stays in
+    // front of every pet behind him (a fighter draws over a pet at its depth), the owner over it
+    this.move(p.target, p.start, ms, x, FLOOR_Y - BODY_GAP.petDepth, 0, "inOut");
+    this.play(p.target, "run", p.start, { until: p.start + ms });
+    this.out.add(p.target);
+    return p.start + ms;
+  }
+
+  /**
+   * A scrapper attacking a pet that stays behind its owner (snared under the tarp, so petMeets
+   * leaves it, or kept at the stage edge) would stop inside him (review finding 1, verifier case:
+   * level 30 n 4, step 57). The owner steps back past his pet instead, with his own footwork, to
+   * `BODY_GAP.body` beyond the attacker's stop; the pet is drawn under him. Returns when he is set
+   * there, or null when he is already clear (or down, or snared himself). He shuffles home at the
+   * next way home.
+   */
+  ownerGives(p: SwingPlan, fromX: number, stopX: number, facing: 1 | -1): number | null {
+    const atr = this.track(p.actor);
+    const ttr = this.track(p.target);
+    if (atr.rig !== "scrapper" || ttr.rig === "scrapper" || this.internal.easedDash === true) return null;
+    const owner = scrapperOf(ttr.side);
+    if (owner === p.actor || !this.has(owner) || this.status.get(owner) !== "up" || this.snared.has(owner)) return null;
+    const start = Math.max(p.start, readyAt(this, owner));
+    const o = this.place(owner, start);
+    // only an owner ahead of the attacker, between him and (or just past) the stop
+    if (facing * (o.x - fromX) <= 0) return null;
+    const gap = BODY_GAP.body * Math.max(drawnScale(this, p.actor), drawnScale(this, owner));
+    if (facing * (o.x - stopX) >= gap - 0.5) return null;
+    const lo = SCRAPPER_REACH.back * drawnScale(this, owner);
+    const x = Math.min(STAGE_W - lo, Math.max(lo, stopX + facing * gap));
+    const way = planWay(this, owner, x - o.x, 0, false, start);
+    if (way.kind === "still") return null;
+    this.face(owner, start, facing === 1 ? -1 : 1);
+    const set = layWay(this, owner, start, x, o.y, way);
+    this.out.add(owner);
+    return set;
+  }
+
   /** A dropped item lands on the floor at `at`. When a seventh would land, the oldest fades out
    *  just before, so the floor never holds more than six. */
-  land(step: number, item: FloorItem["item"], x: number, y: number, rot: number, facing: 1 | -1, at: number): void {
+  land(step: number, item: FloorItem["item"], x: number, y: number, rot: number, facing: 1 | -1, at: number,
+    flat?: { squash: number; floorY: number }): void {
     const lying = this.floor.filter((f) => f.fadeTo === Infinity);
     if (lying.length >= FLOOR.max) {
       const oldest = lying.reduce((p, q) => (q.from < p.from ? q : p));
       oldest.fadeFrom = at - FLOOR.fadeMs;
       oldest.fadeTo = at;
     }
-    this.floor.push({ item, x, y, rot, facing, from: at, fadeFrom: Infinity, fadeTo: Infinity });
+    this.floor.push({ item, x, y, rot, facing, from: at, fadeFrom: Infinity, fadeTo: Infinity, ...(flat ?? {}) });
     this.cue(at, step, "drop", this.floor.length, item);
   }
 

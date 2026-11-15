@@ -44,10 +44,37 @@ interface Placed { x: number; y: number; size: number }
 /** Text sizes on screen. Numbers and tags follow the camera up to a cap, so a close camera does
  *  not make a damage number cover a face; banners scale with the canvas width. */
 const TEXT_K_MAX = { number: 3.1, tag: 2.5 } as const;
-const BANNER_K = { perWidth: 1 / 225, max: 2.7 } as const;
-const MARGIN = 6;
+export const BANNER_K = { perWidth: 1 / 225, max: 2.7 } as const;
+export const MARGIN = 6;
 /** Numbers and tags stay below this band at the top of the canvas, where the host's controls sit. */
-const TOP_BAND = 52;
+export const TOP_BAND = 52;
+/** The banner in the top band shrinks to fit above the standing heads, down to this (CSS px). */
+export const BANNER_MIN_PX = 14;
+/** Room kept above a head's hit point (figure units, times the drawn size: the head's radius and
+ *  a taller win pose), and screen px under the banner's tilted box. */
+const HEAD_ROOM = 22;
+const BANNER_GAP = 8;
+
+/**
+ * The winner's banner text size in CSS px on a `view` canvas under the camera `cam`: its width
+ * scale, shrunk so the box in the top band ends above every standing fighter's head (review
+ * finding 52: on the app's 390 x 260 phone canvas the 52 px band and a 35 px banner reached 40%
+ * down the view, over the winner's head).
+ */
+export function bannerPx(f: Frame, rig: Rig, cam: CameraView, view: { w: number; h: number }, size: number): number {
+  const want = size * Math.min(view.w * BANNER_K.perWidth, BANNER_K.max);
+  let head = Infinity;
+  for (const a of f.actors) {
+    if (a.rig !== "scrapper" || a.clip.startsWith("ko")) continue;
+    const y = a.floorY + rig.hitPoint("scrapper", a.dress, "head").y - HEAD_ROOM * (a.dress.scale > 0 ? a.dress.scale : 1);
+    head = Math.min(head, (y - cam.y0) * cam.k);
+  }
+  if (head === Infinity) return want;
+  const fit = (head - TOP_BAND - MARGIN - BANNER_GAP) / STICKER_H;
+  return Math.max(BANNER_MIN_PX, Math.min(want, fit));
+}
+/** A sticker's box is this many times its text size tall. */
+export const STICKER_H = 1.35;
 /** Extra screen px a tag is lifted under the camera. */
 const TAG_LIFT = 12;
 
@@ -66,7 +93,7 @@ function text(env: DrawEnv, t: FrameText, fonts: PlayerOpts["fonts"], at: Placed
   // a skill's icon sits at the left of the words, inside the sticker
   const iconW = icon !== null && t.kind !== "number" ? size * 1.25 : 0;
   const boxW = t.kind === "number" ? tw : tw + size * 0.9 + iconW;
-  const boxH = t.kind === "number" ? size : size * 1.35;
+  const boxH = t.kind === "number" ? size : size * STICKER_H;
   // keep every word inside the canvas: a number rising over a tall head, a sticker near an edge
   const half = boxW / 2 + MARGIN;
   const x = view.w < 2 * half ? view.w / 2 : at.x < half ? half : at.x > view.w - half ? view.w - half : at.x;
@@ -160,12 +187,20 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
   for (const p of f.floor) {
     c.save();
     c.globalAlpha = p.alpha;
+    if (p.squash !== undefined && p.floorY !== undefined) {
+      // a fallen shield lies flat on the floor line
+      c.translate(0, p.floorY);
+      c.scale(1, p.squash);
+      c.translate(0, -p.floorY);
+    }
     rig.drawProp(env, p.item, { x: p.x, y: p.y, facing: p.facing, rot: p.rot });
     c.restore();
   }
   for (const s of f.auras) auraBehind(env, s);
   for (const a of f.actors) {
     rig.drawActor(env, pose ? pose(a) : rig.samplePose(a.rig, a.clip, a.clipT, a.aim), a.dress, a.place);
+    // a tarp over a pet goes with the pet: a fighter in front of it stays in front
+    for (const e of f.fx) if (e.under === a.id) rig.drawFx(env, e.fx, e.progress, e.at, e.seed);
   }
   for (const p of f.flights) {
     c.save();
@@ -174,7 +209,7 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
     c.restore();
   }
   for (const e of f.fx) {
-    if (e.fx === "tape") continue;
+    if (e.fx === "tape" || e.under !== undefined) continue;
     const big = (BIG_FX as Partial<Record<string, number>>)[e.fx];
     if (big !== undefined && cam) {
       // bigger, bolder contact bursts (owner: "have some energy")
@@ -197,8 +232,12 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
   const bk = cam ? Math.min(view.w * BANNER_K.perWidth, BANNER_K.max) : k;
   for (const t of f.texts) {
     if (t.kind === "banner" && cam) {
-      // stage-wide cards (FIGHT, the winner): centred on the canvas, a third of the way down
-      text(env, t, opts.fonts, { x: view.w / 2 + (t.x - STAGE_W / 2) * bk, y: view.h * 0.34 + (t.y - 90) * bk, size: t.size * bk }, css, dpr);
+      // stage-wide cards: centred on the canvas, a third of the way down (FIGHT), or held in the
+      // top band clear of the heads (the winner's banner, review finding 52: it covered his head)
+      const top = t.band === "top";
+      text(env, t, opts.fonts, { x: view.w / 2 + (t.x - STAGE_W / 2) * bk, y: top ? 0 : view.h * 0.34 + (t.y - 90) * bk,
+        size: top ? bannerPx(f, rig, cam, css, t.size) : t.size * bk },
+        css, dpr, top ? TOP_BAND : 0);
       continue;
     }
     const cap = t.kind === "number" ? TEXT_K_MAX.number : TEXT_K_MAX.tag;

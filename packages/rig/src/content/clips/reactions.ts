@@ -30,8 +30,10 @@ import { GUARD_UP } from "../../gate/clips/brace";
 import { TOE_B, TOE_F } from "../../gate/clips/idle";
 import { clip, onToe, STANCE, TOE } from "../../gate/clips/kit";
 import type { LegSpec, Spec } from "../../gate/clips/kit";
+import type { Stride } from "../../engine/sample";
+import { HIT_LIGHT_KEYS, HIT_LIGHT_LAG } from "../../gate/clips/hit-light";
 
-export const HIT_HEAVY = clip(300, false, [], [
+const HIT_HEAVY_KEYS: readonly (readonly [number, Spec])[] = [
   [0, { ...STANCE, face: "dazed" }],
   [32, { root: [-2, 3.4], pelvis: -2, torso: -4, head: -36, F: { at: [10, -56], aim: -100 }, B: { up: 10, lo: -126, hand: 10 }, face: "dazed" }],
   [82, { root: [-8, 4], pelvis: -8, torso: -22, head: -30, legB: { at: [-22, -7], foot: 18 }, F: { at: [3, -63], aim: -128 }, B: { up: 28, lo: -86, hand: 22 } }],
@@ -39,7 +41,7 @@ export const HIT_HEAVY = clip(300, false, [], [
   [196, { root: [-8, 9], pelvis: -4, torso: 12, head: 6, legB: { at: -22 }, F: { at: [8, -52], aim: -101 }, B: { up: 14, lo: -118, hand: 6 }, face: "grit", ease: "inOut" }],
   [248, { root: [-4, 5.4], pelvis: -2, torso: 10, head: -4, legB: { at: [-16, -5], foot: 10 }, F: { at: [11, -52], aim: -88 }, B: { up: 9, lo: -134, hand: 2 }, ease: "inOut" }],
   [300, { ...STANCE, face: "grit", ease: "inOut" }],
-], { plant: ["footF"], lag: { torso: 30, "armB.up": 30, "armB.lo": 30, handB: 30 } });
+];
 
 /** The stage's block slide (`OUTCOME.blockSlide` 6 units over `blockSlideMs` 120, eased out), as
  *  the figure-space move of a foot that holds its place on the floor while it plays. */
@@ -98,3 +100,97 @@ export const BLOCK_SHIELD = clip(220, false, [], [
   [190, { root: [-1.5, 4], F: STANCE.F!, B: STANCE.B!, ...legs(190, onToe(TOE_B - BACK, 10), onToe(TOE_F, 6)) }],
   [220, HOME],
 ], { lag: { head: 24, "armF.up": 16, "armF.lo": 16 }, stride: { speed: 0, contacts: FEET } });
+
+/**
+ * The flinches step back (review finding 17: the stage's knockback slid both planted feet up to 39
+ * units over the floor). The stage shoves the fighter back `KNOCK_STEP` units (times his drawn
+ * size) over 120 ms, eased out, at the moment of contact, and leaves him there; he shuffles home
+ * at his next way home, as after a block. The feet take that shove the way the blocks' feet take
+ * theirs: the front toe holds its spot on the floor while the body is pushed off it and then
+ * steps back after it; the back foot lifts at once and lands again further back. The upper body
+ * is the flinch as keyed (its keys laid over the steps' times, straight between them).
+ */
+export const KNOCK_STEP = { light: 6, heavy: 10 } as const;
+
+/** The feet of a step back of `d` over a `len` ms clip: their contacts and their leg keys. */
+function stepBack(d: number, len: number): { contacts: Contact[]; legs: [number, Spec][] } {
+  const sl = (t: number): number => { const u = Math.min(1, t / 120); return d * (1 - (1 - u) * (1 - u)); };
+  const back = sl(120) - sl(80);
+  const end = len - 0.1;
+  const contacts: Contact[] = [
+    { foot: "footF", from: 0, to: 130, at: TOE, move: [0, 20, 40, 60, 80, 100, 120, 130].map((t) => [t, sl(t)] as const) },
+    { foot: "footF", from: 190, to: end, at: TOE },
+    { foot: "footB", from: 0, to: 20, at: TOE, move: [0, 4, 8, 12, 16, 20].map((t) => [t, sl(t)] as const) },
+    { foot: "footB", from: 80, to: end, at: TOE, move: [[80, 0], [100, sl(100) - sl(80)], [120, sl(120) - sl(80)]] },
+  ];
+  const f = (t: number): LegSpec => onToe(TOE_F + sl(t), 4);
+  const legs: [number, Spec][] = [
+    [20, { legF: f(20), legB: onToe(TOE_B + sl(20), 34) }],
+    [40, { legF: f(40), legB: above(onToe(TOE_B + sl(40), 30), 6) }],
+    [72, { legF: f(72), legB: above(onToe(TOE_B - back - (sl(80) - sl(72)), 26), 1.0) }],
+    [80, { legF: f(80), legB: onToe(TOE_B - back, 24) }],
+    [130, { legF: f(130), legB: onToe(TOE_B - back, 18) }],
+    [160, { legF: above(onToe(TOE_F + d / 2, 4), 6), legB: onToe(TOE_B - back, 14) }],
+    [190, { legF: onToe(TOE_F, 6), legB: onToe(TOE_B - back, 10) }],
+    [220, { legF: onToe(TOE_F, 3), legB: onToe(TOE_B, 10) }],
+    [len, { legF: STANCE.legF!, legB: STANCE.legB! }],
+  ];
+  return { contacts, legs };
+}
+
+/** A number, a pair or an object of numbers, straight from `a` to `b` (anything else is `b`'s). */
+function mix(a: unknown, b: unknown, u: number): unknown {
+  if (typeof a === "number" && typeof b === "number") return a + (b - a) * u;
+  if (Array.isArray(a) && Array.isArray(b) && a.length === b.length) return a.map((v, i) => mix(v, b[i], u));
+  if (a !== null && b !== null && typeof a === "object" && typeof b === "object" && !Array.isArray(a) && !Array.isArray(b)) {
+    const ka = Object.keys(a).sort().join();
+    if (ka !== Object.keys(b).sort().join()) return b;
+    const o: Record<string, unknown> = {};
+    for (const k of Object.keys(b)) o[k] = mix((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k], u);
+    return o;
+  }
+  return u < 1 ? a ?? b : b;
+}
+
+/** A flinch's keys with stepping feet: its upper body at every key time of either, the legs of the step. */
+function stepping(keys: readonly (readonly [number, Spec])[], d: number, len: number): { keys: [number, Spec][]; stride: Stride } {
+  // the flinch's keys carried forward (a key names only what changes), without its legs
+  const full: [number, Spec][] = [];
+  let carry: Spec = {};
+  for (const [t, s] of keys) {
+    carry = { ...carry, ...s };
+    const { legF: _f, legB: _b, ease: _e, ...upper } = carry;
+    full.push([t, { ...upper, ...(s.ease !== undefined ? { ease: s.ease } : {}) }]);
+  }
+  const step = stepBack(d, len);
+  const at = (list: readonly (readonly [number, Spec])[], t: number): Spec => {
+    let i = 0;
+    while (i + 1 < list.length && list[i + 1]![0] <= t) i++;
+    const [ta, a] = list[i]!;
+    const next = list[i + 1];
+    if (next === undefined || t <= ta) return a;
+    const [tb, b] = next;
+    const out: Record<string, unknown> = {};
+    for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      if (k === "ease") continue;
+      out[k] = mix((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k], (t - ta) / (tb - ta));
+    }
+    return out as Spec;
+  };
+  const legs0: Spec = { legF: STANCE.legF!, legB: STANCE.legB! };
+  const legList: [number, Spec][] = [[0, legs0], ...step.legs];
+  const times = [...new Set([...full.map(([t]) => t), ...legList.map(([t]) => t)])].sort((x, y) => x - y);
+  const own = new Map(full.map(([t, s]) => [t, s]));
+  const out: [number, Spec][] = times.map((t) => {
+    const upper = own.get(t) ?? at(full, t);
+    const legs = legList.find(([lt]) => lt === t)?.[1] ?? at(legList, t);
+    return [t, { ...upper, legF: legs.legF!, legB: legs.legB! }];
+  });
+  return { keys: out, stride: { speed: 0, contacts: step.contacts } };
+}
+
+const heavy = stepping(HIT_HEAVY_KEYS, KNOCK_STEP.heavy, 300);
+export const HIT_HEAVY = clip(300, false, [], heavy.keys, { lag: { torso: 30, "armB.up": 30, "armB.lo": 30, handB: 30 }, stride: heavy.stride });
+const light = stepping(HIT_LIGHT_KEYS, KNOCK_STEP.light, 300);
+/** The light flinch with stepping feet (overrides the gate pack's planted one). */
+export const HIT_LIGHT_STEP = clip(300, false, [], light.keys, { lag: HIT_LIGHT_LAG, stride: light.stride });

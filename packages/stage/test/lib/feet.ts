@@ -58,8 +58,8 @@ export function isFootwork(a: FrameActor, t: number, lastOther: number): boolean
 }
 
 /** Every contact run of every scrapper's feet in the bout, with its slide. */
-export function footRuns(p: StagePlayer, rig: Rig, o: { footwork?: boolean; step?: number } = {}): Slide[] {
-  const footwork = o.footwork ?? true;
+export function footRuns(p: StagePlayer, rig: Rig, o: { footwork?: boolean; step?: number; only?: ReadonlySet<string> } = {}): Slide[] {
+  const footwork = o.only === undefined && (o.footwork ?? true);
   const step = o.step ?? FRAME_MS;
   const ins = inspectOf(rig);
   const bones = ins.rigDef("scrapper").bones;
@@ -88,6 +88,7 @@ export function footRuns(p: StagePlayer, rig: Rig, o: { footwork?: boolean; step
       if (a.rig !== "scrapper") continue;
       if (!FOOTWORK_CLIPS.has(a.clip)) lastOther.set(a.id, t);
       if (footwork && !isFootwork(a, t, lastOther.get(a.id) ?? -Infinity)) continue;
+      if (o.only !== undefined && !o.only.has(a.clip)) continue;
       const tr = p.tracks.byId.get(a.id)!;
       const pose = poseAt(rig, tr, t);
       const j = ins.joints(pose, a.dress, a.place);
@@ -122,7 +123,7 @@ export function footRuns(p: StagePlayer, rig: Rig, o: { footwork?: boolean; step
 }
 
 /** The runs that slide more than the limit, worst first. */
-export function slides(p: StagePlayer, rig: Rig, limit = SLIDE_LIMIT, o: { footwork?: boolean } = {}): Slide[] {
+export function slides(p: StagePlayer, rig: Rig, limit = SLIDE_LIMIT, o: { footwork?: boolean; only?: ReadonlySet<string> } = {}): Slide[] {
   return footRuns(p, rig, o).filter((r) => r.slide > limit).sort((x, y) => y.slide - x.slide);
 }
 

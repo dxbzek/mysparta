@@ -31,6 +31,7 @@ import type { Rig } from "@rankzero/rig";
 import { toStage } from "@rankzero/rig";
 import { capsuleGateRig, capsuleRig } from "@rankzero/rig/testing";
 import type { PlayerOpts } from "../packages/stage/src/contracts.ts";
+import { cameraAt } from "../packages/stage/src/camera.ts";
 import { buildPlayer } from "../packages/stage/src/createFightPlayer.ts";
 import type { StagePlayer } from "../packages/stage/src/createFightPlayer.ts";
 import { REPO_ROOT, createSurface, registerFont, writePng } from "./lib/node-canvas.ts";
@@ -209,7 +210,12 @@ function writeStoryboard(player: StagePlayer, bout: { a: FighterSnapshot; b: Fig
   return files;
 }
 
-function writeContacts(player: StagePlayer, rig: Rig, log: BoutLog, bout: { a: FighterSnapshot; b: FighterSnapshot }, dir: string, font: string): string[] {
+/** The contact strips. The player draws every frame through its camera (createFightPlayer:
+ *  `cameraAt`), so a stage point is found on the drawn frame through that frame's camera: the
+ *  crop (`cropW` x `cropH` stage units round the target) and the strike and hit marks are mapped
+ *  with it (review finding 74: they were placed in plain stage units and missed the hit). */
+function writeContacts(player: StagePlayer, rig: Rig, log: BoutLog, bout: { a: FighterSnapshot; b: FighterSnapshot }, dir: string, font: string,
+  reduced: boolean): string[] {
   const scale = 2;
   const cropW = 150;
   const cropH = 112;
@@ -251,9 +257,18 @@ function writeContacts(player: StagePlayer, rig: Rig, log: BoutLog, bout: { a: F
         const f = player.frame(t);
         const x = (n % per) * cell.w;
         const y = y0 + label + Math.floor(n / per) * cell.h;
-        sc.drawImage(full.canvas, (cx - cropW / 2) * scale, (cy - cropH / 2 + HUD_H) * scale, cropW * scale, cropH * scale, x, y, cell.w, cell.h - 12);
-        const k2 = cell.w / cropW;
-        const map = (p: { x: number; y: number }): [number, number] => [x + (p.x - (cx - cropW / 2)) * k2, y + (p.y - (cy - cropH / 2)) * k2];
+        // stage units to px of the drawn stage (the HUD strip sits above it), through this frame's camera
+        const cam = cameraAt(player.tracks, t, { w: W * scale, h: H * scale }, reduced);
+        const px = (p: { x: number; y: number }): [number, number] => [(p.x - cam.x0) * cam.k, (p.y - cam.y0) * cam.k + HUD_H * scale];
+        const cw = Math.min(cropW * cam.k, W * scale);
+        const chh = Math.min(cropH * cam.k, H * scale);
+        const [ux, uy] = px({ x: cx - cropW / 2, y: cy - cropH / 2 });
+        // kept on the drawn frame (the camera shows less than the whole stage)
+        const sx0 = Math.max(0, Math.min(W * scale - cw, ux));
+        const sy0 = Math.max(HUD_H * scale, Math.min((H + HUD_H) * scale - chh, uy));
+        sc.drawImage(full.canvas, sx0, sy0, cw, chh, x, y, cell.w, cell.h - 12);
+        const k2 = cell.w / cw;
+        const map = (p: { x: number; y: number }): [number, number] => { const [qx, qy] = px(p); return [x + (qx - sx0) * k2, y + (qy - sy0) * k2]; };
         if (k === 0) {
           const a = f.actors.find((q) => q.seg?.strikes === ci);
           const tgt = f.actors.find((q) => q.id === target);
@@ -310,7 +325,7 @@ async function main(): Promise<void> {
   console.log(`render-bout: ${bout.name} on the ${rigName} rig, arena "${opts.stage}"${reduced ? ", reduced motion" : ""}`);
   console.log(`render-bout: ${Math.round(player.timeline.durationMs)} ms, ${player.timeline.contacts.length} contacts, ${player.timeline.cues.length} cues`);
   for (const f of writeStoryboard(player, bout, dir, font)) console.log(`render-bout: wrote ${f}`);
-  for (const f of writeContacts(player, rig, bout.log, bout, dir, font)) console.log(`render-bout: wrote ${f}`);
+  for (const f of writeContacts(player, rig, bout.log, bout, dir, font, reduced)) console.log(`render-bout: wrote ${f}`);
   if (!flag("no-video")) {
     const video = resolve(dir, "stage.mp4");
     const n = await writeVideo(player, bout, video, font);

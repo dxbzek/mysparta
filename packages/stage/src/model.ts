@@ -24,7 +24,9 @@ export interface Seg {
 
 /** A walk, dash or jump of the actor's base place. `arc` lifts the middle of the path. */
 export interface Move { from: number; to: number; x0: number; y0: number; x1: number; y1: number;
-  arc: number; ease: "linear" | "in" | "out" | "inOut" }
+  arc: number; ease: "linear" | "in" | "out" | "inOut";
+  /** A knockback step: the contact whose blow drives it (an index into `Timeline.contacts`). */
+  knockback?: number }
 
 /** An offset on top of the base place that goes out and comes back: knockback, a block slide,
  *  a recoil, an evade hop, a heal hop. `dx` is in the actor's own frame (+ = forward). */
@@ -81,7 +83,9 @@ export interface NumberItem { from: number; x: number; y: number; text: string; 
 export interface TagItem { from: number; to: number; text: string; colour: string; ink: string;
   actor: ActorId | null; x: number; y: number; size: number; kind: "tag" | "banner" | "sticker";
   /** A skill's icon drawn at the left of the words (a skill tag, a Move's result). */
-  icon?: PerkId }
+  icon?: PerkId;
+  /** A banner held in the top band of the view, clear of the heads (the winner's banner). */
+  band?: "top" }
 
 /** A thing in the air: thrown, knocked off, dropped, snatched. */
 export interface FlightItem { item: PropId; from: number; to: number; path: FlightPath;
@@ -91,6 +95,8 @@ export interface FlightItem { item: PropId; from: number; to: number; path: Flig
 export interface FloorItem { item: PropId; x: number; y: number; rot: number; facing: 1 | -1;
   /** Lands at this time. */
   from: number;
+  /** A fallen shield lies flat: drawn squashed to this share of its height toward `floorY`. */
+  squash?: number; floorY?: number;
   /** Starts to fade at this time, gone at `fadeTo` (the oldest, when a seventh lands). */
   fadeFrom: number; fadeTo: number }
 
@@ -123,7 +129,9 @@ export interface Tracks {
   auras: Aura[];
   /** Where and when the knockout falls, and which way the body falls (+1 toward +x): the camera's
    *  one reframe starts here (null: nobody falls). */
-  koFocus: { at: number; x: number; y: number; back: 1 | -1 } | null;
+  koFocus: { at: number; x: number; y: number; back: 1 | -1;
+    /** How far the body, lying on the floor, is drawn behind its mark (measured on the rig). */
+    reach?: number } | null;
   /** Ticket tape: from, to (null with reduced motion). */
   tape: { from: number; to: number } | null;
   /** Steps applied at a time: `stepEnd`, kept separately so `state` is a lookup. */
