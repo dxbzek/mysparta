@@ -9,7 +9,7 @@ import { limb } from "../vocab";
 import { HAIR_PIVOT } from "../skeleton";
 import { NECK_LEN, hd, hdPoly, ink, shape } from "./kit";
 
-const HEAD_A: Poly = [[7.5, 0.6], [1.5, -0.9], [-2, -4.0], [-6, -2.6], [-9.5, -7.5], [-10.2, -13], [-8.5, -19], [-3.5, -23], [3, -23], [7.3, -20.2], [9, -16.6], [9.6, -13.7], [8.9, -12.3], [9.6, -10.9], [12.0, -7.5], [10.2, -6.5], [10.4, -5.2], [9.7, -4.4], [10.2, -3.3], [9.8, -1.4]];
+export const HEAD_A: Poly = [[7.5, 0.6], [1.5, -0.9], [-2, -4.0], [-6, -2.6], [-9.5, -7.5], [-10.2, -13], [-8.5, -19], [-3.5, -23], [3, -23], [7.3, -20.2], [9, -16.6], [9.6, -13.7], [8.9, -12.3], [9.6, -10.9], [12.0, -7.5], [10.2, -6.5], [10.4, -5.2], [9.7, -4.4], [10.2, -3.3], [9.8, -1.4]];
 // a heavier, squarer jaw and a flatter brow ridge
 const HEAD_B: Poly = [[8.2, 1.2], [1.4, 0.2], [-2.6, -3.0], [-7.0, -2.0], [-10.2, -7.2], [-10.8, -13], [-9.0, -19.2], [-3.6, -23.2], [3.2, -23.2], [7.6, -20.6], [9.4, -17.2], [10.2, -14.2], [9.6, -12.6], [10.2, -11.2], [12.4, -7.8], [10.6, -6.8], [10.8, -5.4], [10.1, -4.6], [10.8, -3.4], [10.6, -0.6]];
 
@@ -17,7 +17,7 @@ const HAIR_A: Poly = [[8.4, -18.6], [8.6, -22.4], [4.5, -25.4], [-2.5, -25.6], [
 const HAIR_B: Poly = [[7.8, -20.0], [3.4, -23.8], [-3.8, -24.0], [-9.0, -19.6], [-10.6, -13.2], [-8.8, -12.2], [-7.6, -16.8], [-2.4, -20.8], [4.6, -21.4]];
 const BEARD: Poly = [[10.4, -3.6], [10.3, -1.0], [7.8, 1.4], [1.6, -0.2], [-2.4, -3.8], [-2.9, -9.0], [-0.8, -8.6], [1.4, -4.8], [5.0, -3.6], [7.4, -5.6], [9.2, -5.8]];
 
-const F = {
+export const F = {
   eyeOpen: [[5.0, -12.2], [6.4, -12.9], [7.9, -12.3], [6.5, -11.6]] as Poly,
   eyeWide: [[4.8, -12.3], [6.4, -13.4], [8.0, -12.4], [6.5, -11.3]] as Poly,
   lid: [[4.6, -12.3], [6.4, -13.3], [8.2, -12.5]] as Poly,
@@ -57,7 +57,7 @@ function neck(wide: number): Pt[] {
   return n.map(([x, y]) => [x + 0.15, -y] as Pt);
 }
 
-function head(outline: Poly, wide: number): Shape[] {
+export function head(outline: Poly, wide: number): Shape[] {
   const jawShade: Poly = [[1.5, -0.9], [-2, -4.0], [-6, -2.6], [-6.4, -5.2], [-2.0, -6.8], [1.6, -3.2]];
   return [
     shape(B, neck(wide), "skin", 40),
@@ -70,7 +70,7 @@ export const HEADS: readonly Shape[][] = [head(HEAD_A, 1), head(HEAD_B, 1.32)];
 
 /** Hair hangs on its own bone from the crown (secondary motion): head-frame points moved into it. */
 const toHair = (pts: readonly Pt[]): Pt[] => pts.map(([x, y]) => [x - HAIR_PIVOT[0], y - HAIR_PIVOT[1]] as Pt);
-function hair(outline: Poly, strands: readonly Poly[]): Shape[] {
+export function hair(outline: Poly, strands: readonly Poly[]): Shape[] {
   return [shape("hair", toHair(poly(outline)), "hair", 44),
     ...strands.map((s) => ({ ...ink("hair", toHair(hdPoly(s)), 0.3, 44.1) }))];
 }
@@ -79,7 +79,7 @@ export const HAIR: readonly Shape[][] = [
   hair(HAIR_B, [[[4.4, -22.2], [-1.6, -22.6]]]),
 ];
 
-function faceSet(heavy: number): Record<FaceId, Shape[]> {
+export function faceSet(heavy: number): Record<FaceId, Shape[]> {
   const common = (): Shape[] => [line(F.jaw, 0.36), line(F.naso, W), line(F.nostril, W), line(F.cheekbone, 0.3)];
   const eye = (pts: Poly): Shape => shape(B, poly(pts), "ink", 42.3);
   const brow = (pts: Poly): Shape => shape(B, poly(pts.map(([x, y]) => [x, y - (heavy - 1) * 0.4] as Pt)), "ink", 42.6);

@@ -3,7 +3,7 @@
  * shit and inaccurate"): smooth overlapping body masses on a skeleton whose joints bend the
  * animal's way, feet placed on the floor by the clips, gaits from Muybridge's Animal Locomotion
  * (1887). Facing right, stage units, y down, the floor at 0, each at its share of a fighter's
- * height (raccoon 22%, goose 34%, boar 41%, dog 30%, crow 20%, cat 25%). Bone names the engine
+ * height (raccoon 22%, goose 34%, boar 40%, dog 30%, crow 20%, cat 25%). Bone names the engine
  * reads: "body" (the hit point, the aim bend) and "head" (its frontmost point is the mouth, beak or
  * tusk: the striking end). Colour slots of a pet (engine): "skin" and "top" its body colour, "hair"
  * its dark colour, "accent" its light colour, plus "white" and "ink". The rules are in docs/ART.md.
@@ -33,7 +33,7 @@ export const PET_UNIT: Readonly<Record<CompanionId, number>> = {
 };
 /** A pet's art scaled by k: bone offsets, shapes, the rig height and the clips' root travel. */
 /** Each pet's share of a fighter's height (owner, 15 Nov 2026). */
-const SHARE: Readonly<Record<CompanionId, number>> = { raccoon: 0.22, goose: 0.35, boar: 0.42, "stray-dog": 0.3, crow: 0.2, "alley-cat": 0.25 };
+const SHARE: Readonly<Record<CompanionId, number>> = { raccoon: 0.22, goose: 0.35, boar: 0.4, "stray-dog": 0.3, crow: 0.2, "alley-cat": 0.25 };
 /** A pet's ink line in its art units: a fighter's line times the square root of the pet's share of
  *  his height (never under half of it), so a small animal is not drowned in ink; the stage's scale
  *  of about 1 / PET_UNIT brings it back to stage units. */

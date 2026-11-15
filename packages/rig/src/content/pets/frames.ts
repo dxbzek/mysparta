@@ -88,3 +88,25 @@ export function topBand(poly: readonly Pt[], x0: number, x1: number, depth: numb
   const top = topEdge(poly, x0, x1, n);
   return [...top.map(([x, y]) => [x, y - lift] as Pt), ...top.reverse().map(([x, y]) => [x, y + depth] as Pt)];
 }
+
+/** The part of a polygon at or below the line y (larger y), as a polygon (Sutherland-Hodgman). */
+export function cutBelow(poly: readonly Pt[], y: number): Pt[] {
+  const out: Pt[] = [];
+  poly.forEach((p, i) => {
+    const q = poly[(i + 1) % poly.length]!;
+    const pin = p[1] >= y;
+    const qin = q[1] >= y;
+    if (pin) out.push(p);
+    if (pin !== qin) out.push([p[0] + ((q[0] - p[0]) * (y - p[1])) / (q[1] - p[1]), y]);
+  });
+  return out;
+}
+/**
+ * The near legs of a drawn standing frame, laid again over its silhouette in the same outline
+ * group: one silhouette's light offset is set by its thickest part (the torso), which left a thin
+ * leg wholly in shadow; a leg drawn on its own takes the offset of its own width, so it keeps a lit
+ * front and a thin shadow behind, as a fighter's limbs do. Cut at `cut` (inside the belly).
+ */
+export function addLitLegs(a: Anatomy, frames: readonly number[], legs: readonly (readonly [readonly Pt[], number])[], z = 20.01, bone = "body"): void {
+  for (const [leg, cut] of legs) addTagged(a, bone, frames, cutBelow(leg, cut), "skin", z);
+}

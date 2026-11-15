@@ -10,18 +10,18 @@ import { limb, movePoly } from "../vocab";
 import type { Side } from "./kit";
 import { PROF, SIDES, Z, armPart, ink, legPart, shape, trPoly } from "./kit";
 
-const TORSO: Poly = [[-9, 3], [-9.4, -8], [-8.4, -20], [-10.4, -34], [-11.4, -44], [-9, -51], [-3.5, -54.5], [3.5, -54.5], [8.5, -51], [11.6, -44], [12.2, -36], [10.2, -28], [9.2, -18], [9.6, -6], [9.2, 3]];
-const PELVIS: Poly = [[-10, -7], [10.2, -7], [11, 2], [7.5, 10], [-7.3, 10], [-10.8, 2]];
-const FOOT: Poly = [[-5.5, -3.5], [3.5, -4.2], [8, -1.6], [16.5, 0.4], [21.2, 2.8], [21.6, 7], [-6.4, 7], [-7, 2.5]];
-const BOOT: Poly = [[-5.8, -9.5], [4.0, -9.8], [4.6, -3.0], [8.4, -1.2], [16.8, 0.6], [21.4, 3.0], [21.8, 7], [-6.6, 7], [-7.2, 2.0]];
-const SOLE: Poly = [[-7, 5.0], [22.2, 5.0], [22.2, 7.6], [-7, 7.6]];
+export const TORSO: Poly = [[-9, 3], [-9.4, -8], [-8.4, -20], [-10.4, -34], [-11.4, -44], [-9, -51], [-3.5, -54.5], [3.5, -54.5], [8.5, -51], [11.6, -44], [12.2, -36], [10.2, -28], [9.2, -18], [9.6, -6], [9.2, 3]];
+export const PELVIS: Poly = [[-10, -7], [10.2, -7], [11, 2], [7.5, 10], [-7.3, 10], [-10.8, 2]];
+export const FOOT: Poly = [[-5.5, -3.5], [3.5, -4.2], [8, -1.6], [16.5, 0.4], [21.2, 2.8], [21.6, 7], [-6.4, 7], [-7, 2.5]];
+export const BOOT: Poly = [[-5.8, -9.5], [4.0, -9.8], [4.6, -3.0], [8.4, -1.2], [16.8, 0.6], [21.4, 3.0], [21.8, 7], [-6.6, 7], [-7.2, 2.0]];
+export const SOLE: Poly = [[-7, 5.0], [22.2, 5.0], [22.2, 7.6], [-7, 7.6]];
 
 const up = (s: Side): string => `arm${s}.up`;
 const lo = (s: Side): string => `arm${s}.lo`;
 const zArm = (s: Side, part: "up" | "lo"): number => (s === "F" ? (part === "up" ? Z.armFup : Z.armFlo) : (part === "up" ? Z.armBup : Z.armBlo));
 const zLeg = (s: Side, part: "up" | "lo"): number => (s === "F" ? (part === "up" ? Z.legFup : Z.legFlo) : (part === "up" ? Z.legBup : Z.legBlo));
 const zFoot = (s: Side): number => (s === "F" ? Z.footF : Z.footB);
-const fk = (pts: Poly): Pt[] => pts.map(([x, y]) => [x * K, y * K] as Pt);
+export const fk = (pts: Poly): Pt[] => pts.map(([x, y]) => [x * K, y * K] as Pt);
 
 // ------------------------------------------------------------------------------------- tops
 

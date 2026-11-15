@@ -56,6 +56,20 @@ export const PALETTES: readonly Palette[] = [
   { top: "#8E3A2A", bottom: "#3E4A4A", shoes: "#C88A50", accent: "#E0C080" },
   { top: "#D2B46A", bottom: "#4A3A2C", shoes: "#1E1A16", accent: "#B0582A" },
 ];
+/** The content pack's further skin tones, hair colours and clothing palettes (the full
+ *  LOOK_SPACE: 8 skins, 8 hair colours, 12 palettes), all under the same sodium light. */
+export const SKIN_MORE = ["#D9935A", "#B06A38", "#7E4628", "#5C3220"] as const;
+export const HAIR_COLOUR_MORE = ["#3A2418", "#6E625A", "#A8742E", "#6A2A16"] as const;
+export const PALETTES_MORE: readonly Palette[] = [
+  { top: "#2E5A5E", bottom: "#3A3430", shoes: "#1E1A16", accent: "#C35E26" },
+  { top: "#5A3A28", bottom: "#2C3A3C", shoes: "#6A4A30", accent: "#E0A060" },
+  { top: "#A84A2A", bottom: "#2A2420", shoes: "#D8C8A8", accent: "#F0D090" },
+  { top: "#3E4A3A", bottom: "#5A4A34", shoes: "#3A2A1C", accent: "#B8352A" },
+  { top: "#C8A050", bottom: "#3A4A4A", shoes: "#1E1A16", accent: "#5A2A1E" },
+  { top: "#6A2A26", bottom: "#4E4436", shoes: "#2A1A0E", accent: "#D2B46A" },
+  { top: "#1E3438", bottom: "#6E5632", shoes: "#8C5E30", accent: "#E8923E" },
+  { top: "#8C6A4A", bottom: "#2E2A26", shoes: "#C88A50", accent: "#3A2A20" },
+];
 /** Fixed colours of the other slots. */
 export const FIXED: Readonly<Record<"metal" | "wood" | "white" | "ink", string>> = {
   metal: "#E8B07A",       // steel under a sodium lamp
@@ -101,8 +115,8 @@ export const ALLEY = {
 /** Every colour this file defines, for the "every fill is a palette slot" test. */
 export function allColours(): Set<string> {
   const out = new Set<string>([INK, TEAL, TEAL_DEEP, DOT, LAMP, GLOW, GLOW_HOT, FLASH, GROUND_SHADOW,
-    ...SKIN, ...HAIR_COLOUR, ...Object.values(FIXED), ...Object.values(FX), ...Object.values(ICON), ...Object.values(ALLEY)]);
-  for (const p of PALETTES) for (const c of Object.values(p)) out.add(c);
+    ...SKIN, ...HAIR_COLOUR, ...SKIN_MORE, ...HAIR_COLOUR_MORE, ...Object.values(FIXED), ...Object.values(FX), ...Object.values(ICON), ...Object.values(ALLEY)]);
+  for (const p of [...PALETTES, ...PALETTES_MORE]) for (const c of Object.values(p)) out.add(c);
   for (const c of Object.values(COMPANION_COLOURS)) for (const v of Object.values(c)) out.add(v);
   return new Set([...out].map((c) => c.toUpperCase()));
 }

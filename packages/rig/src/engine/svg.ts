@@ -10,7 +10,7 @@ import type { SlotColours } from "../gate/style";
 import { FIXED, ICON, INK, LINE, TEAL, TEAL_DEEP, shadeOf, slotColour } from "../gate/style";
 import { bbox, dPoly, ellipsePoly, parsePolys } from "../gate/vocab";
 import type { Xf } from "./pose";
-import { frames, modelOf } from "./pose";
+import { frames, modelOf, mul, scaleXf } from "./pose";
 import { sampleRaw } from "./sample";
 
 const n2 = (v: number): string => String(Math.round(v * 1000) / 1000);
@@ -46,6 +46,10 @@ export function portraitArt(looks: AppearanceSet, look: Look, rig: RigDef, idle:
     ...wrap(looks.heads, look.head), ...wrap(looks.hair, look.hair), ...(faces["neutral" as FaceId] ?? []),
     ...wrap(looks.accessories, look.accessory),
   ];
+  // the build shows in the bust as it does on the stage: the trunk and the arms drawn wider or
+  // narrower (the engine's `kx` per bone), so a stocky fighter's card is not a lean one's
+  const build = wrap(looks.builds, look.build);
+  const kxOf = (b: string): number => (b === "torso" || b === "pelvis" ? build.torso : /^(arm|leg)[FB]\.(up|lo)$/.test(b) ? build.limb : 1);
   const head = fr[model.index.get("head") ?? 0]!;
   const cx = head.e + 2.4;
   const cy = head.f - 7;
@@ -57,7 +61,7 @@ export function portraitArt(looks: AppearanceSet, look: Look, rig: RigDef, idle:
     parts: [
       { d: dPoly([[x0, y0], [x0 + box, y0], [x0 + box, y0 + box], [x0, y0 + box]]), fill: TEAL_DEEP },
       { d: dPoly(ellipsePoly(x0 + box * 0.28, y0 + box * 0.3, box * 0.42, box * 0.42, 20)), fill: TEAL },
-      ...partsOf(shapes, (b) => { const i = model.index.get(b); return i === undefined ? undefined : fr[i]; }, (s) => slotColour(s, colours), 0.9),
+      ...partsOf(shapes, (b) => { const i = model.index.get(b); return i === undefined ? undefined : kxOf(b) === 1 ? fr[i] : mul(fr[i]!, scaleXf(kxOf(b), 1)); }, (s) => slotColour(s, colours), 0.9),
     ],
   };
 }
@@ -67,7 +71,16 @@ export function companionPortraitArt(id: CompanionId, art: CompanionArt, colours
   const idle = art.clips.idle;
   const raw = sampleRaw(model, idle, 0);
   const fr = frames(model, raw.rot, 0, 0);
-  const polys = art.shapes.flatMap((s) => {
+  // a pet drawn frame by frame puts its body on "bone@N" shapes: show the frame the idle pose
+  // stands in (the "frame" bone's angle rounded), as the canvas does, and drop the others
+  const fi = model.index.get("frame");
+  const frame = fi === undefined ? 0 : Math.round(raw.rot[fi] ?? 0);
+  const shapes = art.shapes.flatMap((s): Shape[] => {
+    const at = s.bone.indexOf("@");
+    if (at < 0) return [s];
+    return Number(s.bone.slice(at + 1)) === frame ? [{ ...s, bone: s.bone.slice(0, at) }] : [];
+  });
+  const polys = shapes.flatMap((s) => {
     const i = model.index.get(s.bone);
     if (i === undefined) return [];
     const m = fr[i]!;
@@ -82,7 +95,7 @@ export function companionPortraitArt(id: CompanionId, art: CompanionArt, colours
     viewBox: `${n2(cx - size / 2)} ${n2(cy - size / 2)} ${n2(size)} ${n2(size)}`,
     parts: [
       { d: dPoly([[cx - size / 2, cy - size / 2], [cx + size / 2, cy - size / 2], [cx + size / 2, cy + size / 2], [cx - size / 2, cy + size / 2]]), fill: TEAL_DEEP },
-      ...partsOf(art.shapes, (b) => { const i = model.index.get(b); return i === undefined ? undefined : fr[i]; }, (s) => (s === "white" ? FIXED.white : slotColour(s, colours)), size / 40),
+      ...partsOf(shapes, (b) => { const i = model.index.get(b); return i === undefined ? undefined : fr[i]; }, (s) => (s === "white" ? FIXED.white : slotColour(s, colours)), size / 40),
     ],
   };
 }

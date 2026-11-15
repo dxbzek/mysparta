@@ -96,13 +96,15 @@ export function goose(): PetArt & { anatomy: Anatomy } {
   // the body traced from a CC0 photograph of a walking goose (traced-torsos.ts); the tail's own feathers
   a.fill("body", GOOSE_TORSO, "skin", 20.05);
   a.ink("tail", [[[-10.5, -13.6], [-13.5, -14.4]], [[-10.8, -12.6], [-13.0, -13.0]]], 0.18, 20.06);
-  // the neck: three overlapping pieces, each cut on a slant at its base (back side higher) so the
-  // lit side runs on unbroken; the head's back covers the top of the last
+  // the neck: three overlapping pieces, each lower one laid OVER the one above it and its top cut
+  // on a slant that faces the lamp (front side higher), so where two pieces meet the only edge
+  // showing is a lit one: the neck shades as one tube (no dark band at every joint, owner review
+  // 15 Nov 2026: "zebra" neck). The head's back covers the top of the last.
   const pieces = ["neck1", "neck2", "neck3"];
   pieces.forEach((id, k) => {
     const i0 = NECK_JOINT[k]!;
     const i1 = NECK_JOINT[k + 1]!;
-    a.fill(id, neckPiece(k === 0 ? 0 : i0 - 1, Math.min(NECK.length - 1, i1 + 1), k > 0), "skin", 20.1 + k * 0.05);
+    a.fill(id, neckPiece(k === 0 ? 0 : i0 - 1, Math.min(NECK.length - 1, i1 + 1), k < pieces.length - 1), "skin", 20.2 - k * 0.05);
   });
   a.fill("jaw", [[9.0, -25.2], [12.4, -25.1], [12.2, -26.6], [9.2, -26.6]], "ink", 20.27);                                    // inside the bill
   a.fill("jaw", S([[8.7, -25.25], [10.5, -25.05], [12.6, -24.95], [12.7, -24.6], [11.0, -24.25], [9.2, -24.3]], 3), "accent", 20.28);
@@ -121,8 +123,8 @@ export function goose(): PetArt & { anatomy: Anatomy } {
   wing("wingF", [0, 0], 45, false);
 
   function neckPiece(i0: number, i1: number, slant: boolean): Pt[] {
-    // offset the centre line both ways by the half width; at a slanted base the back edge starts
-    // higher up the neck than the front edge
+    // offset the centre line both ways by the half width; at a slanted top the back edge stops
+    // one span short of the front edge, so the cut faces up and back, toward the lamp
     const side = (sign: number): Pt[] => {
       const out: Pt[] = [];
       const pts = line(NECK.slice(i0, i1 + 1), 4);
@@ -140,8 +142,8 @@ export function goose(): PetArt & { anatomy: Anatomy } {
     };
     const front = side(-1);   // +x side for a neck going up
     const back = side(1);
-    const skip = slant ? 4 : 0;   // the back edge starts one span later
-    const b = back.slice(skip);
+    if (slant) return [...front, ...back.slice(0, back.length - 4).reverse()];
+    const b = back;
     const top = NECK[i1]!;
     const tw = NECK_W[i1]! * 0.94;
     const cap: Pt[] = [];

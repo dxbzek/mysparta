@@ -1,8 +1,12 @@
 /**
- * The boar, drawn from life (15 Nov 2026). A wild boar, not a farm pig: massive forequarters
- * under a bristled shoulder hump and mane, a narrow sloping rump, a long wedge head ending in the
- * snout disc, up-curved tusks, small erect ears, short thin legs on hooves. About 41% of a
- * fighter's height (35 of 84; the owner's cap is 45%).
+ * The boar, drawn from life (15 Nov 2026; redrawn after the review of the same day: "reads as a
+ * hyena", long thin legs, a lean barrel). A wild boar, not a farm pig and not a hyena: a deep,
+ * heavy barrel whose belly hangs low (the legs show for only about 37% of the shoulder height),
+ * massive forequarters under a bristled hump and a ridge of bristles down the back, a rounded rump
+ * nearly as high as the back, a big wedge head carried low (straight brow line to the snout disc,
+ * deep jowls), up-curved tusks, small erect ears, short legs on small hooves. Side-view proportions
+ * checked against wild boar photographs: body about 1.6 times the shoulder height, the snout at
+ * about a third of it. About 40% of a fighter's height (the owner's cap is 45%).
  *
  * It stands on the tips of its toes (unguligrade): the hind `.paw` is cannon, pastern and hoof
  * from the hock down, the fore `.paw` the same from the knee (the wrist). Stifle forward, hock
@@ -18,7 +22,6 @@ import type { Anatomy, Hi } from "./anatomy";
 import { band, ellipse, line, poseFrom, profile, sampleClip as sampleBones, smooth, sn, track } from "./anatomy";
 import type { PetArt } from "./kind";
 import { floorClamp, mv, quadSkeleton } from "./quad-build";
-import { BOAR_TORSO } from "./traced-torsos";
 import { topEdge } from "./frames";
 import { gaitOf } from "./quad";
 
@@ -34,10 +37,20 @@ const G = 1.16;
 const fitP = (p: Pt): Pt => [(p[0] + 1.5) * G, p[1] * G];   // the place a little behind the middle, under the heavy front
 const FAR: Pt = [0.8, 0];
 export const BOAR_ANGLES = { hind: -12, fore: -10 } as const;
+/** The barrel, drawn by hand: hump over the shoulders, a back that runs on nearly level to a
+ *  round rump, the belly low and deep (y -10 at the lowest, floor 0), the chest full in front. */
+const BOAR_BODY: Pt[] = smooth([[-15.6, -22.4], [-11, -23.4], [-6, -24.2], [-1, -25.4], [3, -26.6], [7, -26.4], [10.6, -24.8], [13.6, -22.2],
+  [15.2, -18.8], [14.8, -14.8], [12.8, -11.4], [9, -9.9], [4, -9.5], [-1, -9.7], [-6, -10.1], [-10, -10.8], [-13.6, -12.2], [-16.4, -14.8],
+  [-17.6, -18.0], [-17.2, -21.0]], 4);
+/** The head is drawn a little larger than the first drawing and carried lower: this maps the
+ *  first drawing's head points (and the head, jaw and ear joints) to where they are now. */
+const HJ: Pt = [14.5, -18.5];
+const HD = (p: Pt): Pt => [HJ[0] + (p[0] - HJ[0]) * 1.12 - 0.7, HJ[1] + (p[1] - HJ[1]) * 1.12 + 3.2];
+const hd = (pts: readonly Pt[]): Pt[] => pts.map(HD);
 
 export function boar(): PetArt & { anatomy: Anatomy } {
   const a = quadSkeleton({
-    body: [-1, -20], hips: [-6, -20.5], chest: [4, -21], neck: [11, -20], head: [14.5, -18.5], jaw: [19, -14.4], ear: [14.6, -22.8],
+    body: [-1, -18], hips: [-6, -18.5], chest: [4, -19], neck: [11.4, -18.6], head: HD(HJ), jaw: HD([19, -14.4]), ear: HD([14.6, -22.8]),
     tail: [[-16.2, -20.2], [-16.9, -17.8], [-17.2, -15.6]],
     hind: [[-11, -16.5], [-7.2, -11.2], [-11.0, -6.4]], fore: [[9, -16], [6.6, -10.6], [7.6, -5.2]],
     hindAngle: BOAR_ANGLES.hind, foreAngle: BOAR_ANGLES.fore, far: FAR,
@@ -47,15 +60,18 @@ export function boar(): PetArt & { anatomy: Anatomy } {
   const S = (pts: Pt[], per = 4): Pt[] => smooth(pts, per);
   const hindParts = (n: string, d: Pt, z: number, far: boolean): void => {
     const sh = far ? true : undefined;
-    a.fill(`${n}.up`, mv(S([[-8, -21], [-5.6, -17.4], [-5.4, -13.4], [-6.4, -11.0], [-8.6, -11.2], [-12, -12.6], [-15.2, -14.6], [-15.8, -17.6], [-13.4, -20.6]]), d), "skin", z, sh);
+    // the ham: heavy, but held under the line of the back (a box up to the spine read as a hyena's)
+    const ham: Pt[] = [[-8, -21], [-5.6, -17.4], [-5.4, -13.4], [-6.4, -11.0], [-8.6, -11.2], [-12, -12.6], [-15.2, -14.6], [-15.8, -17.6], [-13.4, -20.6]];
+    a.fill(`${n}.up`, mv(S(ham.map(([x, y]) => [x, -11 + (y + 11) * 0.8] as Pt)), d), "skin", z, sh);
     a.fill(`${n}.lo`, mv(S([[-5.8, -12.4], [-6.8, -10.6], [-9.2, -8.0], [-10.6, -6.6], [-11.8, -6.0], [-12.1, -7.2], [-10.7, -9.4], [-8.9, -11.8], [-7.4, -13.0]]), d), "skin", z + 0.1, sh);
     a.fill(`${n}.paw`, mv(floorClamp([[-11.9, -6.9], [-10.4, -6.9], [-10.0, -3.2], [-9.6, -1.9], [-8.9, -0.9], [-8.5, 0.2], [-10.5, 0.2], [-10.7, -1.2], [-11.1, -2.6], [-11.7, -4.6]]), d), "hair", z + 0.2, sh);
     if (!far) a.ink(`${n}.paw`, [[[-9.6, -0.9], [-9.5, 0.1]], [[-10.6, -2.4], [-9.6, -2.2]]], 0.2, z + 0.25, false);
   };
   const foreParts = (n: string, d: Pt, z: number, far: boolean): void => {
     const sh = far ? true : undefined;
-    a.fill(`${n}.up`, mv(S([[10.6, -18], [11.2, -14.4], [9.6, -11.6], [7.6, -9.8], [5.6, -10.2], [5.4, -12.4], [6.6, -15.4], [8.4, -18.4]]), d), "skin", z, sh);
-    a.fill(`${n}.lo`, mv(S([[7.7, -11.0], [8.2, -8.0], [8.4, -5.6], [7.0, -5.0], [6.6, -7.6], [6.0, -10.4]]), d), "skin", z + 0.1, sh);
+    // the shoulder: a broad mass under the hump, then a short, stout forearm
+    a.fill(`${n}.up`, mv(S([[11.6, -19.6], [12.2, -15.4], [10.4, -11.8], [8.2, -9.8], [5.8, -10.0], [5.0, -13.0], [6.0, -16.8], [8.4, -20.2]]), d), "skin", z, sh);
+    a.fill(`${n}.lo`, mv(S([[8.2, -11.0], [8.7, -8.0], [8.8, -5.6], [6.8, -5.0], [6.2, -7.6], [5.6, -10.4]]), d), "skin", z + 0.1, sh);
     a.fill(`${n}.paw`, mv(floorClamp([[6.9, -5.7], [8.5, -5.7], [8.7, -3.0], [9.1, -1.7], [9.9, -0.8], [10.1, 0.2], [8.0, 0.2], [7.6, -1.4], [7.2, -3.2]]), d), "hair", z + 0.2, sh);
     if (!far) a.ink(`${n}.paw`, [[[9.0, -0.8], [9.0, 0.1]], [[7.4, -2.6], [8.6, -2.6]]], 0.2, z + 0.25, false);
   };
@@ -65,36 +81,38 @@ export function boar(): PetArt & { anatomy: Anatomy } {
   a.fill("tail1", band([[-15.8, -20.4], [-16.6, -19.0], [-16.9, -17.6]], 0.55, 0.45), "skin", 19.9);
   a.fill("tail2", band([[-16.8, -17.9], [-17.1, -16.6], [-17.2, -15.4]], 0.45, 0.4), "skin", 19.8);
   a.fill("tail3", S([[-17.2, -16.0], [-16.4, -15.0], [-16.6, -13.2], [-17.4, -12.6], [-18.0, -13.4], [-17.9, -15.0]], 3), "hair", 19.7);
-  a.fill("ear", [[14.6, -22.6], [14.6, -25.6], [15.8, -26.6], [17.0, -24.2], [16.8, -22.4]], "hair", 19.5, true);
-  // body masses: narrow rump under barrel under the great forequarters under the neck and head
-  // the torso traced from Muybridge's sow (plate 674), shoulders raised into a boar's hump (traced-torsos.ts)
-  a.fill("body", BOAR_TORSO, "skin", 20.1);
-  a.ink("body", [line([[-8, -20], [-7, -16]]), line([[-4, -21], [-3.2, -16.6]]), line([[0, -22], [0.6, -17.6]]), line([[4, -22.4], [4.6, -17.6]]), line([[8, -22.6], [8.6, -17.8]]),
-    line([[-12.4, -15.4], [-6, -13.4], [-1, -13.0]])], 0.28, 20.15);
-  // the mane: a bristled crest along the traced back, tallest over the hump
-  const back = topEdge(BOAR_TORSO, -12, 13, 26);
-  const crest: Pt[] = back.map(([x, y], k) => [x, y - (k % 2 === 0 ? 1.4 + 1.2 * Math.exp(-((x - 5) ** 2) / 50) : 0.2)] as Pt);
-  a.fill("body", [...crest, ...back.reverse().map(([x, y]) => [x, y + 1.6] as Pt)], "hair", 20.25);
-  a.fill("head", ellipse(13.6, -18.8, 3.6, 5.6, -10, 16), "skin", 20.3);   // the neck root over the cut
-  a.fill("ear", [[13.6, -22.4], [13.4, -26.0], [15.0, -27.0], [16.4, -24.4], [16.0, -22.4]], "hair", 20.35);
-  a.fill("ear", [[14.2, -23.0], [14.2, -25.4], [15.0, -26.0], [15.6, -24.0]], "accent", 20.355);
-  a.fill("jaw", [[18.6, -14.6], [26.4, -13.0], [26.2, -15.6], [18.8, -16.6]], "ink", 20.37);
-  a.fill("jaw", S([[18.6, -14.7], [22.4, -13.9], [24.6, -13.4], [26.6, -12.7], [26.1, -11.8], [22.0, -11.9], [19.0, -12.8]], 3), "skin", 20.38);
-  a.fill("jaw", [[23.4, -13.4], [24.2, -13.6], [24.8, -15.2], [24.5, -16.0], [24.0, -15.0]], "white", 20.385);   // lower tusk
-  a.fill("head", S([[13.2, -22.6], [15.4, -24.0], [17.6, -23.2], [20.6, -20.6], [24.4, -17.4], [27.2, -15.2], [27.85, -13.6], [27.4, -12.5], [25.6, -12.65], [22.4, -13.4], [19.2, -14.2], [16.2, -14.6], [13.8, -15.8], [12.8, -19]]), "skin", 20.4);
-  a.fill("head", S([[13.4, -22.4], [15.4, -23.8], [17.6, -23.0], [19.4, -21.4], [16.8, -21.0], [14.4, -20.6]], 3), "hair", 20.41);
-  a.fill("head", ellipse(27.65, -13.9, 0.75, 1.35, 0, 12), "accent", 20.42);                                       // snout disc
-  a.inkFill("head", ellipse(27.75, -14.4, 0.2, 0.32, 0, 8), 20.43);
-  a.inkFill("head", ellipse(27.75, -13.3, 0.2, 0.32, 0, 8), 20.43);
-  a.fill("head", [[23.4, -13.1], [24.8, -13.25], [25.9, -15.6], [25.7, -17.2], [25.0, -15.7], [24.1, -13.9]], "white", 20.44);   // upper tusk
-  a.inkFill("head", ellipse(18.4, -19.5, 0.38, 0.32, 0, 8), 20.45);
-  a.ink("head", [[[17.2, -20.6], [19.6, -19.9]]], 0.38, 20.46);                                                      // brow
-  a.ink("head", [line([[20.4, -17.8], [22.6, -16.4], [24.6, -15.4]]), line([[19.6, -16.4], [21.6, -15.4]])], 0.22, 20.46);   // wrinkles
-  a.ink("head", [[[16.2, -21.6], [17.6, -18.6]]], 0.2, 20.47);                                                       // scar
+  a.fill("ear", hd([[14.6, -22.6], [14.6, -25.6], [15.8, -26.6], [17.0, -24.2], [16.8, -22.4]]), "hair", 19.5, true);
+  // the barrel, then the bristles: a coat line along the flank and belly, hatching on the shoulder
+  a.fill("body", BOAR_BODY, "skin", 20.1);
+  a.ink("body", [line([[-14.6, -14.2], [-10.6, -12.4], [-5, -11.6], [1, -11.4], [6, -11.6]]), line([[6.6, -22.6], [7.6, -19.4]]), line([[9.2, -22.2], [10.0, -19.6]]),
+    line([[4.2, -23.0], [4.8, -20.6]]), line([[-13.6, -20.8], [-12.6, -18.4]])], 0.26, 20.15);
+  // the bristle ridge: a dark crest down the whole back, long and spiky over the neck and the hump,
+  // short over the loin and the rump (a wild boar's dorsal mane)
+  const back = topEdge(BOAR_BODY, -14, 14, 30);
+  const crest: Pt[] = back.map(([x, y], k) => [x, y - (k % 2 === 0 ? 0.6 + 1.6 * Math.exp(-((x - 7) ** 2) / 40) : 0.1)] as Pt);
+  a.fill("body", [...crest, ...back.reverse().map(([x, y]) => [x, y + 1.3 + 0.6 * Math.exp(-((x - 7) ** 2) / 40)] as Pt)], "hair", 20.25);
+  a.fill("head", hd(ellipse(13.6, -18.8, 3.6, 5.6, -10, 16)), "skin", 20.3);   // the neck root over the cut
+  a.fill("ear", hd([[13.6, -22.4], [13.4, -26.0], [15.0, -27.0], [16.4, -24.4], [16.0, -22.4]]), "hair", 20.35);
+  a.fill("ear", hd([[14.2, -23.0], [14.2, -25.4], [15.0, -26.0], [15.6, -24.0]]), "accent", 20.355);
+  a.fill("jaw", hd([[18.6, -14.6], [26.4, -13.0], [26.2, -15.6], [18.8, -16.6]]), "ink", 20.37);
+  a.fill("jaw", hd(S([[18.0, -15.0], [22.4, -13.9], [24.6, -13.4], [26.6, -12.7], [26.1, -11.8], [22.0, -11.6], [18.6, -12.2], [16.6, -13.4]], 3)), "skin", 20.38);   // a deep lower jaw
+  a.fill("jaw", hd([[23.4, -13.4], [24.2, -13.6], [24.8, -15.2], [24.5, -16.0], [24.0, -15.0]]), "white", 20.385);   // lower tusk
+  // the head: a straight brow line from the poll to the snout, deep jowls behind the mouth
+  a.fill("head", hd(S([[13.0, -22.8], [15.4, -24.0], [17.8, -23.0], [20.8, -20.6], [24.4, -17.6], [27.2, -15.3], [27.85, -13.6], [27.4, -12.5], [25.6, -12.65], [22.4, -13.2],
+    [19.0, -13.4], [16.4, -13.2], [13.6, -14.8], [12.4, -19]])), "skin", 20.4);
+  a.fill("head", hd(S([[13.4, -22.6], [15.4, -23.8], [17.6, -23.0], [19.4, -21.4], [16.8, -21.0], [14.4, -20.6]], 3)), "hair", 20.41);
+  a.fill("head", hd(ellipse(27.65, -13.9, 0.75, 1.35, 0, 12)), "accent", 20.42);                                       // snout disc
+  a.inkFill("head", hd(ellipse(27.75, -14.4, 0.2, 0.32, 0, 8)), 20.43);
+  a.inkFill("head", hd(ellipse(27.75, -13.3, 0.2, 0.32, 0, 8)), 20.43);
+  a.fill("head", hd([[23.4, -13.1], [24.8, -13.25], [25.9, -15.6], [25.7, -17.2], [25.0, -15.7], [24.1, -13.9]]), "white", 20.44);   // upper tusk
+  a.inkFill("head", hd(ellipse(18.4, -19.5, 0.38, 0.32, 0, 8)), 20.45);
+  a.ink("head", [hd([[17.2, -20.6], [19.6, -19.9]])], 0.38, 20.46);                                                      // brow
+  a.ink("head", [hd(line([[20.4, -17.8], [22.6, -16.4], [24.6, -15.4]])), hd(line([[19.6, -16.4], [21.6, -15.4]])), hd(line([[15.2, -16.8], [17.4, -14.6]]))], 0.22, 20.46);   // wrinkles, jowl
+  a.ink("head", [hd([[16.2, -21.6], [17.6, -18.6]])], 0.2, 20.47);                                                       // scar
   hindParts("hindF", [0, 0], 40, false);
   foreParts("foreF", [0, 0], 41, false);
   a.settleFeet();
-  return { rig: a.rig("boar", 35), shapes: a.shapes, clips: clips(a), anatomy: a };
+  return { rig: a.rig("boar", 32), shapes: a.shapes, clips: clips(a), anatomy: a };
 }
 
 function clips(a: Anatomy): Record<CompanionClip, Clip> {

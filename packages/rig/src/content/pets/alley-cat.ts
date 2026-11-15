@@ -12,7 +12,7 @@ import { Anatomy, band, ellipse, line, smooth } from "./anatomy";
 import type { PetArt } from "./kind";
 import { CAT_GALLOP, CAT_TROT } from "./cat-frames";
 import type { Beat, Frame } from "./frames";
-import { addFrames, addTagged, framesClip } from "./frames";
+import { addFrames, addLitLegs, addTagged, framesClip } from "./frames";
 
 /** The head joint over the floor when standing. */
 const HEAD_Y = 14.5;
@@ -30,16 +30,45 @@ const hind = (dx: number, floor: number): Pt[] => mv(S([[-19.0, 1.6], [-17.6, 6.
   [-19.6, floor], [-23.4, floor], [-23.6, floor - 4.8], [-25.4, 7.4], [-26.4, 3.8], [-25.4, 0.6]], 3), dx);
 /** Standing (frame 12): the floor 14.5 under the head joint, the back level, the tail low. */
 const STAND: Frame = { lift: 0, body: [S([[1.0, -1.2], [-3, -1.8], [-8, -2.0], [-14, -2.2], [-20, -2.8], [-24.6, -2.4], [-26.6, -0.4], [-26.8, 2.6],
-  [-25, 5.2], [-21, 5.8], [-16, 5.0], [-11, 5.6], [-6.4, 6.4], [-2.6, 5.2], [-0.6, 2.8]]), fore(0, 14.5), hind(0, 14.5)], shade: [fore(-1.8, 14.5), hind(1.6, 14.5)] };
+  [-25, 5.2], [-21, 5.8], [-16, 5.0], [-11, 5.6], [-6.4, 6.4], [-2.6, 5.2], [-0.6, 2.8]]), fore(-1.8, 14.5), hind(1.6, 14.5), fore(0, 14.5), hind(0, 14.5)],
+  shade: [fore(-1.8, 14.5), hind(1.6, 14.5)] };
 /** The arched back of a cat squaring up (frame 13): stiff legs, the spine humped high, sideways on. */
 const ARCH: Frame = { lift: 0, body: [S([[1.0, -0.6], [-2.6, -3.0], [-7, -6.6], [-12, -8.4], [-17, -7.6], [-21.6, -4.6], [-25.0, -1.4], [-26.2, 2.4],
-  [-24.6, 5.2], [-21, 4.0], [-16, 1.6], [-11, 1.6], [-6, 4.4], [-2.8, 5.2], [-0.6, 2.8]]), fore(0, 14.5), mv(hind(0, 14.5), 1.0)], shade: [fore(-1.8, 14.5), mv(hind(1.6, 14.5), 1.0)] };
+  [-24.6, 5.2], [-21, 4.0], [-16, 1.6], [-11, 1.6], [-6, 4.4], [-2.8, 5.2], [-0.6, 2.8]]), fore(-1.8, 14.5), mv(hind(1.6, 14.5), 1.0), fore(0, 14.5), mv(hind(0, 14.5), 1.0)],
+  shade: [fore(-1.8, 14.5), mv(hind(1.6, 14.5), 1.0)] };
 /** Lying on its side, the legs out (frame 14): the floor 6 under the head joint. */
 const LIE: Frame = { lift: 0, body: [S([[1.2, -0.6], [-4, -1.2], [-10, -1.4], [-17, -1.0], [-23, -0.2], [-26.4, 2.0], [-26.6, 5.0], [-22, 6], [-12, 6], [-4, 6], [0, 4.6]]),
   S([[-3.0, 3.8], [3.6, 4.6], [6.4, 5.2], [6.6, 6], [-3.0, 6]], 3), S([[-24, 3.4], [-30, 4.6], [-33, 5.2], [-33.2, 6], [-24, 6]], 3)] };
 const FRAMES: readonly Frame[] = [...CAT_TROT, ...CAT_GALLOP, STAND, ARCH, LIE];
 export const CAT_FRAME = { trot: [0, 1, 2, 3, 4, 5], gallop: [6, 7, 8, 9, 10, 11], stand: 12, arch: 13, lie: 14 } as const;
 const HAND = [CAT_FRAME.stand, CAT_FRAME.arch, CAT_FRAME.lie];
+
+/** The body's top and bottom edge at x: the highest crossing of the silhouette and the next one
+ *  below it (the belly, not a leg further down). */
+function depthAt(f: Frame, x: number): [number, number] | null {
+  const ys: number[] = [];
+  for (const poly of f.body) poly.forEach((p, i) => {
+    const q = poly[(i + 1) % poly.length]!;
+    if ((p[0] - x) * (q[0] - x) <= 0 && p[0] !== q[0]) ys.push(p[1] + ((q[1] - p[1]) * (x - p[0])) / (q[0] - p[0]));
+  });
+  ys.sort((u, v) => u - v);
+  return ys.length >= 2 ? [ys[0]!, ys[1]!] : null;
+}
+/** Four tabby stripes on a frame, at the same places on the body as the drawn frames'. */
+export function tabbyStripes(f: Frame): Pt[][] {
+  const out: Pt[][] = [];
+  for (const x of [-8, -12, -16, -20]) {
+    const top = depthAt(f, x);
+    const low = depthAt(f, x + 1.0);
+    if (top === null || low === null) continue;
+    const deep = top[1] - top[0];
+    if (deep < 2.5 || deep > 12) continue;   // not the torso here (a leg, the tail)
+    const y0 = top[0] - 0.3;
+    const y1 = Math.min(low[0] + 0.58 * deep, low[1] - 0.8);
+    out.push([[x, y0], [x + 1.0, y1], [x + 0.3, y1], [x - 0.8, y0]]);
+  }
+  return out;
+}
 
 export function alleyCat(): PetArt & { anatomy: Anatomy } {
   const rest: Rot = { body: 0, frame: 0, head: 0, jaw: 0, ear: 0, tail1: 0, tail2: 0, tail3: 0 };
@@ -60,8 +89,17 @@ export function alleyCat(): PetArt & { anatomy: Anatomy } {
   addTagged(a, "tail3", HAND, band([[-34.2, -2.0], [-35.4, -3.8], [-35.4, -5.6]], 0.85, 0.6), "skin", 19.7);
   addTagged(a, "tail3", HAND, band([[-35.4, -4.6], [-35.4, -5.6]], 0.72, 0.58), "hair", 19.72);
   addTagged(a, "tail2", HAND, ellipse(-32.6, -1.0, 0.45, 0.95, 0, 10), "hair", 19.81);
-  // tabby stripes across the standing body (the hand frames)
+  // tabby stripes across the back in every frame, so they never pop on and off between clips:
+  // the drawn standing and arched frames keep their own, every other frame gets them from its
+  // silhouette (hanging from the back line to a little past half the body's depth)
   for (const x of [-8, -12, -16, -20]) addTagged(a, "body", HAND.slice(0, 2), [[x, -2.4], [x + 1.2, 1.6], [x + 0.4, 1.6], [x - 0.8, -2.4]], "hair", 20.02);
+  // the near legs of the standing and arched cat keep a lit front (the far ones stay in shadow)
+  addLitLegs(a, [CAT_FRAME.stand], [[STAND.body[3]!, -9], [STAND.body[4]!, -9]]);
+  addLitLegs(a, [CAT_FRAME.arch], [[ARCH.body[3]!, -9], [ARCH.body[4]!, -9]]);
+  FRAMES.forEach((f, n) => {
+    if (n === CAT_FRAME.stand || n === CAT_FRAME.arch) return;
+    for (const st of tabbyStripes(f)) addTagged(a, "body", [n], st, "hair", 20.02);
+  });
   // head: the far ear, the near ear (notched), then the head
   a.fill("ear", [[2.6, -2.2], [3.4, -6.4], [5.0, -2.4]], "skin", 19.5, true);
   a.fill("head", ellipse(-0.4, 0.8, 2.6, 2.9, -15, 14), "skin", 20.3);                                                      // neck root over the cut
