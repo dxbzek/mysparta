@@ -9,8 +9,12 @@
  *
  * Sources: free sound packs with a clear licence (CC0 or CC BY), each fetched from its own page
  * on OpenGameArt and pinned by SHA-256. `PACKS` holds the page, author, licence and fetch date
- * of every pack; CREDITS.md has the same rows. No pack is ripped game audio, a paid pack or
- * AI-generated sound.
+ * of every pack; CREDITS.md has the same rows. No pack is ripped game audio or AI-generated sound.
+ *
+ * Envato Elements (owner's licence, owner OK 15 Nov 2026: "use free or envato"): a pack with
+ * `local` has no URL. The owner downloads it; the build reads it from --local <dir> (default
+ * D:/Downloads), checks its SHA-256 and unpacks it. Only short cut clips go into the sprite; the
+ * source files never enter the repo.
  *
  * The sprite holds named sound sets (`SETS`): one per weapon, shield or pet where an own sound
  * fits, else one per material group (owner, 15 Nov 2026: "it depends on the weapon too"). The web
@@ -48,6 +52,7 @@ const arg = (name) => {
 };
 const OUT = resolve(arg("out") ?? join(ROOT, "apps/web/public/audio"));
 const SRC = resolve(arg("src") ?? join(tmpdir(), "rankzero-audio-src-v2"));
+const LOCAL = resolve(arg("local") ?? "D:/Downloads");
 const RATE = 44100;
 const BITRATE = "64k";
 const GAP_MS = 50;
@@ -57,6 +62,7 @@ const PEAK = 10 ** (-1 / 20);            // -1 dBFS
 const OGA = "https://opengameart.org/sites/default/files/";
 const CC0 = { licence: "CC0 1.0", licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/" };
 const BY3 = { licence: "CC BY 3.0", licenceUrl: "https://creativecommons.org/licenses/by/3.0/" };
+const ENVATO = { licence: "Envato Elements licence", licenceUrl: "https://elements.envato.com/license-terms" };
 const BY4 = { licence: "CC BY 4.0", licenceUrl: "https://creativecommons.org/licenses/by/4.0/" };
 const FETCHED = "2026-11-15";
 
@@ -99,6 +105,8 @@ export const PACKS = [
   { id: "pig2", name: "Pig SFX Pack (pig_hit2)", page: "https://opengameart.org/content/pig-sfx-pack", url: `${OGA}pig_hit2.mp3`, sha256: "bf6eea8b67053fbe2a0a62ed75fff5e59d91c931eb881d5e4a90c806e5f55ca8", author: "Vinrax", ...BY3 },
   { id: "catsfx", name: "Cat SFX (Cat 7)", page: "https://opengameart.org/content/cat-sfx", url: `${OGA}Cat%207.wav`, sha256: "80dde593cd3ea081a89373e557d9990b240de85f08bb6f852aef66512ade30a9", author: "Dan Knoflicek (Macro)", ...BY3 },
   { id: "catsfx8", name: "Cat SFX (Cat 8)", page: "https://opengameart.org/content/cat-sfx", url: `${OGA}Cat%208.wav`, sha256: "89c8edaec94f6cfc7e0e8711772085ed45c3423eed6d9a8fbcaec36403f19712", author: "Dan Knoflicek (Macro)", ...BY3 },
+  { id: "goose", name: "Goose Honks", page: "https://elements.envato.com/goose-honks-AS7EXLF", local: "goose-honks-2026-05-18-18-32-38-utc.zip", sha256: "6921519895e67f18a83f977b0b20446d8157ce386fa8740537d7770a98293a07", author: "HollywoodEdge", ...ENVATO },
+  { id: "raccoon", name: "Raccoon Snorts and Growls", page: "https://elements.envato.com/raccoon-snorts-and-growls-9A624SH", local: "raccoon-snorts-and-growls-2026-05-18-04-25-01-utc.zip", sha256: "4a939c13c43f200f4a4e9ec07760fbb430e1e45a9e681d916540e6a672d0cd47", author: "prosoundfx", ...ENVATO },
 ].map((p) => ({ fetched: FETCHED, ...p }));
 
 // [set name, max length ms, loudness target (dBFS, loudest 50 ms RMS), [variants]].
@@ -192,10 +200,10 @@ export const SETS = [
   // ---- pets
   ["voice-dog", 420, -15, ["dogsounds:Dog/Dog Bark 1.wav", "dogsounds:Dog/Dog Bark 3.wav", "dogsnarl:dog/dog-growl.flac"]],
   ["voice-crow", 450, -15, ["crowcaw:crow_caw.wav", "crow:crow.ogg"]],
-  // GAP: no free goose recording found; a squeeze-horn honk (73% 500-2k) stands in
-  ["voice-goose", 400, -16, ["bikehorn:bicycle-horn-1.wav"]],
-  // GAP: the only raccoon chatter found was cut from a third-party video; short creature chirps stand in
-  ["voice-raccoon", 360, -16, ["creature80:cute_07.ogg", "creature80:cute_08.ogg"]],
+  // goose: two real honks cut from one take (400-950 ms and 2200-2900 ms)
+  ["voice-goose", 520, -16, ["goose:GooseHonksBizarre AT085701.wav@400", "goose:GooseHonksBizarre AT085701.wav@2220"]],
+  // raccoon: a sharp snort (1600-2000 ms) and a low growl (3100-3400 ms)
+  ["voice-raccoon", 420, -16, ["raccoon:Raccoon_Snorts_and_Growls_OCP-1199-05.wav@1600", "raccoon:Raccoon_Snorts_and_Growls_OCP-1199-05.wav@3080"]],
   // boar: grunts and squeals (toy pig resampled to pig pitch; a low creature grunt 99% 150-500)
   ["voice-boar", 400, -15, ["pig:pig_hit1.mp3", "pig2:pig_hit2.mp3", "creature80:grunt_02.ogg"]],
   // cat: upset yowl and hiss (59-77% 500-2k)
@@ -237,7 +245,8 @@ function fetchPacks() {
   for (const p of PACKS) {
     const home = join(SRC, p.id);
     mkdirSync(home, { recursive: true });
-    const file = join(home, decodeURIComponent(basename(p.url)));
+    const file = p.local ? join(LOCAL, p.local) : join(home, decodeURIComponent(basename(p.url)));
+    if (p.local && !existsSync(file)) throw new Error(`${p.name}: download it from ${p.page} into ${LOCAL} (or pass --local <dir>)`);
     if (!existsSync(file)) run("curl", ["-sfL", "-A", "audio-sprite-tool", "-o", file, p.url]);
     const sum = createHash("sha256").update(readFileSync(file)).digest("hex");
     if (sum !== p.sha256) throw new Error(`${p.name}: sha256 ${sum}, expected ${p.sha256}`);

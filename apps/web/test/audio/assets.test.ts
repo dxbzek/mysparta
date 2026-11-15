@@ -56,7 +56,8 @@ describe("audio sprites", () => {
   });
 
   it("credits every pack it uses, each with an allowed licence, a page and an author", () => {
-    const allowed = new Set(["CC0 1.0", "CC BY 3.0", "CC BY 4.0"]);
+    // Envato Elements: owner-licensed, cut clips only (owner OK 15 Nov 2026)
+    const allowed = new Set(["CC0 1.0", "CC BY 3.0", "CC BY 4.0", "Envato Elements licence"]);
     const packs = new Map(map.credits.map((c) => [c.pack, c]));
     for (const c of map.credits) {
       expect(allowed.has(c.licence), `${c.pack}: ${c.licence}`).toBe(true);

@@ -77,4 +77,4 @@ On a loaded machine a red test run is rerun once before it is believed.
 
 ## Originality and licences
 
-Nothing from another game enters this repo: no code, data tables, art, sound, fonts, text or screenshots. All art is flat vector data drawn in code. Sounds and fonts must be CC0, SIL OFL 1.1, Apache 2.0, OGA-BY or CC BY with credit, and each one gets a row in [CREDITS.md](CREDITS.md). How the rules were arrived at is in [docs/PROVENANCE.md](docs/PROVENANCE.md).
+Nothing from another game enters this repo: no code, data tables, art, sound, fonts, text or screenshots. All art is flat vector data drawn in code. Sounds and fonts must be CC0, SIL OFL 1.1, Apache 2.0, OGA-BY, CC BY with credit or the Envato Elements licence (cut clips only), and each one gets a row in [CREDITS.md](CREDITS.md). How the rules were arrived at is in [docs/PROVENANCE.md](docs/PROVENANCE.md).

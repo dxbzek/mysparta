@@ -2,7 +2,7 @@
 
 Everything in the game that was not made for it is listed here, one row per file, from the day it enters the repo.
 
-Allowed licences for sounds and fonts: CC0, SIL OFL 1.1, Apache 2.0, OGA-BY, or CC BY with credit. Nothing marked NC, SA or GPL. Font licence files ship beside the fonts.
+Allowed licences for sounds and fonts: CC0, SIL OFL 1.1, Apache 2.0, OGA-BY, CC BY with credit, or the Envato Elements licence (short cut clips in the sound sprite only; the source files are not in the repo). Nothing marked NC, SA or GPL. Font licence files ship beside the fonts.
 
 ## Sounds
 
@@ -106,9 +106,8 @@ All sounds are mixed into two files by `tools/build-audio.mjs`: `apps/web/public
 | metal_sheet_03.ogg (100 CC0 metal and wood SFX) | drop-sheet | https://opengameart.org/content/100-cc0-metal-and-wood-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | crow_caw.wav (Crow caw) | voice-crow | https://opengameart.org/content/crow-caw | zeroisnotnull | CC0 1.0 | 2026-11-15 |
 | crow.ogg (Crow) | voice-crow | https://opengameart.org/content/crow | fvcalderan | CC0 1.0 | 2026-11-15 |
-| bicycle-horn-1.wav (Bicycle Horn) | voice-goose | https://opengameart.org/content/bicycle-horn | Jordan Irwin (AntumDeluge) | CC0 1.0 | 2026-11-15 |
-| cute_07.ogg (80 CC0 creature SFX) | voice-raccoon | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
-| cute_08.ogg (80 CC0 creature SFX) | voice-raccoon | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
+| GooseHonksBizarre AT085701.wav (Goose Honks) | voice-goose | https://elements.envato.com/goose-honks-AS7EXLF | HollywoodEdge | Envato Elements licence | 2026-11-15 |
+| Raccoon_Snorts_and_Growls_OCP-1199-05.wav (Raccoon Snorts and Growls) | voice-raccoon | https://elements.envato.com/raccoon-snorts-and-growls-9A624SH | prosoundfx | Envato Elements licence | 2026-11-15 |
 | pig_hit1.mp3 (Pig SFX Pack (pig_hit1)) | voice-boar | https://opengameart.org/content/pig-sfx-pack | Vinrax | CC BY 3.0 | 2026-11-15 |
 | pig_hit2.mp3 (Pig SFX Pack (pig_hit2)) | voice-boar | https://opengameart.org/content/pig-sfx-pack | Vinrax | CC BY 3.0 | 2026-11-15 |
 | grunt_02.ogg (80 CC0 creature SFX) | voice-boar | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |

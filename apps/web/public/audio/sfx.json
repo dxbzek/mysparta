@@ -593,47 +593,52 @@
    {
     "f": 1,
     "start": 25129.5,
-    "dur": 400
+    "dur": 520
+   },
+   {
+    "f": 1,
+    "start": 25699.5,
+    "dur": 520
    }
   ],
   "voice-raccoon": [
    {
     "f": 1,
-    "start": 25579.5,
-    "dur": 255
+    "start": 26269.5,
+    "dur": 420
    },
    {
     "f": 1,
-    "start": 25884.5,
-    "dur": 337.6
+    "start": 26739.5,
+    "dur": 420
    }
   ],
   "voice-boar": [
    {
     "f": 1,
-    "start": 26272.1,
+    "start": 27209.5,
     "dur": 308
    },
    {
     "f": 1,
-    "start": 26630,
+    "start": 27567.4,
     "dur": 337.2
    },
    {
     "f": 1,
-    "start": 27017.2,
+    "start": 27954.6,
     "dur": 400
    }
   ],
   "voice-cat": [
    {
     "f": 1,
-    "start": 27467.2,
+    "start": 28404.6,
     "dur": 600
    },
    {
     "f": 1,
-    "start": 28117.2,
+    "start": 29054.6,
     "dur": 539.2
    }
   ]
@@ -1393,21 +1398,28 @@
    "set": "voice-goose",
    "variant": 0,
    "files": [
-    "bikehorn:bicycle-horn-1.wav"
+    "goose:GooseHonksBizarre AT085701.wav"
+   ]
+  },
+  {
+   "set": "voice-goose",
+   "variant": 1,
+   "files": [
+    "goose:GooseHonksBizarre AT085701.wav"
    ]
   },
   {
    "set": "voice-raccoon",
    "variant": 0,
    "files": [
-    "creature80:cute_07.ogg"
+    "raccoon:Raccoon_Snorts_and_Growls_OCP-1199-05.wav"
    ]
   },
   {
    "set": "voice-raccoon",
    "variant": 1,
    "files": [
-    "creature80:cute_08.ogg"
+    "raccoon:Raccoon_Snorts_and_Growls_OCP-1199-05.wav"
    ]
   },
   {
@@ -1700,15 +1712,6 @@
    "fetched": "2026-11-15"
   },
   {
-   "pack": "bikehorn",
-   "name": "Bicycle Horn",
-   "author": "Jordan Irwin (AntumDeluge)",
-   "licence": "CC0 1.0",
-   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-   "page": "https://opengameart.org/content/bicycle-horn",
-   "fetched": "2026-11-15"
-  },
-  {
    "pack": "creature80",
    "name": "80 CC0 creature SFX",
    "author": "rubberduck",
@@ -1751,6 +1754,24 @@
    "licence": "CC BY 3.0",
    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
    "page": "https://opengameart.org/content/cat-sfx",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "goose",
+   "name": "Goose Honks",
+   "author": "HollywoodEdge",
+   "licence": "Envato Elements licence",
+   "licenceUrl": "https://elements.envato.com/license-terms",
+   "page": "https://elements.envato.com/goose-honks-AS7EXLF",
+   "fetched": "2026-11-15"
+  },
+  {
+   "pack": "raccoon",
+   "name": "Raccoon Snorts and Growls",
+   "author": "prosoundfx",
+   "licence": "Envato Elements licence",
+   "licenceUrl": "https://elements.envato.com/license-terms",
+   "page": "https://elements.envato.com/raccoon-snorts-and-growls-9A624SH",
    "fetched": "2026-11-15"
   }
  ]
