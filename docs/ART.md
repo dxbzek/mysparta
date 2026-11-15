@@ -212,8 +212,19 @@ the pole weapons poked upward, the Anvil and the Chair were swung like sticks).
   shoulder, `dir` degrees below forward), arms angled down to a level shaft, hands at the hip.
   Items held otherwise say so in their art: `FOIL_GRIP` (Umbrella, Plunger, Garden Shears, along
   the forearm), `CLUB_GRIP` (Golf Club, Hockey Stick, hanging head down), `DART_GRIP`.
-- **Pets drawn from life** (`content/pets/`, all six since 15 Nov 2026; the four-legged ones
-  share `quad-build.ts` and the gait function `quad.ts`). The rules:
+- **Pets drawn frame by frame (rotoscope)**: the stray dog since v3 (15 Nov 2026; owner: "Dog
+  doesn't look like a dog"). Its body and legs are whole silhouettes, one per drawn frame, on
+  shapes named `body@N`; the engine draws a frame's shapes only while the pet's `frame` bone
+  rounds to N (`engine/sample.ts` `frameAt`, `hullAt`; untagged shapes draw in every frame), and
+  the floor, the mouth and the hit point use that frame's own outline. Run and flee play six
+  frames traced from Muybridge's galloping hound (plate 710; `pets/dog-frames.ts` is generated
+  from the photographs: thresholded, legs lost to blur traced by hand, legs and tail thickened,
+  the head cut off); standing and lying are drawn by hand at the same proportions. Head, jaw,
+  ears and the hand-drawn tail stay on bones so they turn. Frames step, never blend: a clip's
+  `frame` key changes in two keys at one time, just before the beat. The other five pets will
+  follow this method once the dog is approved.
+- **Pets drawn from life** (`content/pets/`, the other five; the four-legged ones share
+  `quad-build.ts` and the gait function `quad.ts`). The rules:
   - Draw the animal standing, in stage units, from real anatomy (`pets/anatomy.ts`: `smooth`
     outlines through control points, placed on their bones through the rest pose). Body masses
     (hips, loin, chest, neck, head) overlap in ONE outline group, never boxes or capsules; a

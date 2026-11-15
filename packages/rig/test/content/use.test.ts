@@ -236,9 +236,9 @@ describe("pets in motion", () => {
     expect(bad).toEqual([]);
   });
   it("planted fault: a knee bent past its limit is caught", () => {
-    const a = ins.clip("stray-dog", "attack");
+    const a = ins.clip("raccoon", "attack");
     const broken: Clip = { ...a, keys: a.keys.map((k, i) => (i === 3 ? { ...k, rot: { ...k.rot, "hindF.lo": 170 } } : k)) };
-    expect(limitsAndTurns("stray-dog", "attack", broken).length).toBeGreaterThan(0);
+    expect(limitsAndTurns("raccoon", "attack", broken).length).toBeGreaterThan(0);
   });
   it("stand on the floor: the lowest point is on it unless a key lifts the animal (a leap, a hop, a flight)", () => {
     for (const id of COMPANION_IDS) for (const c of COMPANION_CLIPS) {
