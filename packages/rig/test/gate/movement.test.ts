@@ -21,7 +21,8 @@ import type { Stride } from "../../src/engine/sample";
 import { contentPack } from "../../src/content/pack";
 import { BACK_SPEED } from "../../src/gate/clips/backpedal";
 import { RUN_SPEED } from "../../src/gate/clips/dash";
-import { EVADE_CONTACT } from "../../src/gate/clips/evade";
+import { EVADE_CONTACT, EVADE_DOWN, EVADE_UP } from "../../src/gate/clips/evade";
+import { BRAKE_LAND, BRAKE_PAW, BRAKE_STOP, BRAKE_TRAVEL, PUSH_MS, RUN_JOIN, SLIP_CONTACT, SLIP_MS } from "../../src/content/clips/footwork";
 import { STANCE, jointsOf } from "../../src/gate/clips/kit";
 import { gatePack } from "../../src/gate/pack";
 import { BONE, SCRAPPER_RIG } from "../../src/gate/skeleton";
@@ -161,5 +162,89 @@ describe("movement: the head off the line at the blow", () => {
     const p = rig.samplePose(S, "punch", 0);
     const h0 = apply(frames(model, rig.samplePose(S, "punch", 0).rot, STANCE.root![0], STANCE.root![1])[BONE.head]!, 0, -8);
     expect(h0[0] - headOf(p)[0]).toBeLessThan(6);
+  });
+});
+
+/**
+ * Movement pass 2: the footwork clips the stage carries a fighter with (content/clips/footwork.ts,
+ * stage/src/footwork.ts). Their timing is the stage's (tuning.ts `FOOTWORK.fallback`, `OUTCOME`);
+ * measured on the poses, a foot on the floor holds its spot against the stage's own motion: the
+ * push-off speeding up from rest at an even rate, the brake slowing to rest at an even rate, the
+ * evade's hop carried only while both feet are off the floor. The slip takes the head down out
+ * of the line with both toes planted.
+ */
+describe("movement pass 2: the footwork clips", () => {
+  const word = (name: string): number => Number(new RegExp(`\\b${name}:\\s*([0-9.]+)`).exec(tuning)![1]);
+  /** How far the stage has carried the body by clip time `t` of a clip (units, at scale 1). */
+  const pushed = (t: number): number => (RUN_SPEED / 2) * t * t / PUSH_MS;
+  const braked = (t: number): number => {
+    const u = Math.min(1, Math.max(0, (t - BRAKE_LAND) / (BRAKE_STOP - BRAKE_LAND)));
+    return BRAKE_TRAVEL * (1 - (1 - u) * (1 - u));
+  };
+  /** The worst slide of the toes in contact over a clip, against the stage's travel `carry(t)`. */
+  function slideAgainst(clip: string, carry: (t: number) => number): number {
+    const c = ins.clip(S, clip);
+    const st = strideOf(c)!;
+    const d = c.duration;
+    let worst = 0;
+    for (const k of st.contacts) {
+      const fi = model.index.get(k.foot)!;
+      let x0: number | undefined;
+      for (let t = k.from; t < Math.min(k.to, d); t += 2) {
+        const p = rig.samplePose(S, clip, t);
+        const [x, y] = apply(frames(model, p.rot, p.root.x, p.root.y)[fi]!, k.at[0], k.at[1]);
+        expect(Math.abs(y), `${clip} ${k.foot} on the floor at ${t}`).toBeLessThan(0.5);
+        const sx = x + carry(t);
+        if (x0 === undefined) x0 = sx;
+        worst = Math.max(worst, Math.abs(sx - x0));
+      }
+    }
+    return worst;
+  }
+
+  it("the clips keep the stage's timing (tuning.ts FOOTWORK.fallback, OUTCOME.evadeUp, evadeDown)", () => {
+    expect(rig.clipInfo(S, "dash-push").durationMs).toBe(word("push"));
+    expect(PUSH_MS).toBe(word("push"));
+    expect(RUN_JOIN).toBe(word("join"));
+    expect(rig.clipInfo(S, "dash").durationMs).toBe(word("cycle"));
+    const brake = rig.clipInfo(S, "brake");
+    expect(brake.durationMs).toBe(word("brake"));
+    expect(brake.events).toEqual([{ t: word("land"), name: "land" }, { t: word("stop"), name: "step" }]);
+    expect(BRAKE_PAW).toBe(word("paw"));
+    const hop = rig.clipInfo(S, "shuffle");
+    expect(hop.durationMs).toBe(word("hop"));
+    expect(hop.events).toEqual([{ t: word("up"), name: "step" }, { t: word("down"), name: "land" }]);
+    expect(EVADE_UP).toBe(word("evadeUp"));
+    expect(EVADE_DOWN.B).toBe(word("evadeDown"));
+    expect(rig.clipInfo(S, "slip").durationMs).toBe(SLIP_MS);
+    expect(SLIP_CONTACT).toBe(EVADE_CONTACT);
+  });
+  it("the push-off's back toe drives against the body speeding up from rest: no slide", () => {
+    expect(slideAgainst("dash-push", pushed)).toBeLessThan(0.5);
+  });
+  it("the brake's feet hold against the body slowing to rest: no slide", () => {
+    expect(slideAgainst("brake", braked)).toBeLessThan(0.5);
+  });
+  it("planted fault: the brake against a body that does not slow (the run speed on) slides", () => {
+    expect(slideAgainst("brake", (t) => RUN_SPEED * Math.max(0, t - BRAKE_LAND))).toBeGreaterThan(0.5);
+  });
+  it("the shuffle, the slip and the evade hold their toes while the stage does not move them", () => {
+    expect(slideAgainst("shuffle", () => 0)).toBeLessThan(0.5);
+    expect(slideAgainst("slip", () => 0)).toBeLessThan(0.5);
+    expect(slideAgainst("evade", () => 0)).toBeLessThan(0.5);
+  });
+  it("the push-off starts on the brace's end and ends on the dash loop; the brake starts on the dash loop", () => {
+    // the legs and the trunk (the head and the free arm trail by their lag, which a one-shot clip lets go of at its end)
+    const LEGS = [BONE.pelvis, BONE.torso, BONE.legBup, BONE.legBlo, BONE.footB, BONE.legFup, BONE.legFlo, BONE.footF];
+    const same = (a: Pose, b: Pose): number => Math.max(...LEGS.map((i) => Math.abs(a.rot[i]! - b.rot[i]!)), Math.abs(a.root.y - b.root.y));
+    expect(same(rig.samplePose(S, "dash-push", PUSH_MS), rig.samplePose(S, "dash", RUN_JOIN))).toBeLessThan(1);
+    expect(same(rig.samplePose(S, "brake", 0), rig.samplePose(S, "dash", RUN_JOIN))).toBeLessThan(1);
+  });
+  it("a slip has the head 9 units or more below where it stood as the blow passes, no jump", () => {
+    const h0 = apply(frames(model, rig.samplePose(S, "slip", 0).rot, 0, rig.samplePose(S, "slip", 0).root.y)[BONE.head]!, 0, -8);
+    const p = rig.samplePose(S, "slip", SLIP_CONTACT);
+    const h = apply(frames(model, p.rot, p.root.x, p.root.y)[BONE.head]!, 0, -8);
+    expect(h[1] - h0[1]).toBeGreaterThanOrEqual(9);
+    expect(p.lift).toBe(0);
   });
 });

@@ -8,10 +8,12 @@
  * Block and evade, the skill tag, the OVERTIME sticker and the ticket tape are here too.
  */
 import type { ActorId, HeldId, MoveId, PerkId, Proc } from "@rankzero/core";
-import { impactFamily } from "@rankzero/core";
+import { WEAPON_META, impactFamily } from "@rankzero/core";
 import { toStage } from "@rankzero/rig";
 import type { EffectKey, SfxItem } from "./contracts";
 import { noise } from "./cues";
+import { drawnScale } from "./footwork";
+import { segAt } from "./track";
 import { CORAL, GREEN, INK, PAPER, SKY, VOLT, WHITE } from "./palette";
 import type { TagItem } from "./model";
 import type { Builder } from "./timeline";
@@ -147,9 +149,19 @@ export function land(b: Builder, L: Landing, ci?: number): number {
   } else if (L.outcome === "block") {
     // A shield on the back arm comes up and takes the blow (content v2); otherwise the arms do.
     const shield = b.shieldNow.get(L.target) ?? null;
+    guardUp(b, L.target, L.at);
     b.play(L.target, shield !== null && ttr.rig === "scrapper" ? "block-shield" : "block", L.at);
-    b.nudge({ actor: L.target, key: "slide", from: L.at, outMs: OUTCOME.blockSlideMs, holdMs: 120, backMs: OUTCOME.blockSlideBackMs,
-      dx: dir * OUTCOME.blockSlide, arc: 0, contact: null });
+    if (ttr.rig === "scrapper" && b.internal.easedDash !== true) {
+      // the blow drives him back 6 units (eased out); the block clip's feet step with it, the front
+      // foot holding its spot (rig content/clips/reactions.ts). He stays there and shuffles home
+      // at the next way home (footwork.ts), so no foot slides back over the floor.
+      const p = b.place(L.target, L.at);
+      b.move(L.target, L.at, OUTCOME.blockSlideMs, p.x + dir * OUTCOME.blockSlide * drawnScale(b, L.target), p.y, 0, "out");
+      b.out.add(L.target);
+    } else {
+      b.nudge({ actor: L.target, key: "slide", from: L.at, outMs: OUTCOME.blockSlideMs, holdMs: 120, backMs: OUTCOME.blockSlideBackMs,
+        dx: dir * OUTCOME.blockSlide, arc: 0, contact: null });
+    }
     b.fx.push({ fx: "spark", from: s("burst"), to: s("burst") + CONTACT.burstMs, x: spot.x, y: spot.y, facing: 1, seed,
       contact: c, key: "burst" });
     tagOver(b, L.target, L.at, b.opts.text.block, PAPER, OUTCOME.blockTagMs);
@@ -172,11 +184,64 @@ export function land(b: Builder, L: Landing, ci?: number): number {
   return c;
 }
 
-/** An evade starts before the contact: the defender hops back 22 units with a 14-unit arc, so
- *  the swing passes where it stood. Call it after the swing is planned. */
-export function evadeEarly(b: Builder, target: ActorId, attacker: ActorId, at: number): void {
+/** A block or a dodge starts from the raised guard (the brace's end). A scrapper standing idle
+ *  when one comes (no dash to brace against: a combo swing, a riposte, a throw) raises it in the
+ *  moments before, so the cut into the block or the dodge is from that guard and its feet stay
+ *  put; one busy with another clip cuts straight from it. */
+export function guardUp(b: Builder, id: ActorId, at: number): void {
+  const tr = b.track(id);
+  if (tr.rig !== "scrapper" || b.internal.easedDash === true) return;
+  const now = segAt(tr, at - 0.5);
+  if (now !== null && (now.clip === "brace" || now.busy)) return;
+  const braceMs = b.info("scrapper", "brace").durationMs;
+  let from = at - braceMs;
+  for (const g of tr.segs) if (g.to <= at && g.to > from) from = g.to;
+  if (at - from < OUTCOME.guardMinMs) return;
+  b.play(id, "brace", from, { rate: braceMs / (at - from), until: at, busy: false });
+}
+
+/** What was swung at the defender, for its choice of dodge. */
+export interface Swung { clip: string; weapon: HeldId | null; combo: boolean }
+
+/** Which dodge a scrapper uses (movement pass 2). A light or fast blow that comes straight in
+ *  (fists, a light weapon, a jab, a flick, a thrust, a thrown thing) is slipped: he ducks under it.
+ *  A heavy swing (a heavy weapon, a two-hand swing or smash, a blade's slash coming down, a pet
+ *  going for the legs) is hopped away from: a duck would put the head under it. A one-hand side
+ *  swing of anything else is slipped or hopped by the log's seed and the step. Deterministic, and
+ *  the sim is not asked. */
+export function dodgeOf(b: Builder, i: number, attacker: ActorId, swung: Swung | null): "slip" | "evade" {
+  if (b.has(attacker) && b.track(attacker).rig !== "scrapper") return "evade";
+  if (swung === null) return "slip";
+  const tags: readonly string[] = swung.weapon !== null ? WEAPON_META[swung.weapon]?.tags ?? [] : [];
+  if (tags.includes("heavy") || ["smash", "swing-2h", "swing-low", "slam"].includes(swung.clip)) return "evade";
+  if (tags.includes("light") || ["punch", "flick", "thrust", "thrust-1h", "throw"].includes(swung.clip)) return "slip";
+  if (tags.includes("blade")) return "evade";
+  return noise(b.log.seed, i, 0x5119) < OUTCOME.slipShare ? "slip" : "evade";
+}
+
+/** An evade starts before the contact, so the swing passes where the defender was. A scrapper
+ *  slips it (ducks under it, feet planted) or hops back from it (`dodgeOf`): the hop is carried
+ *  22 units back on a 14-unit arc while the evade clip's feet are off the floor, and he stays
+ *  there until the next way home (footwork.ts). A pet hops back and returns. Call it after the
+ *  swing is planned. */
+export function evadeEarly(b: Builder, target: ActorId, attacker: ActorId, at: number, i = 0, swung: Swung | null = null): void {
   const from = at - OUTCOME.evadeLead;
   const dir: 1 | -1 = b.place(attacker, at).x > b.place(target, at).x ? -1 : 1;
+  const tr = b.track(target);
+  if (tr.rig === "scrapper" && b.internal.easedDash !== true) {
+    guardUp(b, target, from);
+    if (dodgeOf(b, i, attacker, swung) === "slip") {
+      const info = b.info(tr.rig, "slip");
+      b.play(target, "slip", from, { until: from + (info.loop ? OUTCOME.evadeMs : info.durationMs) });
+      return;
+    }
+    b.play(target, "evade", from);
+    const p = b.place(target, from + OUTCOME.evadeUp);
+    b.move(target, from + OUTCOME.evadeUp, OUTCOME.evadeDown - OUTCOME.evadeUp, p.x + dir * OUTCOME.evadeHop * drawnScale(b, target), p.y,
+      OUTCOME.evadeArc, "linear");
+    b.out.add(target);
+    return;
+  }
   b.play(target, "evade", from);
   b.nudge({ actor: target, key: "hop", from, outMs: OUTCOME.evadeMs, holdMs: 260, backMs: 220, dx: dir * OUTCOME.evadeHop,
     arc: OUTCOME.evadeArc, contact: null });

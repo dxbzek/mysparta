@@ -24,7 +24,7 @@ export interface Seg {
 
 /** A walk, dash or jump of the actor's base place. `arc` lifts the middle of the path. */
 export interface Move { from: number; to: number; x0: number; y0: number; x1: number; y1: number;
-  arc: number; ease: "linear" | "out" | "inOut" }
+  arc: number; ease: "linear" | "in" | "out" | "inOut" }
 
 /** An offset on top of the base place that goes out and comes back: knockback, a block slide,
  *  a recoil, an evade hop, a heal hop. `dx` is in the actor's own frame (+ = forward). */

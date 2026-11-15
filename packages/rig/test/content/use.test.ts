@@ -51,7 +51,7 @@ describe("timing: the new clips keep the timing table", () => {
     expect(info.durationMs).toBe(TABLE[c]!.d);
     expect(info.events.map((e) => [e.name, e.t])).toEqual(TABLE[c]!.ev);
   });
-  it.each(Object.keys(VARIANTS))("variant %s has its base clip's length and events", (v) => {
+  it.each(Object.keys(VARIANT_BASE))("variant %s has its base clip's length and events", (v) => {
     const base = rig.clipInfo(S, VARIANT_BASE[v]!);
     expect(VARIANTS[v]!.duration).toBe(base.durationMs);
     expect(VARIANTS[v]!.events).toEqual(base.events);
