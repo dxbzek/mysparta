@@ -1,14 +1,13 @@
 /**
  * The pets in motion (animation pass, 16 Nov 2026; owner: "The pets only have limited
- * animations"). Every pet gets all six companion clips, each true to the animal, on the
+ * animations"). The stray dog and the goose are redrawn from life in `pets/` (15 Nov 2026);
+ * these four still use the sine gaits below. Every pet gets all six companion clips, each true to the animal, on the
  * placeholder timeline (`PLACEHOLDER_COMPANION_CLIPS`: run and flee 240 loops with a step at 0
  * and 120, attack 280 with the contact at 150, hit 300, ko 600 landing at 400), so the stage
  * keeps its times.
  *
  *   Raccoon    scurries on short legs, back humped; a leaping scratch, both forepaws raking
- *   Goose      waddle-runs, body rolling, wings held out; strikes with the neck like a whip
  *   Boar       a heavy charge, head low; drives in and tosses the tusk up through the target
- *   Stray Dog  gallops, ears and tail streaming; lunges, bites and shakes its head
  *   Crow       hops with both feet, wings beating; flies in and pecks, wings braking
  *   Alley Cat  a low sprint, belly near the floor; two quick swipes, one paw then the other
  *
@@ -86,42 +85,7 @@ const c = (u: number, k = 1, ph = 0): number => Math.cos(TAU * (k * u + ph));
 const quad = (name: string, phase: number, swing: number, fold: number, flick: number): GaitLeg => ({ leg: name, foot: "paw", phase, swing, fold, flick });
 const bird = (name: string, phase: number, swing: number, fold: number, flick: number): GaitLeg => ({ leg: name, foot: "foot", phase, swing, fold, flick });
 
-// ------------------------------------------------------------------------------- the six
-export function strayDogClips(rest: Rot, breath: Rot): Record<CompanionClip, Clip> {
-  // a rotary gallop: the hind pair lands, then the fore pair; the back flexes and stretches
-  const gallop = (k: number): Gait => ({
-    legs: [quad("hindB", 0, 26 * k, 34 * k, 18 * k), quad("hindF", 0.1, 26 * k, 34 * k, 18 * k),
-      quad("foreB", 0.5, 30 * k, -40 * k, -30 * k), quad("foreF", 0.6, 30 * k, -40 * k, -30 * k)],
-    body: (u) => ({ body: 5 * s(u), neck: -4 * s(u) - (k > 1 ? 10 : 0), head: 3 * c(u) + (k > 1 ? 14 : 0),
-      tail1: (k > 1 ? 28 : -10) + 8 * s(u, 1, 0.25), tail2: (k > 1 ? 10 : -8) + 10 * s(u, 1, 0.1), tail3: 12 * s(u, 1, 0) }),
-    hop: (u) => 1.6 * Math.max(0, s(u, 2, 0.15)),
-  });
-  return {
-    idle: idleClip(rest, breath),
-    run: gaitClip(rest, gallop(1), { tail1: 30, tail2: 50, tail3: 70, head: 20 }),
-    flee: gaitClip(rest, gallop(1.25), { tail2: 40, tail3: 60, head: 20 }, P.flee.events),
-    attack: shotClip("attack", rest, [
-      [0, {}],
-      [70, { body: -6, "hindB.up": 12, "hindF.up": 12, "hindB.lo": 14, "hindF.lo": 14, "foreF.up": -6, neck: -16, head: 10, tail1: -10 }, { root: [0, 2], ease: "out" }],
-      [130, { body: 4, "hindB.up": -14, "hindF.up": -14, "foreF.up": -34, "foreB.up": -26, "foreF.lo": -20, neck: 22, head: -10, tail1: -16 }, { root: [0, -3], ease: "in" }],
-      [150, { body: 6, "hindB.up": -18, "hindF.up": -18, "foreF.up": -40, "foreB.up": -30, "foreF.lo": -24, neck: 28, head: -2, tail1: -20 }, { root: [0, -2] }],
-      [180, { body: 4, "foreF.up": -20, "foreB.up": -16, neck: 22, head: 18, tail1: -6 }, { root: [0, 0] }],
-      [205, { body: 3, neck: 22, head: -16, tail1: 6 }],
-      [230, { body: 2, neck: 18, head: 14, tail1: -4 }],
-      [255, { body: 1, neck: 10, head: -6 }, { ease: "out" }],
-      [280, {}, { ease: "inOut" }],
-    ], { tail2: 40, tail3: 60 }),
-    hit: shotClip("hit", rest, [
-      [0, {}],
-      [40, { body: -10, neck: -22, head: -24, tail1: 20, "foreF.up": 10, "foreB.up": 8 }, { root: [0, -1.5], ease: "out" }],
-      [110, { body: -8, neck: -14, head: -12, tail1: 30, "hindB.up": 10, "hindF.up": 8, "hindB.lo": 12, "hindF.lo": 12 }, { ease: "inOut" }],
-      [200, { body: -2, neck: -4, head: -2, tail1: 10 }, { ease: "inOut" }],
-      [300, {}, { ease: "inOut" }],
-    ], { tail2: 50, tail3: 70, head: 30 }),
-    ko: koClip(rest, { neck: 24, head: 30, tail1: -40, tail2: -10, tail3: 0 }),
-  };
-}
-
+// ------------------------------------------------------------------------------- the four
 export function alleyCatClips(rest: Rot, breath: Rot): Record<CompanionClip, Clip> {
   // a low sprint: a long reach and gather, the belly near the floor, the tail out straight
   const sprint = (k: number): Gait => ({
@@ -219,39 +183,6 @@ export function boarClips(rest: Rot, breath: Rot): Record<CompanionClip, Clip> {
       [300, {}, { ease: "inOut" }],
     ], { tail2: 50, tail3: 70, head: 30 }),
     ko: koClip(rest, { neck: 20, head: 24, tail1: 20, tail2: 10, tail3: 0 }),
-  };
-}
-
-export function gooseClips(rest: Rot, breath: Rot): Record<CompanionClip, Clip> {
-  // a waddle-run: the legs alternate, the body rolls over each foot, the wings held out
-  const waddle = (k: number): Gait => ({
-    legs: [bird("legB", 0, 26 * k, 40 * k, 20 * k), bird("legF", 0.5, 26 * k, 40 * k, 20 * k)],
-    body: (u) => ({ body: 6 + 5 * s(u, 2) + (k > 1 ? 6 : 0), neck1: (k > 1 ? 18 : 8) - 4 * s(u, 2), neck2: -6 + 4 * s(u, 2, 0.2), neck3: -4, head: 6 * s(u, 2, 0.4),
-      wingB: 34 - 10 * s(u, 2) + (k > 1 ? 6 : 0), wingF: 36 - 12 * s(u, 2) + (k > 1 ? 6 : 0), "wingB.tip": 20 - 10 * s(u, 2, 0.15), "wingF.tip": 24 - 12 * s(u, 2, 0.15),
-      tail: 8 * s(u, 2, 0.25) }),
-  });
-  return {
-    idle: idleClip(rest, breath),
-    run: gaitClip(rest, waddle(1), { "wingB.tip": 30, "wingF.tip": 30, head: 20 }),
-    flee: gaitClip(rest, waddle(1.25), { "wingB.tip": 30, "wingF.tip": 30, head: 20 }, P.flee.events),
-    attack: shotClip("attack", rest, [
-      [0, {}],
-      [70, { body: -8, neck1: -30, neck2: 30, neck3: 24, head: -14, wingB: 40, wingF: 46, "wingB.tip": 24, "wingF.tip": 30, tail: 14 }, { ease: "out" }],
-      [120, { body: -4, neck1: -36, neck2: 40, neck3: 28, head: -18, wingB: 46, wingF: 50, "wingB.tip": 30, "wingF.tip": 36 }],
-      [136, { body: 2, neck1: 6, neck2: 16, neck3: 8, head: -6, wingB: 40, wingF: 44 }],
-      [150, { body: 8, neck1: 44, neck2: -10, neck3: -16, head: 6, wingB: 30, wingF: 34, "wingB.tip": 10, "wingF.tip": 14, "legB.up": -14 }, { ease: "in" }],
-      [175, { body: 10, neck1: 48, neck2: -14, neck3: -20, head: 10, wingB: 46, wingF: 50, "wingB.tip": 28, "wingF.tip": 32 }],
-      [210, { body: 6, neck1: 28, neck2: -4, neck3: -8, head: 4, wingB: 24, wingF: 28, "wingB.tip": 8, "wingF.tip": 10 }, { ease: "out" }],
-      [280, {}, { ease: "inOut" }],
-    ], { "wingB.tip": 30, "wingF.tip": 30, tail: 30 }),
-    hit: shotClip("hit", rest, [
-      [0, {}],
-      [40, { body: -12, neck1: -22, neck2: 14, neck3: 12, head: -20, wingB: 46, wingF: 50, "wingB.tip": 30, "wingF.tip": 34, tail: 20 }, { root: [0, -2], ease: "out" }],
-      [120, { body: -8, neck1: -12, neck2: 8, head: -8, wingB: 30, wingF: 34, "wingB.tip": 10, "wingF.tip": 12, "legB.lo": 20, "legF.lo": 10 }, { ease: "inOut" }],
-      [210, { body: -2, neck1: -2, head: -2, wingB: 6, wingF: 6 }, { ease: "inOut" }],
-      [300, {}, { ease: "inOut" }],
-    ], { "wingB.tip": 40, "wingF.tip": 40, head: 30, neck3: 20 }),
-    ko: birdKo(rest, { neck1: 40, neck2: 30, neck3: 20, head: 30 }),
   };
 }
 

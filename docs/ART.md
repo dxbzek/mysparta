@@ -212,8 +212,27 @@ the pole weapons poked upward, the Anvil and the Chair were swung like sticks).
   shoulder, `dir` degrees below forward), arms angled down to a level shaft, hands at the hip.
   Items held otherwise say so in their art: `FOIL_GRIP` (Umbrella, Plunger, Garden Shears, along
   the forearm), `CLUB_GRIP` (Golf Club, Hockey Stick, hanging head down), `DART_GRIP`.
-- **Pets** (`content/pet-clips.ts`): a gait is a sine per leg with its own phase (the swing
-  phase folds the lower leg and tucks the foot), so legs take turns; tails and wings `lag`.
+- **Pets drawn from life** (`content/pets/`, the stray dog and the goose since 15 Nov 2026; the
+  other four still use the sine gaits of `content/pet-clips.ts`). The rules:
+  - Draw the animal standing, in stage units, from real anatomy (`pets/anatomy.ts`: `smooth`
+    outlines through control points, placed on their bones through the rest pose). Body masses
+    (hips, loin, chest, neck, head) overlap in ONE outline group, never boxes or capsules; a
+    piece drawn over another meets it with an edge that faces back or up (the lamp's side), so
+    no shadow crescent cuts across the body. The goose neck is three bones under one outline:
+    overlapping pieces, each cut on a slant at its base, no stripes.
+  - Legs bend the animal's way, and the limits say so: a quadruped stands on its toes; the hind
+    stifle points forward and the hock (the visible backward bend, the ankle) back; the elbow
+    points back and the wrist folds the paw back and up in the swing; a bird's heel points back.
+  - Feet are placed, not swung: a clip says where each foot's sole touches and at what angle,
+    and `legIK` solves the leg. In stance the foot is on the floor and slides back at the body's
+    one speed; the heel peels up (the end bone turns forward over the toe) toward the push-off;
+    the swing arcs the foot's joint, the folded paw hanging from it.
+  - Gaits from Muybridge, Animal Locomotion (1887, public domain): the dog's run is a trot in
+    diagonal pairs (plate 706), its flee a rotary gallop with two flights (plate 710); the goose
+    waddles, the body bobbing over each foot. `test/content/pets.test.ts` checks the bends, the
+    planted feet, the footfall order, the one-outline neck and the sizes.
+  - Sizes against a fighter (84 units): dog 30% (25 units), goose 34% (29); no pet over 45%.
+  Tails and wings `lag`.
 - `pnpm sheet --mode use-all` (every weapon's use strip, full rig) and `--mode pets` (every pet
   clip). `test/content/use.test.ts` holds the lines; `test/content/use-audit.ts` prints the
   back-arm numbers (`npx tsx packages/rig/test/content/use-audit.ts --rows`).

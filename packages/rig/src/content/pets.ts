@@ -12,12 +12,15 @@
  * Every pet has all six companion clips (animation pass, 16 Nov 2026): `pet-clips.ts`.
  */
 import type { CompanionId } from "@rankzero/core";
-import type { BoneDef, Clip, CompanionClip, ColourSlot, RigDef, Shape } from "../contracts";
-import { alleyCatClips, boarClips, crowClips, gooseClips, raccoonClips, strayDogClips } from "./pet-clips";
+import type { BoneDef, ColourSlot, RigDef, Shape } from "../contracts";
+import { alleyCatClips, boarClips, crowClips, raccoonClips } from "./pet-clips";
+import type { PetArt } from "./pets/kind";
+import { strayDog } from "./pets/stray-dog";
+import { goose } from "./pets/goose";
 import type { Poly, Pt } from "../gate/vocab";
 import { dPoly, dPolys, ellipsePoly, inkLine, limb, quad, rotPt } from "../gate/vocab";
 
-export interface PetArt { rig: RigDef; shapes: readonly Shape[]; clips: Record<CompanionClip, Clip> }
+export type { PetArt };
 
 class Builder {
   bones: BoneDef[] = [{ id: "root", parent: -1, x: 0, y: 0 }];
@@ -126,40 +129,6 @@ function legsAt(h: [number, number, number], f: [number, number, number]): Recor
   return out;
 }
 
-// ---------------------------------------------------------------------------------- dog
-function strayDog(): PetArt {
-  const b = new Builder();
-  b.bone("body", "root", 0, -19);
-  b.leg("hindB", "body", -10, 1, [7.2, 7.6, 5], [2.6, 1.6, 1.2, 1], "skin", 10, paw(4.6, 1.15));
-  b.leg("foreB", "body", 9, 2, [7.2, 7, 4], [2.2, 1.5, 1.2, 1], "skin", 10, paw(3.6, 1.15));
-  b.bone("tail1", "body", -13, -4, [-60, 60]).bone("tail2", "tail1", -5, -2.4, [-60, 60]).bone("tail3", "tail2", -4.6, -1.6, [-60, 60]);
-  b.fill("tail1", taper([[0.6, 0], [-5.4, -2.4]], 1.5, 1.2, false), "skin", 15);
-  b.fill("tail2", taper([[0.4, 0], [-4.8, -1.6]], 1.2, 0.9, false), "skin", 15.1);
-  b.fill("tail3", [[0.6, -0.9], [-2.6, -1.8], [-5.6, -1.6], [-3, 0.4], [0.4, 0.9]], "accent", 15.2);
-  // body: a lean, deep-chested stray, ribs showing
-  b.fill("body", [[-14.6, -2.4], [-12, -5.6], [-4, -6.4], [4, -6.2], [10, -6.8], [14, -5], [15.2, 0.2], [13, 5.4], [8, 6.4], [2, 3.6], [-6, 3.2], [-12.2, 4.2], [-15, 1.6]], "skin", 20,
-    [[2, 3.6], [8, 6.4], [13, 5.4], [11, 4], [6, 4.6]]);
-  b.fill("body", [[8, 3], [13.6, 1.6], [13, 5.4], [8, 6.4]], "accent", 20.1);
-  b.inks("body", [[[1, -2.6], [2.6, 2]], [[3.4, -2.8], [4.8, 2.2]], [[5.8, -3], [7, 2.4]]], 0.26, 20.2);
-  b.fill("body", [[-10, -5.4], [-4, -6.2], [0, -4.2], [-6, -3.8]], "hair", 20.15);
-  b.bone("neck", "body", 12, -4, [-50, 50]).bone("head", "neck", 4.6, -6.6, [-60, 60]);
-  b.fill("neck", [[-3.2, 2.2], [-1, -3.6], [3.4, -7.8], [7, -6], [5, 0.2], [1.6, 4]], "skin", 25);
-  b.fill("neck", [[-1.2, 4.2], [1, 0], [4.6, -4.2], [5, 0.2], [1.6, 4.4]], "accent", 25.1);
-  b.fill("head", [[-3.8, -0.6], [-2.6, -4], [1.4, -5], [4.6, -3.6], [8.6, -2.4], [11.6, -1.4], [12, 0.6], [10.6, 1.8], [6, 2.2], [1.4, 3.6], [-2.6, 2.4]], "skin", 30,
-    [[1.4, 3.6], [6, 2.2], [10.6, 1.8], [8, 3.4], [3, 4.2]]);
-  b.fill("head", [[5, 1.4], [10.6, 1.8], [9.6, 3.4], [5.4, 3.6]], "accent", 30.1);
-  b.fill("head", ellipsePoly(11.6, -0.6, 1.1, 0.9, 10), "hair", 30.2);
-  b.fill("head", ellipsePoly(3.6, -2.2, 0.75, 0.6, 8), "ink", 30.3);
-  b.ink("head", [[2.2, -3.4], [4.4, -3.4]], 0.4, 30.3);
-  b.ink("head", [[7.4, 1.6], [10.6, 1.2]], 0.3, 30.3);
-  b.fill("head", [[-2.6, -3.4], [-4.2, -9.4], [-2.6, -9.8], [0.6, -5.4]], "skin", 30.4); // ear up, a little bent
-  b.fill("head", [[-3.2, -6.8], [-4.2, -9.4], [-2.6, -9.8], [-1.6, -7.6]], "hair", 30.45);
-  b.leg("hindF", "body", -9, 1.6, [7.2, 7.6, 5], [2.9, 1.7, 1.2, 1], "skin", 40, paw(4.6, 1.2));
-  b.leg("foreF", "body", 10, 2.6, [7.2, 7, 4], [2.4, 1.6, 1.25, 1], "skin", 40, paw(3.6, 1.2));
-  const rest = { ...legsAt([-24, 52, -26], [6, -4, -4]), body: 0, neck: 0, head: 6, tail1: 18, tail2: 12, tail3: 8 };
-  return { rig: b.rig("stray-dog", 34), shapes: b.shapes, clips: strayDogClips(rest, { body: -1.5, neck: -2, head: 2, tail1: 8, tail2: 18, tail3: 14 }) };
-}
-
 // ---------------------------------------------------------------------------------- cat
 function alleyCat(): PetArt {
   const b = new Builder();
@@ -266,51 +235,6 @@ function boar(): PetArt {
   b.leg("foreF", "body", 21, 7, [8.6, 8.6, 5], [5, 3, 2.3, 1], "skin", 40, hoof(5, 2.2));
   const rest = { ...legsAt([-14, 26, -12], [6, -6, 0]), body: 0, neck: 0, head: 10, tail1: -10, tail2: 10, tail3: 10 };
   return { rig: b.rig("boar", 52), shapes: b.shapes, clips: boarClips(rest, { body: -0.6, head: 13, tail1: 14, tail2: 26 }) };
-}
-
-// -------------------------------------------------------------------------------- goose
-function goose(): PetArt {
-  const b = new Builder();
-  b.bone("body", "root", 0, -14);
-  const legs = (s: "B" | "F", z: number, dx: number): void => {
-    b.bone(`leg${s}.up`, "body", dx, 4, [-70, 70]).bone(`leg${s}.lo`, `leg${s}.up`, 0, 3.4, [-100, 100]).bone(`leg${s}.foot`, `leg${s}.lo`, 0, 6.6, [-70, 70]);
-    b.fill(`leg${s}.up`, limb(3.4, [[0, 2.4, 2.4], [1, 1.4, 1.4]]), "skin", z);
-    b.fill(`leg${s}.lo`, limb(6.6, [[0, 0.95, 0.95], [1, 0.8, 0.8]]), "accent", z + 0.1);
-    b.fill(`leg${s}.foot`, [[-0.8, -0.4], [0.8, -0.4], [1.2, 2.2], [5.6, 3.0], [6.0, 3.8], [-2.2, 3.8], [-1.6, 2.2]], "accent", z + 0.2);
-    b.inks(`leg${s}.foot`, [[[0.8, 2.8], [2.6, 3.7]], [[2.8, 3.0], [4.4, 3.7]]], 0.2, z + 0.25, false);
-  };
-  legs("B", 10, -1);
-  b.bone("tail", "body", -12, -3, [-40, 40]);
-  b.fill("tail", [[1, -1.6], [-4.6, -3.4], [-6.2, -2.2], [-4.4, -0.6], [-6, 0.6], [1, 1.6]], "skin", 15);
-  b.fill("body", [[-15, -2.4], [-11.6, -7.2], [-2, -9.2], [7, -8.6], [12.6, -5.2], [14.2, 0], [12.2, 5.8], [4.4, 8.8], [-4.6, 8.6], [-11.6, 5.2]], "skin", 20,
-    [[-4.6, 8.6], [4.4, 8.8], [12.2, 5.8], [6.6, 5.4], [-2.2, 5.8]]);
-  b.fill("body", [[-6.6, 5.4], [4.4, 5.8], [12.2, 4.0], [12.2, 5.8], [4.4, 8.8], [-4.6, 8.6]], "white", 20.1);
-  b.bone("wingB", "body", 6, -5, [-80, 60]).bone("wingB.tip", "wingB", -11, 1, [-60, 60]);
-  b.bone("wingF", "body", 7, -4, [-80, 60]).bone("wingF.tip", "wingF", -11, 1.2, [-60, 60]);
-  const wing = (s: "B" | "F", z: number): void => {
-    b.fill(`wing${s}`, [[1.6, -1.6], [-4, -2.8], [-11.4, -1.6], [-12, 1.8], [-6, 3.6], [1.4, 2.4]], "skin", z);
-    b.inks(`wing${s}`, [[[-2, 0.6], [-9, 1.4]], [[-1, 2.4], [-7, 2.8]]], 0.26, z + 0.05);
-    b.fill(`wing${s}.tip`, [[1, -1.6], [-4, -1.8], [-9.6, 0.4], [-4.6, 1.8], [1, 2.2]], "hair", z + 0.1);
-    b.inks(`wing${s}.tip`, [[[-1.6, -0.6], [-6.6, 0.4]], [[-1.2, 0.8], [-6, 1.2]]], 0.22, z + 0.15);
-  };
-  wing("B", 18);
-  b.bone("neck1", "body", 10, -3.4, [-60, 60]).bone("neck2", "neck1", 2.6, -6.4, [-60, 60]).bone("neck3", "neck2", 0.4, -6.4, [-60, 60]).bone("head", "neck3", 0.6, -4.6, [-60, 60]);
-  b.fill("neck1", taper([[-0.6, 2.6], [0.6, -1], [2.6, -6.6]], 3.4, 2.2, false), "skin", 25);
-  b.fill("neck2", taper([[0, 0.6], [0.4, -6.8]], 2.2, 1.9, false), "skin", 25.1);
-  b.fill("neck3", taper([[0, 0.6], [0.6, -5]], 1.9, 1.85, false), "skin", 25.2);
-  b.inks("neck2", [[[-1.2, -2], [1.2, -2.6]], [[-1.2, -4.4], [1.2, -5]]], 0.2, 25.25);
-  b.fill("head", [[-2.4, 0.6], [-2.6, -2], [-1, -3.4], [1.6, -3.4], [3.2, -2], [3.4, 0.6], [1.2, 1.8], [-1.4, 1.8]], "skin", 30);
-  b.fill("head", [[2.6, -2.1], [8.6, -0.6], [8.6, 0.2], [3, 0.4]], "accent", 30.1);
-  b.fill("head", [[3, 0.4], [8.4, 0.2], [7.6, 1.2], [3.2, 1.4]], "accent", 30.15);
-  b.ink("head", [[3, 0.3], [8.2, 0.1]], 0.2, 30.2);
-  b.fill("head", [[7.2, -0.9], [8.6, -0.6], [8.6, 0.2], [7.4, 0.1]], "hair", 30.2);
-  b.fill("head", ellipsePoly(1.0, -1.6, 0.6, 0.6, 8), "ink", 30.25);
-  b.ink("head", [[-0.2, -2.6], [1.8, -2.3]], 0.35, 30.3);
-  wing("F", 45);
-  legs("F", 40, 2);
-  const rest = { body: -6, tail: 10, "legB.up": -6, "legB.lo": 4, "legB.foot": 8, "legF.up": 10, "legF.lo": -2, "legF.foot": -2,
-    wingB: 6, "wingB.tip": 0, wingF: 6, "wingF.tip": 0, neck1: 6, neck2: -4, neck3: -6, head: 4 };
-  return { rig: b.rig("goose", 40), shapes: b.shapes, clips: gooseClips(rest, { neck1: 9, neck2: -8, neck3: -2, head: 6, tail: 16, wingF: 4 }) };
 }
 
 // --------------------------------------------------------------------------------- crow
