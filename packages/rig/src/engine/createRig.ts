@@ -10,14 +10,14 @@
  * stand-ins (`gate/placeholders.ts`), applies `CLIP_FALLBACK`, draws the yard for every arena and
  * nothing for a content effect or a Move prop, warning once each.
  */
-import type { CompanionId, HeldId, Look, PropId, StageId } from "@rankzero/core";
-import { COMPANION_IDS, WEAPON_META } from "@rankzero/core";
+import type { CompanionId, HeldId, Look, PropId, ShieldId, StageId } from "@rankzero/core";
+import { COMPANION_IDS, WEAPON_META, isShieldId } from "@rankzero/core";
 import type { Aim, AppearanceSet, IconArt, Clip, ClipInfo, CompanionClip, ContentClip, ContentPack, CreateRig, DrawEnv, Dress,
   FaceId, FxDraw, FxKind, GatePack, IconRef, Offset, Place, Pose, PropArt, Rig, RigDef, RigId, Shape, StageDraw,
   SvgArt, WeaponArt } from "../contracts";
 import { CLIP_FALLBACK, COMPANION_CLIPS, SCRAPPER_CLIPS, strikeTime } from "../contracts";
 import { BODY_CENTRE, HEAD_CENTRE, KNUCKLES } from "../gate/parts";
-import { DOOR_STAND_IN, PLACEHOLDER_COMPANIONS, placeholderWeapon } from "../gate/placeholders";
+import { PLACEHOLDER_COMPANIONS, placeholderWeapon, shieldStandIn } from "../gate/placeholders";
 import type { CompanionArt } from "../gate/placeholders";
 import { BONE, GRIP_ROT, SECONDARY } from "../gate/skeleton";
 import { COMPANION_COLOURS, FIXED, GROUND_SHADOW, HAIR_COLOUR, LINE, PALETTES, SKIN, shadeOf, slotColour } from "../gate/style";
@@ -119,7 +119,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     const own = content?.weapons?.[id];
     return own ?? placeholderWeapon(id);
   };
-  const doorArt = (): WeaponArt => content?.door ?? DOOR_STAND_IN;
+  const shieldArt = (id: ShieldId): WeaponArt => content?.shields?.[id] ?? shieldStandIn(id);
   const isPair = (id: HeldId): boolean => WEAPON_META[id]?.pair === true;
   const heldOf = (dress: Dress): HeldId => dress.held ?? "fists";
 
@@ -421,8 +421,8 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
         parts.push(...itemPaints(f.art, itemStageXf(f, g2.x, g2.y, g2.angle, f.art), 21, colours, undefined, null, 0, 0, 0));
       }
     }
-    if (dress.door) {
-      const art = doorArt();
+    if (dress.shield !== null && dress.shield !== undefined) {
+      const art = shieldArt(dress.shield);
       const wrist = f.fr[BONE.handB]!;
       const angle = f.wa[BONE.armBlo]! + art.grip.rot;
       parts.push(...itemPaints(art, itemStageXf(f, wrist.e, wrist.f, angle, art), 23, colours, undefined, null, 0, 0, 0));
@@ -503,7 +503,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
   }
 
   function drawProp(env: DrawEnv, item: PropId, at: Place & { rot: number }): void {
-    const art: WeaponArt = item === "car-door" ? doorArt() : weaponArt(item);
+    const art: WeaponArt = isShieldId(item) ? shieldArt(item) : weaponArt(item);
     const colours = lookColours(undefined);
     const xf = mul(mul({ a: at.facing, b: 0, c: 0, d: 1, e: at.x, f: at.y }, rotXf(at.rot)), moveXf(-art.grip.x, -art.grip.y));
     if (art.segments !== undefined && art.segments.length > 0) {

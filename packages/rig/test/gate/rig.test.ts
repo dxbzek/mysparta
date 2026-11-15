@@ -8,7 +8,7 @@ import { join, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { COMPANION_IDS, STAGE_IDS, WEAPON_IDS, WEAPON_META } from "@rankzero/core";
 import type { CompanionId, HeldId } from "@rankzero/core";
-import { AIM_TOLERANCE, CLIP_FALLBACK, COMPANION_CLIPS, DOOR_PLACEHOLDER, GATE_CLIPS, GATE_WEAPONS, PLACEHOLDER_COMPANION_CLIPS,
+import { AIM_TOLERANCE, CLIP_FALLBACK, COMPANION_CLIPS, SHIELD_PLACEHOLDER, GATE_CLIPS, GATE_WEAPONS, PLACEHOLDER_COMPANION_CLIPS,
   SCRAPPER_CLIPS, placeholderLength, strikeTime, toStage } from "../../src/contracts";
 import type { ContentPack, Dress, FxKind, Pose, RigId, WeaponArt } from "../../src/contracts";
 import { capsuleGateRig } from "../../src/testing/capsule";
@@ -188,7 +188,7 @@ describe("hands on the weapon (13.3)", () => {
     const i2 = inspectOf(r2);
     for (const c of ["swing", "smash", "flick", "thrust"]) for (const t of times(r2, S, c)) {
       const p = r2.samplePose(S, c, t);
-      const d: Dress = { look: LOOKS[0], held: "broom", door: false, scale: 1 };
+      const d: Dress = { look: LOOKS[0], held: "broom", shield: null, scale: 1 };
       const a = r2.handAnchor(p, d, HOME);
       const rr = a.rot * Math.PI / 180;
       const want = [a.x + Math.cos(rr) * -6, a.y + Math.sin(rr) * -6];
@@ -238,10 +238,10 @@ describe("the gate-only rule (createRig(gatePack))", () => {
       expect(drawn, `${id} pieces`).toBe(meta.pair === true ? 2 : 1);
     }
   });
-  it("draws the Car Door as the DOOR_PLACEHOLDER panel, on the back arm and on the floor", () => {
-    const panel = (x: string): boolean => x.includes(`${DOOR_PLACEHOLDER.w - 4 - 1.5}`) || x.startsWith("M");
+  it("draws the Car Door as its SHIELD_PLACEHOLDER panel, on the back arm and on the floor", () => {
+    const panel = (x: string): boolean => x.includes(`${SHIELD_PLACEHOLDER["car-door"].w - 4 - 1.5}`) || x.startsWith("M");
     const r = recorder();
-    rig.drawActor(r.env, rig.samplePose(S, "idle", 0), dress("pipe", 0, 1, { door: true }), HOME);
+    rig.drawActor(r.env, rig.samplePose(S, "idle", 0), dress("pipe", 0, 1, { shield: "car-door" }), HOME);
     const r2 = recorder();
     rig.drawActor(r2.env, rig.samplePose(S, "idle", 0), dress("pipe"), HOME);
     expect(r.paths.length).toBeGreaterThan(r2.paths.length);
