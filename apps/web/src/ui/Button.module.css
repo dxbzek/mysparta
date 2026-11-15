@@ -34,6 +34,7 @@
   box-shadow: var(--shadow-hard);
 }
 .primary:active {
+  transform: translate(4px, 5px);
   background: var(--c-action-press);
   color: var(--t-on-action-press);
 }

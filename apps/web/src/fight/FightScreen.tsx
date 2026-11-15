@@ -22,7 +22,11 @@ import { rig as seamRig } from "../seams/rig";
 import { actorNames } from "../text/log";
 import { STAGE_TEXT } from "../text/stage";
 import { STAGE_FONTS } from "../ui/fonts";
-import { BagStrip } from "./BagStrip";
+import { Sheet } from "../ui/Sheet";
+import { beatsOf, litAt } from "./beats";
+import { FighterCard, cardInfo } from "./FighterCard";
+import { LogStrip } from "./LogStrip";
+import { StageOverlay } from "./StageOverlay";
 import { Controls } from "./Controls";
 import { Hud } from "./Hud";
 import { ReplayBar, seekTimeFor } from "./ReplayBar";
@@ -137,7 +141,13 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
 
   const sides = useMemo(() => ({ a: { name: a.name, level: a.level }, b: { name: b.name, level: b.level } }), [a, b]);
   const names = useMemo(() => actorNames(log.init, a, b), [log, a, b]);
-  const sideNames: Record<Side, string> = { a: a.name, b: b.name };
+  const sideNames: Record<Side, string> = useMemo(() => ({ a: a.name, b: b.name }), [a, b]);
+  const cards = useMemo(() => ({ a: cardInfo("a", a, log.init.actors), b: cardInfo("b", b, log.init.actors) }), [a, b, log]);
+  const beats = useMemo(() => beatsOf(log, tl), [log, tl]);
+  const lit = litAt(beats, t);
+  const pulse = reduced ? 0 : 0.5 + 0.5 * Math.sin(t * 0.02);
+  const [logOpen, setLogOpen] = useState(false);
+  const closeLog = useCallback(() => setLogOpen(false), []);
   const winner = state.ended?.winner ?? hud.winner ?? log.result.winner;
 
   const onPlayPause = (): void => {
@@ -172,31 +182,50 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
   };
 
   return (
-    <div className={`${css.screen} ${mode === "replay" ? css.replayRows : ""}`} data-phase={hud.phase} data-t={Math.round(t)}>
-      <Hud frame={hud} sides={sides} actors={log.init.actors} />
-      <StageCanvas player={player} t={t} label={`${a.name} against ${b.name}`} />
-      <BagStrip bag={hud.bag} names={sideNames} />
-      <Controls
-        paused={paused}
-        ended={ended}
-        speed={settings.speed}
-        sound={settings.sound}
-        canSkip={!ended && t < tl.resultAt - SKIP_HOLD_MS}
-        onPlayPause={onPlayPause}
-        onSpeed={(speed) => onSettings({ speed })}
-        onSkip={onSkip}
-        onSound={(on) => {
-          if (on) void audio.unlock();
-          onSettings({ sound: on });
-        }}
-      />
+    <div className={`${css.screen} ${mode === "replay" ? css.replayMode : ""}`} data-phase={hud.phase} data-t={Math.round(t)}>
+      <Hud frame={hud} sides={sides} actors={log.init.actors} t={t} turn={state.turn} reduced={reduced} />
+      <div className={css.stageArea}>
+        <StageCanvas player={player} t={t} label={`${a.name} against ${b.name}`} />
+        <StageOverlay beats={beats} t={t} reduced={reduced} names={sideNames} />
+        <Controls
+          paused={paused}
+          ended={ended}
+          speed={settings.speed}
+          sound={settings.sound}
+          canSkip={!ended && t < tl.resultAt - SKIP_HOLD_MS}
+          onPlayPause={onPlayPause}
+          onSpeed={(speed) => onSettings({ speed })}
+          onSkip={onSkip}
+          onSound={(on) => {
+            if (on) void audio.unlock();
+            onSettings({ sound: on });
+          }}
+        />
+      </div>
       {mode === "replay" ? (
         <ReplayBar stepsShown={hud.stepsShown} total={log.steps.length} onSeekStep={(n) => seek(seekTimeFor(tl.stepEnd, n))} />
       ) : null}
+      <LogStrip steps={log.steps} stepsShown={hud.stepsShown} names={names} live={settings.liveLog && !logOpen} onOpen={() => setLogOpen(true)} />
       <div className={css.lower}>
-        <TextLog steps={log.steps} stepsShown={hud.stepsShown} names={names} live={settings.liveLog} />
+        <div className={css.cards}>
+          {(["a", "b"] as const).map((side) => (
+            <FighterCard
+              key={side}
+              info={cards[side]}
+              frame={hud}
+              state={state.actors[`${side}0`]}
+              pets={cards[side].pets.map((p) => state.actors[p.id])}
+              bag={hud.bag[side]}
+              lit={lit}
+              pulse={pulse}
+            />
+          ))}
+        </div>
         {ended ? <ResultCard resultIn={hud.resultIn} data={mode === "replay" ? null : result} winnerName={sideNames[winner]} onAction={onResult} /> : null}
       </div>
+      <Sheet open={logOpen} title="Bout log" onClose={closeLog} closeLabel="Close">
+        <TextLog steps={log.steps} stepsShown={hud.stepsShown} names={names} live={false} />
+      </Sheet>
     </div>
   );
 }

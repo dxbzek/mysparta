@@ -12,8 +12,12 @@ import { BOUT_FIXTURES } from "@rankzero/core/fixtures";
 import { capsuleRig } from "@rankzero/rig/testing";
 import { createFightPlayer } from "@rankzero/stage";
 import type { HudFrame } from "@rankzero/stage";
-import { BAG_SHOWN, BagStrip, bagView } from "../../src/fight/BagStrip";
-import { Hud } from "../../src/fight/Hud";
+import { BAG_SHOWN, BagStrip, SideBag, bagView } from "../../src/fight/BagStrip";
+import { beatsOf } from "../../src/fight/beats";
+import { FighterCard, cardInfo } from "../../src/fight/FighterCard";
+import { Hud, hitGlow } from "../../src/fight/Hud";
+import { LogStrip, stripParts, stripSteps } from "../../src/fight/LogStrip";
+import { StageOverlay } from "../../src/fight/StageOverlay";
 import { TextLog, logLines } from "../../src/fight/TextLog";
 import { actorNames } from "../../src/text/log";
 import { STAGE_TEXT } from "../../src/text/stage";
@@ -54,15 +58,65 @@ describe("Hud", () => {
     expect(at(1)).not.toContain("opacity");
   });
 
-  it("shows small HP bars for companions", () => {
-    const html = renderToStaticMarkup(<Hud frame={player.hud(2000)} sides={sides} actors={log.init.actors} />);
-    const pets = log.init.actors.filter((x) => x.kind !== "scrapper").length;
-    expect(pets).toBeGreaterThan(0);
-    expect(count(html, /role="meter"/g)).toBe(2 + pets);
+  it("shows the turn badge and shakes a bar that was just hit only from t", () => {
+    const frame: HudFrame = { hp: { a0: { now: 30, trail: 45, max: 60 }, b0: { now: 50, trail: 50, max: 50 } }, bag: { a: [], b: [] },
+      stepsShown: 0, phase: "bout", winner: null, namesIn: 1, resultIn: 0 };
+    const actors = [{ id: "a0" as const, kind: "scrapper" as const, maxHp: 60 }, { id: "b0" as const, kind: "scrapper" as const, maxHp: 50 }];
+    const html = renderToStaticMarkup(<Hud frame={frame} sides={sides} actors={actors} t={100} turn={7} />);
+    expect(html).toContain("Turn 7");
+    expect(html).toContain("translateX(");
+    expect(renderToStaticMarkup(<Hud frame={frame} sides={sides} actors={actors} t={100} turn={7} reduced />)).not.toContain("translateX(");
+    expect(hitGlow(30, 45, 60)).toBe(1);
+    expect(hitGlow(50, 50, 50)).toBe(0);
   });
 });
 
-describe("BagStrip", () => {
+describe("FighterCard", () => {
+  const cards = { a: cardInfo("a", a, log.init.actors), b: cardInfo("b", b, log.init.actors) };
+  const pets = log.init.actors.filter((x) => x.kind !== "scrapper");
+
+  it.each([0, 2000, 9000, player.timeline.durationMs])("shows the frame's HP and every pet's own HP bar at t = %i", (t) => {
+    const frame = player.hud(t);
+    const state = player.state(t);
+    for (const side of ["a", "b"] as const) {
+      const html = renderToStaticMarkup(<FighterCard info={cards[side]} frame={frame} state={state.actors[`${side}0`]}
+        pets={cards[side].pets.map((p) => state.actors[p.id])} bag={frame.bag[side]} lit={new Map()} pulse={0} />);
+      expect(html).toContain(`data-card-hp="${Math.max(0, Math.round(frame.hp[`${side}0`]!.now))}"`);
+      expect(count(html, /role="meter"/g)).toBe(cards[side].pets.length);
+      for (const p of cards[side].pets) expect(html).toContain(`aria-valuenow="${Math.max(0, Math.round(frame.hp[p.id]!.now))}"`);
+      expect(html).toContain(`data-count="${frame.bag[side].length}"`);
+    }
+    expect(pets.length).toBeGreaterThan(0);
+  });
+
+  it("lights a skill tile only when the beats say it fired", () => {
+    const id = cards.a.skills[0] ?? cards.b.skills[0];
+    const side = cards.a.skills[0] ? "a" : "b";
+    expect(id).toBeDefined();
+    const frame = player.hud(5000);
+    const props = { info: cards[side], frame, state: undefined, pets: [], bag: [] as BagItem[], pulse: 1 };
+    expect(renderToStaticMarkup(<FighterCard {...props} lit={new Map()} />)).not.toContain('data-lit="1"');
+    expect(renderToStaticMarkup(<FighterCard {...props} lit={new Map([[`${side}:${id!}`, 1]])} />)).toContain('data-lit="1"');
+  });
+});
+
+describe("beats", () => {
+  const beats = beatsOf(log, player.timeline);
+  it("finds every Move and skill that fires, in time order", () => {
+    const moves = log.steps.filter((s) => s.t === "move").length;
+    expect(beats.fires.filter((f) => f.kind === "move")).toHaveLength(moves);
+    for (let i = 1; i < beats.fires.length; i++) expect(beats.fires[i]!.at).toBeGreaterThanOrEqual(beats.fires[i - 1]!.at);
+  });
+  it("the overlay is a pure function of t", () => {
+    const at = (t: number) => renderToStaticMarkup(<StageOverlay beats={beats} t={t} reduced={false} names={{ a: a.name, b: b.name }} />);
+    for (const t of [0, 3000, 9000, player.timeline.durationMs]) expect(at(t)).toBe(at(t));
+    const f = beats.fires.find((x) => x.kind !== "shield")!;
+    expect(at(f.at + 300)).toContain("rotate(");
+    if (beats.koAt !== null) expect(at(beats.koAt + 600)).toContain("K.O.");
+  });
+});
+
+describe("BagStrip and the card's bag", () => {
   it.each([0, 3000, 8000, player.timeline.durationMs])("shows the frame's bag at t = %i", (t) => {
     const frame = player.hud(t);
     const html = renderToStaticMarkup(<BagStrip bag={frame.bag} names={{ a: a.name, b: b.name }} />);
@@ -84,7 +138,20 @@ describe("BagStrip", () => {
     expect(sideA).toContain(">+4<");
   });
 
-  it("fits 8 icons and the chip in half of a 390 px screen", () => {
+  it("the card's bag shows 8 icons and a +4 chip in nine equal cells, so it never overflows", () => {
+    const twelve: BagItem[] = [
+      ...(["pipe", "bat", "crowbar", "shovel", "darts", "bricks", "rebar", "umbrella", "broom"] as const).map((id) => ({ k: "weapon" as const, id })),
+      { k: "move", id: "tarp", uses: 1 }, { k: "move", id: "firecrackers", uses: 2 }, { k: "move", id: "haymaker", uses: 1 },
+    ];
+    const html = renderToStaticMarkup(<SideBag side="a" bag={twelve} owner="A" compact />);
+    expect(count(html, /role="img"/g)).toBe(8);
+    expect(html).toContain('data-more="4"');
+    const css = readFileSync(new URL("../../src/fight/fight.module.css", import.meta.url), "utf8");
+    expect(css).toMatch(/\.cardBag \{[^}]*grid-template-columns: repeat\(9, minmax\(0, 1fr\)\)/);
+    expect(css).toMatch(/\.cardBag > \* \{[^}]*width: 100%/);
+  });
+
+  it("fits 8 icons and the chip in half of a 390 px screen (the strip)", () => {
     // fight.module.css: icons 20 px, 1 px gaps, chip 21 px + 2 px margin, strip padding 3 px a side
     const half = (390 - 2 * 3) / 2;
     expect(8 * 20 + 8 * 1 + 21 + 2).toBeLessThanOrEqual(half);
@@ -114,8 +181,17 @@ describe("TextLog", () => {
   });
 });
 
+describe("LogStrip", () => {
+  it.each([0, 1, 5, 20, log.steps.length])("shows the newest two of the first %i steps, newest bold", (n) => {
+    const html = renderToStaticMarkup(<LogStrip steps={log.steps} stepsShown={n} names={names} live onOpen={() => undefined} />);
+    expect(stripSteps(log.steps, n)).toHaveLength(Math.min(2, n));
+    if (n > 0) expect(html).toContain(stripParts(log.steps[n - 1]!, names).map((p) => p.text).join("").slice(0, 12).replace(/'/g, "&#x27;"));
+    expect(html).toContain("Open the full bout log");
+  });
+});
+
 describe("the HUD parts read no clock of their own", () => {
-  it.each(["Hud.tsx", "BagStrip.tsx", "TextLog.tsx", "ResultCard.tsx"])("%s", (file) => {
+  it.each(["Hud.tsx", "BagStrip.tsx", "TextLog.tsx", "ResultCard.tsx", "FighterCard.tsx", "LogStrip.tsx", "StageOverlay.tsx", "beats.ts"])("%s", (file) => {
     const src = readFileSync(new URL(`../../src/fight/${file}`, import.meta.url), "utf8");
     expect(src).not.toMatch(/performance\.now|Date\.|new Date|requestAnimationFrame|useState|useEffect|setTimeout|setInterval/);
   });

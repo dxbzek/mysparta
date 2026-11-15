@@ -78,6 +78,8 @@ export interface LockerViewProps {
   text?: LockerText;
   /** Fixed hero time, for screenshots. */
   heroT?: number;
+  /** The clip the hero plays between rests (default "flick"), so the home fighter is not only idling. */
+  heroClip?: string;
   onSelect(id: string): void;
   onAdd(): void;
   onSettings(): void;
@@ -114,7 +116,7 @@ export function LockerView(p: LockerViewProps) {
       <main className={css.body}>
         <Panel tone="dark" flush className={css.hero}>
           <div className={css.heroStage}>
-            <ActorStage look={p.look} held={p.held ?? null} companions={p.companions ?? []} height={234} floorAt={0.78} label={t.hero(p.name)} t={p.heroT} />
+            <ActorStage look={p.look} held={p.held ?? null} companions={p.companions ?? []} height={234} floorAt={0.78} label={t.hero(p.name)} t={p.heroT} clip={p.heroClip ?? "flick"} restMs={2600} />
           </div>
           <div className={css.heroTop}>
             <Sticker tilt={-2}>{p.name}</Sticker>
@@ -142,7 +144,7 @@ export function LockerView(p: LockerViewProps) {
         {p.primary.kind === "done" ? (
           <Panel tone="raised"><p className={css.doneNote}>{t.done(p.primary.backIn)}</p></Panel>
         ) : (
-          <Button variant="primary" onClick={p.onPrimary}>
+          <Button variant="primary" onClick={p.onPrimary} data-primary={p.primary.kind}>
             {p.primary.kind === "levelup" ? t.levelUp : t.fight(p.primary.boutsLeft)}
           </Button>
         )}

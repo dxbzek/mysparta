@@ -16,11 +16,14 @@ export function bagView(bag: readonly BagItem[]): { shown: BagItem[]; more: numb
   return { shown, more: bag.length - shown.length };
 }
 
-function SideBag({ side, bag, owner }: { side: Side; bag: readonly BagItem[]; owner: string }) {
+/** One side's bag. `compact` is the fighter card's row: nine equal cells (8 icons and the chip)
+ *  that shrink with the card, so a 12-item bag never overflows, even at 320 px. */
+export function SideBag({ side, bag, owner, compact = false }: { side: Side; bag: readonly BagItem[]; owner: string; compact?: boolean }) {
   const { shown, more } = bagView(bag);
   const words = bag.map((b) => NAMES[b.id]).join(", ");
+  const cls = compact ? css.cardBag : `${css.bagSide} ${side === "b" ? css.bagSideB : ""}`;
   return (
-    <div className={`${css.bagSide} ${side === "b" ? css.bagSideB : ""}`} aria-label={`${owner}'s bag: ${words || "empty"}`} data-side={side} data-count={bag.length}>
+    <div className={cls} role="group" aria-label={`${owner}'s bag: ${words || "empty"}`} data-side={side} data-count={bag.length}>
       {shown.map((b, i) => (
         <PerkIcon key={`${b.id}-${i}`} id={b.id} size={20} />
       ))}

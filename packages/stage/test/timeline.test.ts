@@ -12,6 +12,7 @@ import { capsuleRig } from "@rankzero/rig/testing";
 import { createFightClock } from "../src/clock";
 import { cuesBetween } from "../src/cues";
 import { HIT_STOP, KNOCKOUT } from "../src/tuning";
+import { HOME, STAGE_W } from "../src/layout";
 import { FIXTURE_NAMES, fixturePlayer, optsFor, times } from "./lib/setup";
 import { buildPlayer } from "../src/createFightPlayer";
 
@@ -139,7 +140,7 @@ describe("pace", () => {
       const f = p.frame(1500);
       for (const id of ["a0", "b0"] as const) {
         const a = f.actors.find((x) => x.id === id)!;
-        expect(a.place.x).toBeCloseTo(id === "a0" ? 70 : 290, 6);
+        expect(a.place.x).toBeCloseTo(id === "a0" ? HOME.x : STAGE_W - HOME.x, 6);
         expect(a.place.y).toBeCloseTo(195, 6);
       }
       expect(p.timeline.firstActionAt).toBe(1500);

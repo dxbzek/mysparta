@@ -13,14 +13,19 @@ export const FLOOR_Y = 195;
 
 export interface Mark { x: number; y: number }
 
-/** Marks for side a. Side b is the mirror: x becomes 360 - x. */
-export const HOME: Readonly<Mark> = { x: 70, y: FLOOR_Y };
+/** Marks for side a. Side b is the mirror: x becomes 360 - x.
+ *  Owner amendment (fight screen v2, plan 13.7): the scrappers stand 80 units apart, not 220, so
+ *  the phone camera can frame both of them large, the way the owner's style-13 sample does. Most
+ *  strikes reach less than that, so the attacker lunges in; a long Pole thrust (up to about 92
+ *  units) makes its user step back to its distance first, which reads as spacing. Companions
+ *  stand at their owner's feet, in front of the floor line, inside the camera's idle framing. */
+export const HOME: Readonly<Mark> = { x: 140, y: FLOOR_Y };
 export const COMPANION_MARKS = {
-  raccoon1: { x: 40, y: 180 },      // behind the owner
-  raccoon2: { x: 46, y: 216 },      // in front
-  big: { x: 124, y: 206 },          // a Goose or a Boar: ahead of the owner, in front of its feet line
+  raccoon1: { x: 116, y: 204 },     // at the owner's back foot
+  raccoon2: { x: 156, y: 212 },     // in front of the owner's front foot
+  big: { x: 108, y: 210 },          // a Goose or a Boar: behind the owner, nearer the camera
   /** Not a rules case (a sandbox side with two big companions): kept clear of the others. */
-  spare: { x: 96, y: 228 },
+  spare: { x: 134, y: 218 },
 } as const;
 
 export function mirror(side: Side, m: Mark): Mark {

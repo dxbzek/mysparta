@@ -7,6 +7,8 @@ import type { BoutLog, BoutState, FighterSnapshot } from "@rankzero/core";
 import { initialState, reduce } from "@rankzero/core";
 import type { DrawEnv, Rig } from "@rankzero/rig";
 import type { CreateFightPlayer, FightPlayer, HudFrame, PlayerOpts } from "./contracts";
+import { poseAt } from "./blend";
+import { cameraAt } from "./camera";
 import { drawFrame } from "./draw";
 import type { Frame } from "./frame";
 import { frameAt } from "./frame";
@@ -38,7 +40,8 @@ export function buildPlayer(log: BoutLog, a: FighterSnapshot, b: FighterSnapshot
     hud(tMs: number): HudFrame { return hudAt(tracks, tMs); },
     frame(tMs: number): Frame { return frameAt(tracks, tMs); },
     draw(env: DrawEnv, tMs: number, view: { w: number; h: number; dpr: number }): void {
-      drawFrame(env, frameAt(tracks, tMs), rig, opts, view);
+      drawFrame(env, frameAt(tracks, tMs), rig, opts, view, cameraAt(tracks, tMs, view, opts.reducedMotion),
+        (a) => { const tr = tracks.byId.get(a.id); return tr ? poseAt(rig, tr, tMs) : rig.samplePose(a.rig, a.clip, a.clipT, a.aim); });
     },
   };
 }
