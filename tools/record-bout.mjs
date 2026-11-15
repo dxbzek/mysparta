@@ -133,18 +133,24 @@ function decodeMp3(file, rate) {
   return new Float32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4).slice();
 }
 
-function mixCues({ cues, contacts, durationMs, speed }) {
+async function mixCues({ cues, contacts, durationMs, speed }) {
   const RATE = 44100;
   const map = JSON.parse(readFileSync(join(WEB, "public/audio/sfx.json"), "utf8"));
-  const sprite = decodeMp3(join(WEB, "public/audio/sfx.mp3"), RATE);
+  const sprites = map.files.map((f) => decodeMp3(join(WEB, "public/audio", f), RATE));
+  // the same pick as the fight screen: the cue item's own set, else the family's (needs tsx)
+  const { soundFor } = await import("../apps/web/src/audio/cues.ts");
+  const listOf = (name) => map.sets[name] ?? map.sets[map.families[name]];
+  const size = (name) => listOf(name)?.length ?? 0;
   const out = new Float32Array(Math.ceil(((durationMs / speed) / 1000 + 2) * RATE));
   const IMPACT = new Set(["fist", "blunt", "blade", "block"]);
   const problems = [];
   let lastImpact = -Infinity;
   const spans = [];
   for (const c of cues) {
-    const e = map.families[c.family]?.[c.variant];
-    if (!e) { problems.push(`no sound for ${c.family}[${c.variant}]`); continue; }
+    const pick = soundFor(c, size);
+    const e = pick === null ? undefined : listOf(pick.name)?.[pick.variant];
+    if (!e) { problems.push(`no sound for ${c.family}[${c.variant}] ${c.item ?? ""}`); continue; }
+    const sprite = sprites[e.f ?? 0];
     if (IMPACT.has(c.family)) {
       const mark = contacts.find((m) => m.step === c.step);
       if (!mark) problems.push(`impact cue at ${c.at} ms (step ${c.step}) has no contact mark`);
@@ -214,7 +220,7 @@ async function recordVideo(browser, base) {
   const played = await page.evaluate(() => window.__rz.played);
   let report = null;
   if (flag("audio")) {
-    const { wav, report: r } = mixCues({ ...info, speed });
+    const { wav, report: r } = await mixCues({ ...info, speed });
     report = r;
     writeFileSync(join(work, "cues.wav"), wav);
     writeFileSync(out.replace(/\.mp4$/, ".wav"), wav);

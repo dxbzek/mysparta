@@ -71,7 +71,7 @@ describe("a seek plays no sound", () => {
   it("seeking across every cue sounds none, and play resumes from the new place", () => {
     const clock = createFightClock(tl.durationMs);
     const played: string[] = [];
-    const driver = createCueDriver(tl.cues, { play: (f, v) => played.push(`${f}${v}`) });
+    const driver = createCueDriver(tl.cues, { play: (c) => played.push(`${c.family}${c.variant}`) });
     const mid = tl.cues[Math.floor(tl.cues.length / 2)]!.at;
     clock.seek(mid + 1);
     driver.seek(clock.t);

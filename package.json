@@ -18,7 +18,7 @@
     "find-bout": "tsx tools/find-bout.ts",
     "balance": "tsx tools/balance-report.ts",
     "parity": "node tools/parity/run.mjs",
-    "record-bout": "node tools/record-bout.mjs",
+    "record-bout": "tsx tools/record-bout.mjs",
     "build-audio": "node tools/build-audio.mjs",
     "subset-fonts": "node tools/subset-fonts.mjs",
     "session": "node tools/session.mjs",
