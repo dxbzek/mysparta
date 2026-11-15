@@ -10,7 +10,7 @@
 import type { ActorId, HeldId, Proc } from "@rankzero/core";
 import { impactFamily } from "@rankzero/core";
 import { toStage } from "@rankzero/rig";
-import type { EffectKey } from "./contracts";
+import type { EffectKey, SfxItem } from "./contracts";
 import { noise } from "./cues";
 import { CORAL, INK, PAPER, SKY, TEAL, VOLT, WHITE } from "./palette";
 import type { Builder } from "./timeline";
@@ -41,6 +41,13 @@ export function hitSpot(b: Builder, target: ActorId, at: number, zone: "head" | 
   return toStage(p, b.rig.hitPoint(tr.rig, b.dress(target), zone));
 }
 /** Above the head, where numbers and tags pop. */
+/** What struck: the weapon of the step, else the attacking companion, else fists. */
+function hitItem(b: Builder, L: Landing): SfxItem {
+  if (L.weapon !== null) return L.weapon;
+  if (L.attacker !== null && b.has(L.attacker)) return b.soundItem(L.attacker, "fists");
+  return "fists";
+}
+
 export function overHead(b: Builder, id: ActorId, at: number): { x: number; y: number } {
   const tr = b.track(id);
   const p = b.place(id, at);
@@ -110,7 +117,7 @@ export function land(b: Builder, L: Landing, ci?: number): number {
       b.crowds.push({ from: s("crowd"), ms: CONTACT.crowdMs, contact: c });
       b.cue(s("crowd"), L.i, "crowd");
     }
-    b.cue(s("sound"), L.i, impactFamily(L.weapon));
+    b.cue(s("sound"), L.i, impactFamily(L.weapon), 0, hitItem(b, L), "body");
     b.lastHitAt.set(L.target, L.at);
   } else if (L.outcome === "block") {
     // A shield on the back arm comes up and takes the blow (content v2); otherwise the arms do.
@@ -125,12 +132,15 @@ export function land(b: Builder, L: Landing, ci?: number): number {
       b.nudge({ actor: L.attacker, key: "recoil", from: L.at, outMs: OUTCOME.recoilMs * 0.5, holdMs: 0, backMs: OUTCOME.recoilMs,
         dx: -dir * OUTCOME.recoil, arc: 0, contact: null });
     }
-    b.cue(s("sound"), L.i, "block");
+    // the shield takes the blow; otherwise the attacker's item meets the parrying weapon or the arms
+    const parry = ttr.rig === "scrapper" && (b.heldNow.get(L.target) ?? "fists") !== "fists";
+    if (shield !== null) b.cue(s("sound"), L.i, "block", 0, shield, "shield");
+    else b.cue(s("sound"), L.i, "block", 0, hitItem(b, L), parry ? "weapon" : "body");
   } else {
     // evade: the defender is already hopping back (see `evadeEarly`); the swing completes in a whoosh
     b.fx.push({ fx: "whoosh", from: L.at, to: L.at + CONTACT.burstMs, x: spot.x, y: spot.y, facing: dir, seed, contact: null });
     tagOver(b, L.target, L.at, b.opts.text.miss, PAPER);
-    b.cue(s("sound"), L.i, "whoosh");
+    b.cue(s("sound"), L.i, "whoosh", 0, hitItem(b, L));
   }
   skillTag(b, L.procs, L.at);
   b.hpNow.set(L.target, L.hpAfter);

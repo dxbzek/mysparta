@@ -22,18 +22,25 @@
  * striking end reaches that height (a short Raccoon or a tall head alike).
  * The stage never applies a clip fallback: the rig does (see the rig contract).
  */
-import type { ActorId, BagItem, BoutLog, BoutState, FighterSnapshot, MoveId, ProcId, Side, StageId } from "@rankzero/core";
+import type { ActorId, BagItem, BoutLog, BoutState, CompanionId, FighterSnapshot, HeldId, MoveId, ProcId, ShieldId, Side, StageId } from "@rankzero/core";
 import type { DrawEnv, Rig } from "@rankzero/rig";
 
 export type SfxFamily = "fist" | "blunt" | "blade" | "block" | "whoosh" | "dash" | "landing" | "throw"
-  | "drop" | "crowd" | "companion" | "move" | "win" | "loss";
+  | "drop" | "crowd" | "companion" | "move" | "win" | "loss" | "swing";
 /** How many variations each family has in the sound sprite. The stage picks `Cue.variant` below
  *  this number, and the fight-screen lane builds the sprite with exactly this many, in this
  *  order. The one table both read. */
 export const SFX_VARIANTS: Readonly<Record<SfxFamily, number>> = {
   fist: 3, blunt: 4, blade: 4, block: 3, whoosh: 3, dash: 2, landing: 2, throw: 1,
-  drop: 2, crowd: 2, companion: 3, move: 4, win: 1, loss: 1,
+  drop: 2, crowd: 2, companion: 3, move: 4, win: 1, loss: 1, swing: 3,
 };
+/** The thing that made a sound (CONTRACT_REV 3, owner: "it depends on the weapon too"): the held
+ *  item that swings, hits, is thrown, drawn or dropped; the shield that takes a block or falls;
+ *  the companion that calls, lunges or bites. The host picks the sound by this id and falls back
+ *  to the family when it has none. */
+export type SfxItem = HeldId | ShieldId | CompanionId;
+/** What an impact landed on: the target's body, its shield, or the weapon it parried with. */
+export type SfxOn = "body" | "shield" | "weapon";
 /** Every word the stage paints. The stage holds no player text of its own. */
 export interface StageText { fight: string; wins(name: string): string; block: string; miss: string;
   crit: string; overtime: string; moveName(id: MoveId): string; skillName(id: ProcId): string }   // a skill, or a shield (content v2)
@@ -51,7 +58,12 @@ export type EffectKey = "flash" | "flinch" | "knockback" | "burst" | "number" | 
 export interface ContactMark { step: number; at: number; starts: Record<EffectKey, number | null> }
 /** One sound. `variant` is the index inside the family, 0 to `SFX_VARIANTS[family] - 1`, already
  *  picked from the cosmetic seed. */
-export interface Cue { at: number; step: number; family: SfxFamily; variant: number }
+export interface Cue { at: number; step: number; family: SfxFamily; variant: number;
+  /** What made the sound (see `SfxItem`). Set on swing, impact, block, evade, throw, draw, drop
+   *  and companion cues; absent on crowd, dash, landing, Move, win and loss cues. */
+  item?: SfxItem;
+  /** Impact cues (fist, blunt, blade, block) only: what was struck. */
+  on?: SfxOn }
 /** `stepAt[i]` and `stepEnd[i]` are the start and end time of step i. `busy` lists the spans in
  *  which an actor is doing more than idling, sorted by start. `killStep` is a step index, or -1.
  *  `firstActionAt` is the start of the first step after the intro. `resultAt` is when the result

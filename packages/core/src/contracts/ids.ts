@@ -7,7 +7,8 @@ export const RULES_VERSION = 1 as const;
 /** 2 since content v2: the door became a shield (`BoutInit.shield`, the `shieldOff` step). */
 export const LOG_VERSION = 2 as const;
 /** 2: content v2 (owner amendment 13.8): more weapons, Thrown weapons, skills, pets, and shields. */
-export const CONTRACT_REV = 2;
+/** 3: sound cues name what made them (stage `Cue.item`, `Cue.on`) and a `swing` family (owner, 15 Nov 2026). */
+export const CONTRACT_REV = 3;
 export const REALM_SALT = "yard-1";
 /** Rivals in the pool at each level, index 0 to 239. */
 export const RIVALS_PER_LEVEL = 240;

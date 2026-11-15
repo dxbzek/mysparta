@@ -19,7 +19,7 @@ export function flee(b: Builder, step: StepOf<"flee">, i: number): Placed {
   tr.goneAt = at + ms;
   b.status.set(step.actor, "fled");
   b.out.delete(step.actor);
-  b.cue(at, i, "companion");
+  b.cue(at, i, "companion", 0, b.soundItem(step.actor));
   if (b.cursor < at + 300) b.cursor = at + 300;
   return { at, apply: at + 1 };
 }

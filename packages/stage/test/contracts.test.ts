@@ -17,14 +17,14 @@ describe("the stage package index", () => {
 });
 
 describe("sound families", () => {
-  it("have the variation counts of the sound spec: 35 sounds in 14 families", () => {
+  it("have the variation counts of the sound spec: 38 sounds in 15 families (rev 3 adds swing x3)", () => {
     expect(SFX_VARIANTS).toEqual({
       fist: 3, blunt: 4, blade: 4, block: 3, whoosh: 3, dash: 2, landing: 2, throw: 1,
-      drop: 2, crowd: 2, companion: 3, move: 4, win: 1, loss: 1,
+      drop: 2, crowd: 2, companion: 3, move: 4, win: 1, loss: 1, swing: 3,
     });
     const counts = Object.values(SFX_VARIANTS);
-    expect(counts.length).toBe(14);
-    expect(counts.reduce((sum, n) => sum + n, 0)).toBe(35);
+    expect(counts.length).toBe(15);
+    expect(counts.reduce((sum, n) => sum + n, 0)).toBe(38);
     for (const n of counts) expect(Number.isInteger(n) && n >= 1).toBe(true);
   });
 

@@ -41,7 +41,7 @@ export function intercept(b: Builder, step: StepOf<"intercept">, i: number): Pla
   const hitStop = b.hitStopFor(i, step.crit);
   const sw = b.swing({ i, actor: def, target: dasher, clip, dress: b.dress(def, weapon), zone: aimZone(atr.rig, i),
     start: arrive - strike, mode: "step", combo: false, hitStop, slow: i === b.killStep });
-  if (dtr.rig !== "scrapper") b.cue(sw.segs[0]!.from, i, "companion");
+  if (dtr.rig !== "scrapper") b.cue(sw.segs[0]!.from, i, "companion", 0, dtr.rig);
   if (step.outcome === "evade") evadeEarly(b, dasher, def, sw.contactAt);
   const ci = land(b, { i, at: sw.contactAt, attacker: def, target: dasher, outcome: step.outcome, damage: step.damage,
     crit: step.crit, hpAfter: step.hpAfter, weapon: step.weapon, hitStop, ...(step.procs !== undefined ? { procs: step.procs } : {}) });

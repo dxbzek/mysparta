@@ -36,7 +36,7 @@ export function throwStep(b: Builder, step: StepOf<"throw">, i: number): Placed 
   const rest = info.durationMs - strike;
   const restMs = combo ? BEAT.comboMs - BEAT.comboStrikeMs : rest;
   b.play(step.actor, clip, release, { c0: strike, rate: restMs > 0 ? rest / restMs : 1, until: release + Math.max(1, restMs) });
-  b.cue(release, i, "throw");
+  b.cue(release, i, "throw", 0, weapon);
   b.bag(tr.side, release, step.bagAfter);
 
   // The flight: from the hand at the release to the target's hit point at the arrival.

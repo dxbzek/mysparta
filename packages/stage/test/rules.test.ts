@@ -8,7 +8,7 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Path2D, createCanvas } from "@napi-rs/canvas";
 import type { StepType } from "@rankzero/core";
-import { STEP_TYPES, impactFamily } from "@rankzero/core";
+import { COMPANION_IDS, SHIELD_IDS, STEP_TYPES, impactFamily, isScrapper } from "@rankzero/core";
 import { BOUT_FIXTURES } from "@rankzero/core/fixtures";
 import type { ClipInfo, Ctx2D, DrawEnv, Rig } from "@rankzero/rig";
 import { capsuleRig } from "@rankzero/rig/testing";
@@ -45,6 +45,37 @@ describe("sound cues", () => {
       const ats = p.timeline.cues.map((c) => c.at);
       expect([...ats].sort((x, y) => x - y)).toEqual(ats);
     }
+  });
+
+  it("names on every impact cue the held item of its step (contract rev 3)", () => {
+    const companions = new Set<string>(COMPANION_IDS);
+    const shields = new Set<string>(SHIELD_IDS);
+    let checked = 0;
+    for (const name of ["bout-gate", "bout-all-steps", "bout-cap"] as const) {
+      const p = fixturePlayer(name);
+      const log = BOUT_FIXTURES[name].log;
+      for (const c of p.timeline.cues) {
+        if (!["fist", "blunt", "blade", "block"].includes(c.family)) continue;
+        const s = log.steps[c.step]!;
+        if (s.t !== "attack" && s.t !== "intercept" && s.t !== "riposte" && s.t !== "throw") continue;
+        const who = s.actor;
+        const expected = s.weapon ?? (isScrapper(who) ? "fists" : null);
+        if (c.on === "shield") {
+          expect(c.family, `${name} step ${c.step}`).toBe("block");
+          expect(shields.has(c.item ?? ""), `${name} step ${c.step}: ${c.item}`).toBe(true);
+        } else if (expected !== null) {
+          expect(c.item, `${name} step ${c.step}`).toBe(expected);
+        } else {
+          expect(companions.has(c.item ?? ""), `${name} step ${c.step}: ${c.item}`).toBe(true);
+        }
+        expect(c.on, `${name} step ${c.step}`).toBeDefined();
+        if (c.family !== "block") expect(c.on).toBe("body");
+        checked++;
+      }
+      // every swing of a contact step has a swing cue with an item
+      for (const c of p.timeline.cues.filter((q) => q.family === "swing")) expect(c.item, `${name} swing ${c.step}`).toBeDefined();
+    }
+    expect(checked).toBeGreaterThan(10);
   });
 
   it("has a win or loss cue on the banner, landing cues in the intro, a Move stinger per Move", () => {
