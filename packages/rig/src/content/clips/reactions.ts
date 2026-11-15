@@ -48,22 +48,34 @@ const slid = (t: number): number => { const u = Math.min(1, t / 120); return SLI
 /** The footwork of both blocks: the back foot steps back at once, the front foot holds, then steps. */
 const FEET: Contact[] = [
   { foot: "footF", from: 0, to: 130, at: TOE, move: [0, 20, 40, 60, 80, 100, 120, 130].map((t) => [t, slid(t)] as const) },
-  { foot: "footF", from: 190, to: 220, at: TOE },
-  { foot: "footB", from: 0, to: 12, at: TOE },
-  { foot: "footB", from: 80, to: 220, at: TOE, move: [[80, 0], [100, slid(100) - slid(80)], [120, slid(120) - slid(80)]] },
+  // the last contacts end a hair before the clip does: the engine (sample.ts `spotOf`) reads a
+  // contact that starts at 0 as taking over from one that ends at the clip's length, as in a loop,
+  // and would start the back toe off the landing spot instead of where it stands
+  { foot: "footF", from: 190, to: 219.9, at: TOE },
+  { foot: "footB", from: 0, to: 20, at: TOE, move: [0, 4, 8, 12, 16, 20].map((t) => [t, slid(t)] as const) },
+  { foot: "footB", from: 80, to: 219.9, at: TOE, move: [[80, 0], [100, slid(100) - slid(80)], [120, slid(120) - slid(80)]] },
 ];
 /** Leg keys that match the footwork (the front toe carried by the slide until it steps home). */
 const BACK = slid(120) - slid(80);
 const legs = (t: number, back: LegSpec, front?: LegSpec): Spec => ({ legF: front ?? onToe(TOE_F + slid(t), 4), legB: back });
-const B_LIFT: LegSpec = { up: 18, lo: 44, foot: 26 };
-const F_LIFT: LegSpec = { up: -30, lo: 40, foot: 8 };
-const HOME: Spec = { ...STANCE, legF: onToe(TOE_F, 0), legB: onToe(TOE_B, 0), ease: "inOut" };
+/** A foot target raised `h` off the floor. */
+const above = (l: LegSpec, h: number): LegSpec => ("at" in l && typeof l.at !== "number" ? { at: [l.at[0], l.at[1] - h], foot: l.foot ?? 0 } : l);
+/** The feet off the floor in the steps (movement pass 2): each toe goes straight up off its spot
+ *  and comes straight down onto the next (they used to hang low and drag along the floor). The
+ *  back toe keeps its spot on the stage as it leaves (the body sliding back under it). */
+const B_LIFT: LegSpec = above(onToe(TOE_B + slid(40), 30), 6);
+const F_LIFT: LegSpec = above(onToe(TOE_F + 3, 4), 6);
+/** The back toe just over its landing spot, 8 ms before it lands (the body still sliding back). */
+const B_DOWN: LegSpec = above(onToe(TOE_B - BACK - (slid(80) - slid(72)), 26), 1.0);
+/** The guard the blocks end in: the idle's feet (heels a little up), so the cut into it is clean. */
+const HOME: Spec = { ...STANCE, legF: onToe(TOE_F, 3), legB: onToe(TOE_B, 10), ease: "inOut" };
 
 export const BLOCK = clip(220, false, [], [
   [0, { ...GUARD_UP }],
-  [12, { ...legs(12, onToe(TOE_B, 30)) }],
+  [20, { ...legs(20, onToe(TOE_B + slid(20), 34)) }],
   [40, { root: [-4.5, 8.5], pelvis: -4, torso: 6, head: 8, F: { up: -80, lo: -100, hand: 28 }, B: { up: -30, lo: -128, hand: -6 },
     ...legs(40, B_LIFT), ease: "out" }],
+  [72, { ...legs(72, B_DOWN), ease: "inOut" }],
   [80, { root: [-5, 8], pelvis: -4, torso: 7, head: 7, F: { up: -82, lo: -98, hand: 28 }, B: { up: -28, lo: -130, hand: -4 },
     ...legs(80, onToe(TOE_B - BACK, 24)), ease: "inOut" }],
   [130, { root: [-3.5, 7], pelvis: -2, torso: 10, head: 2, F: { up: -50, lo: -116, hand: 24 }, B: { up: -12, lo: -134, hand: 0 },
@@ -75,9 +87,10 @@ export const BLOCK = clip(220, false, [], [
 
 export const BLOCK_SHIELD = clip(220, false, [], [
   [0, { ...GUARD_UP, B: { up: -73, lo: -64, hand: 0 }, F: { up: 10, lo: -130, aim: -76 } }],
-  [12, { ...legs(12, onToe(TOE_B, 30)) }],
+  [20, { ...legs(20, onToe(TOE_B + slid(20), 34)) }],
   [40, { root: [-5.5, 9], pelvis: -5, torso: 3, head: 12, B: { up: -64, lo: -68, hand: 0 }, F: { up: 12, lo: -128, aim: -74 },
     ...legs(40, B_LIFT), ease: "out" }],
+  [72, { ...legs(72, B_DOWN), ease: "inOut" }],
   [80, { root: [-6, 8.5], pelvis: -5, torso: 4, head: 11, B: { up: -66, lo: -67, hand: 0 }, ...legs(80, onToe(TOE_B - BACK, 26)), ease: "inOut" }],
   [130, { root: [-4, 7], pelvis: -2, torso: 9, head: 6, B: { up: -45, lo: -86, hand: 0 }, F: { up: 8, lo: -130, aim: -80 },
     ...legs(130, onToe(TOE_B - BACK, 18)), ease: "inOut" }],

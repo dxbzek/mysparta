@@ -255,7 +255,8 @@ describe("choreography", () => {
         }
         case "snatch":
           expect(mine.map((g) => g.clip), why).toContain("flick");
-          expect(mine.map((g) => g.clip), why).toContain("dash");
+          // he comes in on his feet: the run (push-off, dash, brake) from far, the shuffle from near (footwork.ts)
+          expect(mine.some((g) => g.clip === "dash-push" || g.clip === "dash" || g.clip === "shuffle"), `${why}: comes in`).toBe(true);
           if (s.taken !== undefined) {
             expect(tr.flights.some((f) => f.item === s.taken && f.after === "held" && f.from > at), why).toBe(true);
             expect(tr.byId.get(s.actor)!.helds.some((h) => h.held === s.taken && h.from > at), `${why}: in the other hand`).toBe(true);
@@ -288,7 +289,8 @@ describe("choreography", () => {
           break;
         case "grapple":
           expect(mine.map((g) => g.clip), why).toContain("slam");
-          expect(mine.map((g) => g.clip), why).toContain("dash");
+          // he comes in on his feet: the run (push-off, dash, brake) from far, the shuffle from near (footwork.ts)
+          expect(mine.some((g) => g.clip === "dash-push" || g.clip === "dash" || g.clip === "shuffle"), `${why}: comes in`).toBe(true);
           expect(mine.some((g) => g.clip === "slam" && g.rate === 0), `${why}: the squeeze holds`).toBe(true);
           // the hold snares with no tarp: the target plays its snared clip and no tarp lands on it
           expect(segsOf(s.target!).some((g) => g.clip === "snared" && g.from >= at), why).toBe(true);

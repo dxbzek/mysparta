@@ -76,7 +76,9 @@ export const COMPANION_COLOURS = {
   goose: { body: "#E8D2AE", dark: "#5A4A3A", light: "#F2C070" },
   boar: { body: "#8A5A3A", dark: "#3A2418", light: "#C89A6A" },
   "stray-dog": { body: "#9A7A52", dark: "#3A2A1A", light: "#D8B888" },   // content v2 stand-ins
-  crow: { body: "#2A2A30", dark: "#101014", light: "#6A6A78" },
+  // a blue-grey crow with a clear sheen (movement pass 2: the near-black one vanished on the
+  // night arena's teal floor and brick); the eye stays the pale cream of FIXED.white
+  crow: { body: "#5A667E", dark: "#323A4A", light: "#8494B0" },
   "alley-cat": { body: "#C8823A", dark: "#4A2A10", light: "#F0C080" },
 } as const;
 

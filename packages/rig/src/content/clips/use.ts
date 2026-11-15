@@ -20,10 +20,13 @@ import type { Clip } from "../../contracts";
 import { SWING_2H, SWING_LOW } from "./swing-2h";
 import { THRUST, THRUST_1H } from "./thrust";
 import { THROW_FLICK, THROW_HEAVE, THROW_ROLL, THROW_SIDE } from "./throws";
+import { FOOTWORK } from "./footwork";
 
 export const VARIANTS: Readonly<Record<string, Clip>> = {
   "swing-2h": SWING_2H, "swing-low": SWING_LOW, "thrust-1h": THRUST_1H,
   "throw-side": THROW_SIDE, "throw-roll": THROW_ROLL, "throw-flick": THROW_FLICK, "throw-heave": THROW_HEAVE,
+  // not weapon variants: the footwork clips the stage asks for by name (footwork.ts, movement pass 2)
+  ...FOOTWORK,
 };
 /** The base clip each variant stands in for (its length and events are that clip's). */
 export const VARIANT_BASE: Readonly<Record<string, string>> = {

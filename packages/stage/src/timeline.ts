@@ -25,6 +25,8 @@ import type { MotionRules } from "./motion";
 import { motionRules } from "./motion";
 import { basePos, clipTime, drawPlace, facingAt, nudgeAt, segAt } from "./track";
 import { BEAT, FLOOR, HIT_STOP, IDLE, INTRO, KNOCKOUT } from "./tuning";
+import type { Plan } from "./footwork";
+import { layWay, planWay, readyAt } from "./footwork";
 import { dispatch } from "./choreo/index";
 
 /** Test hooks. Never set by the host: a planted fault for the controls of ground rule 13. */
@@ -38,6 +40,10 @@ export interface Internal {
   /** Pets on these marks, at this scale (a planted fault for the pet layout test: pets back at
    *  their owner's feet, as the fight-screen pass had them). */
   pets?: { marks: Readonly<Record<string, { x: number; y: number }>>; scale?: number };
+  /** The dash as it was before the footwork pass: an eased slide (0 to 840 units/s) under the
+   *  dash loop, the walk home an eased slide under the backpedal (a planted fault for the
+   *  foot-slide test). */
+  easedDash?: boolean;
 }
 
 export type { Zone } from "./layout";
@@ -285,23 +291,31 @@ export class Builder {
   }
 
   /** Flush: every actor that is away from home walks back. The next actor may start when the
-   *  longest walk is 60% done. */
-  flush(): void {
+   *  longest walk is 60% done, and once it is home itself (`next`, a scrapper that shuffles home:
+   *  its feet finish the bounce before they do anything else). */
+  flush(next?: ActorId): void {
     if (this.out.size === 0) return;
     const from = this.cursor;
     let longest = 0;
+    let own = 0;
     for (const id of this.out) {
       if (this.status.get(id) !== "up") continue;
       const tr = this.track(id);
       const p = basePos(tr, from);
       const dist = Math.hypot(tr.home.x - p.x, tr.home.y - p.floorY);
       if (dist < 0.5) continue;
-      const ms = Math.max(BEAT.dashBackMinMs, Math.round((dist / BEAT.dashBackSpeed) * 1000));
-      this.move(id, from, ms, tr.home.x, tr.home.y, 0, "inOut");
-      if (tr.rig === "scrapper") {
+      let ms = Math.max(BEAT.dashBackMinMs, Math.round((dist / BEAT.dashBackSpeed) * 1000));
+      if (tr.rig === "scrapper" && this.internal.easedDash !== true) {
+        // home by shuffles, facing the fight (footwork.ts): the body moves only in the air
+        this.face(id, from, tr.homeFacing);
+        ms = layWay(this, id, from, tr.home.x, tr.home.y, planWay(this, id, tr.home.x - p.x, tr.home.y - p.floorY, false, from)) - from;
+        if (id === next) own = ms;
+      } else if (tr.rig === "scrapper") {
+        this.move(id, from, ms, tr.home.x, tr.home.y, 0, "inOut");
         this.face(id, from, tr.homeFacing);
         this.play(id, "backpedal", from, { until: from + ms });
       } else {
+        this.move(id, from, ms, tr.home.x, tr.home.y, 0, "inOut");
         // a companion turns, runs home, and turns to face the fight again
         this.face(id, from, tr.home.x < p.x ? -1 : 1);
         this.play(id, "run", from, { until: from + ms });
@@ -310,7 +324,7 @@ export class Builder {
       if (ms > longest) longest = ms;
     }
     this.out.clear();
-    this.cursor = from + Math.round(longest * BEAT.nextAfterBack);
+    this.cursor = from + Math.max(Math.round(longest * BEAT.nextAfterBack), Math.ceil(own));
   }
 
   /** The intro is over: the FIGHT card, then the first action at 1500. */
@@ -327,18 +341,24 @@ export class Builder {
    * The stop is found from where the target is at the contact time, so the striking end meets
    * the target's hit point there.
    */
-  swing(p: SwingPlan): SwingDone {
-    const atr = this.track(p.actor);
+  swing(p0: SwingPlan): SwingDone {
+    const atr = this.track(p0.actor);
+    // a scrapper still on its way somewhere (home, a dodge) finishes that first
+    const p: SwingPlan = atr.rig === "scrapper" && this.internal.easedDash !== true
+      ? { ...p0, start: Math.max(p0.start, readyAt(this, p0.actor)) } : p0;
     const ttr = this.track(p.target);
     const info = this.info(atr.rig, p.clip);
     const strike = this.strikeOf(info);
     const strikeIn = p.combo ? BEAT.comboStrikeMs : strike;
     const from = basePos(atr, p.start);
     const tDress = this.dress(p.target);
+    // a scrapper crosses the floor with real footwork (footwork.ts); a pet runs as before
+    const feet = atr.rig === "scrapper" && this.internal.easedDash !== true;
     let contactAt = p.start + (p.mode === "dash" ? BEAT.anticipationMs + BEAT.dashMinMs : 0) + strikeIn;
     let stop = { x: from.x, aimY: 0 };
     let facing: 1 | -1 = atr.homeFacing;
     let dashMs = 0;
+    let way: Plan | null = null;
     let y = from.floorY;
     for (let k = 0; k < 4; k++) {
       const tp = this.place(p.target, contactAt);
@@ -347,7 +367,11 @@ export class Builder {
         { rig: ttr.rig, dress: tDress, x: tp.x, facing: tp.facing }, p.zone);
       stop = { x: s.x + facing * (this.internal.stopError ?? 0), aimY: s.aimY };
       y = tp.y;
-      if (p.mode === "dash") {
+      if (feet) {
+        // a shuffle needs no brace before it: its own dip is the wind-up
+        way = planWay(this, p.actor, stop.x - from.x, y - from.floorY, p.mode === "dash", p.start);
+        contactAt = p.start + (way.kind === "run" ? BEAT.anticipationMs : 0) + way.ms + strikeIn;
+      } else if (p.mode === "dash") {
         // a pet starts behind its owner (layout.homeMarks) and keeps behind his floor line until it
         // reaches its target's, so it passes behind him (he draws over it), never through him
         const dist = Math.hypot(stop.x - from.x, y - from.floorY);
@@ -359,7 +383,17 @@ export class Builder {
     }
     const swingStart = contactAt - strikeIn;
     this.face(p.actor, p.start, facing);
-    if (p.mode === "dash") {
+    if (feet && way !== null) {
+      let t = p.start;
+      if (p.mode === "dash" && way.kind === "run") {
+        // the brace, played to its end in the anticipation, is the pose the push-off starts from
+        const brace = this.info(atr.rig, "brace").durationMs;
+        this.play(p.actor, "brace", t, { rate: brace / BEAT.anticipationMs, until: t + BEAT.anticipationMs });
+        t += BEAT.anticipationMs;
+      }
+      if (p.mode === "dash") this.cue(t, p.i, "dash");
+      layWay(this, p.actor, t, stop.x, y, way);
+    } else if (p.mode === "dash") {
       if (atr.rig === "scrapper") this.play(p.actor, "brace", p.start, { until: p.start + BEAT.anticipationMs });
       else this.play(p.actor, "run", p.start, { rate: 0, until: p.start + BEAT.anticipationMs });
       this.move(p.actor, p.start + BEAT.anticipationMs, dashMs, stop.x, y, 0, "inOut");
@@ -399,9 +433,13 @@ export class Builder {
     const end = t + Math.max(0, leftMs);
     // a pet may be drawn in front of a fighter only during its own attack (frame.ts)
     if (atr.rig !== "scrapper") atr.attacks.push({ from: p.start, to: end });
-    // the target braces from the start of the dash
+    // the target braces from the start of the dash (once it is set: not in the middle of its own
+    // way home, which would leave its feet sliding under the brace)
     if (p.mode === "dash" && this.status.get(p.target) === "up" && !this.snared.has(p.target) && ttr.rig === "scrapper") {
-      this.play(p.target, "brace", p.start + BEAT.anticipationMs, { until: contactAt, busy: false });
+      const set = ttr.moves.reduce((m, mv) => Math.max(m, mv.to), -Infinity);
+      const ways = ttr.segs.filter((g) => g.clip === "shuffle" || g.clip === "brake").reduce((m, g) => Math.max(m, g.to), -Infinity);
+      const from = Math.max(p.start + BEAT.anticipationMs, set, ways);
+      if (from < contactAt) this.play(p.target, "brace", from, { until: contactAt, busy: false });
     }
     return { contactAt, end, stopX: stop.x, aimY: stop.aimY, segs, facing };
   }
@@ -455,7 +493,7 @@ export function buildTimeline(log: BoutLog, a: FighterSnapshot, b: FighterSnapsh
   const B = new Builder(log, { a, b }, rig, opts, internal);
   log.steps.forEach((step, i) => {
     if (step.t !== "enter") B.startBout();
-    if (!carriesOn(step)) B.flush();
+    if (!carriesOn(step)) B.flush("actor" in step ? step.actor : undefined);
     const r = dispatch(B, step, i);
     B.stepAt[i] = r.at;
     B.applyAt[i] = r.apply;

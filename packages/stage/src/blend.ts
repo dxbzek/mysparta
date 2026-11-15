@@ -40,12 +40,29 @@ function rawPose(rig: Rig, tr: ActorTrack, seg: Seg | null, t: number): Pose {
   return seg === null ? rig.samplePose(tr.rig, "idle", t + tr.phase) : rig.samplePose(tr.rig, seg.clip, clipTime(seg, t), seg.aim);
 }
 
-/** When the clip on screen at `t` began to show: the start of its segment, or the end of a later
- *  segment that played over it, or (in idle) the end of the last segment. */
-function cutAt(tr: ActorTrack, seg: Seg | null, t: number): number | null {
+/** The segment a segment carries on from: the same clip, ending where it starts, at the clip time
+ *  it starts on (the brake's flight fitted, then played at 1x). That is no cut. */
+function carriedFrom(tr: ActorTrack, seg: Seg): Seg | null {
+  const prev = segAt(tr, seg.from - 0.5);
+  return prev !== null && prev !== seg && prev.clip === seg.clip && prev.to === seg.from
+    && Math.abs(clipTime(prev, seg.from) - seg.c0) < 0.5 ? prev : null;
+}
+
+/** When the clip on screen at `t` began to show: the start of its segment (or of the segments it
+ *  carries on from), or the end of a later segment that played over it, or (in idle) the end of
+ *  the last segment. */
+function cutAt(tr: ActorTrack, seg0: Seg | null, t: number): number | null {
+  const chain = new Set<Seg>();
+  let seg = seg0;
+  while (seg !== null) {
+    chain.add(seg);
+    const prev = carriedFrom(tr, seg);
+    if (prev === null || chain.has(prev)) break;
+    seg = prev;
+  }
   let cut: number | null = seg === null ? null : seg.from;
   for (const s of tr.segs) {
-    if (s === seg || s.to > t || s.to === Infinity) continue;
+    if (chain.has(s) || s.to > t || s.to === Infinity) continue;
     if (seg !== null && s.from < seg.from) continue;
     if (cut === null || s.to > cut) cut = s.to;
   }
@@ -79,7 +96,7 @@ export function poseAt(rig: Rig, tr: ActorTrack, t: number, blend = true, depth 
   const cut = cutAt(tr, seg, t);
   if (cut === null || t < cut || t - cut >= BLEND.maxMs || cut <= tr.showFrom) return now;
   const before = poseAt(rig, tr, cut - 0.5, blend, depth + 1);
-  const atCut = rawPose(rig, tr, seg, cut);
+  const atCut = rawPose(rig, tr, segAt(tr, cut), cut);
   const ms = Math.min(BLEND.maxMs, Math.max(BLEND.minMs, gap(before, atCut) * BLEND.msPerDeg));
   if (t - cut >= ms) return now;
   return offsetPose(now, before, atCut, 1 - smooth((t - cut) / ms));

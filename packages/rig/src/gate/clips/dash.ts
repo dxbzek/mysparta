@@ -29,10 +29,10 @@ import type { LegSpec, Spec } from "./kit";
 export const RUN_SPEED = 0.56;
 const D = 240;
 /** Each foot touches down at these times and stays down 72 ms. */
-const TD = { F: 60, B: 180 } as const;
-const GROUND = 72;
+export const TD = { F: 60, B: 180 } as const;
+export const GROUND = 72;
 /** Where the toe lands, ahead of the hip joint (units). */
-const LAND = 24;
+export const LAND = 24;
 /** The foot's world angle on the ground: forefoot landing, heel rising to the push. */
 const FOOT_DOWN: readonly (readonly [number, number])[] = [[0, 12], [36, 24], [60, 44], [72, 54]];
 
@@ -54,8 +54,8 @@ function leg(tau: number): LegSpec {
   const foot = cyc(D, [[72, 54], [96, 40], [120, 30], [156, 20], [180, 12], [196, 8], [218, 8], [240, 12]], u);
   return { up, lo, foot };
 }
-/** The key at clip time `t`. */
-function at(t: number): Spec {
+/** The key at clip time `t` (the brake and the push-off start and end on these poses). */
+export function runAt(t: number): Spec {
   const tF = t - TD.F;
   const tB = t - TD.B;
   // the free arm (B) forward when the near leg (F) is back; the weapon arm (F) swings less
@@ -82,7 +82,7 @@ function at(t: number): Spec {
 const TIMES = [0, 12, 24, 36, 48, 60, 78, 96, 114, 132, 144, 156, 168, 180, 198, 216, 228, 240];
 
 export const DASH = clip(D, true, [{ t: 0, name: "step" }, { t: 120, name: "step" }],
-  TIMES.map((t) => [t, at(t)] as const),
+  TIMES.map((t) => [t, runAt(t)] as const),
   {
     lag: { head: 20 },
     stride: {

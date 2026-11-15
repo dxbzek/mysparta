@@ -55,7 +55,7 @@ export function throwStep(b: Builder, step: StepOf<"throw">, i: number): Placed 
   if (!keeps) b.setHeld(step.actor, release, "fists");
 
   const hitStop = b.hitStopFor(i, step.crit);
-  if (step.outcome === "evade") evadeEarly(b, step.target, step.actor, arrive);
+  if (step.outcome === "evade") evadeEarly(b, step.target, step.actor, arrive, i, { clip: "throw", weapon, combo });
   land(b, { i, at: arrive, attacker: step.actor, target: step.target, outcome: step.outcome, damage: step.damage,
     crit: step.crit, hpAfter: step.hpAfter, weapon: step.weapon, hitStop, ...(step.procs !== undefined ? { procs: step.procs } : {}) });
 

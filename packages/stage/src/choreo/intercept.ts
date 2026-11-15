@@ -3,6 +3,7 @@
 import type { StepOf } from "@rankzero/core";
 import { evadeEarly, land } from "../effects";
 import { aimZone, stopFor } from "../layout";
+import { layWay, planWay } from "../footwork";
 import type { Builder } from "../timeline";
 import { BEAT, OUTCOME } from "../tuning";
 import type { Placed } from "./index";
@@ -24,13 +25,22 @@ export function intercept(b: Builder, step: StepOf<"intercept">, i: number): Pla
   const xA = from.x + OUTCOME.interceptAt * (own.x - from.x);
   const yA = dp.y;
   const dist = Math.hypot(xA - from.x, yA - from.y);
-  const dashMs = Math.max(BEAT.dashMinMs, Math.round((dist / BEAT.dashSpeed) * 1000));
+  const feet = atr.rig === "scrapper" && b.internal.easedDash !== true;
+  // a scrapper comes in with real footwork (footwork.ts) and is set when the blow meets him
+  const way = feet ? planWay(b, dasher, xA - from.x, yA - from.y, true) : null;
+  const dashMs = way !== null ? way.ms : Math.max(BEAT.dashMinMs, Math.round((dist / BEAT.dashSpeed) * 1000));
   const arrive = s + BEAT.anticipationMs + dashMs;
   b.face(dasher, s, facing);
-  if (atr.rig === "scrapper") b.play(dasher, "brace", s, { until: s + BEAT.anticipationMs });
+  // (a shuffle needs no brace before it: its own dip is the wind-up)
+  if (atr.rig === "scrapper" && way?.kind !== "hop") {
+    b.play(dasher, "brace", s, { rate: way !== null ? b.info("scrapper", "brace").durationMs / BEAT.anticipationMs : 1, until: s + BEAT.anticipationMs });
+  }
   else b.play(dasher, "run", s, { rate: 0, until: s + BEAT.anticipationMs });
-  b.move(dasher, s + BEAT.anticipationMs, dashMs, xA, yA, 0, "out");
-  b.play(dasher, atr.rig === "scrapper" ? "dash" : "run", s + BEAT.anticipationMs, { until: arrive });
+  if (way !== null) layWay(b, dasher, s + BEAT.anticipationMs, xA, yA, way);
+  else {
+    b.move(dasher, s + BEAT.anticipationMs, dashMs, xA, yA, 0, "out");
+    b.play(dasher, atr.rig === "scrapper" ? "dash" : "run", s + BEAT.anticipationMs, { until: arrive });
+  }
   b.cue(s + BEAT.anticipationMs, i, "dash");
   b.out.add(dasher);
 
@@ -42,7 +52,7 @@ export function intercept(b: Builder, step: StepOf<"intercept">, i: number): Pla
   const sw = b.swing({ i, actor: def, target: dasher, clip, dress: b.dress(def, weapon), zone: aimZone(dtr.rig, atr.rig, i),
     start: arrive - strike, mode: "step", combo: false, hitStop, slow: i === b.killStep });
   if (dtr.rig !== "scrapper") b.cue(sw.segs[0]!.from, i, "companion", 0, dtr.rig);
-  if (step.outcome === "evade") evadeEarly(b, dasher, def, sw.contactAt);
+  if (step.outcome === "evade") evadeEarly(b, dasher, def, sw.contactAt, i, { clip, weapon, combo: false });
   const ci = land(b, { i, at: sw.contactAt, attacker: def, target: dasher, outcome: step.outcome, damage: step.damage,
     crit: step.crit, hpAfter: step.hpAfter, weapon: step.weapon, hitStop, ...(step.procs !== undefined ? { procs: step.procs } : {}) });
   for (const seg of sw.segs) seg.strikes = ci;

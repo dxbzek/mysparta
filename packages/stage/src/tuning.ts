@@ -40,6 +40,29 @@ export const BEAT = {
   restMs: 120,
 } as const;
 
+/**
+ * Footwork (movement pass 2, 16 Nov 2026; footwork.ts). A swing's approach runs from `runFrom`
+ * units away (times the fighter's drawn size): the push-off, whole dash loops, the brake's flight
+ * (at least `minFlightMs`), the brake. Nearer, and on every way home, the fighter shuffles: one
+ * bounce covers at most `hopMax`, on an arc of `hopArc` of its length (at least `hopArcMin`),
+ * so a foot is off the floor before the body has moved half a unit. Under `stillUnder` he does
+ * not step at all. `fallback` is the footwork clips' timing for a rig without them (the gate pack
+ * alone, the test doubles); `join` (the dash loop's clip time the push-off ends on and the brake
+ * starts on) and `paw` (the end of the brake's flight, always played at 1x) are the stage's.
+ */
+export const FOOTWORK = {
+  runFrom: 46,
+  minFlightMs: 20,
+  hopMax: 34,
+  hopArc: 0.32,
+  hopArcMin: 3,
+  stillUnder: 0.5,
+  /** The idle loop's moment closest to the guard the footwork clips end in (weight centred, knees
+   *  up: rig gate/clips/idle.ts at 750 ms). */
+  idleFrom: 750,
+  fallback: { push: 52, join: 12, cycle: 240, land: 48, stop: 98, brake: 158, paw: 8, hop: 180, up: 50, down: 120 },
+} as const;
+
 /** Hit-stop at the moment of contact, by kind of hit. */
 export const HIT_STOP = { plain: 60, crit: 110, knockout: 220 } as const;
 
@@ -86,6 +109,15 @@ export const OUTCOME = {
   evadeMs: 320,
   /** The hop starts this long before the contact, so the swing passes where the body was. */
   evadeLead: 110,
+  /** The evade clip's feet leave the floor and the back one lands at these clip times: the stage
+   *  carries the hop between them, on its arc (rig gate/clips/evade.ts EVADE_UP, EVADE_DOWN). */
+  evadeUp: 60,
+  evadeDown: 270,
+  /** A swing that is neither heavy nor light is slipped this share of the time, else hopped
+   *  (seeded by the log's seed and the step). */
+  slipShare: 0.5,
+  /** A guard raised before a block or a dodge takes at least this long, or it is not raised. */
+  guardMinMs: 40,
   tagMs: 500,
   interceptAt: 0.7,        // share of the dash done when the defender hits
   interceptStep: 16,

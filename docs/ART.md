@@ -209,6 +209,59 @@ evade's push and landing. Joint angles were read off the plates; no game art was
   foot steps back at once and the front foot holds its place, then steps back. A shield block
   holds the back forearm at about -124 degrees, where the shield stands square.
 
+### Footwork in real bouts (movement pass 2)
+
+Measured on the drawn feet of whole bouts (stage test/feet.test.ts, lib/feet.ts: the sole's toe
+and heel corners, every 60 fps frame, a corner within 0.35 of the floor is down), the first pass
+still slid: the stage eased the dash (0 to about 840 u/s) under a loop drawn for 560, walked
+fighters home on an eased slide under the backpedal, slid an evader back after the hop and a
+blocker home after the block. Worst slide during footwork, three fixtures and two find-bout bouts:
+53.1 units before, 0.22 after. The rule now: **the stage moves a fighter only the way its clip is
+drawn for**, and every footwork clip starts and ends on the idle's toe spots (`TOE_F`, `TOE_B`).
+Footwork clips are content variants the stage asks for by name (content/clips/footwork.ts; a
+gate-only rig plays its idle there and the stage keeps the same timing, tuning.ts
+`FOOTWORK.fallback`, which rig test/gate/movement.test.ts checks against the clips).
+
+- **Short ways shuffle.** Home marks are 80 units apart, so most approaches are 5 to 40 units
+  (a dash cycle is 134). A way shorter than `FOOTWORK.runFrom` (46 x the fighter's size), and
+  every way home, is the boxer's bounce step `shuffle` (180 ms): the knees dip, the toes leave
+  their spots straight up at 50 ms, the stage carries the body (34 units at most, on an arc of a
+  third of its length) only until 120 ms, when both toes land straight down on their spots. A
+  fighter set in a raised guard first plays the brace back to its start.
+- **The run: push-off, dash, brake.** From the brace's end, `dash-push` (52 ms, Muybridge plate
+  62's first stride): the back toe drives while the body speeds up from rest to the run speed at
+  an even rate (14.56 units). Whole dash cycles at the run speed. Then `brake` (158 ms): it starts
+  on the dash's pose at 12 ms, in the air; the stage keeps the run speed through the flight,
+  fitting its first 40 ms to the distance and playing the last 8 at 1x (the front toe paws back
+  onto its spot); at 48 ms the front foot plants 14 units ahead of its guard spot and the body
+  slows to rest at an even rate by 98 ms, the hips sinking over the bent knee, the back foot down
+  behind at 80 ms; then it rises into the guard. The run speed and distances are scaled by the
+  fighter's drawn size (its build), since the rig draws a foot's travel in figure units; the run
+  is planned on the floor's x (a way into the depth is carried in the air or along with the run).
+- **Two dodges.** `slip` (300 ms): from the raised guard the knees drop and the trunk dips under
+  the blow, the head 9 units or more lower at 110 ms, both toes planted. The evade is the
+  hop-back: both toes on the floor until 60 ms, the stage carries the hop (22 units on a 14-unit
+  arc) until 270 ms, the back toe then the front come straight down on their guard spots; he
+  stays there and shuffles home with everyone else. The choice (stage effects.ts `dodgeOf`): a
+  blow that comes straight in (fists, a light weapon, a jab, a flick, a thrust, a throw) is
+  slipped; a heavy weapon, a two-hand swing or smash, a blade's slash (a duck would put the head
+  under it) or a pet going for the legs is hopped away from; any other one-hand side swing goes by
+  the log's seed and the step (`OUTCOME.slipShare`). No sim change.
+- **Blocks.** The stage moves the blocker back 6 units (x its size) exactly as the block's feet
+  are drawn for and leaves him there (no slide home); he shuffles home at the next way home. The
+  back toe holds its spot as it leaves, both lifted feet clear the floor (they used to hang toe
+  down and drag), and the block ends on the idle's feet. A defender standing idle when a block or
+  a dodge comes raises the guard first (the brace, fitted into the moments before).
+- **No chained contacts across a one-shot clip's end.** sample.ts reads a contact that starts at
+  0 as taking over from one that ends at the clip's length (right for a loop), so in a one-shot
+  clip the last contacts end a hair early (219.9, 319.9). An engine fix would retire that.
+- **Not footwork, not yet fixed.** A blow's knockback still slides the target's planted feet
+  4 to 20 units out and back (the worst slide left in a whole bout, 33 units, all knockback,
+  flinch and fall frames), a block's recoil slides the attacker 5 units, and a few attack clips
+  end with the feet off their guard spots (the thrust's lunge, the two-hand heave), so the
+  crossfade into the idle drifts them up to 3 units. The test leaves those frames out by name
+  (`FOOTWORK_CLIPS`, the knockback and recoil nudges, the crossfade out of any other clip).
+
 ## Weapons
 
 `WeaponArt` in the weapon's own units, +x along it, the grip at `grip`. `tip` is the part the
@@ -290,7 +343,9 @@ the pole weapons poked upward, the Anvil and the Chair were swung like sticks).
     primaries) that lie stacked and fan apart as they open. `test/content/pets.test.ts` checks
     the bends, the planted feet, the footfall order, the one-outline bodies and neck, the sizes.
   - Readability: the crow carries a blue-grey sheen (the accent slot) on crown, nape, back and
-    wing coverts and a pale eye, so it is a clear silhouette on the dark arena. A pet's ink
+    wing coverts and a pale eye, so it is a clear silhouette on the dark arena. Movement pass 2
+    lightened it (gate/style.ts `COMPANION_COLOURS.crow`): body #5A667E blue-grey, wing tips
+    #323A4A, sheen #8494B0; the near-black #2A2A30 body vanished on the night arena. A pet's ink
     outline scales with its drawn size (`petLine` in engine/createRig: the square root of its
     height over a fighter's, never under half the fighter's line).
   - Sizes: drawn at their share of a fighter (84 units): dog 30%, goose 35%, raccoon 22%, cat

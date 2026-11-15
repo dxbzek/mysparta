@@ -32,6 +32,7 @@ import { toStage } from "@rankzero/rig";
 import { land, moveNameTag, overHead, resultTag, skillTag } from "../effects";
 import { flightMs, makePath } from "../flight";
 import { CORAL, GREEN, SKY, VOLT } from "../palette";
+import { layWay, planWay } from "../footwork";
 import type { Builder } from "../timeline";
 import { BEAT, MOVE } from "../tuning";
 import type { Placed } from "./index";
@@ -278,11 +279,20 @@ function closeIn(b: Builder, i: number, actor: ActorId, target: ActorId, c: numb
   const tp = b.place(target, c);
   const facing: 1 | -1 = tp.x >= me.x ? 1 : -1;
   const stopX = tp.x - facing * MOVE.grappleGap;
-  const dashMs = Math.max(BEAT.dashMinMs, Math.round((Math.abs(stopX - me.x) / BEAT.dashSpeed) * 1000));
+  const feet = b.track(actor).rig === "scrapper" && b.internal.easedDash !== true;
+  // real footwork (footwork.ts): the run or the shuffle, set at the target when it ends
+  const way = feet ? planWay(b, actor, stopX - me.x, tp.y - me.y, true) : null;
+  const dashMs = way !== null ? way.ms : Math.max(BEAT.dashMinMs, Math.round((Math.abs(stopX - me.x) / BEAT.dashSpeed) * 1000));
   b.face(actor, c, facing);
-  b.play(actor, "brace", c, { until: c + BEAT.anticipationMs });
-  b.move(actor, c + BEAT.anticipationMs, dashMs, stopX, tp.y, 0, "inOut");
-  b.play(actor, "dash", c + BEAT.anticipationMs, { until: c + BEAT.anticipationMs + dashMs });
+  // (a shuffle needs no brace before it: its own dip is the wind-up)
+  if (way?.kind !== "hop") {
+    b.play(actor, "brace", c, { rate: way !== null ? b.info("scrapper", "brace").durationMs / BEAT.anticipationMs : 1, until: c + BEAT.anticipationMs });
+  }
+  if (way !== null) layWay(b, actor, c + BEAT.anticipationMs, stopX, tp.y, way);
+  else {
+    b.move(actor, c + BEAT.anticipationMs, dashMs, stopX, tp.y, 0, "inOut");
+    b.play(actor, "dash", c + BEAT.anticipationMs, { until: c + BEAT.anticipationMs + dashMs });
+  }
   b.cue(c + BEAT.anticipationMs, i, "dash");
   b.out.add(actor);
   if (b.track(target).rig === "scrapper" && b.status.get(target) === "up") {
