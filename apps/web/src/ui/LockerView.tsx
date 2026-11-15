@@ -17,7 +17,9 @@ import { Sticker } from "./Sticker";
 import { TabBar } from "./TabBar";
 import css from "./LockerView.module.css";
 
-export type LockerTab = "home" | "kit" | "history";
+export type LockerTab = "home" | "kit" | "inventory" | "history";
+/** The bottom tabs, in order (owner, 15 November 2026: an Inventory to see what is unlocked). */
+export const MAIN_TABS: readonly LockerTab[] = ["home", "kit", "inventory", "history"];
 export type LockerPrimary =
   | { kind: "levelup" }
   | { kind: "fight"; boutsLeft: number }
@@ -52,7 +54,7 @@ export const LOCKER_TEXT: LockerText = {
   loss: "L",
   replay: (o) => `Replay the bout with ${o}`,
   xpGained: (n) => `+${n} XP`,
-  tabs: { home: "Home", kit: "Kit", history: "History" },
+  tabs: { home: "Home", kit: "Kit", inventory: "Inventory", history: "History" },
   hero: (name) => `${name} waiting in the Yard`,
 };
 
@@ -185,7 +187,7 @@ export function LockerView(p: LockerViewProps) {
         </Panel>
       </main>
       <div className={css.tabs}>
-        <TabBar tabs={(["home", "kit", "history"] as const).map((k) => ({ key: k, label: t.tabs[k] }))} active={p.tab} onSelect={p.onTab} />
+        <TabBar tabs={MAIN_TABS.map((k) => ({ key: k, label: t.tabs[k] }))} active={p.tab} onSelect={p.onTab} />
       </div>
     </div>
   );

@@ -44,9 +44,9 @@ describe("result lines", () => {
 
 describe("plain labels", () => {
   it("the navigation strings are the plain words of brief 3.1", () => {
-    expect(Object.values(NAV)).toEqual(["Home", "Kit", "History", "Pick a rival", "Tonight's Card", "Level path", "Route",
+    expect(Object.values(NAV)).toEqual(["Home", "Kit", "History", "Inventory", "Pick a rival", "Tonight's Card", "Level path", "Route",
       "Fight", "Level up", "Skills", "Weapons", "Pets"]);
-    expect(LOCKER_WORDS.tabs).toEqual({ home: "Home", kit: "Kit", history: "History" });
+    expect(LOCKER_WORDS.tabs).toEqual({ home: "Home", kit: "Kit", inventory: "Inventory", history: "History" });
     expect(UI.kit.tabs).toEqual({ kit: "Kit", route: "Level path", stats: "Stats" });
     expect(UI.card.heading).toBe("Pick a rival");
     expect(UI.card.title).toBe("Tonight's Card");
@@ -56,10 +56,10 @@ describe("plain labels", () => {
   });
 
   it("no screen types a navigation label itself: tabs, headings and buttons come from text/ui.ts", () => {
-    const screens = ["Locker/Locker.tsx", "Kit/Kit.tsx", "Card/Card.tsx", "LevelUp/LevelUp.tsx", "Bouts/Bouts.tsx", "Create/Create.tsx"];
+    const screens = ["Locker/Locker.tsx", "Kit/Kit.tsx", "Inventory/Inventory.tsx", "Card/Card.tsx", "LevelUp/LevelUp.tsx", "Bouts/Bouts.tsx", "Create/Create.tsx"];
     for (const f of screens) {
       const text = readFileSync(fileURLToPath(new URL(`../../src/screens/${f}`, import.meta.url)), "utf8");
-      for (const label of ["Home", "History", "Pick a rival", "Level path", "Weapons", "Pets", "Skills"]) {
+      for (const label of ["Home", "History", "Inventory", "Pick a rival", "Level path", "Weapons", "Pets", "Skills"]) {
         expect(text, `${f} types "${label}"`).not.toMatch(new RegExp(`>\\s*${label}\\s*<|"${label}"`));
       }
     }

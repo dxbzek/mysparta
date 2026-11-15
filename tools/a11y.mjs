@@ -132,10 +132,16 @@ async function main() {
         await btn("Take it").click();
         await check("level-up taken");
       }
-      for (const h of ["#/kit", "#/kit/route", "#/kit/stats", "#/bouts"]) {
+      for (const h of ["#/kit", "#/kit/route", "#/kit/stats", "#/bouts", "#/inventory"]) {
         await hash(h);
         await check(h);
       }
+      await page.locator("button[data-state='unlocked']").first().click();
+      await check("inventory item sheet");
+      await page.keyboard.press("Escape");
+      await page.locator("button[data-state='locked']").first().click();
+      await check("inventory locked item sheet");
+      await page.keyboard.press("Escape");
     });
   } finally {
     app.stop();

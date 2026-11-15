@@ -8,7 +8,7 @@ import { HISTORY_LOGS } from "../../state/schema";
 import { resultLine } from "../../text/results";
 import { LOCKER_WORDS, UI } from "../../text/ui";
 import { Button } from "../../ui/Button";
-import { ReplayGlyph } from "../../ui/LockerView";
+import { MAIN_TABS, ReplayGlyph } from "../../ui/LockerView";
 import { Panel } from "../../ui/Panel";
 import { Portrait } from "../../ui/Portrait";
 import { TabBar } from "../../ui/TabBar";
@@ -77,7 +77,7 @@ export function BoutsScreen() {
         ))}
       </main>
       <div className={common.tabs}>
-        <TabBar tabs={(["home", "kit", "history"] as const).map((k) => ({ key: k, label: LOCKER_WORDS.tabs[k] }))} active="history" onSelect={(k) => go(tabRoute(k))} />
+        <TabBar tabs={MAIN_TABS.map((k) => ({ key: k, label: LOCKER_WORDS.tabs[k] }))} active="history" onSelect={(k) => go(tabRoute(k))} />
       </div>
     </div>
   );

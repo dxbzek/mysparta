@@ -7,7 +7,7 @@
  * of effect in plain words, and cost lines (shown in the action colour). `needsLine` adds the one
  * line "No Blade weapon yet." when a perk waits on something the scrapper does not own.
  */
-import { RARITY_OF, api, perkKind } from "@rankzero/core";
+import { RARITY_OF, WEAPON_META, api, perkKind } from "@rankzero/core";
 import type { CompanionId, ContentTables, PerkId, Rarity, ShieldId, ShieldNumbers, SkillId, WeaponId, WeaponNumbers } from "@rankzero/core";
 import { NAMES } from "./names";
 
@@ -210,4 +210,97 @@ export function perkNumbers(id: PerkId, c: ContentTables = api.content): { label
   const s = c.skills[id as SkillId];
   if (!s?.move) return [];
   return [{ label: "Uses a bout", value: String(s.move.uses) }, { label: "Pick weight", value: String(s.move.weight) }];
+}
+
+/* ------------------------------------------------------------------ short lines (Inventory) */
+
+type ShortLine = (n: Readonly<Record<string, number>>) => string;
+const boost = (stat: keyof typeof STAT_WORD): ShortLine => (n) => `${STAT_WORD[stat]} +${n[stat]}, every point +${n[`${stat}Mult`]}%`;
+const times = (n: number): string => (n === 1 ? "once" : `${n} times`);
+const asHard = (pct: number): string => (pct === 200 ? "twice as hard" : pct === 300 ? "three times as hard" : `at ${pct}%`);
+
+/**
+ * The short effect line of a skill, for an Inventory tile (two lines at most on a 390 px phone).
+ * Every number is read from the same table row as the card line. A total Record, like SKILL_LINES.
+ */
+export const SKILL_SHORT: Readonly<Record<SkillId, ShortLine>> = {
+  "big-heart": boost("health"),
+  "heavy-hands": boost("strength"),
+  "light-feet": boost("agility"),
+  "fast-twitch": boost("speed"),
+  "glass-cannon": (n) => `Strength points +${n.strengthMult}%, Health points ${sign(n.healthMult!)}%`,
+  "mountain": (n) => `Health points +${n.healthMult}%, but starts slow`,
+  "padding": (n) => `Armor +${n.armor}: melee hits land softer`,
+  "anticipation": (n) => `Intercept +${n.intercept}: hits first as they run in`,
+  "sharpening-stone": (n) => `Blade weapons hit ${n.bladeDamage}% harder`,
+  "bare-knuckle": (n) => `Fists hit ${n.fistDamage}% harder, Combo +${n.unarmedCombo}`,
+  "payback": (n) => `Riposte +${n.riposte}: hits back after an attack`,
+  "flurry": (n) => `Combo +${n.combo}: more swings in a row`,
+  "firm-grip": (n) => `${n.resist}% to keep its weapon in a disarm`,
+  "head-start": (n) => `Starts ${abs(n.startClock!)} beats early`,
+  "sharp-eye": (n) => `Aim +${n.aim}, Pierce +${n.pierce}: harder to dodge`,
+  "parry": (n) => `Block +${n.block}, ${n.riposteAfterBlock}% to hit straight back`,
+  "heavy-lifter": (n) => `Heavy weapons ${abs(n.heavyTime!)}% quicker, Aim +${n.heavyAim}`,
+  "pitcher": (n) => `Throws hit ${n.thrownDamage}% harder, any weapon flies`,
+  "plate-vest": (n) => `Armor +${n.armor}, Speed points ${sign(n.speedMult!)}%`,
+  "knock-loose": (n) => `Disarm +${n.disarm}: knocks weapons loose`,
+  "last-stand": (n) => `Survives a finishing hit ${times(n.saves!)} a bout`,
+  "stubborn": (n) => `${n.chance}% to swing again after a miss`,
+  "slippery": (n) => `Evade +${n.evade}: slips out of swings`,
+  "quick-swap": () => "Empty-handed, draws a weapon far sooner",
+  "pet-lover": (n) => `Pets get +${n.petHp}% HP and hit ${n.petDamage}% harder`,
+  "junk-collector": (n) => `A thrown-away weapon comes back ${n.returnChance}%`,
+  "trick-shot": (n) => `A landed throw bounces on ${n.ricochet}%`,
+  "haymaker": (n) => `Next swing hits ${asHard(n.damageMult!)}, Crit +${n.crit}`,
+  "energy-drink": (n) => `Below ${n.belowHpPct}% HP: heals ${n.healMin} to ${n.healMax}%`,
+  "tarp": (n) => `Tarps an enemy: it skips up to ${n.skips} turns`,
+  "whistle": (n) => `Heals a hurt pet ${n.healPct}% and it acts next`,
+  "firecrackers": (n) => `${n.damageMin} to ${n.damageMax} damage that cannot be dodged`,
+  "snatch": () => "Unarmed: grabs the enemy's weapon",
+  "air-horn": (n) => `Each enemy pet has ${n.fleeChance}% to run off`,
+  "body-slam": (n) => `Slams for ${n.base} plus Strength, knocks gear away`,
+  "sand-in-the-eyes": (n) => `Enemy Aim -${abs(n.aimLoss!)} for the rest of the bout`,
+  "taunt": (n) => `Goads the enemy: Riposte +${n.riposte} for a turn`,
+  "second-wind": (n) => `Below ${n.belowHpPct}% HP: heals ${n.healPct}% and acts`,
+  "grapple": (n) => `Unarmed: squeezes and holds for ${n.holds === 1 ? "1 turn" : `${n.holds} turns`}`,
+};
+
+/** The short effect line of any perk (Inventory tiles). Never throws. */
+export function shortEffect(id: PerkId, c: ContentTables = api.content): string {
+  const k = perkKind(id);
+  if (k === "weapon") {
+    const w = c.weapons[id as WeaponId];
+    if (!w) return "Unknown weapon";
+    const n = w.tiers[0];
+    const head = n.reach === null ? `Thrown for ${n.dmg}` : n.reach === 0 ? `Hits for ${n.dmg} up close` : `Hits for ${n.dmg} at reach ${n.reach}`;
+    const top = WEAPON_BONUS_KEYS.map((b) => ({ b, v: n[b] })).filter((x) => x.v > 0).sort((p, q) => q.v - p.v)[0];
+    return top ? `${head}, ${WEAPON_BONUS_LABEL[top.b]} ${sign(top.v)}` : head;
+  }
+  if (k === "companion") {
+    const d = c.companions[id as CompanionId];
+    if (!d) return "Unknown pet";
+    return `Fights beside you: ${d.hp} HP, Strength ${d.strength}`;
+  }
+  if (k === "shield") {
+    const sh = c.shields[id as ShieldId];
+    if (!sh) return "Unknown shield";
+    const n = sh.tiers[0];
+    const tail = n.damage < 0 ? `, own damage ${n.damage}%` : n.tempo > 0 ? `, turns +${n.tempo}% longer` : n.riposte > 0 ? `, Riposte +${n.riposte}` : n.armor > 0 ? `, Armor +${n.armor}` : "";
+    return `Block +${n.block}${tail}`;
+  }
+  const s = c.skills[id as SkillId];
+  const line = SKILL_SHORT[id as SkillId];
+  if (!s || !line) return "Unknown skill";
+  return line(s.tiers[0]);
+}
+
+/** How a weapon is held and used, for the Inventory sheet: hands, and thrown or not. */
+export function weaponHandling(id: WeaponId, c: ContentTables = api.content): { label: string; value: string }[] {
+  const w = c.weapons[id];
+  if (!w) return [];
+  const meta = WEAPON_META[id];
+  return [
+    { label: "Hands", value: meta.pair ? "One in each hand" : meta.hands === 2 ? "Two hands" : "One hand" },
+    { label: "Thrown", value: w.tiers[0].reach === null ? "Yes, it flies" : "No, held" },
+  ];
 }

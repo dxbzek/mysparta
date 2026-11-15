@@ -14,7 +14,7 @@ describe("router", () => {
   it("parses and prints every route", () => {
     const routes: Route[] = [{ name: "home" }, { name: "create" }, { name: "locker" }, { name: "settings" }, { name: "card" },
       { name: "bout", id: "01ABC" }, { name: "levelup" }, { name: "kit", tab: "kit" }, { name: "kit", tab: "route" },
-      { name: "kit", tab: "stats" }, { name: "bouts" }, { name: "replay", id: "01XYZ" }, { name: "sandbox" }];
+      { name: "kit", tab: "stats" }, { name: "bouts" }, { name: "replay", id: "01XYZ" }, { name: "sandbox" }, { name: "inventory" }];
     for (const r of routes) expect(parseRoute(hrefOf(r))).toEqual(r);
     expect(parseRoute("")).toEqual({ name: "home" });
     expect(parseRoute("#/nowhere").name).toBe("unknown");
@@ -26,7 +26,7 @@ describe("guards", () => {
   it("an empty save only shows Create", async () => {
     const g = await memGame();
     const today = g.clock.today();
-    for (const h of ["#/", "#/locker", "#/card", "#/bout/x", "#/levelup", "#/kit", "#/bouts"]) expect(at(h, g.store.doc, today)).toBe("#/create");
+    for (const h of ["#/", "#/locker", "#/card", "#/bout/x", "#/levelup", "#/kit", "#/bouts", "#/inventory"]) expect(at(h, g.store.doc, today)).toBe("#/create");
     expect(at("#/settings", g.store.doc, today)).toBe("#/settings");
     expect(at("#/sandbox", g.store.doc, today)).toBe("#/sandbox");
   });
@@ -43,6 +43,8 @@ describe("guards", () => {
     expect(at(`#/bout/${doc.history[0]!.id}`, doc, today)).toBe("#/locker");
     expect(at("#/levelup", doc, today)).toBe("#/levelup");
     expect(at("#/kit/route", doc, today)).toBe("#/kit/route");
+    // the Inventory tab is a place to look, not a bout: it stays open while a level-up waits
+    expect(at("#/inventory", doc, today)).toBe("#/inventory");
     await g.actions.takeLevelUp(c.value.id, "L");
     expect(at("#/levelup", g.store.doc, today)).toBe("#/locker");
   });

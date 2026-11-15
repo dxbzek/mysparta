@@ -6,7 +6,7 @@
  * (`import { mountApp } from "./app/App";`). Everything else, the stylesheet and the fonts
  * included, is loaded from here.
  */
-import { StrictMode, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { StrictMode, Suspense, lazy, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import "../tokens.css";
@@ -43,6 +43,9 @@ import { activeRecord, guard } from "./guards";
 import { hrefOf, parseRoute, sameRoute } from "./router";
 import type { Route } from "./router";
 import css from "./app.module.css";
+
+/** The Inventory is its own chunk: the first screen's JS stays inside its 180 KB budget. */
+const InventoryScreen = lazy(() => import("../screens/Inventory/Inventory").then((m) => ({ default: m.InventoryScreen })));
 
 export interface AppProps {
   /** The key-value store under the save. Default: IndexedDB, falling back to memory. */
@@ -203,6 +206,7 @@ function Screen({ route }: { route: Route }) {
     case "levelup": return <LevelUpScreen />;
     case "kit": return <KitScreen tab={route.tab} />;
     case "bouts": return <BoutsScreen />;
+    case "inventory": return <Suspense fallback={<main className={css.loading} aria-busy="true"><p>{UI.inventory.title}</p></main>}><InventoryScreen /></Suspense>;
     case "replay": return <ReplayScreen key={route.id} id={route.id} />;
     case "sandbox": return <SandboxScreen />;
     case "settings": return <SettingsRoute />;
