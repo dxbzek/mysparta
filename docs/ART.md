@@ -114,10 +114,12 @@ was not the cause; the keys and the clip ends were. The rules that keep it fixed
   adds its bend); no near forearm in the back of the trunk, no held item through the head or
   the trunk. `test/gate/anatomy.test.ts` checks all of it on every frame, each line with a
   planted-fault control.
-- **Clip ends in the guard.** The stage cuts between clips with no blend, so every clip starts
-  and ends within 30 degrees of the stance (forearm and hand), and the loops it can leave at any
-  frame (idle, dash, backpedal) stay there all through: the run keeps the guard up, the free fist
-  pumps only a little. The jump-in start, the knockout's end and the win loop are exempt.
+- **Clip ends in the guard.** Every clip starts and ends within 30 degrees of the stance
+  (forearm and hand), and the idle and the backpedal stay there all through. The jump-in start,
+  the knockout's end and the win loop are exempt. Since the stage crossfades every cut
+  (stage/src/blend.ts), the run's pumping arms, the brace's raised guard and the evade's start
+  may sit up to 100 degrees off (`FADE_SWITCH`): a 230 ms crossfade closes that at 11 degrees a
+  frame at most.
 - **Kinetic chain.** Strikes move proximal to distal, the way people do (standard
   biomechanics, no motion data or game animation was copied): punch = weight back, then the back
   leg pushes, hips turn in, chest follows, the arm straightens last with the forearm on the line
@@ -171,6 +173,41 @@ the 12 worst frames; `throws <png>` draws the five throws with the flying item. 
   release in front of the head. Side-arm (Boomerang, Hubcap): a backhand, the hand drawn in to
   the chest at shoulder height and unfolding level, the wrist snapping flat. Bowl (Tyre): deep
   crouch, swung low and released at knee height in front. Darts: elbow up, a flick by the eye.
+
+## Movement (owner, 16 Nov 2026: "make sure characters have animation for walks, run, dodge etc, block properly")
+
+Poses and timing come from Eadweard Muybridge, "Animal Locomotion" (1887, public domain): plate 62
+(running at full speed) for the dash, plate 8 (walking, side view) read backwards for the
+backpedal, plates 336 and 338 (boxing: ducks and sways) for the evade, plates 336 and 340 (a
+forearm raised into a lead) for the brace and the blocks, plate 163 (standing jump) for the
+evade's push and landing. Joint angles were read off the plates; no game art was used.
+
+- **Feet that travel (`Stride`, engine/sample.ts).** The stage carries a running or backing
+  fighter at a steady speed while the clip plays in place, so a foot on the floor must move back
+  in figure space at exactly that speed. A clip's `stride` lists each foot's contacts: the times
+  it is down and the point of the shoe it stands on (`TOE` or `HEEL`, the sole's corners in
+  kit.ts). From touchdown that point is held on the floor and carried at `speed`; the leg
+  reaches it by IK and the foot keeps its keyed angle, so it rolls on that point. A contact that
+  starts as another of the same foot ends takes over its spot (toe, then heel). A `move` adds an
+  extra figure-x by time (the block's front foot holding its place while the stage slides the
+  body back). Speeds are the stage's: `RUN_SPEED` = `BEAT.dashSpeed` 560 u/s,
+  `BACK_SPEED` = `BEAT.dashBackSpeed` 250 u/s (was 640: no backward walk in a 240 ms cycle covers
+  that); test/gate/movement.test.ts reads tuning.ts and checks both.
+- **Dash.** Two 120 ms steps, 72 ms on the toe and 48 in the air; the toe lands 24 ahead of the
+  hip and leaves 16 behind; knee drive to hip height; the trunk leans 20; each arm swings against
+  its own leg, elbows bent, the free arm further than the weapon arm. t = 0 is the back foot's
+  push-off.
+- **Backpedal.** Legs step one behind the other in guard, 132 ms down per foot (a moment on
+  both feet each step): toe first, the heel down, the toe up last; 33 units a step.
+- **Idle and brace.** On the balls of the feet (both feet stand on their toes, heels lifting
+  and settling), three small bounces a loop, breathing over the loop. The brace drops the knees,
+  pushes the back heel up and raises the weapon forearm in front of the face (`GUARD_UP`).
+- **Evade.** The trunk tips back and the chin tucks before the feet leave the floor; at the
+  blow (110 ms, the stage's `evadeLead`) the head is 6 or more units back; the back foot lands
+  first. The stage carries the hop.
+- **Blocks.** They play from the blow, from `GUARD_UP`: the forearms are driven back, the back
+  foot steps back at once and the front foot holds its place, then steps back. A shield block
+  holds the back forearm at about -124 degrees, where the shield stands square.
 
 ## Weapons
 

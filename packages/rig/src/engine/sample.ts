@@ -167,11 +167,142 @@ function plantsOf(body: Body, c: Clip): Plant[] {
 /** Share of a planted leg's full length the hips may pull it to (see `solveFeet`). */
 export const PLANT_REACH = 0.985;
 
+/**
+ * Feet on the ground of a travelling clip (a run, a walk; movement pass, 16 Nov 2026). The stage
+ * carries the actor along at a steady speed while the clip plays in place, so a foot that is on
+ * the ground must move back in figure space at exactly that speed, or it slides. A `Stride`
+ * lists, per foot, the times it touches the floor and the point of the foot it stands on
+ * (`at`, in the foot bone's frame: the toe for a run, toe then heel for a backward walk). From
+ * the moment it touches, that point is held on the floor and carried at `speed` units per ms
+ * against the travel (`speed` > 0 for forward travel, < 0 backward), and the leg reaches it by
+ * two-bone IK with the foot at its keyed angle, so the foot rolls about the point it stands on.
+ * A contact that starts where another of the same foot ends takes over its spot (heel down after
+ * the toe). `from` > `to` wraps round the end of a loop. Keys give root y as in a planted clip
+ * (the hips' drop from standing; < 0 is the hips up in a flight), and a foot that is not on the
+ * ground is only kept above the floor.
+ */
+export interface Contact { foot: string; from: number; to: number; at: readonly [number, number];
+  /** Extra figure-x of the spot by clip time, straight between points (a foot that holds its place
+   *  on the floor while the stage slides the body back an eased distance: a blocked blow). */
+  move?: readonly (readonly [number, number])[] }
+/** The `move` of a contact at clip time `t` (0 without one). */
+function moveAt(k: Contact, t: number): number {
+  const m = k.move;
+  if (m === undefined || m.length === 0) return 0;
+  if (t <= m[0]![0]) return m[0]![1];
+  for (let i = 1; i < m.length; i++) {
+    const [ta, va] = m[i - 1]!;
+    const [tb, vb] = m[i]!;
+    if (t <= tb) return va + (vb - va) * ((t - ta) / (tb - ta || 1));
+  }
+  return m[m.length - 1]![1];
+}
+export interface Stride { speed: number; contacts: readonly Contact[] }
+/** A clip that may carry a stride (an engine field the frozen contract does not list). */
+export type StrideClip = Clip & { stride?: Stride };
+export const strideOf = (c: Clip): Stride | undefined => (c as StrideClip).stride;
+
+/** ms from `a` forward to `b` inside a clip of length `d` (wraps for a loop). */
+function since(a: number, b: number, d: number): number { const x = b - a; return x >= 0 ? x : x + d; }
+/** Is the clip time `t` inside the contact (from inclusive, to exclusive)? */
+export function inContact(k: Contact, t: number): boolean {
+  return k.from <= k.to ? t >= k.from && t < k.to : t >= k.from || t < k.to;
+}
+interface Spot { x: number }
+const spotCache = new WeakMap<Clip, Map<Body, Map<Contact, Spot>>>();
+/** Where the point of a contact is on the floor at its start (figure space, x only). */
+function spotOf(body: Body, c: Clip, s: Stride, k: Contact): Spot {
+  let byBody = spotCache.get(c);
+  if (byBody === undefined) { byBody = new Map(); spotCache.set(c, byBody); }
+  let map = byBody.get(body);
+  if (map === undefined) { map = new Map(); byBody.set(body, map); }
+  const hit = map.get(k);
+  if (hit !== undefined) return hit;
+  const m = body.model;
+  const fi = m.index.get(k.foot)!;
+  const d = c.duration;
+  // a contact that takes over from one that ends as it starts: the same foot, its spot moved on
+  const before = s.contacts.find((o) => o !== k && o.foot === k.foot && Math.abs(since(o.to, k.from, d)) < 1e-6);
+  const raw = sampleRaw(m, c, k.from);
+  const wa = worldAngles(m, raw.rot)[fi]!;
+  const r = (wa * Math.PI) / 180;
+  const rel = (p: readonly [number, number]): number => Math.cos(r) * p[0] - Math.sin(r) * p[1];
+  let out: Spot;
+  if (before !== undefined) {
+    const prev = spotOf(body, c, s, before);
+    const x = prev.x - s.speed * since(before.from, k.from, d) + moveAt(before, k.from) - moveAt(before, before.from);
+    out = { x: x + rel(k.at) - rel(before.at) };
+  } else {
+    const fr = frames(m, raw.rot, raw.rootX, raw.rootY)[fi]!;
+    out = { x: apply(fr, k.at[0], k.at[1])[0] };
+  }
+  map.set(k, out);
+  return out;
+}
+
 export interface Solved { rot: number[]; rootX: number; rootY: number; lift: number }
 
-/** Feet: plant, floor clamp, or drop to the floor (see the header). */
-export function solveFeet(body: Body, c: Clip, raw: Raw, hop = 0): Solved {
+/** A travelling clip's feet (see `Stride`). */
+function solveStride(body: Body, c: Clip, s: Stride, raw: Raw, t: number): Solved {
   const m = body.model;
+  const b = m.def.bones;
+  let rot = [...raw.rot];
+  let rootY = raw.rootY;
+  const d = c.duration;
+  const down: { foot: number; x: number; at: readonly [number, number] }[] = [];
+  for (const k of s.contacts) {
+    // a one-shot clip stands on a contact that runs to its end at the last frame too
+    if (!inContact(k, t) && !(!c.loop && k.to >= d && t >= d)) continue;
+    const fi = m.index.get(k.foot);
+    if (fi === undefined) continue;
+    down.push({ foot: fi, x: spotOf(body, c, s, k).x - s.speed * since(k.from, t, d) + moveAt(k, t) - moveAt(k, k.from), at: k.at });
+  }
+  // the ankle each grounded point needs, with the foot at its keyed world angle
+  const wa0 = worldAngles(m, rot);
+  const ankleOf = (g: (typeof down)[number]): [number, number] => {
+    const r = (wa0[g.foot]! * Math.PI) / 180;
+    return [g.x - (Math.cos(r) * g.at[0] - Math.sin(r) * g.at[1]), -(Math.sin(r) * g.at[0] + Math.cos(r) * g.at[1])];
+  };
+  // a grounded leg is never pulled straight: the hips sink instead (as in a planted clip)
+  for (const g of down) {
+    const lower = m.parent[g.foot]!;
+    const upper = m.parent[lower]!;
+    const hip = frames(m, rot, raw.rootX, rootY)[upper]!;
+    const L = (Math.hypot(b[lower]!.x, b[lower]!.y) + Math.hypot(b[g.foot]!.x, b[g.foot]!.y)) * PLANT_REACH;
+    const [ax, ay] = ankleOf(g);
+    const dx = ax - hip.e;
+    const dy = ay - hip.f;
+    if (Math.hypot(dx, dy) > L && Math.abs(dx) < L && dy > 0) rootY += dy - Math.sqrt(L * L - dx * dx);
+  }
+  for (const g of down) {
+    const lower = m.parent[g.foot]!;
+    const upper = m.parent[lower]!;
+    const [ax, ay] = ankleOf(g);
+    rot = twoBone(m, rot, raw.rootX, rootY, upper, lower, g.foot, ax, ay).rot;
+    rot[g.foot] = wa0[g.foot]! - (worldAngles(m, rot)[lower] ?? 0);
+  }
+  // a foot in the air is only kept above the floor
+  for (const f of body.feet) {
+    if (down.some((g) => g.foot === f)) continue;
+    const low = lowest(body, rot, raw.rootX, rootY, [f]);
+    if (low <= 0) continue;
+    const lower = m.parent[f]!;
+    const upper = lower >= 0 ? m.parent[lower]! : -1;
+    if (upper < 0) continue;
+    const fr = frames(m, rot, raw.rootX, rootY);
+    const keep = worldAngles(m, rot)[f]!;
+    rot = twoBone(m, rot, raw.rootX, rootY, upper, lower, f, fr[f]!.e, fr[f]!.f - low).rot;
+    rot[f] = keep - (worldAngles(m, rot)[lower] ?? 0);
+  }
+  const lowAll = lowest(body, rot, raw.rootX, rootY, body.feet.length > 0 ? body.feet : undefined);
+  return { rot, rootX: raw.rootX, rootY, lift: lowAll < 0 ? -lowAll : 0 };
+}
+
+/** Feet: plant, floor clamp, or drop to the floor (see the header). */
+export function solveFeet(body: Body, c: Clip, raw: Raw, hop = 0, t = 0): Solved {
+  const m = body.model;
+  const stride = strideOf(c);
+  if (stride !== undefined) return solveStride(body, c, stride, raw, clipTime(c, t));
   const plants = plantsOf(body, c);
   if (plants.length === 0) {
     const want = raw.rootY < 0 ? raw.rootY : 0;
@@ -226,7 +357,7 @@ export function poseAt(body: Body, c: Clip, tMs: number, bend: BendAmount | null
   const w = bend === null ? 0 : bendWeight(c, t);
   let raw = bend === null ? sampleRaw(body.model, c, t) : applyBend(body, c, sampleRaw(body.model, c, t), bend, w);
   if (body.secondary !== undefined && body.secondary.length > 0) raw = secondary(body, c, raw, Number.isFinite(tMs) ? tMs : 0, bend, w);
-  const s = solveFeet(body, c, raw, bend === null ? 0 : bend.lift * w);
+  const s = solveFeet(body, c, raw, bend === null ? 0 : bend.lift * w, t);
   const pose: Pose = { rig: body.rig, rot: s.rot, root: { x: s.rootX, y: s.rootY, sx: raw.sx, sy: raw.sy }, face: raw.face, lift: s.lift };
   if (body.trailBone < 0) return pose;
   // where the front hand pointed 40..160 ms ago (read from the time asked for, bent by NOW's weight)

@@ -1,12 +1,40 @@
-/** Idle: a 1.2 s breathing loop in the fighting stance, with a weight shift: the hips drift onto
- *  the front foot and back while the chest breathes against them, the head and the guard hand
- *  trailing the chest, so the breath rolls through the body instead of moving it as one block. */
-import { clip, BOTH_FEET, STANCE } from "./kit";
+/**
+ * Idle: the fighting stance, alive (movement pass; Muybridge, "Animal Locomotion" plates 336 and
+ * 338, the boxers between blows, 1887, public domain). The weight is on the balls of the feet,
+ * the back heel up and the front heel just off the floor; the knees stay soft and the fighter
+ * bounces on them, three small bounces a loop: the hips sink 1.2 units and the heels come down
+ * a little, then he rises onto the toes. Both toes stay where they stand (`Stride` with no
+ * travel), so each foot rolls on its toe. Over the whole loop he breathes: the chest lifts and
+ * settles and the weight drifts onto the front foot and back. The guard fist is up by the chin,
+ * the free fist by the cheek; both ride the bounce a beat late.
+ */
+import { clip, onToe, TOE } from "./kit";
+import type { Spec } from "./kit";
 
-export const IDLE = clip(1200, true, [], [
-  [0, STANCE],
-  [300, { root: [0.6, 4.4], torso: 11.5, head: -9, pelvis: 1.5, F: { at: [13, -50.6], aim: -80 }, B: { up: 8.5, lo: -141.5, hand: 0 }, ease: "inOut" }],
-  [600, { root: [-0.4, 4.0], torso: 10.5, head: -7, pelvis: 0, F: { at: [12.4, -51.2], aim: -82 }, B: { up: 7.5, lo: -140.5, hand: 0 }, ease: "inOut" }],
-  [900, { root: [-1.8, 3.0], torso: 7.5, head: -4, pelvis: -1.5, F: { at: [11.4, -52.8], aim: -87 }, B: { up: 5.5, lo: -138.5, hand: 0 }, ease: "inOut" }],
-  [1200, { ...STANCE, ease: "inOut" }],
-], { plant: BOTH_FEET, lag: { head: 110, "armB.up": 80, "armB.lo": 80, handB: 80, handF: 60, "armF.lo": 30 } });
+const D = 1200;
+/** Where the toes stand (the stance's ankles, flat feet, plus the sole; the front one half a unit
+ *  back so a tall build's toe stays inside the stage's reach table, `SCRAPPER_REACH` front 26). */
+export const TOE_F = 10.5 + TOE[0];
+export const TOE_B = -12 + TOE[0];
+function at(t: number): Spec {
+  const b = (1 - Math.cos((2 * Math.PI * t) / 400)) / 2;          // 0 down in the knees, 1 up on the toes
+  const br = Math.sin((2 * Math.PI * t) / D);                       // breath: + in
+  const w = Math.sin((2 * Math.PI * (t - 150)) / D);                // weight: + onto the front foot
+  return {
+    root: [-1 + 0.7 * w, 4.4 - 1.2 * b],
+    pelvis: 0.8 * w,
+    torso: 9 + 1.2 * br + 1.0 * w,
+    head: -6 - 1.0 * br - 0.6 * w,
+    held: 0,
+    legF: onToe(TOE_F, 3 + 4 * b),
+    legB: onToe(TOE_B, 10 + 7 * b),
+    F: { at: [11.6 + 0.5 * w, -55.5 + 0.8 * br - 0.6 * b], aim: -86 + 2 * br },
+    B: { up: 6 + 1.5 * br, lo: -142 + 2 * b, hand: 0 },
+    face: "neutral",
+  };
+}
+const TIMES = Array.from({ length: 25 }, (_, i) => i * 50);
+export const IDLE = clip(D, true, [], TIMES.map((t) => [t, at(t)] as const), {
+  lag: { head: 60, "armB.up": 60, "armB.lo": 60, handB: 60, handF: 40, "armF.lo": 30 },
+  stride: { speed: 0, contacts: [{ foot: "footF", from: 0, to: D, at: TOE }, { foot: "footB", from: 0, to: D, at: TOE }] },
+});

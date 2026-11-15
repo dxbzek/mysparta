@@ -50,12 +50,14 @@ describe("poses", () => {
       expect(Math.abs(a.root.x - b.root.x) + Math.abs(a.root.y - b.root.y), c).toBeLessThan(0.1);
     }
   });
-  it("keep the feet on the floor line unless the clip is a jump", () => {
+  it("keep the feet on the floor line unless the clip is a jump (a run's flight: above it, never under)", () => {
     for (const c of GATE_CLIPS) {
       if (JUMPS.has(c)) continue;
+      const flies = c === "dash";
       for (const [i, p] of poses(rig, S, c).entries()) {
         const low = ins.lowest(p, ["footF", "footB"]);
-        expect(Math.abs(low), `${c} frame ${i}`).toBeLessThan(0.5);
+        if (flies) expect(low, `${c} frame ${i}`).toBeLessThan(0.5);
+        else expect(Math.abs(low), `${c} frame ${i}`).toBeLessThan(0.5);
       }
     }
   });

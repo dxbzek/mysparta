@@ -7,16 +7,29 @@
  * up and open and the weapon hand is knocked high. He sags, then pulls himself back over the
  * front foot into the guard, the back foot sliding home.
  *
- * BLOCK (220 ms): forearm up. Both forearms come up in front of the face, the weapon held
- * across them, the chin tucked behind and the knees bent; the blow pushes him back a little
- * (the stage slides him), and he comes back to the guard.
+ * The blocks (movement pass, 16 Nov 2026; Muybridge, "Animal Locomotion" plates 336 frames 4, 8
+ * and 9 and 340 frames 1-3, a forearm raised square into the line of a lead, 1887, public domain).
+ * The stage plays a block FROM the moment the blow lands, after the brace has already put the
+ * guard up (`GUARD_UP`), and slides the fighter back 6 units over 120 ms (eased out). So t = 0 is
+ * the impact: the forearms are driven back toward the face and the trunk rocks back over the
+ * back foot, which pushes into the floor; then he comes forward into the guard. The feet take a
+ * real step instead of sliding with the stage: the back foot lifts at once and lands again
+ * further back on the floor; the front foot keeps its place on the floor while the body is
+ * pushed off it (a `move` that cancels the stage's slide) and then steps back after it.
  *
- * BLOCK_SHIELD (220 ms): the shield on the back arm is punched up and forward to meet the blow,
- * the shoulder behind it and the head tucked behind its top edge; the weapon arm stays cocked
- * back, ready to answer. The shield turns with the back forearm (`content/shields.ts`), so the
- * forearm stands upright for the shield to face the blow.
+ * BLOCK (220 ms): both forearms up, the weapon fist high in front of the face (a weapon held in
+ * it stands across the blow), the free forearm by the cheek, the chin tucked between them.
+ *
+ * BLOCK_SHIELD (220 ms): the shield on the back arm held square to the blow in front of the face:
+ * the back forearm at about -124 degrees, where the shield stands upright (`content/shields.ts`,
+ * the grip turn), the upper arm raised forward so its top edge is over the head; the head low
+ * behind it and the weapon arm drawn in by the ribs, ready to answer. It takes the blow a little harder: the trunk rocks further back.
  */
-import { clip, BOTH_FEET, STANCE } from "../../gate/clips/kit";
+import type { Contact } from "../../engine/sample";
+import { GUARD_UP } from "../../gate/clips/brace";
+import { TOE_B, TOE_F } from "../../gate/clips/idle";
+import { clip, onToe, STANCE, TOE } from "../../gate/clips/kit";
+import type { LegSpec, Spec } from "../../gate/clips/kit";
 
 export const HIT_HEAVY = clip(300, false, [], [
   [0, { ...STANCE, face: "dazed" }],
@@ -28,18 +41,47 @@ export const HIT_HEAVY = clip(300, false, [], [
   [300, { ...STANCE, face: "grit", ease: "inOut" }],
 ], { plant: ["footF"], lag: { torso: 30, "armB.up": 30, "armB.lo": 30, handB: 30 } });
 
+/** The stage's block slide (`OUTCOME.blockSlide` 6 units over `blockSlideMs` 120, eased out), as
+ *  the figure-space move of a foot that holds its place on the floor while it plays. */
+const SLIDE = 6;
+const slid = (t: number): number => { const u = Math.min(1, t / 120); return SLIDE * (1 - (1 - u) * (1 - u)); };
+/** The footwork of both blocks: the back foot steps back at once, the front foot holds, then steps. */
+const FEET: Contact[] = [
+  { foot: "footF", from: 0, to: 130, at: TOE, move: [0, 20, 40, 60, 80, 100, 120, 130].map((t) => [t, slid(t)] as const) },
+  { foot: "footF", from: 190, to: 220, at: TOE },
+  { foot: "footB", from: 0, to: 12, at: TOE },
+  { foot: "footB", from: 80, to: 220, at: TOE, move: [[80, 0], [100, slid(100) - slid(80)], [120, slid(120) - slid(80)]] },
+];
+/** Leg keys that match the footwork (the front toe carried by the slide until it steps home). */
+const BACK = slid(120) - slid(80);
+const legs = (t: number, back: LegSpec, front?: LegSpec): Spec => ({ legF: front ?? onToe(TOE_F + slid(t), 4), legB: back });
+const B_LIFT: LegSpec = { up: 18, lo: 44, foot: 26 };
+const F_LIFT: LegSpec = { up: -30, lo: 40, foot: 8 };
+const HOME: Spec = { ...STANCE, legF: onToe(TOE_F, 0), legB: onToe(TOE_B, 0), ease: "inOut" };
+
 export const BLOCK = clip(220, false, [], [
-  [0, STANCE],
-  [55, { root: [-3, 8], pelvis: -3, torso: 12, head: 18, F: { dir: -10, reach: 0.6, aim: -100 }, B: { dir: 5, reach: 0.55, hand: -10 }, face: "grit" }],
-  [100, { root: [-5, 9], pelvis: -5, torso: 6, head: 14, F: { dir: -12, reach: 0.6, aim: -104 }, B: { dir: 2, reach: 0.55, hand: -14 }, ease: "out" }],
-  [160, { root: [-3, 6.5], pelvis: -2, torso: 9, head: 4, F: { dir: 15, reach: 0.58, aim: -92 }, B: { dir: 30, reach: 0.55, hand: -6 }, ease: "inOut" }],
-  [220, { ...STANCE, ease: "inOut" }],
-], { plant: BOTH_FEET, lag: { head: 24, "armB.up": 16, "armB.lo": 16 } });
+  [0, { ...GUARD_UP }],
+  [12, { ...legs(12, onToe(TOE_B, 30)) }],
+  [40, { root: [-4.5, 8.5], pelvis: -4, torso: 6, head: 8, F: { up: -80, lo: -100, hand: 28 }, B: { up: -30, lo: -128, hand: -6 },
+    ...legs(40, B_LIFT), ease: "out" }],
+  [80, { root: [-5, 8], pelvis: -4, torso: 7, head: 7, F: { up: -82, lo: -98, hand: 28 }, B: { up: -28, lo: -130, hand: -4 },
+    ...legs(80, onToe(TOE_B - BACK, 24)), ease: "inOut" }],
+  [130, { root: [-3.5, 7], pelvis: -2, torso: 10, head: 2, F: { up: -50, lo: -116, hand: 24 }, B: { up: -12, lo: -134, hand: 0 },
+    ...legs(130, onToe(TOE_B - BACK, 18)), ease: "inOut" }],
+  [160, { root: [-2.5, 5.5], torso: 10, F: { at: [11.5, -56], aim: -112 }, B: { up: 0, lo: -138, hand: 0 }, ...legs(160, onToe(TOE_B - BACK, 14), F_LIFT) }],
+  [190, { root: [-1.5, 4], F: STANCE.F!, B: STANCE.B!, ...legs(190, onToe(TOE_B - BACK, 10), onToe(TOE_F, 6)) }],
+  [220, HOME],
+], { lag: { head: 24, "armB.up": 16, "armB.lo": 16 }, stride: { speed: 0, contacts: FEET } });
 
 export const BLOCK_SHIELD = clip(220, false, [], [
-  [0, STANCE],
-  [45, { root: [-2, 7.5], pelvis: -2, torso: 14, head: 16, F: { dir: 58, reach: 0.66, aim: -96 }, B: { up: -62, lo: -88, hand: 0 }, face: "grit", ease: "out" }],
-  [100, { root: [-5, 8.5], pelvis: -4, torso: 8, head: 12, F: { dir: 60, reach: 0.66, aim: -98 }, B: { up: -56, lo: -92, hand: 0 }, ease: "out" }],
-  [160, { root: [-3, 6], pelvis: -2, torso: 10, head: 2, F: { dir: 52, reach: 0.62, aim: -90 }, B: { up: -22, lo: -120, hand: 0 }, ease: "inOut" }],
-  [220, { ...STANCE, ease: "inOut" }],
-], { plant: BOTH_FEET, lag: { head: 24, "armF.up": 16, "armF.lo": 16 } });
+  [0, { ...GUARD_UP, B: { up: -73, lo: -64, hand: 0 }, F: { up: 10, lo: -130, aim: -76 } }],
+  [12, { ...legs(12, onToe(TOE_B, 30)) }],
+  [40, { root: [-5.5, 9], pelvis: -5, torso: 3, head: 12, B: { up: -64, lo: -68, hand: 0 }, F: { up: 12, lo: -128, aim: -74 },
+    ...legs(40, B_LIFT), ease: "out" }],
+  [80, { root: [-6, 8.5], pelvis: -5, torso: 4, head: 11, B: { up: -66, lo: -67, hand: 0 }, ...legs(80, onToe(TOE_B - BACK, 26)), ease: "inOut" }],
+  [130, { root: [-4, 7], pelvis: -2, torso: 9, head: 6, B: { up: -45, lo: -86, hand: 0 }, F: { up: 8, lo: -130, aim: -80 },
+    ...legs(130, onToe(TOE_B - BACK, 18)), ease: "inOut" }],
+  [160, { root: [-2.5, 5.5], torso: 10, F: { up: 6, lo: -130, aim: -82 }, B: { up: -18, lo: -112, hand: 0 }, ...legs(160, onToe(TOE_B - BACK, 14), F_LIFT) }],
+  [190, { root: [-1.5, 4], F: STANCE.F!, B: STANCE.B!, ...legs(190, onToe(TOE_B - BACK, 10), onToe(TOE_F, 6)) }],
+  [220, HOME],
+], { lag: { head: 24, "armF.up": 16, "armF.lo": 16 }, stride: { speed: 0, contacts: FEET } });
