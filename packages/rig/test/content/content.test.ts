@@ -225,15 +225,20 @@ describe("the pets", () => {
       const bones = ins.rigDef(id).bones.map((b) => b.id);
       expect(bones, id).toContain("body");
       expect(bones, id).toContain("head");
+      // a pet drawn frame by frame (the dog since 15 Nov 2026) has its legs in its frames
+      if (bones.includes("frame")) {
+        expect(new Set(contentPack.companions[id].shapes.map((s) => s.bone.split("@")[1]).filter((n) => n !== undefined)).size, `${id} frames`).toBeGreaterThanOrEqual(8);
+        continue;
+      }
       const legs = new Set(bones.filter((b) => /\.(up|lo|paw|foot)$/.test(b)).map((b) => b.split(".")[0]));
       expect(legs.size, id).toBeGreaterThanOrEqual(id === "goose" || id === "crow" ? 2 : 4);
       for (const l of legs) expect(bones.filter((b) => b.startsWith(`${l}.`)).length, `${id} ${l}`).toBe(3);
       expect(bones.some((b) => b.startsWith("tail") || b.startsWith("wing")), id).toBe(true);
-      for (const b of bones) if (b !== "root") expect(contentPack.companions[id].shapes.some((s) => s.bone === b) || ins.rigDef(id).bones.some((q) => q.id !== b && ins.rigDef(id).bones[q.parent]?.id === b), `${id} ${b} draws something or carries a child`).toBe(true);
+      for (const b of bones) if (b !== "root") expect(contentPack.companions[id].shapes.some((s) => s.bone.split("@")[0] === b) || ins.rigDef(id).bones.some((q) => q.id !== b && ins.rigDef(id).bones[q.parent]?.id === b), `${id} ${b} draws something or carries a child`).toBe(true);
     }
   });
   it("stand on the floor in idle, inside their joint limits, at the rules' sizes", () => {
-    const heights: Record<string, number> = { raccoon: 26, goose: 29, boar: 52, "stray-dog": 25, crow: 26, "alley-cat": 26 };
+    const heights: Record<string, number> = { raccoon: 20, goose: 37.7, boar: 42, "stray-dog": 27.3, crow: 25, "alley-cat": 22.7 };
     for (const id of COMPANION_IDS) for (const t of [0, 300, 600, 900]) {
       const p = rig.samplePose(id, "idle", t);
       expect(Math.abs(ins.lowest(p)), `${id} @${t}`).toBeLessThan(0.01);

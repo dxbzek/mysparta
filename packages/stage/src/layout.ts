@@ -32,7 +32,7 @@ export const PET_HEIGHT: Readonly<Record<CompanionId, number>> = {
  *  (81.8 units), over the pet's own idle height, measured on the real art (src/bounds.ts) and
  *  rounded down. A test measures the art again and turns red when a redraw makes a pet taller. */
 export const PET_SCALE: Readonly<Record<CompanionId, number>> = {
-  "stray-dog": 0.56, goose: 0.64, raccoon: 0.67, "alley-cat": 0.63, crow: 0.61, boar: 0.63,
+  "stray-dog": 0.86, goose: 0.75, raccoon: 0.75, "alley-cat": 0.82, crow: 0.59, boar: 0.77,
 };
 
 /** How far a drawn actor reaches from its place, for an actor facing the fight: `back` units
@@ -40,11 +40,13 @@ export const PET_SCALE: Readonly<Record<CompanionId, number>> = {
 export interface Reach { back: number; front: number; up: number; down: number }
 const reach = (back: number, front: number, up: number, down: number): Reach => ({ back, front, up, down });
 /** The idle loop's drawn reach on the real art, rounded up: a scrapper of the biggest build with
- *  empty hands, and each pet at its `PET_SCALE` (a test measures these again). */
+ *  empty hands, and each pet at its `PET_SCALE` (a test measures these again). A pet's entry is the
+ *  larger of the real art and the capsule test rig's stand-in at that scale, so pets are spaced
+ *  for whichever rig draws them (redraw of 15 Nov 2026). */
 export const SCRAPPER_REACH: Readonly<Reach> = reach(23, 26, 88.5, 5.5);
 export const PET_REACH: Readonly<Record<CompanionId, Reach>> = {
-  raccoon: reach(20.5, 18, 18, 4.5), goose: reach(14, 16, 28.5, 4), boar: reach(27, 35.5, 37, 7),
-  "stray-dog": reach(15, 18.5, 24.5, 4), crow: reach(11.5, 10.5, 16.5, 3), "alley-cat": reach(16, 14.5, 20.5, 4),
+  raccoon: reach(22, 18.5, 19, 5), goose: reach(17.5, 18.5, 30, 4), boar: reach(26.5, 39, 38.5, 7),
+  "stray-dog": reach(23, 24, 27, 5), crow: reach(13, 13, 17.5, 3.5), "alley-cat": reach(23, 18.5, 21.5, 4.5),
 };
 /** The reach of an actor of this kind. */
 export const reachFor = (kind: "scrapper" | CompanionId): Reach => (kind === "scrapper" ? SCRAPPER_REACH : PET_REACH[kind]);

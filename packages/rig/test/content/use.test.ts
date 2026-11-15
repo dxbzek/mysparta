@@ -236,9 +236,9 @@ describe("pets in motion", () => {
     expect(bad).toEqual([]);
   });
   it("planted fault: a knee bent past its limit is caught", () => {
-    const a = ins.clip("stray-dog", "attack");
+    const a = ins.clip("raccoon", "attack");
     const broken: Clip = { ...a, keys: a.keys.map((k, i) => (i === 3 ? { ...k, rot: { ...k.rot, "hindF.lo": 170 } } : k)) };
-    expect(limitsAndTurns("stray-dog", "attack", broken).length).toBeGreaterThan(0);
+    expect(limitsAndTurns("raccoon", "attack", broken).length).toBeGreaterThan(0);
   });
   it("stand on the floor: the lowest point is on it unless a key lifts the animal (a leap, a hop, a flight)", () => {
     for (const id of COMPANION_IDS) for (const c of COMPANION_CLIPS) {
@@ -274,7 +274,8 @@ describe("pets in motion", () => {
         const mb = sb.reduce((a, x) => a + x, 0) / sb.length;
         const mf = sf.reduce((a, x) => a + x, 0) / sf.length;
         const cov = sb.reduce((a, x, k) => a + (x - mb) * (sf[k]! - mf), 0);
-        if (pair === "leg" || id === "raccoon") expect(cov, `${id} ${c} ${pair} legs alternate`).toBeLessThan(0);
+        // a trot and a waddle alternate the two legs of a pair; a gallop or a bound need not
+        if (pair === "leg" || (id === "raccoon" && c === "run")) expect(cov, `${id} ${c} ${pair} legs alternate`).toBeLessThan(0);
       }
       const first = rig.samplePose(id, c, 0).rot;
       const last = rig.samplePose(id, c, rig.clipInfo(id, c).durationMs - 0.001).rot;

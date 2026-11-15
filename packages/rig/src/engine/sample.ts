@@ -24,6 +24,9 @@ export interface Body {
   model: Model;
   /** Points of each bone (bone frame) that can touch the floor. */
   hull: readonly (readonly (readonly [number, number])[])[];
+  /** A pet drawn frame by frame: the index of its "frame" bone and the hull of each drawn frame
+   *  (see `hullAt`). */
+  frames?: { bone: number; hulls: readonly (readonly (readonly (readonly [number, number])[])[])[] };
   /** Foot bones: kept above the floor in a planted clip. */
   feet: readonly number[];
   /** How an aimed swing bends: bone index and share of the bend angle; `crouch` units of hip
@@ -116,14 +119,20 @@ export function applyBend(body: Body, c: Clip, raw: Raw, bend: BendAmount, w: nu
   return { ...raw, rot, rootY: raw.rootY + crouch + bend.lift * w };
 }
 
+/** The drawn frame of a pose: the angle of its "frame" bone, rounded (0 without one). */
+export const frameAt = (body: Body, rot: readonly number[]): number => (body.frames === undefined ? 0 : Math.round(rot[body.frames.bone] ?? 0));
+/** The hull of the shapes drawn in this pose (a frame-by-frame pet shows one frame at a time). */
+export const hullAt = (body: Body, rot: readonly number[]): Body["hull"] => body.frames?.hulls[frameAt(body, rot)] ?? body.hull;
+
 /** The lowest point (largest y) of some bones' hulls, in figure space. */
 function lowest(body: Body, rot: readonly number[], rootX: number, rootY: number, only?: readonly number[]): number {
   const fr = frames(body.model, rot, rootX, rootY);
   let low = -Infinity;
-  const list = only ?? body.hull.map((_, i) => i);
+  const hull = hullAt(body, rot);
+  const list = only ?? hull.map((_, i) => i);
   for (const i of list) {
     const f = fr[i]!;
-    for (const p of body.hull[i] ?? []) {
+    for (const p of hull[i] ?? []) {
       const y = apply(f, p[0], p[1])[1];
       if (y > low) low = y;
     }

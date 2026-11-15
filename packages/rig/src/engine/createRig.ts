@@ -29,7 +29,7 @@ import type { Model, Xf } from "./pose";
 import { apply, frames, modelOf, moveXf, mul, rotXf, scaleXf, worldAngles } from "./pose";
 import { twoBone } from "./ik";
 import type { BendAmount, Body } from "./sample";
-import { clipTime, poseAt, sampleRaw } from "./sample";
+import { clipTime, frameAt, hullAt, poseAt, sampleRaw } from "./sample";
 import { companionPortraitArt, iconArt, portraitArt } from "./svg";
 
 /** Length of the back arm, shoulder to wrist (figure units). */
@@ -73,12 +73,17 @@ const LIMB_BONES = new Set(["armB.up", "armB.lo", "armF.up", "armF.lo", "legB.up
 const TRUNK_BONES = new Set(["torso", "pelvis"]);
 const GATE_FX: ReadonlySet<string> = new Set(["burst", "dust", "spark", "whoosh"]);
 
-/** The hull of a rig: every vertex of its shapes, per bone. */
-function hullOf(model: Model, shapes: readonly Shape[]): (readonly [number, number])[][] {
+/** A shape's bone and drawn frame: "chest@3" is drawn on "chest" only in frame 3 of a pet drawn
+ *  frame by frame; a bone name with no "@" is drawn in every frame. */
+const frameOf = (bone: string): [string, number | undefined] => { const k = bone.indexOf("@"); return k < 0 ? [bone, undefined] : [bone.slice(0, k), +bone.slice(k + 1)]; };
+/** The hull of a rig: every vertex of its shapes, per bone (of one drawn frame, when given). */
+function hullOf(model: Model, shapes: readonly Shape[], frame?: number): (readonly [number, number])[][] {
   const out: (readonly [number, number])[][] = model.def.bones.map(() => []);
   for (const s of shapes) {
     if (s.slot === "ink") continue;
-    const i = model.index.get(s.bone.replace(/:open$/, ""));
+    const [bone, n] = frameOf(s.bone);
+    if (n !== undefined && n !== (frame ?? 0)) continue;
+    const i = model.index.get(bone.replace(/:open$/, ""));
     if (i === undefined) continue;
     for (const p of parsePolys(s.d)) for (const q of p) out[i]!.push(q);
   }
@@ -114,8 +119,11 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       const art = companionArt(id);
       const m = modelOf(art.rig);
       const named = (n: string, fallback: number): number => m.index.get(n) ?? fallback;
+      const fb = m.index.get("frame");
+      const count = Math.max(0, ...art.shapes.map((s) => frameOf(s.bone)[1] ?? 0)) + 1;
       b = { rig: id, model: m, hull: hullOf(m, art.shapes), feet: plantedFeet(m, Object.values(art.clips)).filter((i) => i < m.def.bones.length && m.def.bones[i]!.parent >= 0 && m.parent[m.parent[i]!]! >= 0),
         bend: { bones: [[named("body", 1), 0.5], [named("head", 2), 0.5]], crouch: 0 }, trailBone: -1 };
+      if (fb !== undefined) b.frames = { bone: fb, hulls: Array.from({ length: count }, (_, n) => hullOf(m, art.shapes, n)) };
       companionBodies.set(id, b);
     }
     return b;
@@ -365,19 +373,19 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
   }
 
   // ------------------------------------------------------------------- companion figures
-  interface CFig { body: Body; art: CompanionArt; fr: Xf[]; map: Xf; s: number }
+  interface CFig { body: Body; art: CompanionArt; fr: Xf[]; map: Xf; s: number; hull: Body["hull"] }
   function cfigure(id: CompanionId, pose: Pose, dress: Dress, at: Place): CFig {
     const body = companionBody(id);
     const s = dress.scale > 0 ? dress.scale : 1;
     const fr = frames(body.model, pose.rot, pose.root.x, pose.root.y);
-    return { body, art: companionArt(id), fr, s, map: { a: at.facing * s * pose.root.sx, b: 0, c: 0, d: s * pose.root.sy, e: at.x, f: at.y } };
+    return { body, art: companionArt(id), fr, s, hull: hullAt(body, pose.rot), map: { a: at.facing * s * pose.root.sx, b: 0, c: 0, d: s * pose.root.sy, e: at.x, f: at.y } };
   }
   /** The frontmost point of the head's shapes: the snout, the beak or the tusk. */
   function mouthOf(f: CFig): [number, number] {
     const hi = f.body.model.index.get("head") ?? Math.min(2, f.body.model.def.bones.length - 1);
     let best: [number, number] = [f.fr[hi]!.e, f.fr[hi]!.f];
     let bx = -Infinity;
-    for (const p of f.body.hull[hi] ?? []) {
+    for (const p of f.hull[hi] ?? []) {
       const q = apply(f.fr[hi]!, p[0], p[1]);
       if (q[0] > bx) { bx = q[0]; best = q; }
     }
@@ -385,7 +393,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
   }
   function centreOf(f: CFig, bone: string, front: boolean): [number, number] {
     const i = f.body.model.index.get(bone) ?? 1;
-    const pts = (f.body.hull[i] ?? []).map((p) => apply(f.fr[i]!, p[0], p[1]));
+    const pts = (f.hull[i] ?? []).map((p) => apply(f.fr[i]!, p[0], p[1]));
     if (pts.length === 0) return apply(f.map, f.fr[i]!.e, f.fr[i]!.f);
     const xs = pts.map((p) => p[0]);
     const ys = pts.map((p) => p[1]);
@@ -609,18 +617,22 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
   function drawCompanion(env: DrawEnv, id: CompanionId, pose: Pose, dress: Dress, at: Place): void {
     const f = cfigure(id, pose, dress, at);
     const colours = companionColours(id);
-    const pts = f.body.hull.flatMap((h, i) => h.map((p) => apply(f.fr[i]!, p[0], p[1])));
+    const pts = f.hull.flatMap((h, i) => h.map((p) => apply(f.fr[i]!, p[0], p[1])));
     const xs = pts.map((p) => p[0]);
     const x0 = Math.min(...xs);
     const x1 = Math.max(...xs);
     const [cx] = apply(f.map, (x0 + x1) / 2, 0);
     shadow(env, cx, at.y, ((x1 - x0) / 2 + 3) * f.s, pose.lift);
     const parts: Paint[] = [];
+    // a pet's ink outline: its art's own weight (thinner for a small animal), times its scale
+    const line = ((f.art as { line?: number }).line ?? LINE.figure) * f.s;
+    const frame = frameAt(f.body, pose.rot);
     for (const sh of f.art.shapes) {
-      const bi = f.body.model.index.get(sh.bone);
-      if (bi === undefined) continue;
+      const [bone, n] = frameOf(sh.bone);
+      const bi = f.body.model.index.get(bone);
+      if (bi === undefined || (n !== undefined && n !== frame)) continue;
       const lit = sh.slot === "white" ? FIXED.white : slotColour(sh.slot, colours);
-      const p: Paint = { d: sh.d, z: sh.z, xf: mul(f.map, f.fr[bi]!), lit, shade: shadeOf(lit), ink: sh.slot === "ink" };
+      const p: Paint = { d: sh.d, z: sh.z, xf: mul(f.map, f.fr[bi]!), lit, shade: shadeOf(lit), ink: sh.slot === "ink", line };
       if (sh.shade !== undefined) p.extra = sh.shade;
       parts.push(p);
     }
@@ -777,7 +789,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       let low = -Infinity;
       body.model.def.bones.forEach((b, i) => {
         if (bones !== undefined && !bones.includes(b.id)) return;
-        for (const p of body.hull[i] ?? []) { const y = apply(fr[i]!, p[0], p[1])[1]; if (y > low) low = y; }
+        for (const p of hullAt(body, pose.rot)[i] ?? []) { const y = apply(fr[i]!, p[0], p[1])[1]; if (y > low) low = y; }
       });
       return low;
     },

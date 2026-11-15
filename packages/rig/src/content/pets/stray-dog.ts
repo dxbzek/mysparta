@@ -1,283 +1,210 @@
 /**
- * The stray dog, drawn from life (redraw of 15 Nov 2026). A lean street pariah: deep chest and
- * a tucked belly, prick ears (one torn), a sickle tail, a scarred muzzle and a snarl that shows
- * a fang. About 30% of a fighter's height (25 of 84 units to the ear tips).
+ * The stray dog, v3 (15 Nov 2026; owner: "Dog doesn't look like a dog"). Drawn frame by frame:
  *
- * Skeleton, from the anatomy of a dog standing (side view):
- *   spine    hips (croup, sacrum), body (loin; the bone the engine hits), chest (thorax); the
- *            hips and the chest turn against the body, so the back flexes and stretches
- *   neck, head, jaw (opens), ear (twitches, flattens), tail1-3 (a sickle carried high)
- *   hind leg  .up femur (hip to stifle), .lo tibia (stifle to hock), .paw metatarsus and toes.
- *            The stifle points forward, the hock back: the visible backward bend is the ankle.
- *   fore leg  .up humerus (shoulder to elbow), .lo forearm (elbow to wrist), .paw pastern and
- *            toes. The elbow points back; the wrist folds the paw back and up in the swing.
- * The dog stands on its toes (digitigrade): the pad, never the hock or the wrist, meets the floor.
+ *  - Its body and legs are whole silhouettes, one per drawn frame, on the "body" bone, named
+ *    "body@N" (the engine draws a frame's shapes only while the "frame" bone's angle rounds to N).
+ *    Frames 0 to 5 are traced from Muybridge's galloping hound (plate 710, see dog-frames.ts);
+ *    frame 6 standing and frame 7 lying are drawn by hand at the same proportions (checked
+ *    against side photos of street dogs: deep chest, tucked belly, upright ears).
+ *  - Head, jaw, ears and the tail stay on bones so they can turn: a head with a long muzzle, a
+ *    clear stop and big upright ears (one torn), a scarred muzzle; a bushy sickle tail.
  *
- * Motion from Eadweard Muybridge, Animal Locomotion (1887): plate 706 (mastiff trotting) for the
- * run, a trot in diagonal pairs (near hind with far fore, far hind with near fore), the body
- * dipping over each pair; plate 710 (hound galloping) for the flee, a rotary gallop (far hind,
- * near hind, near fore, far fore) with the back gathered under and stretched out, two flights.
+ * Every frame is registered on the head joint, so the head rides steady while the body works
+ * under it, as in the photographs; the engine puts each frame's lowest point on the floor (and
+ * leaves the stretched flight of the gallop in the air). About 30% of a fighter's height.
  */
-import type { Clip, CompanionClip } from "../../contracts";
+import type { Clip, CompanionClip, Key, Shape } from "../../contracts";
 import { PLACEHOLDER_COMPANION_CLIPS } from "../../contracts";
-import type { Pt } from "../../gate/vocab";
-import type { Foot, GaitFoot, Hi, Rot } from "./anatomy";
-import { Anatomy, gaitFootByJoint, band, ellipse, line, poseFrom, profile, restLeg, sampleClip, smooth, sn, track } from "./anatomy";
+import type { Poly, Pt } from "../../gate/vocab";
+import { dPolys } from "../../gate/vocab";
+import type { Rot } from "./anatomy";
+import { Anatomy, band, ellipse, line, smooth } from "./anatomy";
 import type { PetArt } from "./kind";
+import type { DogFrame } from "./dog-frames";
+import { GALLOP_FRAMES } from "./dog-frames";
 
 const P = PLACEHOLDER_COMPANION_CLIPS;
+/** The head joint stands this high over the floor in the standing frame. */
+const HEAD_Y = 15;
+/** The picture is drawn in round numbers, then fitted to 30% of a fighter. */
+const K = 0.9;
+/** How far the head joint stands ahead of the actor's place (the middle of the standing dog). */
+const MID = 13;
+/** The drawn tail's pivot (the hand-drawn frames; the traced ones carry the hound's own tail). */
+const HIPS: Pt = [-14, 2];
+const TAIL_AT: Pt = [-26.4, 1.2];
 
-// ---------------------------------------------------------------------------- skeleton
-/** Rest joints (world, stage units, floor at y = 0). */
-const HIND: readonly [Pt, Pt, Pt] = [[-7.0, -13.6], [-4.3, -8.92], [-8.18, -4.61]];
-const FORE: readonly [Pt, Pt, Pt] = [[8.4, -12.2], [5.88, -8.6], [5.88, -3.0]];
-const FAR: Pt = [0.4, 0];
-const shift = (j: readonly [Pt, Pt, Pt], d: Pt): [Pt, Pt, Pt] => j.map((p) => [p[0] + d[0], p[1] + d[1]] as Pt) as [Pt, Pt, Pt];
-/** World angle of the end bone at rest: the hind metatarsus and the fore pastern lean forward. */
-export const DOG_HIND_ANGLE = -10;
-export const DOG_FORE_ANGLE = -18;
-/** The front of each sole at rest (the point that stays on the floor as the heel lifts). */
-const HIND_TOE: Pt = [-5.9, 0];
-const FORE_TOE: Pt = [7.9, 0];
-const HIND_SOLE: Pt[] = [[-8.1, 0], [-5.9, 0]];
-const FORE_SOLE: Pt[] = [[5.8, 0], [7.9, 0]];
+const S = (pts: Pt[], per = 4): Pt[] => smooth(pts, per);
+const mv = (pts: readonly Pt[], dx: number, dy = 0): Pt[] => pts.map((p) => [p[0] + dx, p[1] + dy] as Pt);
 
-/** Joint limits: the sign of each leg joint is the way it really bends. */
-export const DOG_LIMITS = {
-  hip: [-115, 60], stifle: [8, 155], hock: [-160, -2],
-  shoulder: [-80, 110], elbow: [-150, 0], wrist: [-45, 170],
-} as const;
-
-function floorClamp(p: Pt[]): Pt[] { return p.map(([x, y]) => [x, Math.min(0, y)] as Pt); }
-
-/** The picture is drawn in round numbers, then fitted: legs lengthened (a street pariah is leggy),
- *  the body lifted onto them, the head enlarged, and the whole dog scaled to 30% of a fighter. */
-const G = 0.92;
-const LIFT = 1.6;
-const bodyMap = (p: Pt): Pt => [p[0] * G, (p[1] - LIFT) * G];
-const hindMap = (p: Pt): Pt => [p[0] * G, p[1] * ((13.6 + LIFT) / 13.6) * G];
-const foreMap = (p: Pt): Pt => [p[0] * G, p[1] * ((12.2 + LIFT) / 12.2) * G];
-const HEAD_AT: Pt = [11.2, -21.0];
-const headMap = (p: Pt): Pt => bodyMap([HEAD_AT[0] + (p[0] - HEAD_AT[0]) * 1.12, HEAD_AT[1] + (p[1] - HEAD_AT[1]) * 1.12]);
-
+// ------------------------------------------------------------------------- hand frames
+/** Standing (frame 6): the head held high, the floor 19 under the head joint; deep chest, a
+ *  tucked belly, the hind leg's long hock, the forelegs straight under the withers. */
+const STAND: DogFrame = (() => {
+  const torso = mv(S([[1.6, 0], [-2, 0.2], [-6, 0.6], [-12, 0.9], [-18, 0.8], [-23, 0.7], [-26.4, 2.2], [-28, 4.6], [-27.8, 7.4], [-25.4, 9.4],
+    [-21, 9.0], [-17, 7.2], [-12, 7.8], [-8, 9.6], [-4.8, 9.8], [-2.4, 8.2], [-0.8, 5.6], [1.2, 2.6]]), 0, -1.2);
+  const fore = (dx: number): Pt[] => mv(S([[-4.0, 6.4], [-5.1, 11], [-5.3, 15.4], [-5.2, 17.4], [-3.9, 18.1], [-3.4, 18.6], [-3.6, 19], [-7.3, 19], [-7.5, 18.4],
+    [-7.5, 17.4], [-7.7, 15.6], [-8.0, 12], [-8.8, 8.4], [-8.8, 6.6]], 3), dx);
+  const hind = (dx: number): Pt[] => mv(S([[-19.0, 5.0], [-18.3, 9.6], [-20.0, 12.4], [-21.9, 14.4], [-21.8, 17.4], [-20.0, 18.2], [-19.6, 18.6], [-19.8, 19], [-23.6, 19],
+    [-23.7, 17.8], [-24.4, 14.4], [-25.6, 12.6], [-27.6, 9.8], [-28.4, 6.2]], 3), dx);
+  return { lift: 0, tail: TAIL_AT, body: [torso, fore(0), hind(0)], shade: [fore(-2.3), hind(1.8)] };
+})();
+/** Lying on its chest (frame 7): floor at y = 6.5, forelegs out in front, the hind legs folded. */
+const LIE: DogFrame = (() => {
+  const torso = S([[2, -1.0], [-3, -1.3], [-9, -1.0], [-15, -0.8], [-21, -0.4], [-25.6, 1.2], [-28.4, 3.8], [-27.8, 6.5], [-20, 6.5], [-10, 6.5], [-3, 6.5], [0.2, 4.8], [2, 2]]);
+  const fore = S([[-2.4, 4.4], [3.6, 4.8], [8.4, 5.4], [9.2, 6.5], [-2.4, 6.5]], 3);
+  const haunch = S([[-19.5, 1.5], [-15.5, 3.4], [-15.4, 6.5], [-24, 6.5], [-24.8, 3.4]], 3);
+  return { lift: 0, tail: [-26.4, 2.4], body: [torso, fore, haunch], shade: [mv(fore, -1.2, -0.6)] };
+})();
+const FRAMES: readonly DogFrame[] = [...GALLOP_FRAMES, STAND, LIE];
+export const DOG_FRAME = { gallop: [0, 1, 2, 3, 4, 5], stand: 6, lie: 7 } as const;
 
 export function strayDog(): PetArt & { anatomy: Anatomy } {
-  const rest: Rot = { body: 0, hips: 0, chest: 0, neck: 0, head: 0, jaw: 0, ear: 0, tail1: 0, tail2: 0, tail3: 0 };
-  const fit = (j: readonly [Pt, Pt, Pt], m: (p: Pt) => Pt): [Pt, Pt, Pt] => j.map(m) as [Pt, Pt, Pt];
-  restLeg(rest, "hindF", "paw", 0, fit(HIND, hindMap), DOG_HIND_ANGLE);
-  restLeg(rest, "hindB", "paw", 0, fit(shift(HIND, FAR), hindMap), DOG_HIND_ANGLE);
-  restLeg(rest, "foreF", "paw", 0, fit(FORE, foreMap), DOG_FORE_ANGLE);
-  restLeg(rest, "foreB", "paw", 0, fit(shift(FORE, FAR), foreMap), DOG_FORE_ANGLE);
+  const rest: Rot = { body: 0, frame: 0, head: 0, jaw: 0, ear: 0, hips: 0, tail1: 0, tail2: 0, tail3: 0 };
   const a = new Anatomy(rest);
-  a.xf = bodyMap;
-  a.bone("body", "root", [-1.0, -15.4], [-35, 35]);
-  a.bone("hips", "body", [-3.2, -15.6], [-30, 30]);
-  a.bone("chest", "body", [1.4, -15.8], [-30, 30]);
-  a.bone("neck", "chest", [6.6, -15.8], [-70, 50]);
-  a.bone("head", "neck", [11.2, -21.0], [-50, 70]);
-  a.xf = headMap;
-  a.bone("jaw", "head", [13.4, -19.9], [0, 42]);
-  a.bone("ear", "head", [11.9, -22.5], [-55, 20]);
-  a.xf = bodyMap;
-  a.bone("tail1", "hips", [-10.4, -15.9], [-90, 70]);
-  a.bone("tail2", "tail1", [-12.7, -17.7], [-70, 70]);
-  a.bone("tail3", "tail2", [-14.3, -19.9], [-70, 70]);
-  const L = DOG_LIMITS;
-  const leg = (n: string, parent: string, j: readonly [Pt, Pt, Pt], hind: boolean, d: Pt): void => {
-    const toe: Pt = hind ? [HIND_TOE[0] + d[0], HIND_TOE[1] + d[1]] : [FORE_TOE[0] + d[0], FORE_TOE[1] + d[1]];
-    const sole = (hind ? HIND_SOLE : FORE_SOLE).map((p) => [p[0] + d[0], p[1] + d[1]] as Pt);
-    a.xf = hind ? hindMap : foreMap;
-    if (hind) a.leg(n, "paw", parent, j, 1, [L.hip, L.stifle, L.hock], toe, sole);
-    else a.leg(n, "paw", parent, j, -1, [L.shoulder, L.elbow, L.wrist], toe, sole);
-  };
-  leg("hindB", "hips", shift(HIND, FAR), true, FAR);
-  leg("foreB", "chest", shift(FORE, FAR), false, FAR);
-  leg("hindF", "hips", HIND, true, [0, 0]);
-  leg("foreF", "chest", FORE, false, [0, 0]);
+  // the head joint stands HEAD_Y over the floor; everything below is drawn about it
+  // ... and the actor's place sits under the middle of the body, not under the head
+  a.xf = (p) => [(p[0] + MID) * K, (p[1] - HEAD_Y) * K];
+  a.bone("frame", "root", [0, HEAD_Y]);
+  a.bone("body", "root", [0, 0], [-25, 25]);
+  a.bone("head", "body", [0, 0], [-50, 70]);
+  a.bone("jaw", "head", [4.2, 1.2], [0, 45]);
+  a.bone("ear", "head", [1.6, -3.0], [-60, 25]);
+  a.bone("hips", "body", HIPS, [-30, 30]);
+  a.bone("tail1", "hips", TAIL_AT, [-110, 80]);
+  a.bone("tail2", "tail1", [-28.6, -0.8], [-80, 80]);
+  a.bone("tail3", "tail2", [-30.0, -3.2], [-80, 80]);
 
-  // ---------------------------------------------------------------------------- shapes
-  const S = (pts: Pt[], per = 4): Pt[] => smooth(pts, per);
-  const mv = (pts: readonly Pt[], d: Pt): Pt[] => pts.map((p) => [p[0] + d[0], p[1] + d[1]] as Pt);
-  // legs: one picture per leg, used near (own outline group, over the body) and far (behind, in shadow)
-  const hindParts = (n: string, d: Pt, z: number, far: boolean): void => {
-    const sh = far ? true : undefined;
-    a.xf = hindMap;
-    a.fill(`${n}.up`, mv(S([[-5.8, -14.4], [-4.4, -12.8], [-3.6, -10.6], [-3.3, -8.7], [-4.4, -7.8], [-6.0, -8.5], [-8.2, -9.8], [-10.2, -11.2], [-10.9, -12.9], [-10.0, -14.4], [-8.0, -15.0]]), d), "skin", z, sh);
-    a.fill(`${n}.lo`, mv(S([[-3.4, -9.5], [-3.9, -8.2], [-5.6, -6.6], [-7.4, -5.1], [-7.9, -4.3], [-8.9, -4.0], [-9.1, -4.9], [-8.5, -6.3], [-7.8, -8.0], [-6.6, -9.6], [-4.9, -10.3]]), d), "skin", z + 0.1, sh);
-    a.fill(`${n}.paw`, mv(floorClamp(S([[-8.8, -4.9], [-7.5, -4.9], [-7.2, -2.7], [-6.8, -1.3], [-5.9, -1.15], [-5.3, -0.45], [-5.7, 0.2], [-8.1, 0.2], [-8.4, -0.6], [-8.2, -1.7], [-8.4, -3.2]], 3)), d), "skin", z + 0.2, sh);
-    if (!far) a.ink(`${n}.paw`, [[[-6.4, -1.0], [-6.2, -0.1]], [[-7.2, -1.1], [-7.1, -0.1]]], 0.2, z + 0.25, false);
+  // frames: each silhouette with its shading, in one outline group with the head
+  const clockwise = (poly: readonly Pt[]): Pt[] => {
+    let area = 0;
+    poly.forEach((p, i) => { const q = poly[(i + 1) % poly.length]!; area += p[0] * q[1] - q[0] * p[1]; });
+    return area < 0 ? [...poly].reverse() : [...poly];
   };
-  const foreParts = (n: string, d: Pt, z: number, far: boolean): void => {
-    const sh = far ? true : undefined;
-    a.xf = foreMap;
-    a.fill(`${n}.up`, mv(S([[9.5, -13.6], [10.1, -11.7], [8.7, -9.8], [7.0, -8.4], [5.6, -7.9], [4.5, -8.4], [4.7, -9.8], [5.6, -11.4], [6.8, -13.3], [8.2, -14.2]]), d), "skin", z, sh);
-    a.fill(`${n}.lo`, mv(S([[6.8, -8.9], [6.9, -6.0], [6.75, -3.4], [6.5, -2.5], [5.3, -2.5], [5.05, -3.4], [5.0, -6.0], [4.9, -8.4], [5.7, -9.3]]), d), "skin", z + 0.1, sh);
-    a.fill(`${n}.paw`, mv(floorClamp(S([[5.2, -3.2], [6.6, -3.2], [6.8, -2.1], [7.1, -1.4], [7.8, -1.1], [8.3, -0.45], [7.9, 0.2], [5.8, 0.2], [5.5, -0.6], [5.6, -1.7], [5.2, -2.5]], 3)), d), "skin", z + 0.2, sh);
-    if (!far) a.ink(`${n}.paw`, [[[7.0, -0.9], [7.15, -0.1]], [[6.3, -0.9], [6.35, -0.1]]], 0.2, z + 0.25, false);
+  FRAMES.forEach((f, n) => {
+    const shape: Shape = { bone: `body@${n}`, d: dPolys(f.body.map((p) => a.local("body", clockwise(p)) as Poly)), slot: "skin", z: 20 };
+    // the far legs of the hand-drawn frames sit in shadow; the traced frames keep one clean
+    // silhouette (the photograph's own shading flickered from frame to frame)
+    if (n >= DOG_FRAME.stand && f.shade.length > 0) shape.shade = dPolys(f.shade.map((p) => a.local("body", clockwise(p)) as Poly));
+    a.shapes.push(shape);
+  });
+
+  // the drawn tail, for the frames drawn by hand (the traced frames carry the hound's own):
+  // bushy, carried in a sickle, a pale tip
+  const tailFill = (bone: string, pts: Pt[], slot: "skin" | "accent", z: number): void => {
+    for (const n of [DOG_FRAME.stand, DOG_FRAME.lie]) a.shapes.push({ bone: `${bone}@${n}`, d: dPolys([a.local(bone, pts) as Poly]), slot, z });
   };
-  hindParts("hindB", FAR, 10, true);
-  foreParts("foreB", FAR, 11, true);
-  a.xf = bodyMap;
-  // the tail, behind the body: a sickle carried high, pale at the tip
-  a.fill("tail3", band([[-14.25, -19.8], [-14.6, -21.3], [-14.3, -22.8]], 0.72, 0.42), "skin", 19.7);
-  a.fill("tail3", band([[-14.55, -21.9], [-14.3, -22.8]], 0.5, 0.36), "accent", 19.75);
-  a.fill("tail2", band([[-12.6, -17.6], [-13.6, -18.6], [-14.35, -20.0]], 0.9, 0.72), "skin", 19.8);
-  a.fill("tail1", band([[-10.0, -15.6], [-11.4, -16.9], [-12.8, -17.8]], 1.1, 0.9), "skin", 19.9);
-  a.xf = headMap;
+  tailFill("tail3", band([[-30.0, -3.2], [-30.4, -5.4], [-29.6, -7.2]], 1.25, 0.75), "skin", 19.7);
+  tailFill("tail3", band([[-30.25, -5.9], [-29.6, -7.2]], 1.0, 0.7), "accent", 19.72);
+  tailFill("tail2", band([[-28.4, -0.9], [-29.6, -2.0], [-30.1, -3.4]], 1.6, 1.3), "skin", 19.8);
+  tailFill("tail1", band([[-25.0, 2.0], [-26.8, 0.6], [-28.6, -0.8]], 1.6, 1.6), "skin", 19.9);
+
   // the far ear, behind the head
-  a.fill("ear", [[11.9, -21.9], [11.9, -24.2], [12.6, -25.6], [13.6, -23.8], [13.9, -22.0]], "skin", 19.5, true);
-  a.xf = bodyMap;
-  // body masses, one outline: hips under the loin under the chest under the neck under the head
-  a.fill("hips", S([[-2.0, -16.6], [-5.0, -17.0], [-8.4, -16.8], [-10.6, -15.8], [-11.8, -13.9], [-11.5, -11.8], [-10.0, -10.6], [-7.5, -10.6], [-4.5, -11.6], [-2.2, -13.0]]), "skin", 20.0);
-  a.fill("body", S([[-6.6, -16.5], [-3.0, -16.95], [1.0, -17.0], [3.5, -16.4], [3.4, -11.0], [1.0, -9.6], [-2.0, -9.9], [-4.6, -10.6], [-6.8, -11.8], [-7.4, -14.4]]), "skin", 20.1);
-  a.fill("body", S([[-5.2, -16.75], [-1.0, -17.05], [2.6, -16.8], [1.0, -15.9], [-3.6, -15.9]]), "hair", 20.15);          // dark saddle
-  a.fill("chest", S([[-0.5, -16.9], [2.5, -17.4], [5.0, -18.0], [7.2, -17.6], [9.4, -15.6], [10.5, -13.0], [10.1, -10.8], [8.6, -9.0], [6.2, -8.1], [3.2, -8.3], [0.8, -9.2], [-0.8, -11.0], [-1.4, -14.0]]), "skin", 20.2);
-  a.fill("chest", S([[9.4, -13.6], [10.3, -12.2], [9.9, -10.6], [8.6, -9.2], [8.6, -11.4]]), "accent", 20.25);               // pale chest
-  a.ink("chest", [line([[2.2, -14.6], [2.6, -12.4], [3.0, -10.2]]), line([[3.8, -15.0], [4.2, -12.8], [4.6, -10.0]]), line([[0.8, -14.0], [1.2, -12.2], [1.6, -10.6]])], 0.2, 20.26);   // ribs
-  a.fill("neck", S([[3.6, -17.3], [5.8, -18.9], [8.3, -20.5], [10.3, -22.0], [12.4, -21.6], [13.4, -19.8], [12.8, -17.4], [11.0, -14.6], [8.6, -13.4], [5.0, -14.0]]), "skin", 20.3);
-  a.ink("neck", [[[5.4, -18.6], [6.0, -19.5]], [[6.7, -19.3], [7.3, -20.3]], [[8.0, -20.1], [8.6, -21.1]]], 0.28, 20.33);       // hackles
-  a.xf = headMap;
-  a.fill("ear", [[10.9, -22.0], [10.7, -24.3], [11.3, -26.1], [11.95, -25.3], [12.25, -24.85], [12.05, -24.45], [12.7, -24.1], [13.1, -22.4]], "skin", 20.35);
-  a.fill("ear", [[11.4, -22.6], [11.35, -24.4], [11.6, -25.2], [12.1, -23.2]], "accent", 20.355);
-  a.fill("jaw", [[13.0, -20.1], [17.6, -19.9], [17.4, -21.6], [13.2, -21.4]], "ink", 20.37);                                      // inside the mouth (shows as it opens)
-  a.fill("jaw", S([[12.6, -20.3], [14.6, -19.95], [17.0, -19.85], [17.9, -19.55], [17.6, -18.9], [15.8, -18.5], [13.6, -18.5], [12.2, -19.2]]), "skin", 20.38);
-  a.fill("jaw", [[16.6, -19.8], [17.05, -19.8], [16.85, -20.45]], "white", 20.385);                                               // lower fang
-  a.fill("head", S([[10.2, -21.2], [10.8, -22.6], [12.4, -23.4], [14.2, -23.15], [15.4, -22.35], [17.3, -21.75], [18.8, -21.25], [19.05, -20.4], [17.8, -19.8], [15.4, -19.55], [13.0, -19.35], [11.0, -19.8]]), "skin", 20.4);
-  a.fill("head", S([[15.6, -22.2], [17.3, -21.7], [18.8, -21.2], [19.0, -20.4], [17.8, -19.85], [15.6, -19.7], [15.1, -20.9]]), "hair", 20.42);  // dark muzzle
-  a.fill("head", [[16.6, -19.9], [17.0, -19.9], [16.82, -19.25]], "white", 20.44);                                              // the fang over the lip
-  a.inkFill("head", ellipse(18.55, -20.95, 0.6, 0.45, 0, 10), 20.45);                                                             // nose
-  a.inkFill("head", ellipse(14.3, -22.0, 0.55, 0.3, -12, 10), 20.45);                                                             // eye
-  a.ink("head", [[[13.3, -22.95], [14.2, -22.75], [15.1, -22.3]]], 0.38, 20.46);                                                  // hard brow
-  a.ink("head", [line([[14.4, -19.95], [16.4, -19.8], [18.0, -19.9]])], 0.24, 20.46);                                            // lip line
-  a.ink("head", [[[16.0, -22.3], [16.6, -21.4], [16.9, -20.7]], [[12.4, -21.3], [13.2, -20.5]]], 0.18, 20.47);                   // scars
-  hindParts("hindF", [0, 0], 40, false);
-  foreParts("foreF", [0, 0], 41, false);
-  a.xf = foreMap;
-  a.fill("foreF.paw", [[5.4, -1.9], [4.9, -1.5], [5.4, -1.2]], "skin", 41.15);                                                   // dewclaw
-
-  a.settleFeet();
-  const art = { rig: a.rig("stray-dog", 25), shapes: a.shapes };
-  return { ...art, clips: dogClips(a), anatomy: a };
+  a.fill("ear", [[2.4, -2.6], [2.6, -7.0], [3.4, -8.0], [5.0, -4.2], [4.8, -2.4]], "skin", 19.5, true);
+  // the neck root over the cut, then the head on top
+  a.fill("head", ellipse(-0.6, 0.6, 3.2, 3.6, -20, 16), "skin", 20.3);
+  a.fill("ear", [[0.0, -2.4], [-0.4, -6.6], [0.6, -9.0], [1.6, -7.6], [2.0, -7.0], [1.7, -6.4], [2.7, -5.6], [3.2, -2.6]], "skin", 20.35);   // big, upright, torn
+  a.fill("ear", [[0.8, -3.2], [0.6, -6.6], [1.1, -7.8], [2.2, -3.6]], "accent", 20.355);
+  a.fill("jaw", [[4.4, 1.0], [10.0, 1.0], [9.8, -0.8], [4.6, -0.6]], "ink", 20.37);                                    // inside the mouth
+  a.fill("jaw", S([[3.8, 0.9], [6.6, 1.2], [9.4, 1.2], [10.2, 1.6], [9.6, 2.3], [7.0, 2.7], [4.6, 2.6], [3.2, 1.9]], 3), "skin", 20.38);
+  a.fill("jaw", [[8.6, 1.2], [9.1, 1.2], [8.85, 0.4]], "white", 20.385);
+  a.fill("head", S([[-1.8, -0.4], [-1.2, -2.6], [1.0, -3.6], [3.4, -3.7], [4.9, -3.0], [5.6, -2.3], [8.0, -1.9], [10.2, -1.5], [10.9, -0.6],
+    [10.6, 0.6], [9.4, 1.1], [6.4, 1.2], [3.6, 1.6], [1.0, 2.4], [-1.2, 1.6]]), "skin", 20.4);
+  a.fill("head", S([[5.8, -2.2], [8.0, -1.8], [10.2, -1.4], [10.85, -0.6], [10.5, 0.6], [9.4, 1.05], [6.6, 1.1], [5.8, -0.4]], 3), "hair", 20.42);   // dark muzzle
+  a.fill("head", [[8.6, 1.05], [9.15, 1.05], [8.9, 1.9]], "white", 20.44);                                            // fang over the lip
+  a.inkFill("head", ellipse(10.5, -0.75, 0.7, 0.55, 0, 10), 20.45);                                                   // nose
+  a.fill("head", ellipse(3.6, -1.9, 0.62, 0.42, -10, 10), "accent", 20.44);                                           // eye
+  a.inkFill("head", ellipse(3.75, -1.9, 0.32, 0.32, 0, 8), 20.45);
+  a.ink("head", [[[2.4, -2.9], [3.8, -2.7], [5.0, -2.2]]], 0.36, 20.46);                                              // hard brow at the stop
+  a.ink("head", [line([[5.0, 1.15], [7.4, 1.2], [9.6, 1.0]])], 0.22, 20.46);                                          // lip line
+  a.ink("head", [[[6.4, -2.0], [7.2, -0.9], [7.5, -0.2]], [[0.2, -1.4], [1.2, -0.4]]], 0.18, 20.47);                  // scars
+  a.ink("head", [[[-1.0, 1.0], [0.4, 2.0]], [[-1.6, -0.4], [-0.6, 0.6]]], 0.2, 20.47);                                 // ruff
+  return { rig: a.rig("stray-dog", 25), shapes: a.shapes, clips: clips(a), anatomy: a };
 }
 
 // ------------------------------------------------------------------------------- clips
-
-/** Trot (run): diagonal pairs. Gallop (flee): rotary, far hind first. Shares of the cycle at which
- *  each foot touches down, and how long it stays down. */
-export const DOG_GAITS = {
-  run: { hindB: 0, foreF: 0.02, hindF: 0.5, foreB: 0.52, duty: 0.52 },
-  flee: { hindB: 0, hindF: 0.08, foreF: 0.5, foreB: 0.58, duty: 0.3 },
-} as const;
-
-function dogClips(a: Anatomy): Record<CompanionClip, Clip> {
-  const bones = a.bones;
-  const legs = a.legs;
-  const toe = (n: string): number => legs.find((l) => l.name === n)!.restContact[0];
-  const HIND_X = toe("hindF");
-  const FORE_X = toe("foreF");
-  const S0: Hi = {
-    x: 0, y: 0, rot: { body: 0, hips: 0, chest: 0, neck: 0, head: 0, jaw: 0, ear: 0, tail1: 0, tail2: 0, tail3: 0 },
-    feet: {
-      hindF: { x: HIND_X, y: 0, a: DOG_HIND_ANGLE }, hindB: { x: HIND_X + 1.6, y: 0, a: DOG_HIND_ANGLE },
-      foreF: { x: FORE_X, y: 0, a: DOG_FORE_ANGLE }, foreB: { x: FORE_X - 0.5, y: 0, a: DOG_FORE_ANGLE },
-    },
+interface Beat { t: number; frame: number; rot?: Rot; root?: Pt; scale?: readonly [number, number]; ease?: "lin" | "in" | "out" | "inOut" }
+const easeOf = (u: number, e: Beat["ease"]): number => (e === "in" ? u * u : e === "out" ? 1 - (1 - u) * (1 - u) : e === "inOut" ? u * u * (3 - 2 * u) : u);
+/**
+ * A clip from beats, sampled every 10 ms: the drawn frame steps at each beat (two keys at the same
+ * time just before it, so the "frame" bone never passes through other frames), every other bone and the root
+ * ease between beats. A beat's root y defaults to its frame's own flight (a gallop's stretched
+ * frame stays in the air).
+ */
+function framesClip(c: CompanionClip, beats: readonly Beat[], lag: Rot, loop = false): Clip {
+  const full = beats.map((b) => ({ ...b, rot: { hips: 0, ...b.rot } as Rot, root: [(b.root?.[0] ?? 0) * K, -(b.root?.[1] ?? 0) * K] as const, scale: b.scale ?? [1, 1] as const }));
+  const keyAt = (t: number, frame: number): Key => {
+    let i = 0;
+    while (i + 1 < full.length - 1 && t >= full[i + 1]!.t) i++;
+    const A = full[i]!;
+    const B = full[Math.min(i + 1, full.length - 1)]!;
+    const u = B.t > A.t ? easeOf(Math.min(1, Math.max(0, (t - A.t) / (B.t - A.t))), B.ease) : 0;
+    const rot: Rot = { frame };
+    for (const k of new Set([...Object.keys(A.rot), ...Object.keys(B.rot)])) { const va = A.rot[k] ?? 0; rot[k] = va + ((B.rot[k] ?? va) - va) * u; }
+    const mix = (x: number, y: number): number => x + (y - x) * u;
+    // a frame's own flight steps with the frame; a beat's extra lift eases
+    return { t, rot, root: [mix(A.root[0], B.root[0]), mix(A.root[1], B.root[1]) - FRAMES[frame]!.lift * K], scale: [mix(A.scale[0], B.scale[0]), mix(A.scale[1], B.scale[1])] };
   };
-  // the end bone's world angle over stance and swing: flat at touch-down, the heel peeling up
-  // (the angle growing) to the push-off, folded (the fore paw flipped up behind) in the swing
-  const hindStance = profile([[0, -10], [0.5, -9], [1, 30]]);
-  const hindSwing = profile([[0, 30], [0.25, 45], [0.55, 10], [0.85, -16], [1, -10]]);
-  const foreStance = profile([[0, -18], [0.55, -16], [1, 22]]);
-  const foreSwing = profile([[0, 22], [0.28, 70], [0.5, 95], [0.74, 34], [0.93, -19], [1, -18]]);
-  const hindStanceG = profile([[0, -10], [0.45, -6], [1, 24]]);
-  const hindSwingG = profile([[0, 24], [0.3, 40], [0.6, 0], [0.88, -18], [1, -10]]);
-  const foreStanceG = profile([[0, -18], [0.5, -10], [1, 30]]);
-  const foreSwingG = profile([[0, 30], [0.25, 75], [0.48, 100], [0.74, 24], [0.93, -19], [1, -18]]);
-
-  // ---- idle: breathing, an ear twitch, the tail swaying
-  const idle = sampleClip(bones, legs, P.idle.durationMs, true, 40, (t) => {
-    const u = t / P.idle.durationMs;
-    const tw = Math.max(0, 1 - Math.abs(t - 760) / 70);                     // ear flick at 760 ms
-    const tw2 = Math.max(0, 1 - Math.abs(t - 900) / 60);
-    return poseFrom(S0, {
-      y: 0.12 * sn(u, 1, 0.25),
-      rot: { chest: -0.8 * sn(u), hips: 0.3 * sn(u), neck: 1.2 * sn(u, 1, 0.1), head: -1.5 * sn(u, 1, 0.2), ear: -16 * tw - 8 * tw2,
-        tail1: 4 * sn(u, 2), tail2: 6 * sn(u, 2, -0.1), tail3: 8 * sn(u, 2, -0.2), jaw: 2 + 2 * sn(u, 2) },
-    });
-  }, { events: P.idle.events });
-
-  // ---- run: a fast trot, diagonal pairs, the body dipping over each, the head steady and low
-  const gait = (g: { hindB: number; hindF: number; foreF: number; foreB: number; duty: number }, fast: boolean): ((t: number) => Hi) => {
-    const feet: Record<string, GaitFoot> = {};
-    const hs = fast ? hindStanceG : hindStance;
-    const hw = fast ? hindSwingG : hindSwing;
-    const fs = fast ? foreStanceG : foreStance;
-    const fw = fast ? foreSwingG : foreSwing;
-    for (const n of ["hindB", "hindF", "foreF", "foreB"] as const) {
-      const hind = n.startsWith("hind");
-      feet[n] = { leg: n, down: g[n], duty: g.duty, half: fast ? 5.4 : 4.0, lift: fast ? (hind ? 3.0 : 2.6) : (hind ? 1.6 : 1.8),
-        angle: hind ? hw : fw, stance: hind ? hs : fs };
-    }
-    const home: Record<string, number> = fast
-      ? { hindF: HIND_X + 0.2, hindB: HIND_X + 0.6, foreF: FORE_X + 1.4, foreB: FORE_X + 0.8 }
-      : { hindF: HIND_X - 0.4, hindB: HIND_X, foreF: FORE_X + 1.0, foreB: FORE_X + 0.6 };
-    return (t) => {
-      const u = t / P.run.durationMs;
-      const ft: Record<string, Foot> = {};
-      for (const [n, gf] of Object.entries(feet)) { const f = gaitFootByJoint(gf, legs.find((l) => l.name === n)!, home[n]!, u); ft[n] = { x: f.x, y: f.y, a: f.a }; }
-      if (!fast) {
-        const dip = Math.cos(4 * Math.PI * (u - 0.26));                       // lowest at mid-stance of each pair
-        return { x: 0, y: 1.3 + 0.35 * dip, feet: ft,
-          rot: { body: 0.8 * sn(u, 2, 0.1), hips: -1.2 * sn(u, 2), chest: 1.2 * sn(u, 2, 0.05), neck: 10 - 1.5 * dip, head: -4 + 2.5 * dip, jaw: 6, ear: -14,
-            tail1: -38 + 5 * sn(u, 2, 0.1), tail2: 8 + 7 * sn(u, 2, 0), tail3: 6 + 9 * sn(u, 2, -0.1) } };
-      }
-      // rotary gallop: gathered (back arched, hind feet reaching under) at 0.95, stretched at 0.44;
-      // two flights, stretched (0.385 to 0.495) and gathered (0.885 to 0.995), the whole dog off the floor
-      const flex = Math.cos(TAU1 * (u - 0.95));                               // +1 gathered, -1 stretched
-      const fly = 1.6 * bump(u, 0.385, 0.11) + 1.2 * bump(u, 0.885, 0.11);
-      for (const f of Object.values(ft)) f.y -= fly;
-      return { x: 0, y: 2.0 + 0.6 * Math.cos(TAU1 * (u - 0.25)) - fly, feet: ft,
-        rot: { body: 3 * sn(u, 1, 0.1), hips: -14 * flex, chest: 11 * flex, neck: 22 + 5 * flex, head: -8 - 4 * flex, jaw: 10, ear: -40,
-          tail1: -70 + 8 * flex, tail2: 30 + 6 * sn(u), tail3: 20 + 8 * sn(u, 1, -0.1) } };
-    };
-  };
-  const run = sampleClip(bones, legs, P.run.durationMs, true, 10, gait(DOG_GAITS.run, false), { events: P.run.events, lag: { tail2: 30, tail3: 50, ear: 20 } });
-  const flee = sampleClip(bones, legs, P.flee.durationMs, true, 10, gait(DOG_GAITS.flee, true), { events: P.flee.events, lag: { tail2: 30, tail3: 50 }, air: true });
-
-  // ---- attack: crouch, lunge (hind feet planted, fore feet stepping), bite at 150, shake, back
-  const crouch = poseFrom(S0, { x: -0.6, y: 1.6, rot: { body: 3, hips: -4, chest: 5, neck: 14, head: 6, ear: -30, tail1: -40, tail2: 10, jaw: 4 } });
-  const reach = poseFrom(S0, { x: 4.0, y: 1.0, rot: { body: 2, hips: -6, chest: 2, neck: 40, head: -24, jaw: 38, ear: -36, tail1: -30, tail2: 14, tail3: 10 },
-    feet: { foreF: { x: 5.2, y: -2.4, a: 40 }, foreB: { x: 4.4, y: -1.2, a: 20 }, hindF: { a: 24 }, hindB: { a: 22 } } });
-  const bite = poseFrom(S0, { x: 4.3, y: 1.2, rot: { body: 3, hips: -5, chest: 3, neck: 40, head: -10, jaw: 2, ear: -34, tail1: -30, tail2: 14, tail3: 10 },
-    feet: { foreF: { x: 5.2, a: 2 }, foreB: { x: 4.2 }, hindF: { a: 26 }, hindB: { a: 24 } } });
-  const shake = (k: number): Hi => poseFrom(bite, { rot: { neck: 8 * k, head: 20 * k, chest: -2 * k, tail1: 6 * k } });
-  const attack = sampleClip(bones, legs, P.attack.durationMs, false, 10, track([
-    [0, S0], [80, crouch, "out"], [125, reach, "in"], [150, bite, "out"],
-    [175, shake(1)], [198, shake(-1)], [220, shake(0.8)], [240, shake(-0.4)], [280, S0, "inOut"],
-  ]), { events: P.attack.events, lag: { tail2: 30, tail3: 50, ear: 20 } });
-
-  // ---- hit: flinch back and down, head turned away, ears flat, tail tucked
-  const flinch = poseFrom(S0, { x: -1.6, y: 1.6, rot: { body: -3, hips: 5, chest: 2, neck: 6, head: 18, jaw: 10, ear: -50, tail1: -70, tail2: 20, tail3: 10 },
-    feet: { foreF: { x: -0.4, y: -1.0, a: 12 }, hindF: { a: 6 } } });
-  const hit = sampleClip(bones, legs, P.hit.durationMs, false, 10, track([
-    [0, S0], [60, flinch, "out"], [130, poseFrom(flinch, { x: 0.6, y: -0.4, rot: { neck: 8, head: 6 }, feet: { foreF: { x: 0.4, y: 1.0, a: -12 } } }), "inOut"], [300, S0, "inOut"],
-  ]), { events: P.hit.events, lag: { tail2: 30, tail3: 50, ear: 30 } });
-
-  // ---- ko: the hind legs fold, the chest goes down, the head drops last; lands at 400
-  const sag = poseFrom(S0, { y: 3.4, rot: { body: -4, hips: 8, chest: 4, neck: -6, head: 10, ear: -30, tail1: -60, tail2: 10 },
-    feet: { hindF: { x: -0.4, a: -40 }, hindB: { x: 0.2, a: -40 }, foreF: { x: 1.4 }, foreB: { x: 1.2 } } });
-  const down: Hi = poseFrom(S0, { x: 0.6, y: 8.2, rot: { body: 2, hips: 4, chest: 6, neck: 14, head: 30, jaw: 8, ear: -50, tail1: -82, tail2: 10, tail3: 4 },
-    feet: { hindF: { x: 0.6, y: 0, a: -64 }, hindB: { x: 1.2, a: -64 }, foreF: { x: 6.2, y: 0, a: -70 }, foreB: { x: 5.4, a: -70 } } });
-  const ko = sampleClip(bones, legs, P.ko.durationMs, false, 20, track([
-    [0, S0], [90, poseFrom(S0, { x: -0.8, y: 0.6, rot: { neck: -12, head: -12, ear: -40 } }), "out"], [240, sag, "in"], [400, down, "in"],
-    [470, poseFrom(down, { y: -0.3, rot: { head: -6 } }), "out"], [600, down, "inOut"],
-  ]), { events: P.ko.events, lag: { tail2: 40, tail3: 60 } });
-
-  return { idle, run, flee, attack, hit, ko };
+  const keys: Key[] = [];
+  const d = P[c].durationMs;
+  for (let i = 0; i * 10 <= d; i++) {
+    const t = i * 10;
+    let j = 0;
+    while (j + 1 < full.length && t >= full[j + 1]!.t) j++;
+    const frame = full[j]!.frame;
+    const prevFrame = keys.length > 0 ? keys[keys.length - 1]!.rot!["frame"]! : frame;
+    // the new frame is up a millisecond before its beat, so the beat itself (a contact) shows it
+    if (frame !== prevFrame) keys.push(keyAt(t - 1, prevFrame), keyAt(t - 1, frame));
+    keys.push(keyAt(t, frame));
+  }
+  return { duration: d, loop, events: P[c].events, keys, lag };
 }
-const TAU1 = Math.PI * 2;
-/** A half-sine bump over the cycle window [a, a + w] (wrapping past 1), 0 elsewhere. */
-function bump(u: number, a: number, w: number): number {
-  let p = (u - a) % 1;
-  if (p < 0) p += 1;
-  return p <= w ? Math.sin((Math.PI * p) / w) : 0;
+
+function clips(_a: Anatomy): Record<CompanionClip, Clip> {
+  const G = DOG_FRAME.gallop;
+  const stride = (tail: Rot, head: Rot): Beat[] => [
+    ...G.map((n, i) => ({ t: i * 40, frame: n, rot: { head: head.head! + [0, 1, 2, 1, -1, -1][i]!, ear: head.ear!, jaw: head.jaw!, tail1: tail.tail1! + [0, -6, -10, -4, 4, 6][i]!,
+      tail2: tail.tail2! + [0, 4, 8, 4, -2, -4][i]!, tail3: tail.tail3! } })),
+    { t: 240, frame: G[0]!, rot: { head: head.head!, ear: head.ear!, jaw: head.jaw!, tail1: tail.tail1!, tail2: tail.tail2!, tail3: tail.tail3! } },
+  ];
+  const run = framesClip("run", stride({ tail1: -48, tail2: 18, tail3: 14 }, { head: 4, ear: -18, jaw: 8 }), { tail2: 30, tail3: 50 }, true);
+  const flee = framesClip("flee", stride({ tail1: -96, tail2: -10, tail3: 0 }, { head: 10, ear: -52, jaw: 4 }), { tail2: 30, tail3: 50 }, true);
+  const ST = DOG_FRAME.stand;
+  const idle = framesClip("idle", [
+    { t: 0, frame: ST, rot: { head: 0, ear: 0, tail1: 0, tail2: 0, tail3: 0, jaw: 2 } },
+    { t: 600, frame: ST, rot: { head: -2, ear: 0, tail1: 5, tail2: 6, tail3: 8, jaw: 4 }, scale: [1, 0.985], ease: "inOut" },
+    { t: 720, frame: ST, rot: { head: -2, ear: -18, tail1: 5, tail2: 6, tail3: 8, jaw: 4 }, ease: "out" },
+    { t: 820, frame: ST, rot: { head: -1, ear: 0, tail1: 3, tail2: 3, tail3: 4, jaw: 3 }, ease: "inOut" },
+    { t: 1200, frame: ST, rot: { head: 0, ear: 0, tail1: 0, tail2: 0, tail3: 0, jaw: 2 }, scale: [1, 1], ease: "inOut" },
+  ], { tail2: 40, tail3: 70, ear: 20 }, true);
+  // attack: gather (the hound's gathered frame), the stretched lunge in the air, the landing
+  // bite at 150 with the jaw snapping shut, a hard head shake, back to standing
+  const attack = framesClip("attack", [
+    { t: 0, frame: ST, rot: { head: 0, jaw: 2, ear: 0, tail1: 0, tail2: 0, tail3: 0 } },
+    { t: 70, frame: G[0]!, rot: { head: 10, jaw: 10, ear: -30, tail1: -40, tail2: 10, tail3: 8 }, root: [-0.8, 0], ease: "out" },
+    { t: 110, frame: G[2]!, rot: { head: -6, jaw: 40, ear: -40, tail1: -50, tail2: 14, tail3: 10 }, root: [3.0, 0], ease: "out" },
+    { t: 150, frame: G[3]!, rot: { head: 4, jaw: 0, ear: -40, tail1: -40, tail2: 10, tail3: 8 }, root: [4.6, 0], ease: "in" },
+    { t: 175, frame: G[3]!, rot: { head: 22, jaw: 0, ear: -40, tail1: -30 }, root: [4.6, 0] },
+    { t: 198, frame: G[3]!, rot: { head: -14, jaw: 0, ear: -40, tail1: -36 }, root: [4.6, 0] },
+    { t: 220, frame: G[4]!, rot: { head: 16, jaw: 4, ear: -40, tail1: -30 }, root: [4.0, 0] },
+    { t: 250, frame: ST, rot: { head: -4, jaw: 4, ear: -20, tail1: -10, tail2: 0, tail3: 0 }, root: [1.6, 0], ease: "out" },
+    { t: 280, frame: ST, rot: { head: 0, jaw: 2, ear: 0, tail1: 0, tail2: 0, tail3: 0 }, root: [0, 0], ease: "inOut" },
+  ], { tail2: 30, tail3: 50 });
+  // hit: a flinch, the head jerked down and away, ears flat, tail tucked, a hop back
+  const hit = framesClip("hit", [
+    { t: 0, frame: ST, rot: { head: 0, jaw: 2, ear: 0, tail1: 0, tail2: 0, tail3: 0 } },
+    { t: 60, frame: ST, rot: { head: 26, jaw: 18, ear: -55, tail1: -70, tail2: -20, tail3: -10 }, root: [-1.8, 0.8], scale: [1.04, 0.94], ease: "inOut" },
+    { t: 140, frame: ST, rot: { head: 14, jaw: 8, ear: -45, tail1: -80, tail2: -10, tail3: 0 }, root: [-0.8, 0], scale: [1, 1], ease: "inOut" },
+    { t: 300, frame: ST, rot: { head: 0, jaw: 2, ear: 0, tail1: 0, tail2: 0, tail3: 0 }, root: [0, 0], ease: "inOut" },
+  ], { tail2: 40, tail3: 60, ear: 30 });
+  // ko: it staggers, the legs go, it drops onto its chest (400), the head sinks onto its paws
+  const ko = framesClip("ko", [
+    { t: 0, frame: ST, rot: { head: 0, jaw: 2, ear: 0, tail1: 0, tail2: 0, tail3: 0 } },
+    { t: 90, frame: ST, rot: { head: -16, jaw: 14, ear: -40, tail1: -40 }, root: [-0.8, 0.6], ease: "out" },
+    { t: 240, frame: G[4]!, rot: { head: 20, jaw: 10, ear: -50, tail1: -60, tail2: 10 }, root: [-0.4, 0], ease: "in" },
+    { t: 400, frame: DOG_FRAME.lie, rot: { head: 30, jaw: 8, ear: -50, tail1: -86, tail2: 10, tail3: 4 }, scale: [1.06, 0.94], ease: "in" },
+    { t: 470, frame: DOG_FRAME.lie, rot: { head: 24, jaw: 8, ear: -50, tail1: -86, tail2: 10, tail3: 4 }, root: [0, 0.4], scale: [1, 1], ease: "out" },
+    { t: 600, frame: DOG_FRAME.lie, rot: { head: 30, jaw: 6, ear: -50, tail1: -86, tail2: 10, tail3: 4 }, ease: "inOut" },
+  ], { tail2: 40, tail3: 60 });
+  return { idle, run, flee, attack, hit, ko };
 }

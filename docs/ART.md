@@ -212,8 +212,19 @@ the pole weapons poked upward, the Anvil and the Chair were swung like sticks).
   shoulder, `dir` degrees below forward), arms angled down to a level shaft, hands at the hip.
   Items held otherwise say so in their art: `FOIL_GRIP` (Umbrella, Plunger, Garden Shears, along
   the forearm), `CLUB_GRIP` (Golf Club, Hockey Stick, hanging head down), `DART_GRIP`.
-- **Pets drawn from life** (`content/pets/`, the stray dog and the goose since 15 Nov 2026; the
-  other four still use the sine gaits of `content/pet-clips.ts`). The rules:
+- **Pets drawn frame by frame (rotoscope)**: the stray dog since v3 (15 Nov 2026; owner: "Dog
+  doesn't look like a dog"). Its body and legs are whole silhouettes, one per drawn frame, on
+  shapes named `body@N`; the engine draws a frame's shapes only while the pet's `frame` bone
+  rounds to N (`engine/sample.ts` `frameAt`, `hullAt`; untagged shapes draw in every frame), and
+  the floor, the mouth and the hit point use that frame's own outline. Run and flee play six
+  frames traced from Muybridge's galloping hound (plate 710; `pets/dog-frames.ts` is generated
+  from the photographs: thresholded, legs lost to blur traced by hand, legs and tail thickened,
+  the head cut off); standing and lying are drawn by hand at the same proportions. Head, jaw,
+  ears and the hand-drawn tail stay on bones so they turn. Frames step, never blend: a clip's
+  `frame` key changes in two keys at one time, just before the beat. The other five pets will
+  follow this method once the dog is approved.
+- **Pets drawn from life** (`content/pets/`, the other five; the four-legged ones share
+  `quad-build.ts` and the gait function `quad.ts`). The rules:
   - Draw the animal standing, in stage units, from real anatomy (`pets/anatomy.ts`: `smooth`
     outlines through control points, placed on their bones through the rest pose). Body masses
     (hips, loin, chest, neck, head) overlap in ONE outline group, never boxes or capsules; a
@@ -223,15 +234,27 @@ the pole weapons poked upward, the Anvil and the Chair were swung like sticks).
   - Legs bend the animal's way, and the limits say so: a quadruped stands on its toes; the hind
     stifle points forward and the hock (the visible backward bend, the ankle) back; the elbow
     points back and the wrist folds the paw back and up in the swing; a bird's heel points back.
+    The foot type is the animal's: the dog and the cat on their toes, the raccoon on its whole
+    hind sole (plantigrade), the boar on hooves.
   - Feet are placed, not swung: a clip says where each foot's sole touches and at what angle,
     and `legIK` solves the leg. In stance the foot is on the floor and slides back at the body's
     one speed; the heel peels up (the end bone turns forward over the toe) toward the push-off;
     the swing arcs the foot's joint, the folded paw hanging from it.
   - Gaits from Muybridge, Animal Locomotion (1887, public domain): the dog's run is a trot in
     diagonal pairs (plate 706), its flee a rotary gallop with two flights (plate 710); the goose
-    waddles, the body bobbing over each foot. `test/content/pets.test.ts` checks the bends, the
-    planted feet, the footfall order, the one-outline neck and the sizes.
-  - Sizes against a fighter (84 units): dog 30% (25 units), goose 34% (29); no pet over 45%.
+    waddles, the body bobbing over each foot; the raccoon, cat (plate 718) and boar (plate 674)
+    trot to run and gallop to flee; the crow hops to run and flaps low to flee (plate 756, the
+    pigeon: full downstroke, folded upstroke). Wings are three blades (coverts, secondaries,
+    primaries) that lie stacked and fan apart as they open. `test/content/pets.test.ts` checks
+    the bends, the planted feet, the footfall order, the one-outline bodies and neck, the sizes.
+  - Readability: the crow carries a blue-grey sheen (the accent slot) on crown, nape, back and
+    wing coverts and a pale eye, so it is a clear silhouette on the dark arena. A pet's ink
+    outline scales with its drawn size (`petLine` in engine/createRig: the square root of its
+    height over a fighter's, never under half the fighter's line).
+  - Sizes: drawn at their share of a fighter (84 units): dog 30%, goose 35%, raccoon 22%, cat
+    25%, crow 20%, boar 41% (cap 45%). `PET_UNIT` (content/pets.ts) hands each pet to the rig
+    a little larger, so the stage's `PET_SCALE` (packages/stage layout, measured on the real art)
+    stays under 1 for the capsule test rig's stand-ins too.
   Tails and wings `lag`.
 - `pnpm sheet --mode use-all` (every weapon's use strip, full rig) and `--mode pets` (every pet
   clip). `test/content/use.test.ts` holds the lines; `test/content/use-audit.ts` prints the
