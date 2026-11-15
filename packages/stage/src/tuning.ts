@@ -122,20 +122,18 @@ export const FLIGHT = {
 
 /** Moves. */
 export const MOVE = {
-  /** The wind-up of every Move (owner, 15 Nov 2026: "proper use of skill is not it"): the action
-   *  pauses on the user while it draws a deep breath, its banner shows the name, the icon and what
-   *  it does, the arena dims and the opponent waits. Then the action. */
-  windUpMs: 420,
-  /** The banner sticker over the user (drawn without a camera; the host shows its own banner). */
-  bannerMs: 900,
-  /** The parts of the rig's power-up clip (the breath every wind-up plays, the Haymaker's charge,
+  /** A Move simply happens (owner, 15 Nov 2026: "I don't like the skill preview. It should just
+   *  show"): no wind-up, no dim, no banner. A small tag with its icon and name pops over the user
+   *  as the action starts, as long as a passive's tag. */
+  nameTagMs: 900,
+  /** The parts of the rig's power-up clip (Second Wind's breath, the Haymaker's charge,
    *  the whistle or horn blow) and the slam clip's grab are read from their `step` events in
    *  `rig.clipInfo` (choreo/move.ts). A clip without them is split by these shares of its length. */
   partShares: [0.35, 0.7, 0.75],
-  /** A Haymaker holds its charge this long; a blow lasts this long; Second Wind holds its breath. */
-  chargeMs: 520,
+  /** A Haymaker charges this long; a blow lasts this long; Second Wind breathes in this long. */
+  chargeMs: 440,
   blowMs: 420,
-  breathHoldMs: 520,
+  breathMs: 520,
   /** A Grapple squeezes for this long; the squeeze hurts this far into it. */
   squeezeMs: 700,
   squeezeHitMs: 260,

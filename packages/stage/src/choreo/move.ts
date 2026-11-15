@@ -1,12 +1,10 @@
 /**
- * A Move (brief 3.12, "What each Move looks like"; skills pass after the owner's "proper use of
- * skill is not it, not satisfied", 15 Nov 2026). Every Move is staged like a fighting game's
- * special move, in three beats:
+ * A Move (brief 3.12, "What each Move looks like"). A Move simply happens inside the fight flow
+ * (owner, 15 Nov 2026, after a wind-up with a dim, a floor ring and a banner: "I don't like the
+ * skill preview. It should just show"). No pause, no dim, no ring, no banner, nobody freezing:
  *
- *   1. Wind-up (420 ms). The action pauses on the user: it draws a deep breath (the power-up
- *      clip's breath part, with the Move's object already in hand), the arena dims, a ring glows
- *      on the floor under it and the host shows the banner (name, icon, one-line effect). The
- *      opponent waits in its idle.
+ *   1. As the step starts, the user does the action at once and a small tag with the Move's icon
+ *      and name pops over it (900 ms, like a passive's tag). The host lights the card's tile.
  *   2. The action, with the real object:
  *      Haymaker      he coils into the charge, fist cocked back, sparks crackling on the fist.
  *      Energy Drink  he lifts the can and chugs it, head back (drink clip, the can in hand).
@@ -21,7 +19,7 @@
  *                    floor (slam on the user, slammed on the target, contact at the floor hit).
  *      Sand in the Eyes  he throws a handful at the enemy's face; it rubs its eyes.
  *      Taunt         a gesture: the fist pump and the shout, rings from the head.
- *      Second Wind   he holds a deep breath in a green glow.
+ *      Second Wind   he breathes in deep in a green glow.
  *      Grapple       he dashes in and squeezes the enemy in a bear hug; it struggles in the hold.
  *   3. The visible result: a heal's green number, the snared target under the tarp, the weapon in
  *      the other hand, and a result tag in the host's words with the Move's icon ("-25 AIM",
@@ -30,9 +28,8 @@
  */
 import type { ActorId, MoveId, StepOf } from "@rankzero/core";
 import { sideOf } from "@rankzero/core";
-import type { MoveProp } from "@rankzero/rig";
 import { toStage } from "@rankzero/rig";
-import { hitSpot, land, moveBanner, overHead, resultTag, skillTag } from "../effects";
+import { land, moveNameTag, overHead, resultTag, skillTag } from "../effects";
 import { flightMs, makePath } from "../flight";
 import { CORAL, GREEN, SKY, VOLT } from "../palette";
 import type { Builder } from "../timeline";
@@ -41,19 +38,14 @@ import type { Placed } from "./index";
 
 type MoveStep = StepOf<"move">;
 
-/** The object a Move carries in the hand from its wind-up on. */
-const PROP_OF: Partial<Record<MoveId, MoveProp>> = { "energy-drink": "can", whistle: "whistle", "air-horn": "horn" };
-/** The colour of a Move's spotlight ring. */
-const SPOT_OF: Partial<Record<MoveId, string>> = { "energy-drink": GREEN, "second-wind": GREEN, whistle: SKY, taunt: SKY };
-
 export function move(b: Builder, step: MoveStep, i: number): Placed {
   const s = b.cursor;
   if (!b.has(step.actor)) return { at: s, apply: s };
-  const c = windUp(b, step, i, s);
-  const placed = action(b, step, i, s, c);
-  const spot = { from: s, to: Math.max(b.cursor, placed.apply) + 150, actor: step.actor, colour: SPOT_OF[step.move] ?? VOLT };
-  b.spots.push(step.move === "second-wind" ? { ...spot, aura: true } : spot);
-  return placed;
+  // the action starts at once: the stinger, the bag, the small name tag over the user
+  b.cue(s, i, "move");
+  b.bag(b.track(step.actor).side, s, step.bagAfter);
+  moveNameTag(b, step.move, step.actor, s);
+  return action(b, step, i, s, s);
 }
 
 type Span = readonly [from: number, to: number];
@@ -69,19 +61,6 @@ export function powerParts(b: Builder, actor: ActorId): { breath: Span; charge: 
 function grabTime(b: Builder, actor: ActorId): number {
   const info = b.info(b.track(actor).rig, "slam");
   return info.events.find((e) => e.name === "step")?.t ?? Math.round(b.strikeOf(info) * MOVE.partShares[0]);
-}
-
-/** The wind-up: the banner, the sound, the bag, the breath. Returns when the action starts. */
-function windUp(b: Builder, step: MoveStep, i: number, s: number): number {
-  const tr = b.track(step.actor);
-  moveBanner(b, step.actor, s, MOVE.bannerMs, b.opts.text.moveName(step.move));
-  b.cue(s, i, "move");
-  b.bag(tr.side, s, step.bagAfter);
-  const [b0, b1] = powerParts(b, step.actor).breath;
-  const prop = PROP_OF[step.move];
-  b.play(step.actor, "power-up", s, { c0: b0, rate: (b1 - b0) / MOVE.windUpMs, until: s + MOVE.windUpMs, ...(prop ? { prop } : {}) });
-  b.busy(s, s + MOVE.windUpMs);
-  return s + MOVE.windUpMs;
 }
 
 function action(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
@@ -103,8 +82,10 @@ function action(b: Builder, step: MoveStep, i: number, s: number, c: number): Pl
     case "sand-in-the-eyes": return sand(b, step, i, s, c);
     case "taunt": return taunt(b, step, i, s, c);
     case "second-wind": {
-      // he holds the full breath in a green glow; the heal step shows its number during it
-      b.play(step.actor, "power-up", c, { c0: powerParts(b, step.actor).breath[1], rate: 0, until: c + MOVE.breathHoldMs });
+      // he breathes in deep in a green glow; the heal step shows its number during it
+      const [b0, b1] = powerParts(b, step.actor).breath;
+      b.play(step.actor, "power-up", c, { c0: b0, rate: (b1 - b0) / MOVE.breathMs, until: c + MOVE.breathMs });
+      b.auras.push({ from: c, to: c + MOVE.breathMs + 150, actor: step.actor, colour: GREEN });
       b.cursor = c + 160;
       skillTag(b, step.procs, c);
       return { at: s, apply: c };

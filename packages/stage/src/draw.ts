@@ -118,30 +118,19 @@ function text(env: DrawEnv, t: FrameText, fonts: PlayerOpts["fonts"], at: Placed
   c.restore();
 }
 
-/** A Move's spotlight: a dim over the arena (drawn before the actors, so they stay bright), the
- *  ring that glows on the floor under the user, and the user's aura when the Move has one. */
-function spotUnder(env: DrawEnv, s: Frame["spots"][number]): void {
+/** A glow round an actor (Second Wind's breath), drawn behind it. No dim, no floor ring. */
+function auraBehind(env: DrawEnv, s: Frame["auras"][number]): void {
   const c = env.ctx;
   c.save();
-  c.globalAlpha = 0.3 * s.dim;
-  c.fillStyle = INK;
-  c.fillRect(0, 0, STAGE_W, STAGE_H);
-  c.globalAlpha = 0.9 * s.dim;
+  c.globalAlpha = 0.22 * s.glow;
+  c.fillStyle = s.colour;
   c.strokeStyle = s.colour;
-  c.lineWidth = 2.2;
   c.beginPath();
-  c.ellipse(s.x, s.floorY, 24, 5.5, 0, 0, Math.PI * 2);
+  c.ellipse(s.x, s.floorY - 42, 24, 48, 0, 0, Math.PI * 2);
+  c.fill();
+  c.globalAlpha = 0.6 * s.glow;
+  c.lineWidth = 1.6;
   c.stroke();
-  if (s.aura) {
-    c.globalAlpha = 0.22 * s.dim;
-    c.fillStyle = s.colour;
-    c.beginPath();
-    c.ellipse(s.x, s.floorY - 42, 24, 48, 0, 0, Math.PI * 2);
-    c.fill();
-    c.globalAlpha = 0.6 * s.dim;
-    c.lineWidth = 1.6;
-    c.stroke();
-  }
   c.restore();
 }
 
@@ -174,7 +163,7 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
     rig.drawProp(env, p.item, { x: p.x, y: p.y, facing: p.facing, rot: p.rot });
     c.restore();
   }
-  for (const s of f.spots) spotUnder(env, s);
+  for (const s of f.auras) auraBehind(env, s);
   for (const a of f.actors) {
     rig.drawActor(env, pose ? pose(a) : rig.samplePose(a.rig, a.clip, a.clipT, a.aim), a.dress, a.place);
   }
@@ -212,9 +201,6 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
       text(env, t, opts.fonts, { x: view.w / 2 + (t.x - STAGE_W / 2) * bk, y: view.h * 0.34 + (t.y - 90) * bk, size: t.size * bk }, css, dpr);
       continue;
     }
-    // Under the camera the host shows a Move as a big banner of its own (fight screen v2), so the
-    // small Move sticker over the user is left out; the OVERTIME sticker stays.
-    if (cam && t.kind === "sticker" && t.text !== opts.text.overtime) continue;
     const cap = t.kind === "number" ? TEXT_K_MAX.number : TEXT_K_MAX.tag;
     const tk = cam ? Math.min(k, cap) : k;
     const shaken = t.kind === "number" || t.kind === "tag";

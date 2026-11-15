@@ -25,8 +25,8 @@ export interface FrameProp { item: PropId; x: number; y: number; rot: number; fa
 export interface FrameFx { fx: FxKind; progress: number; at: Place; seed: number }
 export interface FrameText { text: string; x: number; y: number; size: number; colour: string; ink: string; alpha: number;
   kind: "number" | "tag" | "banner" | "sticker"; icon?: PerkId }
-/** A Move's spotlight in this frame: how dim the arena is (0 to 1), and the user's glow. */
-export interface FrameSpot { dim: number; x: number; floorY: number; colour: string; aura: boolean; actor: ActorId }
+/** A glow round an actor in this frame (Second Wind's breath): how strong (0 to 1), where. */
+export interface FrameAura { glow: number; x: number; floorY: number; colour: string; actor: ActorId }
 export interface Present { key: EffectKey; contact: number }
 export interface Frame {
   t: number;
@@ -38,12 +38,12 @@ export interface Frame {
   fx: FrameFx[];
   texts: FrameText[];
   tape: number | null;
-  spots: FrameSpot[];
+  auras: FrameAura[];
   present: Present[];
 }
 
-/** How long a spotlight takes to come up and to go. */
-const SPOT_FADE_MS = 160;
+/** How long an aura takes to come up and to go. */
+const AURA_FADE_MS = 160;
 
 const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -207,18 +207,18 @@ export function frameAt(tr: Tracks, t: number): Frame {
     if (c.contact !== null) present.push({ key: "crowd", contact: c.contact });
   }
 
-  // ---- spotlights: the arena dims while a Move plays, the user's floor ring glows
-  const spots: FrameSpot[] = [];
-  for (const s of tr.spots) {
+  // ---- auras: a glow round an actor (Second Wind's breath); the arena never dims
+  const auras: FrameAura[] = [];
+  for (const s of tr.auras) {
     if (t < s.from || t >= s.to) continue;
     const who = placeOf.get(s.actor);
     if (who === undefined) continue;
-    const dim = Math.min(1, (t - s.from) / SPOT_FADE_MS, (s.to - t) / SPOT_FADE_MS);
-    spots.push({ dim, x: who.place.x, floorY: who.floorY, colour: s.colour, aura: s.aura === true, actor: s.actor });
+    const glow = Math.min(1, (t - s.from) / AURA_FADE_MS, (s.to - t) / AURA_FADE_MS);
+    auras.push({ glow, x: who.place.x, floorY: who.floorY, colour: s.colour, actor: s.actor });
   }
 
   const tape = tr.tape !== null && t >= tr.tape.from && t < tr.tape.to ? (t - tr.tape.from) / (tr.tape.to - tr.tape.from) : null;
-  return { t, shake: { x: sx, y: sy }, crowd, actors, floor, flights, fx, texts, tape, spots, present };
+  return { t, shake: { x: sx, y: sy }, crowd, actors, floor, flights, fx, texts, tape, auras, present };
 }
 
 /** The point of a sampled track at `t` (held at its ends). */
