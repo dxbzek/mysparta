@@ -3,11 +3,12 @@
  * turn shares: writing steps, picking a target, landing damage, and the steps a hit causes.
  */
 import type { ActorId, BagItem, Proc, Side, Step } from "../contracts/log";
-import type { SkillId } from "../contracts/ids";
-import { SKILL_IDS } from "../contracts/ids";
+import type { ProcId, ShieldId } from "../contracts/ids";
+import { PERK_IDS } from "../contracts/ids";
 import { RARITY_OF } from "../contracts/content";
 import type { Rarity } from "../contracts/content";
 import { sk } from "../content/skills";
+import { shieldNumbers } from "../content/shields";
 import type { Actor } from "./combatant";
 import { CAP, valuesOf } from "./combatant";
 import type { Streams } from "./rng";
@@ -45,14 +46,14 @@ export function pickEnemy(b: Bout, a: Actor): Actor | null {
 }
 
 const RANK: Readonly<Record<Rarity, number>> = { mythic: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
-/** Rarest skill first, then the order of the skill list. */
+/** Rarest first, then the order of the perk list. */
 export function sortProcs(list: Proc[]): Proc[] | undefined {
   if (list.length === 0) return undefined;
   return list.sort((x, y) => RANK[RARITY_OF[x.skill]] - RANK[RARITY_OF[y.skill]]
-    || SKILL_IDS.indexOf(x.skill) - SKILL_IDS.indexOf(y.skill));
+    || PERK_IDS.indexOf(x.skill) - PERK_IDS.indexOf(y.skill));
 }
 
-export function proc(by: Actor, skill: SkillId): Proc {
+export function proc(by: Actor, skill: ProcId): Proc {
   return { by: by.id as ActorId, skill };
 }
 
@@ -127,15 +128,19 @@ export function tryDisarm(b: Bout, att: Actor, def: Actor, cause: "hit" | "slam"
   emit(b, step);
 }
 
-/** The door roll: one third of the attacker's Disarm on a swing that was not evaded. A slam always knocks it off. */
-export function tryDoor(b: Bout, att: Actor, def: Actor, cause: "hit" | "slam"): void {
-  if (!def.door) return;
-  if (cause === "hit") {
-    const chance = Math.floor(Math.min(valuesOf(att).disarm, CAP.disarm) / 3);
-    if (!(b.r.disarm.int(100) < chance)) return;
-  }
-  def.door = false;
-  emit(b, { t: "doorOff", turn: b.turn, actor: att.id, target: def.id, cause });
+/** The chance a swing that was not evaded knocks this shield off: its `knock` percent of the
+ *  attacker's capped Disarm, rounded down. */
+export function knockChance(att: Actor, shield: ShieldId): number {
+  return Math.floor((Math.min(valuesOf(att).disarm, CAP.disarm) * shieldNumbers(shield).knock) / 100);
+}
+
+/** The shield roll on a swing that was not evaded. A slam always knocks it off. */
+export function tryShield(b: Bout, att: Actor, def: Actor, cause: "hit" | "slam"): void {
+  const shield = def.shield;
+  if (shield === null) return;
+  if (cause === "hit" && !(b.r.disarm.int(100) < knockChance(att, shield))) return;
+  def.shield = null;
+  emit(b, { t: "shieldOff", turn: b.turn, actor: att.id, target: def.id, shield, cause });
 }
 
 /** A hit frees a snared target. */

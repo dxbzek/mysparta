@@ -22,7 +22,7 @@
  * striking end reaches that height (a short Raccoon or a tall head alike).
  * The stage never applies a clip fallback: the rig does (see the rig contract).
  */
-import type { ActorId, BagItem, BoutLog, BoutState, FighterSnapshot, MoveId, Side, SkillId, StageId } from "@rankzero/core";
+import type { ActorId, BagItem, BoutLog, BoutState, FighterSnapshot, MoveId, ProcId, Side, StageId } from "@rankzero/core";
 import type { DrawEnv, Rig } from "@rankzero/rig";
 
 export type SfxFamily = "fist" | "blunt" | "blade" | "block" | "whoosh" | "dash" | "landing" | "throw"
@@ -36,7 +36,7 @@ export const SFX_VARIANTS: Readonly<Record<SfxFamily, number>> = {
 };
 /** Every word the stage paints. The stage holds no player text of its own. */
 export interface StageText { fight: string; wins(name: string): string; block: string; miss: string;
-  crit: string; overtime: string; moveName(id: MoveId): string; skillName(id: SkillId): string }
+  crit: string; overtime: string; moveName(id: MoveId): string; skillName(id: ProcId): string }   // a skill, or a shield (content v2)
 /** `cosmeticSeed` picks flinch, particle and sound variations. It never changes a time.
  *  `stage` is the arena to draw. The host passes `stageFor(log.seed)`, so a replay of the same
  *  bout shows the same place; the player itself never derives it. */

@@ -4,15 +4,19 @@
  * fraction (see perkChance).
  */
 import type { CompanionId, PerkId, SkillId, WeaponId } from "../contracts/ids";
-import { COMPANION_IDS, SKILL_IDS, WEAPON_IDS, isCompanionId, perkKind } from "../contracts/ids";
+import { COMPANION_IDS, SHIELD_IDS, SKILL_IDS, WEAPON_IDS, isCompanionId, isShieldId, perkKind } from "../contracts/ids";
 import type { PerkKind } from "../contracts/ids";
 import { RARITY_OF, RARITY_WEIGHT } from "../contracts/content";
 import type { Rng } from "../prng";
 import { COMPANIONS } from "../content/companions";
 import { SKILLS } from "../content/skills";
 
-/** Category roll out of 100: weapon 46, skill 50, companion 4. */
-export const CATEGORY_PCT: Readonly<Record<PerkKind, number>> = { weapon: 46, skill: 50, companion: 4 };
+/** Category roll out of 100: weapon 44, skill 46, shield 6, companion 4 (content v2). */
+export const CATEGORY_PCT: Readonly<Record<PerkKind, number>> = { weapon: 44, skill: 46, shield: 6, companion: 4 };
+/** Order of the categories on the roll. */
+const CATEGORY_ORDER: readonly PerkKind[] = ["weapon", "skill", "shield", "companion"];
+/** A scrapper has three companion places at most (actor ids 1 to 3). */
+export const MAX_COMPANIONS = 3;
 
 interface Pool { ids: readonly PerkId[]; weights: readonly number[]; total: number }
 function pool(ids: readonly PerkId[], weightOf: (id: PerkId) => number): Pool {
@@ -23,6 +27,7 @@ const POOLS: Readonly<Record<PerkKind, Pool>> = {
   weapon: pool(WEAPON_IDS, (id) => RARITY_WEIGHT[RARITY_OF[id]]),
   skill: pool(SKILL_IDS, (id) => RARITY_WEIGHT[RARITY_OF[id]]),
   companion: pool(COMPANION_IDS, (id) => COMPANIONS[id as CompanionId].weight),
+  shield: pool(SHIELD_IDS, (id) => RARITY_WEIGHT[RARITY_OF[id]]),
 };
 
 function pickWeighted(p: Pool, r: number): PerkId {
@@ -37,8 +42,12 @@ function pickWeighted(p: Pool, r: number): PerkId {
 
 /** One roll from the pool: the category first, then the item by weight. Two random numbers. */
 export function rollPerk(rng: Rng): PerkId {
-  const c = rng.int(100);
-  const kind: PerkKind = c < CATEGORY_PCT.weapon ? "weapon" : c < CATEGORY_PCT.weapon + CATEGORY_PCT.skill ? "skill" : "companion";
+  let c = rng.int(100);
+  let kind: PerkKind = "companion";
+  for (const k of CATEGORY_ORDER) {
+    if (c < CATEGORY_PCT[k]) { kind = k; break; }
+    c -= CATEGORY_PCT[k];
+  }
   const p = POOLS[kind];
   return pickWeighted(p, rng.int(p.total));
 }
@@ -68,10 +77,12 @@ export function allowed(id: PerkId, owned: readonly PerkId[], rng: Rng): boolean
     const def = COMPANIONS[id];
     const have = owned.filter((p) => p === id).length;
     if (have >= def.limit) return false;
+    if (owned.filter((p) => isCompanionId(p)).length >= MAX_COMPANIONS) return false;
     for (const ex of def.excludes) if (owned.includes(ex)) return false;
     return true;
   }
   if (owned.includes(id)) return false;
+  if (isShieldId(id) && owned.some((p) => isShieldId(p))) return false;      // one shield at most
   if (id === "whistle" && !owned.some((p) => isCompanionId(p))) return false;
   if (isBooster(id)) {
     const n = owned.filter((p) => isBooster(p)).length;

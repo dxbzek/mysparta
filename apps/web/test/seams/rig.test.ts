@@ -40,7 +40,7 @@ describe("the rig seam", () => {
   });
 
   it("says where every weapon strikes and where a target is hit", () => {
-    const dress = (held: Dress["held"]): Dress => ({ look: SNAPSHOTS.l1Pipe.look, held, door: false, scale: 1 });
+    const dress = (held: Dress["held"]): Dress => ({ look: SNAPSHOTS.l1Pipe.look, held, shield: null, scale: 1 });
     for (const id of WEAPON_IDS) {
       const p = rig.strikePoint("scrapper", WEAPON_META[id].clip, dress(id));
       expect(Number.isFinite(p.x) && Number.isFinite(p.y), id).toBe(true);

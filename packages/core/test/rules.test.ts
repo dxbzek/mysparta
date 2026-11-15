@@ -205,8 +205,8 @@ describe("rules the first draft left open", () => {
 
   it("a snared actor neither evades nor blocks, and companions never block", () => {
     // Rolls of 0 would evade and block any free defender. The snared one takes the hit (and is freed by it).
-    const t = setup(snap([]), snap(["bin-lid", "slippery"]), scripted({ hit: queue([0, 0, 99, 99, 99]) }));
-    t.B.held = "bin-lid"; t.B.snared = true;
+    const t = setup(snap([]), snap(["wok", "slippery", "riot-shield"]), scripted({ hit: queue([0, 0, 99, 99, 99]) }));
+    t.B.held = "wok"; t.B.snared = true;
     meleeAttack(t.bout, t.A, t.B);
     const first = t.bout.steps[0]!;
     expect(first.t === "attack" && first.outcome).toBe("hit");

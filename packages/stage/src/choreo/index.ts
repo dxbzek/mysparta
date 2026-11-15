@@ -7,7 +7,7 @@ import type { Step, StepOf, StepType } from "@rankzero/core";
 import type { Builder } from "../timeline";
 import { attack } from "./attack";
 import { disarm } from "./disarm";
-import { doorOff } from "./doorOff";
+import { shieldOff } from "./shieldOff";
 import { draw } from "./draw";
 import { end } from "./end";
 import { enter } from "./enter";
@@ -29,7 +29,7 @@ export interface Placed { at: number; apply: number }
 export type Handler<T extends StepType> = (b: Builder, step: StepOf<T>, i: number) => Placed;
 
 export const HANDLERS: { readonly [K in StepType]: Handler<K> } = {
-  enter, draw, swap, move, attack, intercept, riposte, throw: throwStep, disarm, doorOff, heal, snare, free, flee, ko,
+  enter, draw, swap, move, attack, intercept, riposte, throw: throwStep, disarm, shieldOff, heal, snare, free, flee, ko,
   overtime, end,
 };
 
@@ -44,7 +44,7 @@ export function dispatch(b: Builder, step: Step, i: number): Placed {
     case "riposte": return HANDLERS.riposte(b, step, i);
     case "throw": return HANDLERS.throw(b, step, i);
     case "disarm": return HANDLERS.disarm(b, step, i);
-    case "doorOff": return HANDLERS.doorOff(b, step, i);
+    case "shieldOff": return HANDLERS.shieldOff(b, step, i);
     case "heal": return HANDLERS.heal(b, step, i);
     case "snare": return HANDLERS.snare(b, step, i);
     case "free": return HANDLERS.free(b, step, i);

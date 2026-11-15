@@ -45,7 +45,7 @@ Fight values, all whole percents. A held weapon adds its numbers to the base; sk
 - Stat card: +2 points in one random stat.
 - Perk card: one roll from the perk pool. If that perk is not allowed, the card becomes a split: +1 point in each of two different random stats.
 
-**The perk pool.** A category roll out of 100: weapon 0 to 45, skill 46 to 95, companion 96 to 99. Then one item inside the category, by weight:
+**The perk pool.** A category roll out of 100: weapon 0 to 43, skill 44 to 89, shield 90 to 95, companion 96 to 99 (content v2). Then one item inside the category, by weight:
 
 | Rarity | Weight |
 |---|---|
@@ -55,11 +55,12 @@ Fight values, all whole percents. A held weapon adds its numbers to the base; sk
 | Epic | 12 |
 | Mythic | 2 |
 
-Companions use their own weights: Raccoon 90, Goose 5, Boar 5. So one given Common weapon is 46% x 400 / 3,664, about 5.0% of rolls; one given Common skill 50% x 400 / 4,838, about 4.1%; the Raccoon 3.6%; the Mythic skill about 0.02%.
+Companions use their own weights: Raccoon 90, Goose 5, Boar 5, Stray Dog 30, Crow 15, Alley Cat 15 (160 in all). So one given Common weapon is 44% x 400 / 6,028, about 2.9% of rolls; one given Common skill 46% x 400 / 5,838, about 3.2%; the Common shield (Bin Lid) 6% x 400 / 812, about 3.0%; the Raccoon 2.25%; the Mythic skill about 0.016%.
 
 **A rolled perk is not allowed when:**
 - it is already owned (the Raccoon may be owned twice);
-- it is a companion past its limit or one its owner's companion rules out (Goose and Boar never together);
+- it is a companion past its limit or one its owner's companion rules out (Goose and Boar never together, Stray Dog and Alley Cat never together), or a fourth companion (three places at most);
+- it is a shield and a shield is already owned (one at most);
 - it is a booster and boosters are already owned: with one owned it passes 10% of the time, with two 3%, with three or more never (one extra roll);
 - it is the Whistle and no companion is owned.
 
@@ -85,16 +86,17 @@ Each part of the rules draws from its own stream, seeded from the bout seed and 
 - The two scrappers are `a0` (the challenger, left) and `b0`. Companions take `a1` to `a3` and `b1` to `b3` in the order they stand in the owner's perks.
 - Time is in beats. `bodyTempo = 40 + floor(1200 / (10 + Speed))`: 160 at Speed 0, 120 at 5, 100 at 10, 80 at 20, 60 at 50.
 - A normal turn costs `floor(weapon Tempo x bodyTempo / 100) + roll(0..10)`. Companions use Tempo 100.
-- Start clocks: a scrapper `roll(0..20) - 2 x Speed`, Head Start -150, Mountain +150. A companion: Raccoon 10, Goose 40, Boar 250, each `+ roll(0..10)`.
+- Start clocks: a scrapper `roll(0..20) - 2 x Speed`, Head Start -150, Mountain +150. A companion: Raccoon 10, Goose 40, Boar 250, Stray Dog 30, Crow 20, Alley Cat 15, each `+ roll(0..10)`.
+- A shield's `tempo` adds that percent to its owner's weapon Tempo (after Heavy Lifter): the Wooden Pallet 15, the Riot Shield 10.
 - The lowest clock acts next. On a tie, an actor whose last action cost no time (a free Move, or a companion just called by a Whistle) goes first; then a seeded roll among the tied actors in id order.
 - **A turn** is one actor taking its place: a scrapper turn, a companion turn, a Move, or a skipped snared turn. Turn counts (overtime, the stop, the length targets) count all of them.
 
 ### A scrapper's turn
 
-1. **Snared?** It skips the turn. The skip costs one normal turn of time and writes nothing, so turn numbers jump. The third skip ends the snare and writes `free` with cause "timeout".
+1. **Snared?** It skips the turn. The skip costs one normal turn of time and writes nothing, so turn numbers jump. The last skip ends the snare and writes `free` with cause "timeout": a Tarp holds for 3 skips, a Grapple for 1. A Taunt that is still on ends here, at the start of the owner's next turn.
 2. **Move roll.** The owned Moves with uses left whose condition holds are listed; W is the sum of their weights. One roll from 0 to W + 11: below W picks a Move by weight, otherwise none fires. A Move is the whole turn and sets its own time cost.
-3. **Draw or swap.** Empty hands and weapons in the bag: draw with chance `S / (S + 6)`, S the sum of the bag's Draw weights, picked by weight. Holding a weapon that has already attacked, with weapons in the bag: 30% to swap (Firm Grip 15%); the old weapon falls and is gone for the bout. Drawing does not end the turn.
-4. **Throw or melee.** A Thrown weapon is always thrown and never used up. Any other held weapon is thrown 5% of the time (Pitcher 35%) and is then gone (Pitcher: back into the bag).
+3. **Draw or swap.** Empty hands and weapons in the bag: draw with chance `S / (S + 6)` (Quick Swap: `S / (S + 2)`), S the sum of the bag's Draw weights, picked by weight. Right after a weapon left the hand by a throw, the draw is certain (throw and replace, content v2). Holding a weapon that has already attacked, with weapons in the bag: 30% to swap (Firm Grip 15%); the old weapon falls and is gone for the bout. Drawing does not end the turn.
+4. **Throw or melee.** A Thrown weapon is always thrown and never used up. Any other held weapon that has already swung once is thrown 20% of the time while another weapon waits in the bag, 5% when it is the last one (Pitcher 35% either way), and is then gone (Pitcher: back into the bag; Junk Collector: back into the bag 60% of the time). A weapon just drawn always gets its swing first.
 5. **Target.** One random standing enemy, scrapper or companion.
 6. **Resolve** the attack.
 7. **Pay the time.** The weapon whose Tempo counts is the one the turn was made with.
@@ -106,49 +108,57 @@ a. **Intercept.** If the defender is a standing, unsnared scrapper: chance `Inte
 
 b. **Evade, then Block,** rolled for every swing.
    - Evade = `defender Evade + clamp(3 x (defender Agility - attacker Agility), -30, +30) - attacker Aim`, 0 to 80.
-   - Block = `defender Block - attacker Pierce`, 0 to 75. Companions never block.
+   - Block = `defender Block - attacker Pierce`, 0 to 75. Companions never block. A carried shield adds its Block.
    - A snared defender neither evades nor blocks.
 
 c. **Damage.**
    - Melee `raw = base + floor(Strength x (base + 4) / 12)`.
-   - `damage = floor(floor(raw x roll(85..115) / 100) x multiplier / 100)`. The multiplier is 100 plus the skill bonuses, doubled by Haymaker.
+   - `damage = floor(floor(raw x roll(85..115) / 100) x multiplier / 100)`. The multiplier is 100 plus the skill bonuses plus a carried shield's `damage` (a minus), doubled by Haymaker. A companion's multiplier is 100 plus its owner's Pet Lover bonus.
    - Crit (chance Crit, Haymaker +15, cap 60): `floor(damage x 3 / 2)`.
    - Armor: `damage - floor(damage x Armor / 100)`. Never below 1.
    - At Strength 3 with the first table: fists 7, Pocket Knife 8, Pipe 13, Hand Axe 19, Sledgehammer 36 (raw values).
 
-d. **Disarm.** On a landed hit against a held weapon: chance = attacker Disarm. The weapon falls and is gone. Firm Grip resists 60% of the time and the disarm is written as resisted. A defender with a Car Door also loses the door on a separate roll at one third of the attacker's Disarm, on every swing that is not evaded. Neither roll is made when the hit already knocked the defender out.
+d. **Disarm.** On a landed hit against a held weapon: chance = attacker Disarm. The weapon falls and is gone. Firm Grip resists 60% of the time and the disarm is written as resisted. A defender with a shield also loses it on a separate roll, on every swing that is not evaded: chance `floor(min(attacker Disarm, 80) x knock / 100)`, with the shield's own `knock` (the Car Door's 33 is the old one third). The shield lands on the floor and every number it gave ends. Neither roll is made when the hit already knocked the defender out.
 
 e. **Combo.** Chance `Combo + Agility`, capped at 80 first, then halved after each success (80, 40, 20). At most 3 extra swings. Stubborn rolls before the combo roll: after a swing that was evaded or blocked, 50% to swing again at once, once per turn, and that extra swing can start a combo. The swings stop when the target falls.
 
 f. **Riposte.** After the attacker's last swing, a standing, unsnared scrapper defender hits back once with chance Riposte (cap 80). After a block, a Parry owner's chance for that attack is 80. A riposte cannot be riposted or intercepted.
 
-**After a hit** the steps it causes follow it, in order: disarm, door off, free (a snared target is freed by any hit), knockout. A scrapper's knockout ends the bout in the same turn.
+A Crow flies: no intercept and no riposte against its attacks. An Alley Cat's attack is always two swings (the second written as a combo swing), then the normal combo rolls.
+
+**After a hit** the steps it causes follow it, in order: disarm, shield off, free (a snared target is freed by any hit), knockout. A scrapper's knockout ends the bout in the same turn.
 
 ### Throws
 
 - Thrown `raw = base + floor((Strength + 2 x Agility) x (base + 4) / 36)`, then `x roll(95..125) / 100` and the multiplier.
-- Evade and Block against a throw are halved. No intercept, no riposte. Armor does not apply. A throw can crit and disarm, and can combo while the weapon stays in the hand.
+- Evade and Block against a throw are halved; a shield's `thrownBlock` is added after the halving (cap 75). No intercept, no riposte. Armor does not apply. A throw can crit and disarm, and can combo while the weapon stays in the hand.
+- Trick Shot: after a Thrown weapon lands (the weapon stays in the hand), 35% that it bounces on, once a turn: one more throw at a random standing enemy, written as a combo throw with the Trick Shot proc. The combo rolls go on after it.
 
 ### Companions
 
-Separate actors with their own HP and clock. HP and Strength grow with the owner's level: `x (100 + 4 x (level - 1)) / 100`. They make bare melee attacks on a random standing enemy with their own numbers and the melee formula, can combo and evade, never block, intercept or riposte, and a scrapper may intercept or riposte them. Tempo 100, Reach 0, Crit 5, Pierce 0, Armor 0. A knocked-out companion stays down; a companion scared off by an Air Horn leaves. A companion going down never ends a bout.
+Separate actors with their own HP and clock. A scrapper has three companion places at most. HP and Strength grow with the owner's level: `x (100 + 4 x (level - 1)) / 100`. They make bare melee attacks on a random standing enemy with their own numbers and the melee formula, can combo and evade, never block, intercept or riposte, and a scrapper may intercept or riposte them. Tempo 100, Reach 0, Crit 5, Pierce 0, Armor 0. A knocked-out companion stays down; a companion scared off by an Air Horn leaves. A companion going down never ends a bout.
 
-| | Raccoon | Goose | Boar |
-|---|---|---|---|
-| Rarity word | Uncommon | Epic | Epic |
-| Weight | 90 | 5 | 5 |
-| Limit | 2 | 1, never with a Boar | 1, never with a Goose |
-| Owner max HP cost | 8% each | 20% | 30% |
-| HP | 14 | 22 | 80 |
-| Strength | 4 | 8 | 16 |
-| Agility | 6 | 12 | 2 |
-| Speed | 6 | 16 | 2 |
-| Base damage | 3 | 3 | 6 |
-| Combo | 20 | 50 | 0 |
-| Evade | 10 | 25 | 0 |
-| Aim | 5 | 5 | 20 |
-| Disarm | 0 | 0 | 10 |
-| Start clock | +10 | +40 | +250 |
+| | Raccoon | Goose | Boar | Stray Dog | Crow | Alley Cat |
+|---|---|---|---|---|---|---|
+| Role | small, cheap, quick | fast glass cannon | slow tank | all-rounder that grabs weapons | flies, pecks, hard to hit | fast, evasive, scratches twice |
+| Rarity word | Uncommon | Epic | Epic | Uncommon | Rare | Rare |
+| Weight | 90 | 5 | 5 | 30 | 15 | 15 |
+| Limit | 2 | 1, never with a Boar | 1, never with a Goose | 1, never with a Cat | 1 | 1, never with a Dog |
+| Owner max HP cost | 8% each | 20% | 30% | 14% | 12% | 14% |
+| HP | 14 | 22 | 80 | 18 | 10 | 15 |
+| Strength | 4 | 8 | 16 | 6 | 5 | 5 |
+| Agility | 6 | 12 | 2 | 7 | 18 | 16 |
+| Speed | 6 | 16 | 2 | 8 | 12 | 11 |
+| Base damage | 3 | 3 | 6 | 3 | 3 | 3 |
+| Combo | 20 | 50 | 0 | 15 | 30 | 20 |
+| Evade | 10 | 25 | 0 | 10 | 40 | 30 |
+| Aim | 5 | 5 | 20 | 5 | 15 | 10 |
+| Disarm | 0 | 0 | 10 | 15 | 0 | 0 |
+| Start clock | +10 | +40 | +250 | +30 | +20 | +15 |
+| Swings per attack | 1 | 1 | 1 | 1 | 1 | 2 |
+| Flies | no | no | no | no | yes | no |
+
+Pet Lover: its owner's companions have 30% more HP (after the level scaling, rounded down) and a damage multiplier of 125.
 
 ### End of a bout
 
@@ -162,18 +172,17 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Weapon | Rarity | Tags | Clip | Tempo | Dmg | Reach | Draw | Aim | Pierce | Block | Evade | Riposte | Combo | Disarm | Crit |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Fists | - | - | punch | 100 | 5 | 0 | - | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| Pipe | Common | - | swing | 110 | 11 | 1 | 5 | 0 | 0 | 12 | 0 | 5 | 0 | 10 | 10 |
+| Pipe | Common | - | swing | 110 | 12 | 1 | 5 | 0 | 0 | 12 | 0 | 5 | 0 | 10 | 10 |
 | Pocket Knife | Common | Light, Blade | flick | 65 | 6 | 0 | 5 | 25 | 0 | 0 | 5 | 0 | 35 | 0 | 10 |
 | Broom | Common | Pole | thrust | 100 | 6 | 3 | 4 | 0 | 0 | 20 | 5 | 28 | 10 | 15 | 5 |
 | Machete | Common | Blade | swing | 115 | 10 | 1 | 5 | 5 | 0 | 5 | 0 | 5 | 5 | 5 | 30 |
 | Hand Axe | Common | Heavy, Blade | swing | 145 | 15 | 1 | 4 | 0 | 15 | -5 | 0 | 0 | 0 | 5 | 15 |
 | Bat | Uncommon | - | swing | 120 | 12 | 2 | 5 | 0 | 10 | 5 | 0 | 18 | 0 | 5 | 15 |
-| Pitchfork | Uncommon | Pole | thrust | 130 | 13 | 3 | 3 | 0 | 0 | 5 | 0 | 0 | 0 | 5 | 10 |
-| Crowbar | Uncommon | Heavy | swing | 140 | 15 | 1 | 4 | -10 | 20 | 5 | 0 | 0 | 0 | 25 | 5 |
+| Pitchfork | Uncommon | Pole | thrust | 130 | 14 | 3 | 3 | 0 | 0 | 5 | 0 | 0 | 0 | 5 | 10 |
+| Crowbar | Uncommon | Heavy | swing | 140 | 16 | 1 | 4 | -10 | 20 | 5 | 0 | 0 | 0 | 25 | 5 |
 | Knuckle Dusters | Uncommon | Light | punch | 70 | 7 | 0 | 5 | 10 | 10 | 0 | 5 | 0 | 28 | 0 | 10 |
-| Bin Lid | Uncommon | - | swing | 100 | 8 | 0 | 3 | 0 | 0 | 40 | 0 | 35 | -10 | 0 | 0 |
 | Shovel | Uncommon | Heavy, Pole | smash | 150 | 15 | 2 | 3 | -10 | 10 | 18 | -5 | 5 | -10 | 10 | 5 |
-| Sledgehammer | Uncommon | Heavy | smash | 180 | 31 | 1 | 5 | -30 | 30 | -20 | -20 | -20 | -40 | 10 | 10 |
+| Sledgehammer | Uncommon | Heavy | smash | 180 | 33 | 1 | 5 | -30 | 30 | -20 | -20 | -20 | -40 | 10 | 10 |
 | Darts | Uncommon | Thrown, Light | throw | 45 | 3 | - | 5 | 0 | 0 | -5 | 12 | 0 | 30 | 0 | 5 |
 | Bike Chain | Rare | Pole | swing | 140 | 10 | 4 | 5 | 30 | -10 | -15 | 20 | -5 | 30 | 25 | 0 |
 | Monkey Wrench | Rare | Heavy | swing | 130 | 12 | 1 | 4 | 0 | 10 | 10 | 0 | 0 | 0 | 60 | 5 |
@@ -190,6 +199,35 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Bricks | Epic | Thrown, Heavy | throw | 100 | 13 | - | 4 | -10 | 0 | -10 | 0 | 0 | 0 | 20 | 15 |
 | Rubber Chicken | Mythic | Light | swing | 90 | 5 | 1 | 3 | 35 | 100 | -20 | 0 | 60 | 70 | 0 | 0 |
 | Lawn Flamingo | Mythic | Pole | thrust | 120 | 13 | 4 | 3 | 20 | 0 | 0 | 30 | 30 | 20 | 30 | 35 |
+| Frying Pan | Common | - | swing | 105 | 11 | 1 | 5 | 0 | 0 | 22 | 0 | 28 | -5 | 5 | 5 |
+| Tyre Iron | Common | - | swing | 100 | 11 | 1 | 5 | 5 | 15 | 5 | 0 | 0 | 5 | 10 | 15 |
+| Golf Club | Uncommon | - | swing | 125 | 14 | 2 | 4 | 5 | 0 | 0 | 0 | 5 | 0 | 5 | 30 |
+| Hockey Stick | Uncommon | Pole | swing | 115 | 11 | 2 | 4 | 10 | 0 | 10 | 5 | 10 | 15 | 30 | 5 |
+| Folding Chair | Uncommon | Heavy | smash | 160 | 20 | 1 | 4 | -15 | 15 | 20 | -10 | 0 | -15 | 15 | 5 |
+| Cricket Bat | Rare | Heavy | swing | 140 | 19 | 2 | 4 | 5 | 10 | 15 | 0 | 20 | 0 | 10 | 15 |
+| Wok | Rare | Heavy | swing | 135 | 16 | 1 | 4 | 0 | 10 | 30 | 0 | 20 | -10 | 10 | 10 |
+| Plunger | Mythic | Light | thrust | 90 | 7 | 2 | 3 | 40 | 40 | 0 | 10 | 20 | 30 | 70 | 10 |
+| Plastic Bottle | Common | Thrown, Light | throw | 70 | 7 | - | 5 | 5 | 0 | 0 | 10 | 0 | 25 | 0 | 5 |
+| Rubber Ball | Common | Thrown, Light | throw | 75 | 7 | - | 5 | 10 | 30 | 0 | 5 | 0 | 25 | 0 | 5 |
+| Paint Can | Uncommon | Thrown, Heavy | throw | 95 | 15 | - | 4 | -5 | 0 | -5 | 0 | 0 | 0 | 15 | 15 |
+| Traffic Cone | Uncommon | Thrown | throw | 95 | 12 | - | 4 | 15 | 0 | 0 | 5 | 0 | 10 | 5 | 10 |
+| Hubcap | Rare | Thrown | throw | 90 | 14 | - | 4 | 10 | 25 | -5 | 5 | 0 | 15 | 5 | 20 |
+| Tyre | Epic | Thrown, Heavy | throw | 120 | 25 | - | 4 | 0 | 40 | -10 | -5 | 0 | 0 | 25 | 10 |
+
+Roles of the content v2 weapons (our own, from our sim): Frying Pan the common parry tool (the Bin Lid's old place), Tyre Iron a quick club with Pierce, Golf Club the long crit swing, Hockey Stick the hooking stick (Disarm at Reach 2), Folding Chair a blocking smash, Cricket Bat the heavy hitter with an answer, Wok the highest Block of any weapon, Plunger the Mythic joke disarmer. Thrown: Plastic Bottle and Rubber Ball the cheap lobs (the ball's bounce gives Pierce), Paint Can and Tyre the heavy throws, Traffic Cone the aimed one, Hubcap the spinning disc that crits most.
+
+## 6b. Shields (content v2)
+
+A shield is carried on the back arm while the front hand keeps its weapon. At most one per scrapper. While it is on: Block, Armor and Riposte add to the scrapper's values, `thrownBlock` adds to Block against a throw only (after the halving), `damage` adds to the damage multiplier, `tempo` adds to the turn time. A block made while a shield is on writes the shield's id as a proc, and the stage raises it. It comes off by the roll in 5d or by a Body Slam, lands on the floor, and every number it gave ends.
+
+| Shield | Rarity | Block | Block vs throws | Armor | Riposte | Own damage | Turn time | Knock | Role |
+|---|---|---|---|---|---|---|---|---|---|
+| Car Door | Uncommon | +32 | 0 | 0 | 0 | -20% | 0 | 33 | the first shield: big block, hits softer |
+| Bin Lid | Common | +16 | 0 | 0 | +15 | -5% | 0 | 45 | light and cheap, a little riposte |
+| Wooden Pallet | Uncommon | +30 | 0 | +6 | 0 | 0 | +15% | 25 | a wall: block and armor, slow |
+| Ironing Board | Rare | +14 | +30 | 0 | 0 | -10% | 0 | 40 | long: the best cover against a throw |
+| Skateboard | Rare | +10 | 0 | 0 | +30 | 0 | 0 | 50 | small block, then the answer |
+| Riot Shield | Epic | +38 | +10 | +5 | 0 | -15% | +10% | 30 | the biggest cover |
 
 ## 7. Skills
 
@@ -199,7 +237,7 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 |---|---|---|---|
 | Big Heart | booster | Common | +3 Health points, Health multiplier +40 |
 | Heavy Hands | booster | Common | +3 Strength points, Strength multiplier +40 |
-| Light Feet | booster | Common | +3 Agility points, Agility multiplier +40 |
+| Light Feet | booster | Common | +3 Agility points, Agility multiplier +35 |
 | Fast Twitch | booster | Common | +3 Speed points, Speed multiplier +40 |
 | Glass Cannon | booster | Epic | Strength multiplier +100, Health multiplier -30 |
 | Mountain | booster | Mythic | Health multiplier +150, Agility and Speed multipliers -20 each, start clock +150 |
@@ -209,7 +247,6 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Bare Knuckle | passive | Uncommon | damage with fists +100%, Combo +10 while unarmed |
 | Payback | passive | Uncommon | Riposte +25 |
 | Flurry | passive | Uncommon | Combo +20 |
-| Car Door | passive | Uncommon | carries a door: Block +35 and own damage -20% while it holds; it can be knocked off |
 | Firm Grip | passive | Uncommon | 60% to resist a disarm or a Snatch; swap chance 15% instead of 30% |
 | Head Start | passive | Uncommon | start clock -150 |
 | Sharp Eye | passive | Uncommon | Aim +16, Pierce +16 |
@@ -221,6 +258,10 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Last Stand | passive | Rare | once a bout, a hit or a Move that would leave 0 HP leaves 1 |
 | Stubborn | passive | Rare | after an evaded or blocked swing, 50% to swing again at once, once a turn |
 | Slippery | passive | Epic | Evade +25 |
+| Quick Swap | passive | Common | the empty-hand draw is `S / (S + 2)` instead of `S / (S + 6)` |
+| Pet Lover | passive | Uncommon | own companions: HP +30%, damage +25% |
+| Junk Collector | passive | Uncommon | a weapon it throws away goes back into the bag 60% of the time (Pitcher: always) |
+| Trick Shot | passive | Rare | a Thrown weapon that lands bounces on to a random standing enemy 35% of the time, once a turn |
 
 | Move | Rarity | Weight | Uses | Only when | Time | Effect |
 |---|---|---|---|---|---|---|
@@ -231,18 +272,24 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Firecrackers | Rare | 3 | 2 | always | 50% of a turn | `roll(12..20)` to the enemy scrapper, 40% of max HP to each enemy companion; no evade, block or Armor |
 | Snatch | Rare | 8 | 2 | own hands empty, the enemy scrapper holds a weapon | 0 | takes that weapon into the hand |
 | Air Horn | Rare | 8 | 1 | an enemy companion is standing | 20 | each enemy companion has 50% to run off; the enemy scrapper's clock +40 |
-| Body Slam | Epic | 3 | 1 | own hands empty | one turn + 100 | `floor((16 + 3 x Strength) x roll(85..115) / 100)` to a random enemy, Armor applies; no evade, block or intercept; knocks off its weapon (Firm Grip can hold on) and its door |
+| Body Slam | Epic | 3 | 1 | own hands empty | one turn + 100 | `floor((16 + 3 x Strength) x roll(85..115) / 100)` to a random enemy, Armor applies; no evade, block or intercept; knocks off its weapon (Firm Grip can hold on) and its shield |
+| Sand in the Eyes | Uncommon | 4 | 1 | the enemy scrapper stands and has no sand yet | 30% of a turn | the enemy scrapper's Aim -25 for the rest of the bout |
+| Taunt | Uncommon | 4 | 1 | no Taunt is on | 0 | Riposte +40 until the start of its next own turn |
+| Second Wind | Rare | 6 | 1 | own HP below 40% | 0 | heals 15% of max HP |
+| Grapple | Rare | 4 | 1 | own hands empty, the enemy scrapper stands and is not snared | one turn | `floor((8 + 2 x Strength) x roll(85..115) / 100)` to the enemy scrapper, Armor applies, no evade, block or intercept; then it is snared for 1 skipped turn (no tarp) |
 
 "20% of a turn" and "50% of a turn" are shares of the user's turn cost without its random part.
 
 ### Skill tags on stage
 
-A step can name a skill that decided it (`procs`), rarest skill first. Rule skills always write their tag: Last Stand on the hit it survives, Parry on the riposte it made possible, Stubborn on its extra swing, Firm Grip on the disarm or Snatch it resisted, Car Door on a block made while the door holds, Head Start on its owner's first action. Chance skills write their tag only when the roll passed because of their bonus (the same roll compared with the chance with and without it, no extra random number): Anticipation on an intercept, Payback on a riposte, Flurry on a combo swing, Slippery on an evade, Knock Loose on a disarm, Sharp Eye on a hit that would have been evaded or blocked without it.
+A step can name a skill that decided it (`procs`), rarest skill first. Rule skills always write their tag: Last Stand on the hit it survives, Parry on the riposte it made possible, Stubborn on its extra swing, Firm Grip on the disarm or Snatch it resisted, a shield (its own id) on a block made while it is carried, Trick Shot on its bounce throw, Junk Collector on a throw whose weapon it brings back, Head Start on its owner's first action. Chance skills write their tag only when the roll passed because of their bonus (the same roll compared with the chance with and without it, no extra random number): Anticipation on an intercept, Payback on a riposte, Flurry on a combo swing, Slippery on an evade, Knock Loose on a disarm, Sharp Eye on a hit that would have been evaded or blocked without it, Taunt on a riposte while its bonus is on.
 
 ## 8. Choices the sim makes where the brief was silent
 
 - A Haymaker cannot fire while its boost is still waiting: a second one would add nothing.
-- After a hit that knocks the target out, no disarm or door roll is made.
+- After a hit that knocks the target out, no disarm or shield roll is made.
+- A melee weapon is thrown only after its first swing, so a fresh draw is always seen in use before it flies (content v2).
+- Junk Collector and Trick Shot roll on the `throw` stream; the Grapple's damage on the `damage` stream.
 - When Firecrackers knock out companions and the scrapper together, the companions fall first, so every fallen actor gets its knockout before the bout ends.
 - Firecrackers rolls its damage once for the enemy scrapper.
 - A Whistle sets the companion's clock to its owner's clock before the owner pays the Move's time, and the companion wins a tie.
@@ -291,3 +338,19 @@ The brief's numbers already passed both tests in this sim (report `balance-full-
 | Sharp Eye | Pierce | 20 | 16 | same |
 
 Rows moved by the sim's balance pass: 23 of the 28 weapon rows, and 1 skill row. Rows not moved: Fists, Pocket Knife, Hand Axe, Pitchfork, Screwdrivers, Garden Shears (five of these were moved by the design review). The report after the pass is the gate's evidence; its numbers are in the work package handoff.
+
+### Content v2 balance pass (owner amendment 13.8)
+
+Content v2 added 14 weapons, 8 skills, 3 pets and 6 shields, and made throw-and-replace common (a melee weapon that has swung is thrown 20% of the time while a replacement waits in the bag, and the replacement is drawn for sure on the next turn). The new rows were tuned from our own sim results and their roles. The first run left level-30 bouts at a median of 22 turns (target 12 to 20): new pets, more Moves and fast, weak throws all add turns. Slower, harder-hitting new Thrown weapons, lighter shields, lower new-Move weights and a rule that a fresh weapon swings once before it can be thrown brought it to 18. Two full runs of `pnpm balance`: the first failed on Sledgehammer (46.7% with-and-without at level 30) and Light Feet (62.3% ownership at level 30); the second, after the changes below, passed with no limit broken (level 10 median 12 turns, level 30 median 18, overtime 0.1%).
+
+Changes to numbers that existed before content v2 (each 30% or less of the brief's number):
+
+| Row | Number | Was | Now | Why |
+|---|---|---|---|---|
+| Pipe | Dmg | 11 | 12 | melee weapons lose value now that they get thrown away (47.0% at level 30) |
+| Pitchfork | Dmg | 13 | 14 | same (47.7%) |
+| Crowbar | Dmg | 15 | 16 | same (47.9%) |
+| Sledgehammer | Dmg | 31 | 33 | same (46.7%, below the line) |
+| Light Feet | Agility multiplier | 40 | 35 | Agility now feeds many more throws (62.3% ownership at level 30) |
+| Car Door | Block | 35 | 32 | now a shield beside a held weapon, and bouts ran long |
+| Category roll | weapon / skill / shield / companion | 46 / 50 / - / 4 | 44 / 46 / 6 / 4 | room for the shield category |

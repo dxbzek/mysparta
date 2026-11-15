@@ -3,8 +3,8 @@
  * from its record; a bout reads only a snapshot.
  */
 import type { FighterSnapshot, ScrapperRecord, ScrapperSheet, SnapshotSheet } from "../contracts/fighter";
-import type { PerkId } from "../contracts/ids";
-import { PERK_IDS, perkKind } from "../contracts/ids";
+import type { PerkId, ShieldId } from "../contracts/ids";
+import { PERK_IDS, isShieldId, perkKind } from "../contracts/ids";
 import { combatValues } from "../sim/combatant";
 import { rollLook } from "./create";
 import { walk } from "./route";
@@ -18,7 +18,7 @@ export function snapshotSheet(s: FighterSnapshot): SnapshotSheet {
   return {
     maxHp: maxHpOf(effective.health, s.level, cost),
     effective,
-    derived: combatValues(skills, "fists", skills.has("car-door")),
+    derived: combatValues(skills, "fists", s.perks.find((p): p is ShieldId => isShieldId(p)) ?? null),
     companionCostPct: cost,
   };
 }

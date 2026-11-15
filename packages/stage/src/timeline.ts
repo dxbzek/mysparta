@@ -11,7 +11,7 @@
  *  - The moment of contact is one value; every contact effect is scheduled from it (effects.ts).
  *  - One actor at a time: the next actor starts when the last one's dash back is 60% done.
  */
-import type { ActorId, BagItem, BoutLog, FighterSnapshot, HeldId, Side, Step } from "@rankzero/core";
+import type { ActorId, BagItem, BoutLog, FighterSnapshot, HeldId, ShieldId, Side, Step } from "@rankzero/core";
 import { WEAPON_META, isScrapper, killStep as findKillStep, sideOf } from "@rankzero/core";
 import type { Aim, ClipInfo, Dress, Pose, Rig, RigId } from "@rankzero/rig";
 import { strikeTime } from "@rankzero/rig";
@@ -78,9 +78,9 @@ export class Builder {
   readonly hpNow = new Map<ActorId, number>();
   readonly status = new Map<ActorId, "up" | "ko" | "fled">();
   readonly heldNow = new Map<ActorId, HeldId>();
-  readonly doorNow = new Map<ActorId, boolean>();
+  readonly shieldNow = new Map<ActorId, ShieldId | null>();
   readonly bagNow: Record<Side, BagItem[]>;
-  /** What the last swing or Move hit, for the steps that follow from it (disarm, doorOff, free, ko). */
+  /** What the last swing or Move hit, for the steps that follow from it (disarm, shieldOff, free, ko). */
   cause: { step: number; at: number; actor: ActorId; hitStop: number } | null = null;
   readonly lastHitAt = new Map<ActorId, number>();
   readonly snared = new Map<ActorId, { seg: Seg; cover: FxItem }>();
@@ -114,7 +114,7 @@ export class Builder {
         ...(isScrapper(a.id) ? { look: snaps[side].look } : {}),
         scale: 1, home, homeFacing: homeFacing(side),
         phase: (n * IDLE.phaseStepMs + ((opts.cosmeticSeed >>> 0) % 997)) % 1200,
-        segs: [], moves: [], facings: [], helds: [], doors: [], initialDoor: a.kind === "scrapper" ? log.init.door[side] : false,
+        segs: [], moves: [], facings: [], helds: [], shields: [], initialShield: a.kind === "scrapper" ? log.init.shield[side] : null,
         start: { x: home.x, y: home.y }, showFrom: Infinity, goneAt: Infinity,
       };
       this.actors.push(tr);
@@ -123,7 +123,7 @@ export class Builder {
       this.hpNow.set(a.id, a.maxHp);
       this.status.set(a.id, "up");
       this.heldNow.set(a.id, "fists");
-      this.doorNow.set(a.id, a.kind === "scrapper" ? log.init.door[side] : false);
+      this.shieldNow.set(a.id, a.kind === "scrapper" ? log.init.shield[side] : null);
     });
   }
 
@@ -178,7 +178,7 @@ export class Builder {
   }
   face(id: ActorId, from: number, facing: 1 | -1): void { insertSorted(this.track(id).facings, { from, facing }); }
   setHeld(id: ActorId, from: number, held: HeldId): void { insertSorted(this.track(id).helds, { from, held }); }
-  setDoor(id: ActorId, from: number, door: boolean): void { insertSorted(this.track(id).doors, { from, door }); }
+  setShield(id: ActorId, from: number, shield: ShieldId | null): void { insertSorted(this.track(id).shields, { from, shield }); }
   nudge(n: Nudge): void {
     this.nudges.push(n);
     this.nudgesOf.get(n.actor)?.push(n);
@@ -209,11 +209,11 @@ export class Builder {
     return this.rig.handAnchor(this.poseAt(id, t), d, { x: p.x, y: p.y, facing: p.facing });
   }
 
-  /** How an actor is dressed for aiming and hit points: its look, what it holds, its door. */
+  /** How an actor is dressed for aiming and hit points: its look, what it holds, its shield. */
   dress(id: ActorId, held?: HeldId | null, lead?: "F" | "B"): Dress {
     const tr = this.track(id);
     const h: HeldId | null = tr.rig === "scrapper" ? (held === undefined ? this.heldNow.get(id) ?? "fists" : held) : null;
-    const d: Dress = { held: h, door: this.doorNow.get(id) ?? false, scale: tr.scale };
+    const d: Dress = { held: h, shield: this.shieldNow.get(id) ?? null, scale: tr.scale };
     if (tr.look !== undefined) d.look = tr.look;
     if (lead !== undefined) d.lead = lead;
     return d;
@@ -401,7 +401,7 @@ function carriesOn(step: Step): boolean {
       return step.n > 0;
     case "riposte":
     case "disarm":
-    case "doorOff":
+    case "shieldOff":
     case "ko":
       return true;
     case "free":

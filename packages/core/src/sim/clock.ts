@@ -5,6 +5,7 @@
 import { hasTag, weaponNumbers } from "../content/weapons";
 import { COMPANION_FIXED } from "../content/companions";
 import { sk } from "../content/skills";
+import { shieldNumbers } from "../content/shields";
 import type { HeldId } from "../contracts/ids";
 import type { Actor } from "./combatant";
 import type { Stream } from "./rng";
@@ -16,14 +17,16 @@ export function bodyTempo(speed: number): number {
   return 40 + Math.floor(1200 / (10 + s));
 }
 
-/** The weapon Tempo an actor pays for a turn made with `used`. Heavy Lifter cuts Heavy turns by 30%. */
+/** The weapon Tempo an actor pays for a turn made with `used`. Heavy Lifter cuts Heavy turns by
+ *  30%; a heavy shield adds its `tempo` percent after that. */
 export function weaponTempo(a: Actor, used: HeldId): number {
   if (!a.scrapper) return COMPANION_FIXED.tempo;
-  const t = weaponNumbers(used).tempo;
+  let t = weaponNumbers(used).tempo;
   if (used !== "fists" && hasTag(used, "heavy") && a.skills.has("heavy-lifter")) {
-    return Math.floor((t * (100 + sk("heavy-lifter", "heavyTime"))) / 100);
+    t = Math.floor((t * (100 + sk("heavy-lifter", "heavyTime"))) / 100);
   }
-  return t;
+  const extra = shieldNumbers(a.shield).tempo;
+  return extra === 0 ? t : Math.floor((t * (100 + extra)) / 100);
 }
 
 /** One normal turn of time without its random part: floor(weaponTempo x bodyTempo / 100). */

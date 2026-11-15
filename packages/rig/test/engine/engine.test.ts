@@ -16,7 +16,7 @@ import { recorder } from "../gate/helpers";
 
 const rig = createRig(gatePack, probePack as ContentPack);
 const ins = inspectOf(rig);
-const bird = { held: null, door: false, scale: 1 };
+const bird = { held: null, shield: null, scale: 1 };
 const times = (d: number): number[] => Array.from({ length: Math.round((d * 60) / 1000) + 1 }, (_, i) => (i * 1000) / 60);
 
 describe("a 6-bone rig that is not a scrapper", () => {

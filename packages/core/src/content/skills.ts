@@ -17,7 +17,7 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   // Boosters: change the stats for good when picked. Points are added, multipliers are whole percent.
   "big-heart": def("big-heart", "booster", { health: 3, healthMult: 40 }),
   "heavy-hands": def("heavy-hands", "booster", { strength: 3, strengthMult: 40 }),
-  "light-feet": def("light-feet", "booster", { agility: 3, agilityMult: 40 }),
+  "light-feet": def("light-feet", "booster", { agility: 3, agilityMult: 35 }),
   "fast-twitch": def("fast-twitch", "booster", { speed: 3, speedMult: 40 }),
   "glass-cannon": def("glass-cannon", "booster", { strengthMult: 100, healthMult: -30 }),
   "mountain": def("mountain", "booster", { healthMult: 150, agilityMult: -20, speedMult: -20, startClock: 150 }),
@@ -29,7 +29,6 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "bare-knuckle": def("bare-knuckle", "passive", { fistDamage: 100, unarmedCombo: 10 }),
   "payback": def("payback", "passive", { riposte: 25 }),
   "flurry": def("flurry", "passive", { combo: 20 }),
-  "car-door": def("car-door", "passive", { block: 35, damage: -20 }),
   "firm-grip": def("firm-grip", "passive", { resist: 60, swapChance: 15 }),
   "head-start": def("head-start", "passive", { startClock: -150 }),
   "sharp-eye": def("sharp-eye", "passive", { aim: 16, pierce: 16 }),
@@ -41,6 +40,11 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "last-stand": def("last-stand", "passive", { saves: 1 }),
   "stubborn": def("stubborn", "passive", { chance: 50 }),
   "slippery": def("slippery", "passive", { evade: 25 }),
+  // content v2 passives
+  "quick-swap": def("quick-swap", "passive", { drawSlack: 2 }),
+  "pet-lover": def("pet-lover", "passive", { petHp: 30, petDamage: 25 }),
+  "junk-collector": def("junk-collector", "passive", { returnChance: 60 }),
+  "trick-shot": def("trick-shot", "passive", { ricochet: 35 }),
 
   // Moves: fire by weighted chance at the start of a turn, limited uses per bout.
   // `cost` is in beats; `costPct` is a share of one normal turn of that scrapper.
@@ -52,6 +56,11 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "snatch": def("snatch", "move", { cost: 0 }, { weight: 8, uses: 2 }),
   "air-horn": def("air-horn", "move", { fleeChance: 50, clockPush: 40, cost: 20 }, { weight: 8, uses: 1 }),
   "body-slam": def("body-slam", "move", { base: 16, perStrength: 3, extraCost: 100 }, { weight: 3, uses: 1 }),
+  // content v2 Moves
+  "sand-in-the-eyes": def("sand-in-the-eyes", "move", { aimLoss: 25, costPct: 30 }, { weight: 4, uses: 1 }),
+  "taunt": def("taunt", "move", { riposte: 40, cost: 0 }, { weight: 4, uses: 1 }),
+  "second-wind": def("second-wind", "move", { healPct: 15, belowHpPct: 40, cost: 0 }, { weight: 6, uses: 1 }),
+  "grapple": def("grapple", "move", { base: 8, perStrength: 2, holds: 1 }, { weight: 4, uses: 1 }),
 };
 
 /** A named number of a skill. A missing name is a programming error in this package; it gives 0. */

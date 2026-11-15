@@ -1,16 +1,17 @@
 /** Shared by the handlers that put an item on the floor: a dropped, knocked-off or thrown-away
- *  weapon or door flies to a spot behind its owner and lies there flat. */
+ *  weapon or shield flies to a spot behind its owner and lies there flat. */
 import type { ActorId, PropId } from "@rankzero/core";
+import { isShieldId } from "@rankzero/core";
 import type { FlightPath } from "../flight";
 import { makePath } from "../flight";
 import type { Builder } from "../timeline";
 import { FLOOR, OUTCOME } from "../tuning";
 
 /** Turns a path's start angle so the item ends lying flat: a weapon along the floor (a multiple
- *  of 180 degrees), a door on its side, handle up (-90, a whole turn either way). */
+ *  of 180 degrees), a shield on its side, handle up (-90, a whole turn either way). */
 export function settleFlat(p: FlightPath, item: PropId): FlightPath {
   const end = p.rot0 + p.spin * p.ms;
-  const flat = item === "car-door" ? Math.round((end + 90) / 360) * 360 - 90 : Math.round(end / 180) * 180;
+  const flat = isShieldId(item) ? Math.round((end + 90) / 360) * 360 - 90 : Math.round(end / 180) * 180;
   return { ...p, rot0: p.rot0 + (flat - end) };
 }
 
@@ -26,8 +27,8 @@ export function floorSpot(b: Builder, owner: ActorId, at: number, back: number):
 
 /**
  * An item leaves the owner and lands on the floor. "drop": falls from the hand with one small
- * bounce (a swap). "pop": goes up in an arc (a disarm, a door knocked off).
- * `from` overrides where it starts (a door starts at the back arm).
+ * bounce (a swap). "pop": goes up in an arc (a disarm, a shield knocked off).
+ * `from` overrides where it starts (a shield starts at the back arm).
  */
 export function dropOnFloor(b: Builder, step: number, owner: ActorId, item: PropId, at: number, ms: number,
   kind: "drop" | "pop", from?: { x: number; y: number; rot: number }): number {

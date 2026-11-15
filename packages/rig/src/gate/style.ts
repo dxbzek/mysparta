@@ -75,6 +75,9 @@ export const COMPANION_COLOURS = {
   raccoon: { body: "#8A8478", dark: "#3A3530", light: "#D8C8A8" },
   goose: { body: "#E8D2AE", dark: "#5A4A3A", light: "#F2C070" },
   boar: { body: "#8A5A3A", dark: "#3A2418", light: "#C89A6A" },
+  "stray-dog": { body: "#9A7A52", dark: "#3A2A1A", light: "#D8B888" },   // content v2 stand-ins
+  crow: { body: "#2A2A30", dark: "#101014", light: "#6A6A78" },
+  "alley-cat": { body: "#C8823A", dark: "#4A2A10", light: "#F0C080" },
 } as const;
 
 /** Effects. */

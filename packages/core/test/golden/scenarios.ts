@@ -4,7 +4,7 @@
  */
 import type { FighterSnapshot } from "../../src/contracts/fighter";
 import type { PerkId } from "../../src/contracts/ids";
-import { COMPANION_IDS, MOVE_IDS, REALM_SALT, WEAPON_IDS, isCompanionId, perkKind } from "../../src/contracts/ids";
+import { COMPANION_IDS, MOVE_IDS, REALM_SALT, SHIELD_IDS, WEAPON_IDS, isCompanionId, isShieldId, perkKind } from "../../src/contracts/ids";
 import { combineSeed } from "../../src/prng";
 import { rivalSnapshot } from "../../src/progress/rivals";
 
@@ -30,11 +30,13 @@ function pair(sc: Scenario, i: number): [FighterSnapshot, FighterSnapshot] {
     case "l30-mixed":
       return [r(30, 2 * i), r(30, 2 * i + 1)];
     case "companions":
-      return [strip(r(10, 2 * i), isCompanionId, [COMPANION_IDS[i % 3]!], ":c"), strip(r(10, 2 * i + 1), isCompanionId, ["raccoon"], ":c")];
+      // content v2: all six pets in turn, and side a carries each of the six shields in turn
+      return [strip(r(10, 2 * i), (p) => isCompanionId(p) || isShieldId(p), [COMPANION_IDS[i % COMPANION_IDS.length]!, SHIELD_IDS[i % SHIELD_IDS.length]!], ":c"),
+        strip(r(10, 2 * i + 1), isCompanionId, ["raccoon"], ":c")];
     case "moves": {
-      const m1 = MOVE_IDS[i % 8]!;
-      const m2 = MOVE_IDS[(i + 3) % 8]!;
-      const m3 = MOVE_IDS[(i + 5) % 8]!;
+      const m1 = MOVE_IDS[i % MOVE_IDS.length]!;
+      const m2 = MOVE_IDS[(i + 3) % MOVE_IDS.length]!;
+      const m3 = MOVE_IDS[(i + 5) % MOVE_IDS.length]!;
       const isMove = (p: PerkId): boolean => (MOVE_IDS as readonly string[]).includes(p);
       const a = strip(r(10, 2 * i), (p) => isMove(p) || isCompanionId(p), [m1, m2, "raccoon"], ":m");
       const b = strip(r(10, 2 * i + 1), (p) => isMove(p) || isCompanionId(p), [m3, "raccoon"], ":m");

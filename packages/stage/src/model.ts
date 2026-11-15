@@ -3,7 +3,7 @@
  * times. `frame.ts` reads it at any `t` (a pure function) and `draw.ts` paints a frame.
  * Nothing in here is mutated after `buildTimeline` returns.
  */
-import type { ActorId, BagItem, CompanionId, HeldId, Look, PropId, Side } from "@rankzero/core";
+import type { ActorId, BagItem, CompanionId, HeldId, Look, PropId, ShieldId, Side } from "@rankzero/core";
 import type { Aim, FxKind, MoveProp, RigId } from "@rankzero/rig";
 import type { Cue, EffectKey, Timeline } from "./contracts";
 import type { FlightPath } from "./flight";
@@ -32,16 +32,16 @@ export interface Nudge { actor: ActorId; key: "knockback" | "slide" | "recoil" |
 
 export interface FacingChange { from: number; facing: 1 | -1 }
 export interface HeldChange { from: number; held: HeldId }
-export interface DoorChange { from: number; door: boolean }
+export interface ShieldChange { from: number; shield: ShieldId | null }
 
 export interface ActorTrack {
   id: ActorId; side: Side; rig: RigId; kind: "scrapper" | CompanionId; maxHp: number;
   look?: Look; scale: number; home: { x: number; y: number }; homeFacing: 1 | -1;
   /** Idle loop phase, so no two actors breathe together. */
   phase: number;
-  segs: Seg[]; moves: Move[]; facings: FacingChange[]; helds: HeldChange[]; doors: DoorChange[];
-  /** A scrapper that starts the bout carrying a Car Door. */
-  initialDoor: boolean;
+  segs: Seg[]; moves: Move[]; facings: FacingChange[]; helds: HeldChange[]; shields: ShieldChange[];
+  /** The shield a scrapper starts the bout with, or null. */
+  initialShield: ShieldId | null;
   start: { x: number; y: number };
   /** Drawn from this time. */
   showFrom: number;

@@ -109,7 +109,7 @@ export function createGameActions(deps: ActionDeps): AppActions {
         let boutId = newId(at);
         for (let i = 0; taken.has(boutId); i++) boutId = newId(at + i + 1);
         const bout: BoutRecord = {
-          id: boutId, at, seed, rulesVersion: 1, logVersion: 1, snapshotA: me, snapshotB: opponent,
+          id: boutId, at, seed, rulesVersion: 1, logVersion: 2, snapshotA: me, snapshotB: opponent,
           result: log.result, role: "attacker", fighterId: rec.id, xp, lineId: lineIdFor(seed), watched: false,
           before: { xp: rec.xp, boutsUsed: usedToday(rec, today) }, log,
         };

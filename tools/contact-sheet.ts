@@ -61,8 +61,8 @@ export function heldFor(clip: string, given?: string): HeldId | null {
   return clip === "punch" ? "fists" : clip === "flick" ? "pocket-knife" : "pipe";
 }
 export function dressOf(rigId: RigId, clip: string, look: number, held?: string): Dress {
-  if (rigId !== "scrapper") return { held: null, door: false, scale: 1 };
-  return { look: LOOKS[look % 2]!, held: heldFor(clip, held), door: false, scale: 1 };
+  if (rigId !== "scrapper") return { held: null, shield: null, scale: 1 };
+  return { look: LOOKS[look % 2]!, held: heldFor(clip, held), shield: null, scale: 1 };
 }
 export function clipsOf(rigId: RigId, which: string, pack = "gate"): string[] {
   if (which !== "all") return [which];
@@ -112,7 +112,7 @@ async function sheetA1(rig: Rig, out: string): Promise<string> {
   const env: DrawEnv = { ctx: c, path: (d) => { let p = cache.get(d); if (!p) { p = new Path2D(d); cache.set(d, p); } return p; } };
   const text = (t: string, x: number, y: number, size = 15): void => { c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.font = `bold ${size}px sans-serif`; c.fillStyle = "#F2E2C4"; c.fillText(t, x, y); c.restore(); };
   const idle = (held: HeldId | null, look: Look, scale = 1): { pose: Pose; dress: Dress } =>
-    ({ pose: rig.samplePose("scrapper", "idle", 0), dress: { look, held, door: false, scale } });
+    ({ pose: rig.samplePose("scrapper", "idle", 0), dress: { look, held, shield: null, scale } });
   text("A1  style 13 - gritty comic, sodium streetlight. Both looks x 3 builds (lean, stocky, tall).", 20, 30, 18);
   // row 1: 91 px
   const row = (y: number, pxPerUnit: number, title: string, gap: number): void => {
@@ -148,7 +148,7 @@ async function sheetA1(rig: Rig, out: string): Promise<string> {
     const t = rig.clipInfo("scrapper", clip).events.find((e) => e.name === "contact")!.t;
     c.save();
     c.setTransform(2.6, 0, 0, 2.6, 0, 0);
-    drawCell(rig, env, rig.samplePose("scrapper", clip, t), { look: LOOKS[li]!, held, door: false, scale: 1 }, { x: (680 + i * 290) / 2.6 + 18, y: 820 / 2.6, facing: 1 });
+    drawCell(rig, env, rig.samplePose("scrapper", clip, t), { look: LOOKS[li]!, held, shield: null, scale: 1 }, { x: (680 + i * 290) / 2.6 + 18, y: 820 / 2.6, facing: 1 });
     c.restore();
   });
   let ix = 700;
@@ -169,8 +169,8 @@ async function sheetA1(rig: Rig, out: string): Promise<string> {
     c.beginPath(); c.rect(0, 0, 360, 240); c.clip();
     rig.drawStage(env, "yard", "back", 0);
     rig.drawStage(env, "yard", "floor", 0);
-    rig.drawActor(env, rig.samplePose("scrapper", "idle", 0), { look: LOOKS[0]!, held: "pipe", door: false, scale: 1 }, { x: 70, y: 195, facing: 1 });
-    rig.drawActor(env, rig.samplePose("scrapper", "idle", 430), { look: LOOKS[1]!, held: "pocket-knife", door: false, scale: 1 }, { x: 290, y: 195, facing: -1 });
+    rig.drawActor(env, rig.samplePose("scrapper", "idle", 0), { look: LOOKS[0]!, held: "pipe", shield: null, scale: 1 }, { x: 70, y: 195, facing: 1 });
+    rig.drawActor(env, rig.samplePose("scrapper", "idle", 430), { look: LOOKS[1]!, held: "pocket-knife", shield: null, scale: 1 }, { x: 290, y: 195, facing: -1 });
     c.restore();
     if (k === 2) break;
   }
@@ -346,8 +346,8 @@ function sheetUse(rig: Rig, out: string): string {
   const cellH = 110;
   const s = createSurface(cellW * 3, cellH * 3, PHONE * 2.4, BG);
   uses.forEach(([held, clip, look], r) => {
-    const dress: Dress = { look: LOOKS[look]!, held, door: false, scale: 1 };
-    const target: Dress = { look: LOOKS[1 - look]!, held: null, door: false, scale: 1 };
+    const dress: Dress = { look: LOOKS[look]!, held, shield: null, scale: 1 };
+    const target: Dress = { look: LOOKS[1 - look]!, held: null, shield: null, scale: 1 };
     const info = rig.clipInfo("scrapper", clip);
     const tc = info.events.find((e) => e.name === "contact")!.t;
     const head = rig.hitPoint("scrapper", target, "head");

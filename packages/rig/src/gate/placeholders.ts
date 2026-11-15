@@ -3,16 +3,16 @@
  * "Gate-only rig" rule). Never shipped: the content pack replaces every one of them.
  *  - a weapon outside the gate: a straight bar `placeholderLength(reach)` long, gripped at one
  *    end, its tip at the far end;
- *  - the Car Door: a `DOOR_PLACEHOLDER` panel held at its inner edge;
+ *  - a shield (content v2): a `SHIELD_PLACEHOLDER` slab of its own size held at its inner edge;
  *  - companions: a plain body at the rules' size on a 6-bone rig, with the clip times of
  *    `PLACEHOLDER_COMPANION_CLIPS` (idle, run, attack, hit, ko, flee).
  * They are drawn by the same engine and painter as everything else, so they prove the engine
  * takes a rig that is not a scrapper.
  */
-import type { CompanionId, HeldId } from "@rankzero/core";
+import type { CompanionId, HeldId, ShieldId } from "@rankzero/core";
 import { WEAPON_META } from "@rankzero/core";
 import type { Clip, CompanionClip, Key, RigDef, Shape, WeaponArt } from "../contracts";
-import { DOOR_PLACEHOLDER, PLACEHOLDER_COMPANION_CLIPS, placeholderLength } from "../contracts";
+import { PLACEHOLDER_COMPANION_CLIPS, SHIELD_PLACEHOLDER, placeholderLength } from "../contracts";
 import { GRIP_ROT } from "./skeleton";
 import { dPoly, ellipsePoly, inkLine, limb, roundRect } from "./vocab";
 
@@ -29,16 +29,16 @@ export function placeholderWeapon(id: HeldId): WeaponArt {
   return meta?.pair === true ? { ...art, offhand: true } : art;
 }
 
-/** The stand-in Car Door, held at its inner edge (the grip) on the back forearm. */
-export const DOOR_STAND_IN: WeaponArt = {
-  shapes: [
-    { d: dPoly(roundRect(-4, -26, DOOR_PLACEHOLDER.w, DOOR_PLACEHOLDER.h, 1.5)), slot: "accent", z: 0 },
-    { d: dPoly(roundRect(0, -23, 14, 10, 1)), slot: "white", z: 1 },
-  ],
-  grip: { x: 0, y: 0, rot: 8 },
-  length: DOOR_PLACEHOLDER.w,
-  tip: { x: DOOR_PLACEHOLDER.w - 4, y: -10 },
-};
+/** The stand-in for a shield: a slab of its `SHIELD_PLACEHOLDER` size, held at its inner edge
+ *  (the grip) on the back forearm. The Car Door keeps its window. */
+export function shieldStandIn(id: ShieldId): WeaponArt {
+  const { w, h } = SHIELD_PLACEHOLDER[id];
+  const shapes: WeaponArt["shapes"][number][] = [{ d: dPoly(roundRect(-4, 6 - h, w, h, 1.5)), slot: "accent", z: 0 }];
+  if (id === "car-door") shapes.push({ d: dPoly(roundRect(0, -23, 14, 10, 1)), slot: "white", z: 1 });
+  return { shapes, grip: { x: 0, y: 0, rot: 8 }, length: w, tip: { x: w - 4, y: 6 - h / 2 } };
+}
+/** The Car Door stand-in, as before content v2. */
+export const DOOR_STAND_IN: WeaponArt = shieldStandIn("car-door");
 
 // --------------------------------------------------------------------------- companions
 
@@ -48,13 +48,18 @@ const BEASTS: Record<CompanionId, Beast> = {
   raccoon: { leg: 9.5, rx: 12, ry: 6.5, head: 5.4, neck: 0, tail: 12, snout: 4 },
   goose: { leg: 13, rx: 11, ry: 7.5, head: 4.2, neck: 13, tail: 5, snout: 5 },
   boar: { leg: 16, rx: 31, ry: 14.5, head: 10, neck: 0, tail: 7, snout: 7 },
+  // content v2 pets (stand-ins until the content pack draws them)
+  "stray-dog": { leg: 12, rx: 15, ry: 7.5, head: 6, neck: 0, tail: 11, snout: 5 },
+  crow: { leg: 9, rx: 7, ry: 7, head: 3.5, neck: 5, tail: 8, snout: 4 },
+  "alley-cat": { leg: 10, rx: 12, ry: 5, head: 5, neck: 0, tail: 15, snout: 2 },
 };
+const HEIGHT: Record<CompanionId, number> = { raccoon: 26, goose: 40, boar: 52, "stray-dog": 34, crow: 26, "alley-cat": 26 };
 
 function beastRig(id: CompanionId): RigDef {
   const b = BEASTS[id];
   const bodyY = -(b.leg + b.ry * 0.62);
   return {
-    id, height: id === "raccoon" ? 26 : id === "goose" ? 40 : 52, bones: [
+    id, height: HEIGHT[id], bones: [
       { id: "root", parent: -1, x: 0, y: 0 },
       { id: "body", parent: 0, x: 0, y: bodyY },
       { id: "head", parent: 1, x: b.rx * 0.82, y: -b.ry * 0.35, limit: [-70, 70] },
@@ -123,4 +128,7 @@ export const PLACEHOLDER_COMPANIONS: Record<CompanionId, CompanionArt> = {
   raccoon: { rig: beastRig("raccoon"), shapes: beastShapes("raccoon"), clips: CLIPS },
   goose: { rig: beastRig("goose"), shapes: beastShapes("goose"), clips: CLIPS },
   boar: { rig: beastRig("boar"), shapes: beastShapes("boar"), clips: CLIPS },
+  "stray-dog": { rig: beastRig("stray-dog"), shapes: beastShapes("stray-dog"), clips: CLIPS },
+  crow: { rig: beastRig("crow"), shapes: beastShapes("crow"), clips: CLIPS },
+  "alley-cat": { rig: beastRig("alley-cat"), shapes: beastShapes("alley-cat"), clips: CLIPS },
 };

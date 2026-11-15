@@ -2,7 +2,7 @@
  * Reading one actor's tracks at a time. Used by the timeline while it builds (to know where a
  * target will stand at a future contact) and by the frame (to draw). Pure functions of `t`.
  */
-import type { HeldId } from "@rankzero/core";
+import type { HeldId, ShieldId } from "@rankzero/core";
 import type { ActorTrack, Move, Nudge, Seg } from "./model";
 
 export function eased(kind: "linear" | "in" | "out" | "inOut", u: number): number {
@@ -97,10 +97,11 @@ export function heldAt(tr: ActorTrack, t: number): HeldId {
   return h;
 }
 
-export function doorAt(tr: ActorTrack, t: number, initial: boolean): boolean {
-  let d = initial;
-  for (const c of tr.doors) {
-    if (c.from <= t) d = c.door;
+/** The shield on the back arm at `t`, or null. */
+export function shieldAt(tr: ActorTrack, t: number): ShieldId | null {
+  let d = tr.initialShield;
+  for (const c of tr.shields) {
+    if (c.from <= t) d = c.shield;
     else break;
   }
   return d;

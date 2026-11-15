@@ -33,7 +33,7 @@ export function simulateWith(seed: number, sa: FighterSnapshot, sb: FighterSnaps
   const init = {
     actors: actors.map((x): ActorInit => ({ id: x.id, kind: x.kind, maxHp: x.maxHp })),
     bag: { a: A.bag.map((it) => ({ ...it })), b: B.bag.map((it) => ({ ...it })) },
-    door: { a: A.door, b: B.door },
+    shield: { a: A.shield, b: B.shield },
   };
   for (const x of actors) x.clock = startClock(x, r.clock);
   for (const x of actors) emit(b, { t: "enter", turn: 0, actor: x.id });
@@ -49,7 +49,7 @@ export function simulateWith(seed: number, sa: FighterSnapshot, sb: FighterSnaps
     }
   }
   const steps: Step[] = b.steps;
-  const draft: BoutLog = { logVersion: 1, rulesVersion: 1, seed, init, steps,
+  const draft: BoutLog = { logVersion: 2, rulesVersion: 1, seed, init, steps,
     result: { winner: "b", reason: "cap", turns: 0, hpPct: { a: 0, b: 0 } } };
   const result = resultOf(stateAt(draft, steps.length));
   if (result !== null) draft.result = result;

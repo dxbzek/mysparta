@@ -19,7 +19,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { FighterSnapshot, PerkId } from "../packages/core/src/index";
-import { PERK_IDS, REALM_SALT, RARITY_OF, isCompanionId, makeRng, combineSeed } from "../packages/core/src/index";
+import { PERK_IDS, REALM_SALT, RARITY_OF, isCompanionId, isShieldId, makeRng, combineSeed } from "../packages/core/src/index";
 import { rivalSnapshot } from "../packages/core/src/progress/rivals";
 import { simulateFight } from "../packages/core/src/sim/simulate";
 import { applyPerkToStats, draftOf, freeze } from "../packages/core/src/progress/stats";
@@ -45,14 +45,17 @@ const OWN_MIN = 40;
 const OWN_MIN_BOUTS = 1000;
 const WW_MIN = 47;
 
-/** Whether `perk` can be added to a kit: not owned (Raccoon up to two), companion limits, Whistle needs a companion. */
+/** Whether `perk` can be added to a kit: not owned (Raccoon up to two), companion limits and three pets at most,
+ *  one shield at most, Whistle needs a companion. */
 function canAdd(s: FighterSnapshot, perk: PerkId): boolean {
   if (isCompanionId(perk)) {
     const def = COMPANIONS[perk];
     if (s.perks.filter((p) => p === perk).length >= def.limit) return false;
+    if (s.perks.filter((p) => isCompanionId(p)).length >= 3) return false;
     return !def.excludes.some((x) => s.perks.includes(x));
   }
   if (s.perks.includes(perk)) return false;
+  if (isShieldId(perk) && s.perks.some((p) => isShieldId(p))) return false;
   if (perk === "whistle") return s.perks.some((p) => isCompanionId(p));
   return true;
 }

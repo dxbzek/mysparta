@@ -4,8 +4,8 @@
  * the row that the rules act on is printed.
  */
 import { describe, expect, it } from "vitest";
-import { COMPANION_IDS, PERK_IDS, RARITY_OF, SKILL_IDS, WEAPON_IDS, api } from "@rankzero/core";
-import type { CompanionId, PerkId, SkillId, WeaponId } from "@rankzero/core";
+import { COMPANION_IDS, PERK_IDS, RARITY_OF, SHIELD_IDS, SKILL_IDS, WEAPON_IDS, api } from "@rankzero/core";
+import type { CompanionId, PerkId, ShieldId, SkillId, WeaponId } from "@rankzero/core";
 import { WEAPON_BONUS_KEYS, needsLine, perkKindWord, perkNumbers, perkText } from "../../src/text/perks";
 
 const c = api.content;
@@ -19,6 +19,7 @@ function rowNumbers(id: PerkId): Set<number> {
   };
   if ((WEAPON_IDS as readonly string[]).includes(id)) Object.values(c.weapons[id as WeaponId].tiers[0]).forEach(add);
   else if ((COMPANION_IDS as readonly string[]).includes(id)) Object.values(c.companions[id as CompanionId]).forEach(add);
+  else if ((SHIELD_IDS as readonly string[]).includes(id)) Object.values(c.shields[id as ShieldId].tiers[0]).forEach(add);
   else {
     const s = c.skills[id as SkillId];
     Object.values(s.tiers[0]).forEach(add);
@@ -31,8 +32,8 @@ function rowNumbers(id: PerkId): Set<number> {
 const NOT_PRINTED = new Set(["cost", "costPct", "extraCost", "saves"]);
 
 describe("perk cards", () => {
-  it("covers all 63 perks with a name, a kind, a rarity word and an effect", () => {
-    expect(PERK_IDS).toHaveLength(63);
+  it("covers all 92 perks with a name, a kind, a rarity word and an effect", () => {
+    expect(PERK_IDS).toHaveLength(92);
     for (const id of PERK_IDS) {
       const t = perkText(id);
       expect(t.name.length, id).toBeGreaterThan(1);
@@ -70,6 +71,14 @@ describe("perk cards", () => {
     if (minus.length === 0) expect(t.costs).toEqual([]);
   });
 
+  it.each(SHIELD_IDS.map((id) => [id]))("%s prints every number of its shield row that is not 0", (id) => {
+    const t = perkText(id);
+    expect(t.kind).toBe("Shield");
+    const printed = new Set(numbersIn([t.effect, ...t.costs].join(" ")));
+    for (const [k, v] of Object.entries(c.shields[id].tiers[0])) if (v !== 0) expect(printed, `${id}.${k} = ${v}`).toContain(Math.abs(v));
+    expect(perkNumbers(id).find((r) => r.label === "Block")?.value).toBe(`+${c.shields[id].tiers[0].block}`);
+  });
+
   it("companion cards print the max HP cost in the cost line", () => {
     for (const id of COMPANION_IDS) expect(perkText(id).costs).toEqual([`-${c.companions[id].hpCostPct}% max HP`]);
   });
@@ -85,6 +94,7 @@ describe("perk cards", () => {
     expect(perkKindWord("padding")).toBe("Passive");
     expect(perkKindWord("tarp")).toBe("Move");
     expect(perkKindWord("goose")).toBe("Pet");
+    expect(perkKindWord("bin-lid")).toBe("Shield");
     const pipe = perkNumbers("pipe");
     expect(pipe.find((r) => r.label === "Damage")?.value).toBe(String(c.weapons.pipe.tiers[0].dmg));
     expect(perkNumbers("darts").find((r) => r.label === "Reach")?.value).toBe("Thrown");
@@ -96,6 +106,11 @@ describe("perk cards", () => {
     expect(needsLine("heavy-lifter", ["pocket-knife"])).toBe("No Heavy weapon yet.");
     expect(needsLine("heavy-lifter", ["anvil"])).toBeNull();
     expect(needsLine("whistle", [])).toBe("No pet yet.");
+    expect(needsLine("pet-lover", [])).toBe("No pet yet.");
+    expect(needsLine("pet-lover", ["crow"])).toBeNull();
+    expect(needsLine("trick-shot", ["pipe"])).toBe("No Thrown weapon yet.");
+    expect(needsLine("trick-shot", ["hubcap"])).toBeNull();
+    expect(needsLine("riot-shield", ["car-door"])).toBe("Already carries a shield.");
     expect(needsLine("padding", [])).toBeNull();
   });
 });

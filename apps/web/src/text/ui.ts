@@ -114,6 +114,7 @@ export const UI = {
     weapons: NAV.weapons,
     skills: NAV.skills,
     pets: NAV.pets,
+    shields: "Shields",
     empty: "Nothing in this part of the kit yet.",
     found: (n: number, total: number) => `Found ${n} of ${total}`,
     foundSub: "Every perk any of your scrappers has owned. Tap to see the full list.",

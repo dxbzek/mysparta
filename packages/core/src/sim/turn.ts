@@ -24,13 +24,18 @@ export function swapChance(a: Actor): number {
   return a.skills.has("firm-grip") ? sk("firm-grip", "swapChance") : SWAP_PCT;
 }
 
-/** Picks a weapon out of the bag by Draw weight with chance S / (S + 6). One random number. */
+/** The slack of the empty-hand draw: 6, Quick Swap 2. */
+export function drawSlack(a: Actor): number {
+  return a.skills.has("quick-swap") ? sk("quick-swap", "drawSlack") : DRAW_SLACK;
+}
+
+/** Picks a weapon out of the bag by Draw weight with chance S / (S + slack). One random number. */
 function drawRoll(b: Bout, a: Actor, always: boolean): WeaponId | null {
   const bag = b.bag[a.side];
   let S = 0;
   for (const it of bag) if (it.k === "weapon") S += weaponNumbers(it.id).draw;
   if (S <= 0) return null;
-  let r = b.r.draw.int(always ? S : S + DRAW_SLACK);
+  let r = b.r.draw.int(always ? S : S + drawSlack(a));
   if (r >= S) return null;
   for (const it of bag) {
     if (it.k !== "weapon") continue;
@@ -47,12 +52,15 @@ function takeFromBag(b: Bout, a: Actor, id: WeaponId): void {
   if (at >= 0) bag.splice(at, 1);
 }
 
-/** Step 3: draw with empty hands, or swap a weapon that has already attacked. */
+/** Step 3: draw with empty hands (for sure right after a throw), or swap a weapon that has
+ *  already attacked. */
 function drawOrSwap(b: Bout, a: Actor): void {
+  const reload = a.reload;
+  a.reload = false;
   const hasWeapons = b.bag[a.side].some((it) => it.k === "weapon");
   if (!hasWeapons) return;
   if (a.held === "fists") {
-    const id = drawRoll(b, a, false);
+    const id = drawRoll(b, a, reload);
     if (id === null) return;
     takeFromBag(b, a, id);
     a.held = id;
@@ -73,6 +81,7 @@ function drawOrSwap(b: Bout, a: Actor): void {
 
 /** A scrapper's turn. Returns its time cost. */
 function scrapperTurn(b: Bout, a: Actor): number {
+  a.taunt = false;                                         // Taunt lasts until the next own turn
   const move = rollMove(b, a);
   if (move !== null) return playMove(b, a, move);
   drawOrSwap(b, a);
@@ -81,7 +90,8 @@ function scrapperTurn(b: Bout, a: Actor): number {
   let used: HeldId = a.held;
   if (a.held !== "fists") {
     const thrownTag = hasTag(a.held, "thrown");
-    if (thrownTag || b.r.throw.int(100) < throwChance(a)) {
+    // A melee weapon is thrown only after it has swung once, so a fresh draw always gets its swing.
+    if (thrownTag || (a.heldAttacked && b.r.throw.int(100) < throwChance(a, b.bag[a.side].some((it) => it.k === "weapon")))) {
       used = throwAttack(b, a, target);
       return turnCost(a, used, b.r.clock);
     }
@@ -106,7 +116,7 @@ export function takeTurn(b: Bout, a: Actor): void {
   let cost: number;
   if (a.snared) {
     a.snareSkips += 1;
-    if (a.snareSkips >= sk("tarp", "skips")) {
+    if (a.snareSkips >= (a.snareLimit > 0 ? a.snareLimit : sk("tarp", "skips"))) {
       a.snared = false;
       a.snareSkips = 0;
       emit(b, { t: "free", turn: b.turn, actor: a.id, cause: "timeout" });

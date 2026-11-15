@@ -62,7 +62,7 @@ function duel(held: HeldId, bComps: readonly CompanionId[]): BoutLog {
     steps.push(hit(`b${n + 1}` as ActorId, "a1", null, 0)); turn += 1;
   }
   steps.push({ t: "end", turn, winner: "a", reason: "cap" });
-  return { logVersion: 1, rulesVersion: 1, seed: 1400, init: { actors, bag: { a: bag, b: [] }, door: { a: false, b: false } }, steps,
+  return { logVersion: 2, rulesVersion: 1, seed: 1400, init: { actors, bag: { a: bag, b: [] }, shield: { a: null, b: null } }, steps,
     result: { winner: "a", reason: "cap", turns: turn, hpPct: { a: 100, b: 100 } } };
 }
 

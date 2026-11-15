@@ -113,7 +113,9 @@ export function land(b: Builder, L: Landing, ci?: number): number {
     b.cue(s("sound"), L.i, impactFamily(L.weapon));
     b.lastHitAt.set(L.target, L.at);
   } else if (L.outcome === "block") {
-    b.play(L.target, "block", L.at);
+    // A shield on the back arm comes up and takes the blow (content v2); otherwise the arms do.
+    const shield = b.shieldNow.get(L.target) ?? null;
+    b.play(L.target, shield !== null && ttr.rig === "scrapper" ? "block-shield" : "block", L.at);
     b.nudge({ actor: L.target, key: "slide", from: L.at, outMs: OUTCOME.blockSlideMs, holdMs: 120, backMs: OUTCOME.blockSlideBackMs,
       dx: dir * OUTCOME.blockSlide, arc: 0, contact: null });
     b.fx.push({ fx: "spark", from: s("burst"), to: s("burst") + CONTACT.burstMs, x: spot.x, y: spot.y, facing: 1, seed,

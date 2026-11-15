@@ -11,14 +11,15 @@ import { MOVE_IDS, SKILL_IDS } from "../src/contracts/ids";
 import { SKILLS, sk } from "../src/content/skills";
 import { WEAPONS } from "../src/content/weapons";
 import { applyPerkToStats, draftOf, freeze } from "../src/progress/stats";
-import { buildSide, combatValues } from "../src/sim/combatant";
+import { buildSide, combatValues, valuesOf } from "../src/sim/combatant";
 import type { Actor } from "../src/sim/combatant";
 import { land } from "../src/sim/bout";
+import type { Bout } from "../src/sim/bout";
 import { bodyTempo, startOffset, turnBase, weaponTempo } from "../src/sim/clock";
 import { damageMult, meleeAttack } from "../src/sim/melee";
 import { playMove, rollMove } from "../src/sim/moves";
-import { afterThrow, throwChance } from "../src/sim/thrown";
-import { swapChance, takeTurn } from "../src/sim/turn";
+import { afterThrow, throwAttack, throwChance } from "../src/sim/thrown";
+import { drawSlack, swapChance, takeTurn } from "../src/sim/turn";
 import { fn, queue, scripted, setup, snap } from "./helpers";
 
 const STATS: readonly StatKey[] = ["health", "strength", "agility", "speed"];
@@ -40,21 +41,25 @@ function profile(s: FighterSnapshot): Record<string, number> {
   const side = buildSide("a", s);
   const a = side.actors[0]!;
   const out: Record<string, number> = {};
+  // A bout whose throw rolls all pass, for the rule of what a thrown weapon does next.
+  const bout: Bout = { r: scripted({ throw: fn(() => 0) }), actors: side.actors, bag: { a: side.bag, b: [] }, steps: [], turn: 1, ended: false };
   for (const k of STATS) { out[`points.${k}`] = s.stats.points[k]; out[`mult.${k}`] = s.stats.mult[k]; }
   for (const h of HELD) {
-    const v = combatValues(a.skills, h, false);
+    const v = combatValues(a.skills, h, null);
     for (const k of DERIVED) out[`${h}.${k}`] = v[k];
   }
-  const vd = combatValues(a.skills, "fists", true);
-  for (const k of DERIVED) out[`fists+door.${k}`] = vd[k];
-  out.door = side.door ? 1 : 0;
+  const vd = combatValues(a.skills, "fists", "car-door");
+  for (const k of DERIVED) out[`fists+shield.${k}`] = vd[k];
+  out.shield = side.shield === null ? 0 : 1;
   for (const h of ["fists", "machete", "pipe"] as const) { a.held = h; out[`dmult.${h}`] = damageMult(a, false, false); }
   a.held = "darts";
   out["dmult.thrown"] = damageMult(a, true, false);
   a.held = "fists";
   out.startOffset = startOffset(a);
-  out.throwChance = throwChance(a);
-  out.afterThrowPipe = AFTER[afterThrow(a, "pipe")];
+  out.throwChance = throwChance(a, true);
+  out.throwChanceLast = throwChance(a, false);
+  out.afterThrowPipe = AFTER[afterThrow(bout, a, "pipe", [])];
+  out.drawSlack = drawSlack(a);
   out.swapChance = swapChance(a);
   out["tempo.sledgehammer"] = weaponTempo(a, "sledgehammer");
   out["tempo.pipe"] = weaponTempo(a, "pipe");
@@ -64,11 +69,15 @@ function profile(s: FighterSnapshot): Record<string, number> {
   }
   const probe: Actor = { ...a, hp: 5, lastStandUsed: false };
   out.lastStand = land(probe, 10, []);
+  // A Raccoon of this scrapper: its HP and its damage multiplier (Pet Lover).
+  const pet = buildSide("a", { ...s, perks: [...s.perks, "raccoon"] }).actors.find((x) => !x.scrapper)!;
+  out["pet.hp"] = pet.maxHp;
+  out["pet.dmult"] = damageMult(pet, false, false);
   return out;
 }
 
 /** The profile change the card names. Keys not listed must not change. */
-function every(key: string, by: number, held: readonly string[] = [...HELD, "fists+door"]): Record<string, number> {
+function every(key: string, by: number, held: readonly string[] = [...HELD, "fists+shield"]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const h of held) out[`${h}.${key}`] = by;
   return out;
@@ -96,25 +105,30 @@ const EXPECTED: Readonly<Record<SkillId, () => Record<string, number>>> = {
   "anticipation": () => every("intercept", sk("anticipation", "intercept")),
   "sharpening-stone": () => ({ "dmult.machete": sk("sharpening-stone", "bladeDamage") }),
   "bare-knuckle": () => ({ "dmult.fists": sk("bare-knuckle", "fistDamage"),
-    ...every("combo", sk("bare-knuckle", "unarmedCombo"), ["fists", "fists+door"]) }),
+    ...every("combo", sk("bare-knuckle", "unarmedCombo"), ["fists", "fists+shield"]) }),
   "payback": () => every("riposte", sk("payback", "riposte")),
   "flurry": () => every("combo", sk("flurry", "combo")),
-  "car-door": () => ({ door: 1, "fists+door.block": sk("car-door", "block"),
-    "dmult.fists": sk("car-door", "damage"), "dmult.machete": sk("car-door", "damage"),
-    "dmult.pipe": sk("car-door", "damage"), "dmult.thrown": sk("car-door", "damage") }),
   "firm-grip": () => ({ swapChance: sk("firm-grip", "swapChance") - 30 }),
   "head-start": () => ({ startOffset: sk("head-start", "startClock") }),
   "sharp-eye": () => ({ ...every("aim", sk("sharp-eye", "aim")), ...every("pierce", sk("sharp-eye", "pierce")) }),
   "parry": () => every("block", sk("parry", "block")),
   "heavy-lifter": () => ({ "sledgehammer.aim": sk("heavy-lifter", "heavyAim"),
     "tempo.sledgehammer": Math.floor((SLEDGE * (100 + sk("heavy-lifter", "heavyTime"))) / 100) - SLEDGE }),
-  "pitcher": () => ({ "dmult.thrown": sk("pitcher", "thrownDamage"), throwChance: sk("pitcher", "throwChance") - 5,
-    afterThrowPipe: AFTER.bag - AFTER.gone }),
+  "pitcher": () => ({ "dmult.thrown": sk("pitcher", "thrownDamage"), throwChance: sk("pitcher", "throwChance") - 20,
+    throwChanceLast: sk("pitcher", "throwChance") - 5, afterThrowPipe: AFTER.bag - AFTER.gone }),
   "plate-vest": () => ({ ...every("armor", sk("plate-vest", "armor")), "mult.speed": sk("plate-vest", "speedMult") }),
   "knock-loose": () => every("disarm", sk("knock-loose", "disarm")),
   "last-stand": () => ({ lastStand: sk("last-stand", "saves") }),
   "stubborn": () => ({}),
   "slippery": () => every("evade", sk("slippery", "evade")),
+  "quick-swap": () => ({ drawSlack: sk("quick-swap", "drawSlack") - 6 }),
+  "pet-lover": () => {
+    const plain = buildSide("a", snap(["raccoon"])).actors[1]!.maxHp;
+    return { "pet.hp": Math.floor((plain * (100 + sk("pet-lover", "petHp"))) / 100) - plain,
+      "pet.dmult": sk("pet-lover", "petDamage") };
+  },
+  "junk-collector": () => ({ afterThrowPipe: AFTER.bag - AFTER.gone }),
+  "trick-shot": () => ({}),
   "haymaker": () => moveDiff("haymaker"),
   "energy-drink": () => moveDiff("energy-drink"),
   "tarp": () => moveDiff("tarp"),
@@ -123,6 +137,10 @@ const EXPECTED: Readonly<Record<SkillId, () => Record<string, number>>> = {
   "snatch": () => moveDiff("snatch"),
   "air-horn": () => moveDiff("air-horn"),
   "body-slam": () => moveDiff("body-slam"),
+  "sand-in-the-eyes": () => moveDiff("sand-in-the-eyes"),
+  "taunt": () => moveDiff("taunt"),
+  "second-wind": () => moveDiff("second-wind"),
+  "grapple": () => moveDiff("grapple"),
 };
 
 /** Effects a profile cannot hold: each plays the rule with chosen rolls. */
@@ -245,6 +263,72 @@ const BEHAVIOUR: Partial<Record<SkillId, () => void>> = {
     expect(t.bout.steps.filter((x) => x.t === "flee")).toHaveLength(1);
     expect(t.B.clock - clock).toBe(sk("air-horn", "clockPush"));
   },
+  "quick-swap": () => {
+    // The empty-hand draw rolls out of S + slack: S + 2 with Quick Swap, S + 6 without.
+    for (const [perks, slack] of [[["quick-swap", "pipe"], sk("quick-swap", "drawSlack")], [["pipe"], 6]] as const) {
+      const seen: number[] = [];
+      const t = setup(withSkills([...perks]), snap([]), scripted({ draw: fn((n) => { seen.push(n); return n - 1; }) }));
+      takeTurn(t.bout, t.A);
+      expect(seen[0]).toBe(WEAPONS.pipe.tiers[0].draw + slack);
+    }
+  },
+  "junk-collector": () => {
+    // A thrown Pipe goes back in the bag when the roll is under the table's chance, with a proc.
+    const c = sk("junk-collector", "returnChance");
+    for (const [r, want] of [[c - 1, "bag"], [c, "gone"]] as const) {
+      const t = setup(withSkills(["junk-collector"]), snap([]), scripted({ throw: queue([r]) }));
+      const procs: { by: string; skill: string }[] = [];
+      expect(afterThrow(t.bout, t.A, "pipe", procs as never[])).toBe(want);
+      expect(procs.map((p) => p.skill)).toEqual(want === "bag" ? ["junk-collector"] : []);
+    }
+  },
+  "trick-shot": () => {
+    // A landed dart ricochets once to a living enemy when the throw roll is under the chance.
+    const c = sk("trick-shot", "ricochet");
+    for (const [r, throws] of [[c - 1, 2], [c, 1]] as const) {
+      const t = setup(withSkills(["trick-shot", "darts"]), snap(["raccoon"]), scripted({ throw: queue([r]) }));
+      t.A.held = "darts";
+      throwAttack(t.bout, t.A, t.B);
+      const steps = t.bout.steps.filter((x) => x.t === "throw");
+      expect(steps).toHaveLength(throws);
+      if (throws === 2) expect(steps[1]).toMatchObject({ n: 1, why: "combo", procs: [{ by: "a0", skill: "trick-shot" }] });
+    }
+  },
+  "sand-in-the-eyes": () => {
+    const t = setup(withSkills(["sand-in-the-eyes"]), snap([]));
+    const aim = valuesOf(t.B).aim;
+    const cost = playMove(t.bout, t.A, "sand-in-the-eyes");
+    expect(aim - valuesOf(t.B).aim).toBe(sk("sand-in-the-eyes", "aimLoss"));
+    expect(cost).toBe(Math.floor((turnBase(t.A, "fists") * sk("sand-in-the-eyes", "costPct")) / 100));
+    expect(t.bout.steps[0]).toMatchObject({ t: "move", move: "sand-in-the-eyes", target: "b0" });
+    expect(rollMove(t.bout, t.A)).toBeNull();                      // a second dose never comes
+  },
+  "taunt": () => {
+    const t = setup(withSkills(["taunt"]), snap([]));
+    const ripo = valuesOf(t.A).riposte;
+    expect(playMove(t.bout, t.A, "taunt")).toBe(sk("taunt", "cost"));
+    expect(valuesOf(t.A).riposte - ripo).toBe(sk("taunt", "riposte"));
+    takeTurn(t.bout, t.A);                                         // its next own turn ends it
+    expect(valuesOf(t.A).riposte).toBe(ripo);
+  },
+  "second-wind": () => {
+    const t = setup(withSkills(["second-wind"]), snap([]));
+    t.A.hp = 1;
+    expect(playMove(t.bout, t.A, "second-wind")).toBe(sk("second-wind", "cost"));
+    expect(t.A.hp - 1).toBe(Math.floor((t.A.maxHp * sk("second-wind", "healPct")) / 100));
+    expect(t.bout.steps.map((x) => x.t)).toEqual(["move", "heal"]);
+  },
+  "grapple": () => {
+    const t = setup(withSkills(["grapple"]), snap([]), scripted({ damage: queue([15]) }));
+    const hp0 = t.B.hp;
+    playMove(t.bout, t.A, "grapple");
+    expect(hp0 - t.B.hp).toBe(sk("grapple", "base") + sk("grapple", "perStrength") * t.A.str);
+    expect(t.bout.steps.map((x) => x.t)).toEqual(["move", "snare"]);
+    expect(t.B.snared).toBe(true);
+    for (let i = 1; i < sk("grapple", "holds"); i++) { takeTurn(t.bout, t.B); expect(t.B.snared).toBe(true); }
+    takeTurn(t.bout, t.B);                                         // the hold lasts its table's turns
+    expect(t.B.snared).toBe(false);
+  },
   "body-slam": () => {
     const t = setup(withSkills(["body-slam"]), snap(["pipe"]), scripted({ damage: queue([15]) }));
     t.B.held = "pipe";
@@ -262,7 +346,7 @@ function moveWeightCheck(id: MoveId): void {
   for (const [r, fires] of [[w - 1, true], [w, false]] as const) {
     const t = setup(withSkills([id, ...(id === "whistle" ? ["boar" as PerkId] : [])]), snap(["raccoon", "pipe"]),
       scripted({ move: queue([r]) }));
-    if (id === "energy-drink") t.A.hp = 1;
+    if (id === "energy-drink" || id === "second-wind") t.A.hp = 1;
     if (id === "whistle") t.bout.actors.find((x) => x.id === "a1")!.hp = 1;
     if (id === "snatch") t.B.held = "pipe";
     expect(rollMove(t.bout, t.A)).toBe(fires ? id : null);

@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import type { Pick as Side2, ScrapperRecord } from "../src/contracts/fighter";
 import type { PerkId } from "../src/contracts/ids";
-import { COMPANION_IDS, PERK_IDS, REALM_SALT, RIVALS_PER_LEVEL, SKILL_IDS, WEAPON_IDS, isCompanionId,
+import { COMPANION_IDS, PERK_IDS, REALM_SALT, RIVALS_PER_LEVEL, SHIELD_IDS, SKILL_IDS, WEAPON_IDS, isCompanionId,
   perkKind } from "../src/contracts/ids";
 import { RARITY_OF, RARITY_WEIGHT } from "../src/contracts/content";
 import type { SkillDef } from "../src/contracts/content";
@@ -215,17 +215,21 @@ describe("the Route", () => {
 
 describe("rarity", () => {
   it("gives each perk exactly the chance of the rules' table, as a fraction", () => {
-    // The table: category share (weapon 46, skill 50, companion 4), then weight over the category's total.
+    // The table: category share (weapon 44, skill 46, shield 6, companion 4), then weight over the category's total.
     const total = (ids: readonly PerkId[], w: (id: PerkId) => number): number => ids.reduce((a, id) => a + w(id), 0);
     const weaponTotal = total(WEAPON_IDS, (id) => RARITY_WEIGHT[RARITY_OF[id]]);
     const skillTotal = total(SKILL_IDS, (id) => RARITY_WEIGHT[RARITY_OF[id]]);
-    expect(weaponTotal).toBe(5 * 400 + 8 * 150 + 8 * 50 + 5 * 12 + 2 * 2);
-    expect(skillTotal).toBe(6 * 400 + 13 * 150 + 9 * 50 + 3 * 12 + 1 * 2);
+    const shieldTotal = total(SHIELD_IDS, (id) => RARITY_WEIGHT[RARITY_OF[id]]);
+    expect(weaponTotal).toBe(9 * 400 + 12 * 150 + 11 * 50 + 6 * 12 + 3 * 2);
+    expect(skillTotal).toBe(7 * 400 + 16 * 150 + 12 * 50 + 3 * 12 + 1 * 2);
+    expect(shieldTotal).toBe(1 * 400 + 2 * 150 + 2 * 50 + 1 * 12);
+    const petW: Record<string, number> = { raccoon: 90, goose: 5, boar: 5, "stray-dog": 30, crow: 15, "alley-cat": 15 };
     const want = (id: PerkId): number => {
       const k = perkKind(id);
-      if (k === "weapon") return (46 / 100) * (RARITY_WEIGHT[RARITY_OF[id]] / weaponTotal);
-      if (k === "skill") return (50 / 100) * (RARITY_WEIGHT[RARITY_OF[id]] / skillTotal);
-      return (4 / 100) * ({ raccoon: 90, goose: 5, boar: 5 }[id as "raccoon"] / 100);
+      if (k === "weapon") return (44 / 100) * (RARITY_WEIGHT[RARITY_OF[id]] / weaponTotal);
+      if (k === "skill") return (46 / 100) * (RARITY_WEIGHT[RARITY_OF[id]] / skillTotal);
+      if (k === "shield") return (6 / 100) * (RARITY_WEIGHT[RARITY_OF[id]] / shieldTotal);
+      return (4 / 100) * (petW[id]! / 160);
     };
     let sum = 0;
     for (const id of PERK_IDS) {
@@ -234,10 +238,11 @@ describe("rarity", () => {
       sum += c.num / c.den;
     }
     expect(sum).toBeCloseTo(1, 12);
-    // The brief's spot figures.
-    expect(perkChance("padding").num / perkChance("padding").den).toBeCloseTo(0.041, 3);
-    expect(perkChance("pipe").num / perkChance("pipe").den).toBeCloseTo(0.050, 3);
-    expect(perkChance("raccoon").num / perkChance("raccoon").den).toBeCloseTo(0.036, 4);
+    // Spot figures of content v2 (the brief's were 4.1%, 5.0% and 3.6% with the first lists).
+    expect(perkChance("padding").num / perkChance("padding").den).toBeCloseTo(0.0315, 3);
+    expect(perkChance("pipe").num / perkChance("pipe").den).toBeCloseTo(0.0293, 3);
+    expect(perkChance("raccoon").num / perkChance("raccoon").den).toBeCloseTo(0.0225, 4);
+    expect(perkChance("bin-lid").num / perkChance("bin-lid").den).toBeCloseTo(0.0294, 3);
   });
   it("matches those chances over 1,000,000 rolls, each count within 4 standard deviations", () => {
     const N = 1_000_000;
@@ -251,8 +256,8 @@ describe("rarity", () => {
       expect(Math.abs((counts.get(id) ?? 0) - N * p)).toBeLessThanOrEqual(4 * sd);
     }
   });
-  it("labels companions Uncommon, Epic, Epic", () => {
-    expect(COMPANION_IDS.map((c) => COMPANIONS[c].rarity)).toEqual(["uncommon", "epic", "epic"]);
+  it("labels companions Uncommon, Epic, Epic, Uncommon, Rare, Rare", () => {
+    expect(COMPANION_IDS.map((c) => COMPANIONS[c].rarity)).toEqual(["uncommon", "epic", "epic", "uncommon", "rare", "rare"]);
   });
 });
 

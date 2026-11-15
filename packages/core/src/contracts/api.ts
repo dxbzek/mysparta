@@ -3,18 +3,19 @@
  * packages/core/src/api.ts. The package index checks it with `const check: CoreApi = impl`.
  * Every function is pure: the same inputs give the same output on every engine.
  */
-import type { CompanionDef, SkillDef, WeaponDef } from "./content";
+import type { CompanionDef, ShieldDef, SkillDef, WeaponDef } from "./content";
 import type { DayKey, FighterSnapshot, Look, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
   SnapshotSheet } from "./fighter";
-import type { CompanionId, HeldId, PerkId, SkillId } from "./ids";
+import type { CompanionId, HeldId, PerkId, ShieldId, SkillId } from "./ids";
 import type { BoutLog } from "./log";
 
-/** The three number tables of the rules, as total Records. The screens read every number they
+/** The four number tables of the rules, as total Records. The screens read every number they
  *  print from here (card lines, the Kit screen), so no number is typed twice. Read-only. */
 export interface ContentTables {
   weapons: Readonly<Record<HeldId, WeaponDef>>;
   skills: Readonly<Record<SkillId, SkillDef>>;
   companions: Readonly<Record<CompanionId, CompanionDef>>;
+  shields: Readonly<Record<ShieldId, ShieldDef>>;
 }
 
 export interface CoreApi {
@@ -51,7 +52,7 @@ export interface CoreApi {
   rivalSnapshot(realmSalt: string, level: number, index: number): FighterSnapshot;
   /** 6 rivals at the scrapper's level. At levels 1 to 3 at least 2 of them own no weapon. */
   tonightsCard(rec: ScrapperRecord, realmSalt: string, today: DayKey): FighterSnapshot[];
-  /** Every perk any of these records has owned. For the "Found N of 63" list. */
+  /** Every perk any of these records has owned. For the "Found N of 92" list. */
   foundPerks(records: readonly ScrapperRecord[]): PerkId[];
   boutSeed(aId: string, bId: string, lifetimeBouts: number): number;
   simulateFight(seed: number, a: FighterSnapshot, b: FighterSnapshot, rulesVersion: 1): BoutLog;

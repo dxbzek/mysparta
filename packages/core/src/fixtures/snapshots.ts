@@ -47,7 +47,7 @@ export const l10Boar: FighterSnapshot = {
   perks: ["crowbar", "boar", "padding", "tarp", "whistle"], rulesVersion: 1,
 };
 
-/** Level 20 thrower with a Car Door. Start Darts; eight perk picks and eleven stat cards. */
+/** Level 20 thrower with a Car Door shield. Start Darts; eight perk picks and eleven stat cards. */
 export const l20Thrower: FighterSnapshot = {
   id: "fixture:l20-thrower", name: "Tack", look: look(0, 2, 6, 7, 3, 2, 3, 5, 3, 6, 11), level: 20,
   stats: { points: { health: 11, strength: 4, agility: 16, speed: 8 }, mult: { ...PLAIN, agility: 140 } },

@@ -80,6 +80,9 @@ const SIZE: Record<RigId, { half: number; tall: number; least: number }> = {
   raccoon: { half: 24, tall: 32, least: 130 },
   goose: { half: 22, tall: 48, least: 130 },
   boar: { half: 44, tall: 60, least: 450 },
+  "stray-dog": { half: 30, tall: 40, least: 160 },          // content v2 pets
+  crow: { half: 18, tall: 34, least: 70 },
+  "alley-cat": { half: 28, tall: 32, least: 110 },
 };
 
 /** How many pixels differ between two surfaces inside a box given in stage units. */
@@ -119,8 +122,8 @@ async function main(): Promise<void> {
 
   // ---- the actors, on the marks of the fight spec
   const target: Item = { name: "scrapper hit by the pipe", rig: "scrapper", clip: "hit-light", t: 0,
-    dress: { look: gate.b.look, held: "pocket-knife", door: false, scale: 1 }, at: { x: 290, y: 195, facing: -1 } };
-  const swingDress: Dress = { look: gate.a.look, held: "pipe", door: false, scale: 1 };
+    dress: { look: gate.b.look, held: "pocket-knife", shield: null, scale: 1 }, at: { x: 290, y: 195, facing: -1 } };
+  const swingDress: Dress = { look: gate.a.look, held: "pipe", shield: null, scale: 1 };
   // The attacker stops where its strike point meets the target's hit point. No constant.
   const hit = toStage(target.at, rig.hitPoint("scrapper", target.dress, "body"));
   const reach = rig.strikePoint("scrapper", "swing", swingDress);
@@ -128,13 +131,13 @@ async function main(): Promise<void> {
     dress: swingDress, at: { x: hit.x - reach.x, y: 195, facing: 1 } };
   const strike = toStage(attacker.at, reach);
   const items: Item[] = [
-    { name: "raccoon idle", rig: "raccoon", clip: "idle", t: 300, dress: { held: null, door: false, scale: 1 }, at: { x: 40, y: 180, facing: 1 } },
-    { name: "goose attacking", rig: "goose", clip: "attack", t: 150, dress: { held: null, door: false, scale: 1 }, at: { x: 124, y: 206, facing: 1 } },
-    { name: "scrapper with a door, winning", rig: "scrapper", clip: "win", t: 200, dress: { look: SNAPSHOTS.l20Thrower.look, held: "darts", door: true, scale: 1 }, at: { x: 70, y: 195, facing: 1 } },
+    { name: "raccoon idle", rig: "raccoon", clip: "idle", t: 300, dress: { held: null, shield: null, scale: 1 }, at: { x: 40, y: 180, facing: 1 } },
+    { name: "goose attacking", rig: "goose", clip: "attack", t: 150, dress: { held: null, shield: null, scale: 1 }, at: { x: 124, y: 206, facing: 1 } },
+    { name: "scrapper with a shield, winning", rig: "scrapper", clip: "win", t: 200, dress: { look: SNAPSHOTS.l20Thrower.look, held: "darts", shield: "car-door", scale: 1 }, at: { x: 70, y: 195, facing: 1 } },
     attacker,
     target,
-    { name: "boar idle", rig: "boar", clip: "idle", t: 0, dress: { held: null, door: false, scale: 1 }, at: { x: 360 - 124, y: 206, facing: -1 } },
-    { name: "raccoon knocked out", rig: "raccoon", clip: "ko", t: 600, dress: { held: null, door: false, scale: 1 }, at: { x: 360 - 40, y: 180, facing: -1 } },
+    { name: "boar idle", rig: "boar", clip: "idle", t: 0, dress: { held: null, shield: null, scale: 1 }, at: { x: 360 - 124, y: 206, facing: -1 } },
+    { name: "raccoon knocked out", rig: "raccoon", clip: "ko", t: 600, dress: { held: null, shield: null, scale: 1 }, at: { x: 360 - 40, y: 180, facing: -1 } },
   ];
   const drawItem = (s: Surface, it: Item): void => rig.drawActor(s.env, rig.samplePose(it.rig, it.clip, it.t), it.dress, it.at);
 
@@ -215,7 +218,7 @@ async function main(): Promise<void> {
     const info = rig.clipInfo("scrapper", clip);
     const t = clip === "ko-fall" ? info.durationMs : clip === "evade" ? info.durationMs / 2 : strikeTime(info) ?? info.durationMs / 2;
     const x = cell * (i + 0.5) - (held !== null && WEAPON_META[held].reach > 1 ? 6 : 0);
-    const dress: Dress = { look: SNAPSHOTS.l1Fists.look, held, door: false, scale: 1 };
+    const dress: Dress = { look: SNAPSHOTS.l1Fists.look, held, shield: null, scale: 1 };
     // The whole figure is made smaller by the canvas, not by `Dress.scale`: a weapon keeps its size.
     raw.save();
     raw.translate(x, STAGE_H + 88);
@@ -241,8 +244,8 @@ async function main(): Promise<void> {
     raw.save();
     raw.translate(x, STAGE_H + 140);
     raw.scale(shrink, shrink);
-    rig.drawActor(env, rig.samplePose(id, "attack", 150), { held: null, door: false, scale: 1 }, { x: 0, y: 0, facing: 1 });
-    const p = rig.strikePoint(id, "attack", { held: null, door: false, scale: 1 });
+    rig.drawActor(env, rig.samplePose(id, "attack", 150), { held: null, shield: null, scale: 1 }, { x: 0, y: 0, facing: 1 });
+    const p = rig.strikePoint(id, "attack", { held: null, shield: null, scale: 1 });
     raw.beginPath();
     raw.arc(p.x, p.y, 2.4, 0, Math.PI * 2);
     raw.fillStyle = "#FF2E2E";
@@ -270,8 +273,8 @@ async function main(): Promise<void> {
     raw.scale(thumb, thumb);
     rig.drawStage(env, id, "back", 0);
     rig.drawStage(env, id, "floor", 0);
-    rig.drawActor(env, rig.samplePose("scrapper", "idle", 0), { look: gate.a.look, held: "pipe", door: false, scale: 1 }, { x: 70, y: 195, facing: 1 });
-    rig.drawActor(env, rig.samplePose("scrapper", "idle", 500), { look: gate.b.look, held: "pocket-knife", door: false, scale: 1 }, { x: 290, y: 195, facing: -1 });
+    rig.drawActor(env, rig.samplePose("scrapper", "idle", 0), { look: gate.a.look, held: "pipe", shield: null, scale: 1 }, { x: 70, y: 195, facing: 1 });
+    rig.drawActor(env, rig.samplePose("scrapper", "idle", 500), { look: gate.b.look, held: "pocket-knife", shield: null, scale: 1 }, { x: 290, y: 195, facing: -1 });
     raw.restore();
     const pixel = (ux: number, uy: number): string => {
       const d = raw.getImageData(Math.round((x + ux * thumb) * SCALE), Math.round((top + 4 + uy * thumb) * SCALE), 1, 1).data;

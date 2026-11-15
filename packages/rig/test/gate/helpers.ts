@@ -15,7 +15,7 @@ export const LOOKS: Look[] = [
 ];
 export const ATTACKS: readonly [string, HeldId][] = [["punch", "fists"], ["flick", "pocket-knife"], ["swing", "pipe"]];
 export function dress(held: HeldId | null, look = 0, scale = 1, extra: Partial<Dress> = {}): Dress {
-  return { look: LOOKS[look]!, held, door: false, scale, ...extra };
+  return { look: LOOKS[look]!, held, shield: null, scale, ...extra };
 }
 /** 60 fps sample times over a clip, both ends included. */
 export function times(r: Rig, rigId: RigId, clip: string): number[] {
