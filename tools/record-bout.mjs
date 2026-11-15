@@ -17,7 +17,8 @@
  * contact, no two impact cues within 60 ms, the peak below clipping, and the longest silence.
  * An agent cannot hear: a person must still listen (brief 3.13).
  *
- * Flags: --fixture <name> | --seed <n>, --speed 1|2, --fps <n> (60), --out <file.mp4>,
+ * Flags: --fixture <name> | --seed <n> | --find <n> --level <L> (a find-bout candidate), --speed 1|2,
+ * --at <ms,ms,...> extra phone shots [--only-at], --out-dir <dir>, --fps <n> (60), --out <file.mp4>,
  * --reduced, --audio, --realtime [--seconds 8], --shots, --port <n>, --copy-to <file>.
  * Output defaults to <main checkout>/.review/wp4/.
  */
@@ -45,7 +46,7 @@ function mainCheckout() {
     return ROOT;
   }
 }
-const OUT_DIR = resolve(mainCheckout(), ".review/wp4");
+const OUT_DIR = resolve(arg("out-dir", resolve(mainCheckout(), ".review/wp4")));
 
 const freePort = () => new Promise((done, fail) => {
   const s = createServer();
@@ -78,8 +79,10 @@ async function startServer() {
 function debugUrl(base, extra) {
   const fixture = arg("fixture");
   const seed = arg("seed");
+  const find = arg("find");
   const q = new URLSearchParams();
-  if (seed) q.set("seed", seed); else q.set("fixture", fixture ?? "bout-gate");
+  if (find) { q.set("find", find); q.set("level", arg("level", "1")); }
+  else if (seed) q.set("seed", seed); else q.set("fixture", fixture ?? "bout-gate");
   if (flag("reduced")) q.set("reduced", "1");
   for (const [k, v] of Object.entries(extra)) q.set(k, String(v));
   return `${base}/src/debug/index.html#/debug/bout?${q}`;
@@ -122,7 +125,16 @@ async function overflowReport(page) {
       const [p, q] = boxes(sel);
       if (p && q && p.right > q.left && q.right > p.left && p.bottom > q.top && q.bottom > p.top) overlap.push(sel);
     }
-    return { pageScrollX: doc.scrollWidth > doc.clientWidth, smallTargets: bad, clipped, offscreen, overlap };
+    // controls hidden below the fold or under another element (owner: "some UI not visible")
+    const hidden = [];
+    for (const el of document.querySelectorAll("button, [role=meter], input")) {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 || getComputedStyle(el).visibility === "hidden" || el.closest("[aria-hidden=true]")) continue;
+      if (r.bottom > window.innerHeight + 1 || r.top < -1) { hidden.push(`${el.tagName.toLowerCase()} "${(el.getAttribute("aria-label") ?? el.textContent ?? "").trim().slice(0, 24)}" below the fold`); continue; }
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (hit && !el.contains(hit) && !hit.contains(el)) hidden.push(`${el.tagName.toLowerCase()} "${(el.getAttribute("aria-label") ?? "").slice(0, 24)}" covered by ${hit.className || hit.tagName}`);
+    }
+    return { pageScrollX: doc.scrollWidth > doc.clientWidth, pageScrollY: document.scrollingElement.scrollHeight > window.innerHeight + 1, smallTargets: bad, clipped, offscreen, overlap, hidden };
   });
 }
 
@@ -191,7 +203,7 @@ async function mixCues({ cues, contacts, durationMs, speed }) {
 async function recordVideo(browser, base) {
   const fps = Number(arg("fps", 60));
   const speed = Number(arg("speed", 1)) === 2 ? 2 : 1;
-  const name = arg("seed") ? `seed-${arg("seed")}` : arg("fixture", "bout-gate");
+  const name = arg("find") ? `find-${arg("find")}-l${arg("level", "1")}` : arg("seed") ? `seed-${arg("seed")}` : arg("fixture", "bout-gate");
   mkdirSync(OUT_DIR, { recursive: true });
   const out = resolve(arg("out", join(OUT_DIR, `${name}-capsule${flag("reduced") ? "-reduced" : ""}${speed === 2 ? "-2x" : ""}.mp4`)));
   const page = await openPage(browser, PHONE, { reducedMotion: flag("reduced") });
@@ -275,7 +287,12 @@ async function shots(browser, base) {
     await page.context().close();
   };
   const at = (t) => async (page) => { await page.evaluate((tt) => window.__rz.seek(tt), t); };
-  const bout = (q) => `${base}/src/debug/index.html#/debug/bout?fixture=${arg("fixture", "bout-gate")}&paused=1&sound=0${q}`;
+  const source = arg("find") ? `find=${arg("find")}&level=${arg("level", "1")}` : `fixture=${arg("fixture", "bout-gate")}`;
+  const bout = (q) => `${base}/src/debug/index.html#/debug/bout?${source}&paused=1&sound=0${q}`;
+  for (const extra of (arg("at", "") || "").split(",").filter(Boolean).map(Number)) {
+    await shoot(PHONE, bout(`&t=${extra}`), `fight-at-${extra}ms.png`, at(extra));
+  }
+  if (flag("only-at")) { console.log(JSON.stringify(results, null, 1)); return; }
   await shoot(PHONE, bout("&t=900"), "fight-intro-900ms.png", at(900));
   await shoot(PHONE, bout("&t=6000"), "fight-mid-6000ms.png", at(6000));
   await shoot(PHONE, bout(""), "fight-contact-plus-60ms.png", async (page) => {

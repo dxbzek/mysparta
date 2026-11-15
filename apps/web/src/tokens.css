@@ -71,6 +71,43 @@
   --c-loss: #d3261a;
   --t-on-loss: #ffffff;
 
+  /* ---------------------------------------------------------------- the fight screen at night (plan 13.7) */
+  /* Gritty comic, sodium streetlight: a teal-black night, sodium orange for side a, teal for side b,
+     sodium-lit paper for name tapes and big numbers. */
+  --c-night: #0f1619;            /* the fight page behind everything */
+  --t-on-night: #f3e6cc;
+  --t-on-night-dim: #a7b3b0;
+  --t-on-night-sodium: #f2a65a;
+  --t-on-night-teal: #56d3c7;
+  --c-card: #1a2428;             /* a fighter card, the log strip */
+  --t-on-card: #f3e6cc;
+  --t-on-card-dim: #a3b1b0;
+  --t-on-card-sodium: #f2a65a;
+  --t-on-card-teal: #56d3c7;
+  --t-on-card-hot: #ff8a6b;      /* a cost, a KO word on a card */
+  --c-card-deep: #111a1d;        /* a tile inside a card */
+  --t-on-card-deep: #f3e6cc;
+  --t-on-card-deep-dim: #a3b1b0;
+  --c-sodium: #f2a65a;           /* side a, a lit skill tile */
+  --t-on-sodium: #15110c;
+  --c-teal: #45c2b6;             /* side b */
+  --t-on-teal: #0c1514;
+  --c-tape: #f3e6cc;             /* a name tape */
+  --t-on-tape: #15110c;
+  --c-ctl: #0f1619;              /* a control over the stage */
+  --t-on-ctl: #f3e6cc;
+  --c-stamp: #d8392a;            /* the K.O. stamp */
+  --t-on-stamp: #ffffff;
+  --c-bar-back: #26343a;         /* an empty bar */
+  --c-hp-hit: #e4472f;           /* the trailing segment of an HP bar */
+  --c-flash: #fff3d6;            /* an HP bar flashing on a hit, the knockout flash */
+  --c-ctl-glass: rgba(15, 22, 25, 0.72);   /* a control's disc over the stage */
+  --c-night-scrim: rgba(8, 12, 14, 0.62);  /* under a banner's strap */
+  --tex-halftone-sodium: radial-gradient(circle at center, rgba(21, 17, 12, 0.24) 0 1px, transparent 1.4px) 0 0 / 4px 4px;
+  --glow-sodium: 0 0 0 2px #15110c, 0 0 14px 2px rgba(242, 166, 90, 0.75);
+  --glow-teal: 0 0 0 2px #0c1514, 0 0 14px 2px rgba(69, 194, 182, 0.75);
+  --ink-text: -2px -2px 0 #15110c, 2px -2px 0 #15110c, -2px 2px 0 #15110c, 2px 2px 0 #15110c, 3px 4px 0 #15110c;
+
   --c-scrim: rgba(21, 19, 15, 0.55);   /* behind a sheet */
   --c-focus: #f2c200;           /* focus ring, drawn with an ink edge so it shows on every surface */
 

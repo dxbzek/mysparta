@@ -10,3 +10,4 @@ export const VOLT = "#FFD23F";         // Volt Yellow: crits, the Haymaker
 export const TEAL = "#22D3B6";         // heals
 export const CORAL = "#FF5A4E";        // the HP trail, overtime
 export const SKY = "#7FB7FF";          // skill tags
+export const STREAK = "#F7E7C6";       // speed lines behind a dash: sodium-lit paper

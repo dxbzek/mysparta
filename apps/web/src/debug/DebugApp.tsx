@@ -42,6 +42,13 @@ type Simulate = (seed: number, a: FighterSnapshot, b: FighterSnapshot, rulesVers
 
 function boutFor(route: Extract<DebugRoute, { page: "bout" }>): { log: BoutLog; a: FighterSnapshot; b: FighterSnapshot } | string {
   if (route.fixture) return BOUT_FIXTURES[route.fixture];
+  if (route.find !== null) {
+    // the same candidate as tools/find-bout.ts: rivals 2n and 2n + 1, seed hash("find-bout", n)
+    const n = route.find;
+    const a = core.rivalSnapshot(core.REALM_SALT, route.level, 2 * n);
+    const b = core.rivalSnapshot(core.REALM_SALT, route.level, 2 * n + 1);
+    return { log: core.simulateFight(core.combineSeed("find-bout", n), a, b, 1), a, b };
+  }
   const simulate = (core as unknown as { simulateFight?: Simulate }).simulateFight;
   if (typeof simulate !== "function") return "The sim is not in this build yet: use ?fixture=bout-gate.";
   const pick = (name: string | null, fallback: FighterSnapshot): FighterSnapshot =>

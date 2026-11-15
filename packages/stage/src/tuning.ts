@@ -106,6 +106,8 @@ export const FLIGHT = {
   speed: 900,              // units per second
   minMs: 120,
   tumbleArc: 0.22,         // arc height as a share of the distance
+  /** The least arc of a lob, so a short throw between close scrappers (80 units) still reads as a lob. */
+  tumbleArcMin: 20,
   returnBow: 0.28,         // how far a boomerang bows sideways, as a share of the distance
   spinPerMs: 1.1,          // degrees per ms for an item that spins
   tumblePerMs: 0.9,
@@ -155,4 +157,17 @@ export const TEXT = {
   banner: 22,
   sticker: 13,
   liftAbove: 8,
+} as const;
+
+/** The pose crossfade at every clip change (fight screen v2, the Lead's animation note): the
+ *  outgoing pose, frozen at the switch, blends into the incoming clip over this long, bone angles
+ *  by the shortest arc and the root linearly. A new flinch that lands mid-flinch so continues
+ *  from the pose on screen instead of snapping back to frame 0. */
+export const BLEND = {
+  /** The shortest and longest crossfade. A bigger gap between the two poses takes longer, so no
+   *  joint has to turn faster than the rig's own limit to close it. */
+  minMs: 70, maxMs: 230,
+  /** ms of crossfade per degree of the largest bone gap at the cut. */
+  msPerDeg: 4.5,
+  maxDepth: 4,
 } as const;

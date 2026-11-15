@@ -40,7 +40,7 @@ export function makePath(kind: FlightKind, x0: number, y0: number, x1: number, y
     case "straight":
       return { kind, x0, y0, x1, y1, facing, ms, arc: 0, rot0: localAngle(x1 - x0, y1 - y0, facing), spin: 0 };
     case "tumble":
-      return { kind, x0, y0, x1, y1, facing, ms, arc: dist * FLIGHT.tumbleArc, rot0, spin: FLIGHT.tumblePerMs };
+      return { kind, x0, y0, x1, y1, facing, ms, arc: Math.max(FLIGHT.tumbleArcMin, dist * FLIGHT.tumbleArc), rot0, spin: FLIGHT.tumblePerMs };
     case "return":
       return { kind, x0, y0, x1, y1, facing, ms, arc: dist * FLIGHT.returnBow, rot0, spin: FLIGHT.spinPerMs * 1.6 };
     case "pop":
