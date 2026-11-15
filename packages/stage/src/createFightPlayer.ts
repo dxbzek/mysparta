@@ -13,6 +13,7 @@ import { drawFrame } from "./draw";
 import type { Frame } from "./frame";
 import { frameAt } from "./frame";
 import { hudAt } from "./hud";
+import { birthsFor, numbersFor } from "./labels";
 import type { Tracks } from "./model";
 import type { Internal } from "./timeline";
 import { buildTimeline } from "./timeline";
@@ -41,7 +42,8 @@ export function buildPlayer(log: BoutLog, a: FighterSnapshot, b: FighterSnapshot
     frame(tMs: number): Frame { return frameAt(tracks, tMs); },
     draw(env: DrawEnv, tMs: number, view: { w: number; h: number; dpr: number }): void {
       drawFrame(env, frameAt(tracks, tMs), rig, opts, view, cameraAt(tracks, tMs, view, opts.reducedMotion),
-        (a) => { const tr = tracks.byId.get(a.id); return tr ? poseAt(rig, tr, tMs) : rig.samplePose(a.rig, a.clip, a.clipT, a.aim); });
+        (a) => { const tr = tracks.byId.get(a.id); return tr ? poseAt(rig, tr, tMs) : rig.samplePose(a.rig, a.clip, a.clipT, a.aim); },
+        birthsFor(tracks, view, opts.reducedMotion), numbersFor(tracks, view, opts.reducedMotion));
     },
   };
 }

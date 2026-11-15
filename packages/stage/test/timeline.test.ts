@@ -11,7 +11,7 @@ import { strikeTime } from "@rankzero/rig";
 import { capsuleRig } from "@rankzero/rig/testing";
 import { createFightClock } from "../src/clock";
 import { cuesBetween } from "../src/cues";
-import { HIT_STOP, KNOCKOUT } from "../src/tuning";
+import { HIT_STOP, KNOCKOUT, MOVE } from "../src/tuning";
 import { HOME, STAGE_W } from "../src/layout";
 import { FIXTURE_NAMES, fixturePlayer, optsFor, times } from "./lib/setup";
 import { buildPlayer } from "../src/createFightPlayer";
@@ -98,8 +98,8 @@ describe("companions", () => {
         const tgt = f.actors.find((a) => a.id === (s as StepOf<"attack">).target)!;
         expect(Math.sign(tgt.place.x - me.place.x), `step ${i} facing`).toBe(me.place.facing);
       } else {
-        // flee
-        const t = p.timeline.stepAt[i]! + 50;
+        // flee (scared off by an Air Horn, it first jumps on the spot for MOVE.startleMs)
+        const t = p.timeline.stepAt[i]! + MOVE.startleMs + 50;
         const me = p.frame(t).actors.find((a) => a.id === actor)!;
         expect(me.clip).toBe("flee");
         expect(me.place.facing).toBe(actor.startsWith("a") ? -1 : 1);

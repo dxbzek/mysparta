@@ -9,7 +9,11 @@ import type { PlayerOpts } from "./contracts";
 import type { Frame, FrameText } from "./frame";
 import { STAGE_H, STAGE_W } from "./layout";
 import type { CameraView } from "./camera";
+import { MARGIN, STICKER_H, TOP_BAND, fitView, layoutLabels, layoutNumbers, screenOf } from "./labels";
+export { MARGIN, STICKER_H, TOP_BAND, fitView };
+import type { NumSpot, Spot } from "./labels";
 import { INK } from "./palette";
+import { drawSig } from "./sigs";
 
 /** Screen px of shake per unit of the tuning's shake size, under the camera: the tuning's shake
  *  is in CSS px (calm camera). */
@@ -17,11 +21,6 @@ const SHAKE_PX = 1;
 /** Contact bursts drawn a little bigger under the camera: a short local burst at the contact. */
 const BIG_FX = { burst: 1.1, spark: 1.1 } as const;
 
-export function fitView(view: { w: number; h: number; dpr: number }): { k: number; ox: number; oy: number } {
-  const dpr = view.dpr > 0 ? view.dpr : 1;
-  const k = Math.min(view.w / STAGE_W, view.h / STAGE_H) * dpr;
-  return { k, ox: (view.w * dpr - STAGE_W * k) / 2, oy: (view.h * dpr - STAGE_H * k) / 2 };
-}
 
 function roundRect(env: DrawEnv, x: number, y: number, w: number, h: number, r: number): void {
   const c = env.ctx;
@@ -41,13 +40,8 @@ function roundRect(env: DrawEnv, x: number, y: number, w: number, h: number, r: 
 /** Where a text is painted, in CSS px of the canvas, and its font size in px. */
 interface Placed { x: number; y: number; size: number }
 
-/** Text sizes on screen. Numbers and tags follow the camera up to a cap, so a close camera does
- *  not make a damage number cover a face; banners scale with the canvas width. */
-const TEXT_K_MAX = { number: 3.1, tag: 2.5 } as const;
+/** Banner text scales with the canvas width (tags and numbers: labels.ts). */
 export const BANNER_K = { perWidth: 1 / 225, max: 2.7 } as const;
-export const MARGIN = 6;
-/** Numbers and tags stay below this band at the top of the canvas, where the host's controls sit. */
-export const TOP_BAND = 52;
 /** The banner in the top band shrinks to fit above the standing heads, down to this (CSS px). */
 export const BANNER_MIN_PX = 14;
 /** Room kept above a head's hit point (figure units, times the drawn size: the head's radius and
@@ -73,10 +67,6 @@ export function bannerPx(f: Frame, rig: Rig, cam: CameraView, view: { w: number;
   const fit = (head - TOP_BAND - MARGIN - BANNER_GAP) / STICKER_H;
   return Math.max(BANNER_MIN_PX, Math.min(want, fit));
 }
-/** A sticker's box is this many times its text size tall. */
-export const STICKER_H = 1.35;
-/** Extra screen px a tag is lifted under the camera. */
-const TAG_LIFT = 12;
 
 function text(env: DrawEnv, t: FrameText, fonts: PlayerOpts["fonts"], at: Placed, view: { w: number; h: number }, dpr: number, topBand = 0,
   icon: SvgArt | null = null): void {
@@ -145,24 +135,42 @@ function text(env: DrawEnv, t: FrameText, fonts: PlayerOpts["fonts"], at: Placed
   c.restore();
 }
 
-/** A glow round an actor (Second Wind's breath), drawn behind it. No dim, no floor ring. */
+/** A glow round an actor (Second Wind's breath, the Energy Drink kicking in), drawn behind it:
+ *  stepped flat ellipses (the rig's style: glow is stepped flat shapes with alpha, no gradient)
+ *  and a bright rim. No dim, no floor ring. */
 function auraBehind(env: DrawEnv, s: Frame["auras"][number]): void {
   const c = env.ctx;
   c.save();
-  c.globalAlpha = 0.22 * s.glow;
   c.fillStyle = s.colour;
   c.strokeStyle = s.colour;
+  for (const [k, a] of [[1.25, 0.16], [1, 0.22], [0.74, 0.3]] as const) {
+    c.globalAlpha = a * s.glow;
+    c.beginPath();
+    c.ellipse(s.x, s.floorY - 42, 26 * k, 50 * k, 0, 0, Math.PI * 2);
+    c.fill();
+  }
+  c.globalAlpha = 0.9 * s.glow;
+  c.lineWidth = 2;
   c.beginPath();
-  c.ellipse(s.x, s.floorY - 42, 24, 48, 0, 0, Math.PI * 2);
-  c.fill();
-  c.globalAlpha = 0.6 * s.glow;
-  c.lineWidth = 1.6;
+  c.ellipse(s.x, s.floorY - 42, 26, 50, 0, 0, Math.PI * 2);
   c.stroke();
   c.restore();
 }
 
+/** What an actor put aside for a Move hangs on its back, behind the body, so the gesture reads
+ *  and the item is still there (a shield strapped across the back, a long item slung). */
+function drawSlung(env: DrawEnv, rig: Rig, a: Frame["actors"][number]): void {
+  if (a.slung === undefined) return;
+  const s = a.dress.scale > 0 ? a.dress.scale : 1;
+  a.slung.forEach((item, k) => {
+    rig.drawProp(env, item, { x: a.place.x - a.place.facing * (6 + 3 * k) * s, y: a.place.y - (58 - 6 * k) * s, facing: a.place.facing,
+      rot: k === 0 ? 100 : 128 });
+  });
+}
+
 export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, view: { w: number; h: number; dpr: number }, cam?: CameraView,
-  pose?: (a: Frame["actors"][number]) => Pose): void {
+  pose?: (a: Frame["actors"][number]) => Pose, spots?: ReadonlyMap<number, Spot>, numSpots?: ReadonlyMap<number, NumSpot>): void {
+  const poseOf = (a: Frame["actors"][number]): Pose => (pose ? pose(a) : rig.samplePose(a.rig, a.clip, a.clipT, a.aim));
   const c = env.ctx;
   const dpr = view.dpr > 0 ? view.dpr : 1;
   // without a camera (tools, tests) the whole stage is fitted and centred, as before
@@ -198,7 +206,8 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
   }
   for (const s of f.auras) auraBehind(env, s);
   for (const a of f.actors) {
-    rig.drawActor(env, pose ? pose(a) : rig.samplePose(a.rig, a.clip, a.clipT, a.aim), a.dress, a.place);
+    drawSlung(env, rig, a);
+    rig.drawActor(env, poseOf(a), a.dress, a.place);
     // a tarp over a pet goes with the pet: a fighter in front of it stays in front
     for (const e of f.fx) if (e.under === a.id) rig.drawFx(env, e.fx, e.progress, e.at, e.seed);
   }
@@ -221,6 +230,8 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
       c.restore();
     } else rig.drawFx(env, e.fx, e.progress, e.at, e.seed);
   }
+  // each skill's own picture, over the actors (sigs.ts)
+  for (const s of f.sigs) drawSig(env, s, rig, poseOf);
   c.restore();
   if (f.tape !== null) rig.drawFx(env, "tape", f.tape, { x: 0, y: 0, facing: 1 }, opts.cosmeticSeed);
   c.restore();
@@ -231,22 +242,27 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
   const sy = cam ? f.shake.y * SHAKE_PX : f.shake.y * k;
   const bk = cam ? Math.min(view.w * BANNER_K.perWidth, BANNER_K.max) : k;
   for (const t of f.texts) {
-    if (t.kind === "banner" && cam) {
+    if (t.kind !== "banner") continue;
+    if (cam) {
       // stage-wide cards: centred on the canvas, a third of the way down (FIGHT), or held in the
       // top band clear of the heads (the winner's banner, review finding 52: it covered his head)
       const top = t.band === "top";
       text(env, t, opts.fonts, { x: view.w / 2 + (t.x - STAGE_W / 2) * bk, y: top ? 0 : view.h * 0.34 + (t.y - 90) * bk,
         size: top ? bannerPx(f, rig, cam, css, t.size) : t.size * bk },
         css, dpr, top ? TOP_BAND : 0);
-      continue;
-    }
-    const cap = t.kind === "number" ? TEXT_K_MAX.number : TEXT_K_MAX.tag;
-    const tk = cam ? Math.min(k, cap) : k;
-    const shaken = t.kind === "number" || t.kind === "tag";
-    // a tag (CRIT, BLOCK, a skill) sits higher than at the old scale, clear of the number it labels
-    const lift = cam && t.kind === "tag" ? TAG_LIFT : 0;
-    const icon = t.icon !== undefined ? rig.icon(t.icon) : null;
-    text(env, t, opts.fonts, { x: t.x * k + ox + (shaken ? sx : 0), y: t.y * k + oy + (shaken ? sy : 0) - lift, size: t.size * tk }, css, dpr,
-      cam ? TOP_BAND : 0, icon);
+    } else text(env, t, opts.fonts, { x: t.x * k + ox, y: t.y * k + oy, size: t.size * k }, css, dpr, 0);
+  }
+  // tags and stickers: laid out so no two overlap (labels.ts), each riding on its actor
+  const scr = screenOf(css, cam);
+  const labels = layoutLabels(f, scr, spots);
+  for (const l of labels) {
+    const shaken = l.t.kind === "tag";
+    const icon = l.t.icon !== undefined ? rig.icon(l.t.icon) : null;
+    const pop = l.t.size0 !== undefined && l.t.size0 > 0 ? l.t.size / l.t.size0 : 1;
+    text(env, l.t, opts.fonts, { x: l.x + (shaken ? sx : 0), y: l.y + (shaken ? sy : 0), size: l.size * pop }, css, dpr, cam ? TOP_BAND : 0, icon);
+  }
+  // numbers last, beside the tags, never on one (labels.ts)
+  for (const n of layoutNumbers(f, scr, labels, numSpots)) {
+    text(env, n.t, opts.fonts, { x: n.x + sx, y: n.y + sy, size: n.size }, css, dpr, cam ? TOP_BAND : 0);
   }
 }

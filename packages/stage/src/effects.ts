@@ -7,8 +7,8 @@
  * stage's test does not trust it and measures every start from sampled frames.
  * Block and evade, the skill tag, the OVERTIME sticker and the ticket tape are here too.
  */
-import type { ActorId, HeldId, MoveId, PerkId, Proc } from "@rankzero/core";
-import { WEAPON_META, impactFamily } from "@rankzero/core";
+import type { ActorId, HeldId, MoveId, PerkId, Proc, SkillId } from "@rankzero/core";
+import { MOVE_IDS, SKILL_IDS, WEAPON_META, content, impactFamily } from "@rankzero/core";
 import { toStage } from "@rankzero/rig";
 import type { EffectKey, SfxItem } from "./contracts";
 import { noise } from "./cues";
@@ -16,7 +16,7 @@ import { frameSpan } from "./camera";
 import { drawnScale } from "./footwork";
 import { segAt } from "./track";
 import { CORAL, GREEN, INK, PAPER, SKY, VOLT, WHITE } from "./palette";
-import type { TagItem } from "./model";
+import type { TagItem, TagRole } from "./model";
 import type { Builder } from "./timeline";
 import { CONTACT, MOVE, OUTCOME, TEXT } from "./tuning";
 import type { Zone } from "./layout";
@@ -61,13 +61,19 @@ export function overHead(b: Builder, id: ActorId, at: number): { x: number; y: n
   return { x: head.x, y: head.y - (tr.rig === "scrapper" ? 16 : 12) };
 }
 
-/** A sticker over an actor. Tags of the same actor at the same time stack upward. */
+/**
+ * A tag over an actor. It rides on the actor (drawn over its head wherever it is in the frame);
+ * where it stands among the other tags, so no two ever overlap, is labels.ts's job at draw time
+ * (they used to stack by count in stage units, and the clamp to the top band undid the stack:
+ * HEAD START! covered HAYMAKER in 3 of 3 bouts). Every tag is the same small size; `role` says
+ * what it is (a Move's name, a result, a proc, a note, the CRIT).
+ */
 export function tagOver(b: Builder, id: ActorId, at: number, text: string, colour: string, ms: number = OUTCOME.tagMs,
-  icon?: PerkId): void {
+  icon?: PerkId, role: TagRole = "note"): void {
   const p = overHead(b, id, at);
-  const stacked = b.tags.filter((t) => t.actor === id && t.from < at + ms && at < t.to).length;
-  const tag: TagItem = { from: at, to: at + ms, text, colour, ink: INK, actor: id, x: p.x, y: p.y - 12 - stacked * 11,
-    size: TEXT.tag, kind: "tag" };
+  const base = b.place(id, at);
+  const tag: TagItem = { from: at, to: at + ms, text, colour, ink: INK, actor: id, x: p.x, y: p.y, size: TEXT.tag, kind: "tag", role,
+    follow: id, dx: (p.x - base.x) * base.facing, dy: p.y - base.y };
   if (icon !== undefined) tag.icon = icon;
   b.tags.push(tag);
 }
@@ -87,7 +93,7 @@ export function critTag(b: Builder, id: ActorId, at: number, head: { x: number; 
   const fits = (sd: 1 | -1): boolean => head.x + sd * off - tagHalf >= 4 && head.x + sd * off + tagHalf <= STAGE_W - 4;
   const side = fits(dir) ? dir : -dir;
   b.tags.push({ from: at, to: at + OUTCOME.tagMs, text, colour: VOLT, ink: INK, actor: id, x: head.x + side * off, y: head.y,
-    size: TEXT.tag, kind: "tag" });
+    size: TEXT.tag, kind: "tag", role: "crit" });
 }
 
 /** The skill tag of a step: at most one, the first proc (the sim lists the rarest first), with the
@@ -95,15 +101,26 @@ export function critTag(b: Builder, id: ActorId, at: number, head: { x: number; 
 export function skillTag(b: Builder, procs: readonly Proc[] | undefined, at: number): void {
   const p = procs?.[0];
   if (p === undefined || !b.has(p.by)) return;
-  tagOver(b, p.by, at, `${b.opts.text.skillName(p.skill).toUpperCase()}!`, SKY, OUTCOME.skillTagMs, p.skill as PerkId);
+  tagOver(b, p.by, at, `${b.opts.text.skillName(p.skill).toUpperCase()}!`, SKY, OUTCOME.skillTagMs, p.skill as PerkId, "proc");
+  // every passive that procs also shows on the body (sigs.ts: an armour plate's flash, a blade's
+  // glint, steam off a stubborn head), not only in words
+  const seen = new Set<string>();
+  for (const q of procs ?? []) {
+    if (!b.has(q.by) || !PASSIVES.has(q.skill) || seen.has(`${q.by}|${q.skill}`)) continue;
+    seen.add(`${q.by}|${q.skill}`);
+    b.sigs.push({ kind: "proc", skill: q.skill as SkillId, actor: q.by, target: null, from: at, to: at + MOVE.procMarkMs });
+  }
 }
+/** The passives (the skills with a fight moment of their own and no Move). */
+export const PASSIVES: ReadonlySet<string> = new Set(SKILL_IDS.filter((id) => content.skills[id].kind === "passive"
+  && !(MOVE_IDS as readonly string[]).includes(id)));
 
 /** A Move's visible result over an actor, in the host's words ("-25 AIM", "SNARED"), with the
  *  Move's icon. No words from the host: no tag. */
 export function resultTag(b: Builder, move: MoveId, id: ActorId, at: number, colour: string, part?: "pet"): void {
   const text = b.opts.text.moveResult?.(move, part) ?? "";
   if (text === "" || !b.has(id)) return;
-  tagOver(b, id, at, text.toUpperCase(), colour, MOVE.resultMs, move);
+  tagOver(b, id, at, text.toUpperCase(), colour, MOVE.resultMs, move, part === "pet" ? "note" : "result");
 }
 
 /** Lands one swing, throw or Move hit on one target. Returns the contact's index. */
@@ -187,7 +204,9 @@ export function land(b: Builder, L: Landing, ci?: number): number {
     }
     b.fx.push({ fx: "spark", from: s("burst"), to: s("burst") + CONTACT.burstMs, x: spot.x, y: spot.y, facing: 1, seed,
       contact: c, key: "burst" });
-    tagOver(b, L.target, L.at, b.opts.text.block, PAPER, OUTCOME.blockTagMs);
+    // a carried shield that took it is named by its own tag ("WOODEN PALLET!"): no BLOCK under it
+    const shieldTag = shield !== null && L.procs?.[0]?.skill === shield;
+    if (!shieldTag) tagOver(b, L.target, L.at, b.opts.text.block, PAPER, OUTCOME.blockTagMs);
     if (L.attacker !== null) {
       b.nudge({ actor: L.attacker, key: "recoil", from: L.at, outMs: OUTCOME.recoilMs * 0.5, holdMs: 0, backMs: OUTCOME.recoilMs,
         dx: -dir * OUTCOME.recoil, arc: 0, contact: null });
@@ -292,8 +311,10 @@ export function healAt(b: Builder, i: number, target: ActorId, at: number, amoun
   const before = b.hpNow.get(target) ?? b.track(target).maxHp;
   const head = overHead(b, target, at);
   const p = b.place(target, at);
-  b.fx.push({ fx: "plus", from: at, to: at + OUTCOME.healRingMs, x: p.x, y: p.y, facing: p.facing,
-    seed: (b.opts.cosmeticSeed ^ i) | 0, contact: null, follow: target });
+  // (an fx that follows its actor takes x as an offset in its facing: 0 is on the actor)
+  // (the plus signs rise from 30 units over `at`: a scrapper's chest; a pet's are lowered to its back)
+  b.fx.push({ fx: "plus", from: at, to: at + OUTCOME.healRingMs, x: 0, y: 0, facing: p.facing,
+    seed: (b.opts.cosmeticSeed ^ i) | 0, contact: null, follow: target, dy: b.track(target).rig === "scrapper" ? 0 : 30 });
   b.numbers.push({ from: at, x: head.x, y: head.y, text: `+${amount}`, colour: GREEN, scale: 1.25, contact: null });
   b.hp.push({ actor: target, at, from: before, to: hpAfter, ms: OUTCOME.healFillMs, kind: "gain", contact: null });
   b.hpNow.set(target, hpAfter);
@@ -324,7 +345,7 @@ export function overtimeSticker(b: Builder, at: number): void {
  *  the size and length of a passive's tag (owner, 15 Nov 2026: "It should just show"). */
 export function moveNameTag(b: Builder, move: MoveId, actor: ActorId, at: number): void {
   if (!b.has(actor)) return;
-  tagOver(b, actor, at, b.opts.text.moveName(move).toUpperCase(), VOLT, MOVE.nameTagMs, move);
+  tagOver(b, actor, at, b.opts.text.moveName(move).toUpperCase(), VOLT, MOVE.nameTagMs, move, "move");
 }
 
 /** A cosmetic variation from the seed, 0 to 1. */

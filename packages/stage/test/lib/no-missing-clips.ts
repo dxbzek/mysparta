@@ -4,15 +4,18 @@
  * "[capsuleRig] no clip ...") and play idle, which hides a sliding body; here that warning ends
  * the test that caused it.
  *
- * The one allowed case: the stage's footwork clips on a test double (the capsule rig) or on a rig
- * built from the gate pack alone (named by that test with `allowMissingClips`), which footwork.ts
- * documents as playing idle with the same timing.
+ * The one allowed case: the stage's footwork clips and the Moves' gestures on a test double (the
+ * capsule rig) or on a rig built from the gate pack alone (named by that test with
+ * `allowMissingClips`), which footwork.ts documents as playing idle with the same timing. The
+ * full rig has them all: skills.test.ts proves it with the content pack, with this same guard.
  */
 import { afterEach } from "vitest";
 
 /** The footwork clips a test double may lack: the stage plays idle there with the same timing
  *  (footwork.ts). Allowed for the capsule test rig only. */
 export const FOOTWORK: ReadonlySet<string> = new Set(["dash-push", "brake", "shuffle", "slip"]);
+/** The Moves' gestures the stage asks for by name (rig content clips/gestures.ts). */
+export const GESTURES: ReadonlySet<string> = new Set(["ears", "rub-eyes", "taunt", "angry"]);
 const MISSING =/no clip "([^"]+)" for (?:rig "([^"]+)"|the (scrapper))/;
 let allowed = new Set<string>();
 let seen: string[] = [];
@@ -21,7 +24,7 @@ const original = console.warn.bind(console);
 console.warn = (...args: unknown[]): void => {
   const text = args.map(String).join(" ");
   const m = MISSING.exec(text);
-  const fallback = text.includes("[capsuleRig]") && FOOTWORK.has(m?.[1] ?? "");
+  const fallback = text.includes("[capsuleRig]") && (FOOTWORK.has(m?.[1] ?? "") || GESTURES.has(m?.[1] ?? ""));
   if (m !== null && !allowed.has(m[1]!) && !fallback) seen.push(text);
   original(...args);
 };

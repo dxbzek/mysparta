@@ -14,11 +14,11 @@ import { arc, mixPose, poseAt } from "../src/blend";
 import { clipTime, segAt } from "../src/track";
 import { buildPlayer } from "../src/createFightPlayer";
 import { optsFor } from "./lib/setup";
-import { FOOTWORK, allowMissingClips } from "./lib/no-missing-clips";
+import { FOOTWORK, GESTURES, allowMissingClips } from "./lib/no-missing-clips";
 
 const rig = createRig(gatePack);
 // the gate pack alone has no footwork clips: the stage plays idle there with the same timing (footwork.ts)
-allowMissingClips([...FOOTWORK]);
+allowMissingClips([...FOOTWORK, ...GESTURES]);
 const LIMIT = 25;
 const BONES = ["armF.lo", "handF", "armB.lo", "handB"] as const;
 const idx = BONES.map((b) => SCRAPPER_BONES.indexOf(b));

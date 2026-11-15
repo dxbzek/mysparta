@@ -17,6 +17,7 @@ import type { Aim, AppearanceSet, IconArt, Clip, ClipInfo, CompanionClip, Conten
   SvgArt, WeaponArt } from "../contracts";
 import { CLIP_FALLBACK, COMPANION_CLIPS, SCRAPPER_CLIPS, strikeTime } from "../contracts";
 import { BODY_CENTRE, HEAD_CENTRE, KNUCKLES } from "../gate/parts";
+import { hd } from "../gate/parts/kit";
 import { PLACEHOLDER_COMPANIONS, placeholderWeapon, shieldStandIn } from "../gate/placeholders";
 import type { CompanionArt } from "../gate/placeholders";
 import { ANATOMY, BONE, GRIP_ROT, SCRAPPER_RIG, SECONDARY } from "../gate/skeleton";
@@ -56,6 +57,13 @@ export const FOLD_PULL = 2.5;
 /** Shares of the arm's length from the back shoulder to grip2 (after that push) over which the
  *  back hand lets go: gone at the first, held from the second. */
 export const FOLD_LET_GO = [0.22, 0.3] as const;
+
+/** A Move prop is drawn in front of the face (`z`, over the head's 40) while its grip is this far
+ *  over the neck and within this far of it sideways (units, times the drawn size): the whistle and
+ *  the horn at the mouth, the can tipped back. */
+export const PROP_FACE = { above: 1, reach: 14, z: 41.5,
+  /** A whistle's mouthpiece at the lips (head-bone frame) and its tilt down from the head's line. */
+  mouth: hd([10, -4.6]), tilt: 10 } as const;
 
 const warned = new Set<string>();
 export function warnOnce(key: string, message: string): void {
@@ -679,7 +687,18 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       else {
         const g = gripOf(f, f.backLeads ? "F" : "B", prop);
         const xp = itemStageXf(f, g.x, g.y, g.angle, prop);
-        parts.push(...tagged(itemPaints(prop, xp, 21.5, colours, undefined, null, 0, 0, 0), "prop", xp));
+        // up at the mouth (the whistle, the horn, the can drunk) it is drawn in front of the face,
+        // or the head hides it (verify, 16 Nov 2026: the whistle never showed); lower, behind the
+        // body with the back hand
+        const hg = stageOf(f, g.x, g.y);
+        const hb = f.fr[BONE.head]!;
+        const hn = stageOf(f, hb.e, hb.f);
+        const atFace = hg[1] < hn[1] - PROP_FACE.above * f.s && Math.abs(hg[0] - hn[0]) < PROP_FACE.reach * f.s;
+        // a whistle up at the face is in the mouth, sticking out forward, its lanyard down to the
+        // neck, the way it is really blown (the hand only steadies it)
+        const inMouth = atFace && dress.prop === "whistle";
+        const xw = inMouth ? mul(mul(mul(f.map, hb), moveXf(PROP_FACE.mouth[0], PROP_FACE.mouth[1])), rotXf(PROP_FACE.tilt)) : xp;
+        parts.push(...tagged(itemPaints(prop, xw, atFace ? PROP_FACE.z : 21.5, colours, undefined, null, 0, 0, 0), "prop", xw));
       }
     }
     return parts;

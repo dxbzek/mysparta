@@ -20,7 +20,7 @@ import { finishCues, pickVariant } from "./cues";
 import type { Zone } from "./layout";
 import { BODY_GAP, FLOOR_Y, HOME, PET_MARKS, PET_SCALE, SCRAPPER_REACH, STAGE_W, homeFacing, homeMarks, reachFor, stopFor } from "./layout";
 import type { ActorTrack, BagEvent, Crowd, Flash, FlightItem, FloorItem, FxItem, HpEvent, Move, Nudge, NumberItem,
-  Seg, Shake, Aura, TagItem, Tracks } from "./model";
+  Seg, Shake, Aura, Sig, Sling, TagItem, Tracks } from "./model";
 import type { MotionRules } from "./motion";
 import { motionRules } from "./motion";
 import { basePos, clipTime, drawPlace, facingAt, nudgeAt, segAt } from "./track";
@@ -83,6 +83,8 @@ export class Builder {
   readonly flashes: Flash[] = [];
   readonly crowds: Crowd[] = [];
   readonly auras: Aura[] = [];
+  readonly sigs: Sig[] = [];
+  readonly slings: Sling[] = [];
   readonly extraBusy: [number, number][] = [];
   tape: { from: number; to: number } | null = null;
   koFocus: Tracks["koFocus"] = null;
@@ -683,6 +685,8 @@ export function buildTimeline(log: BoutLog, a: FighterSnapshot, b: FighterSnapsh
     flashes: B.flashes,
     crowds: B.crowds,
     auras: B.auras,
+    sigs: B.sigs,
+    slings: B.slings,
     tape: B.tape,
     koFocus: B.koFocus,
     applyAt: stepEnd,
