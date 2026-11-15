@@ -308,7 +308,9 @@ const BEHAVIOUR: Partial<Record<SkillId, () => void>> = {
     const ripo = valuesOf(t.A).riposte;
     expect(playMove(t.bout, t.A, "taunt")).toBe(sk("taunt", "cost"));
     expect(valuesOf(t.A).riposte - ripo).toBe(sk("taunt", "riposte"));
-    takeTurn(t.bout, t.A);                                         // its next own turn ends it
+    takeTurn(t.bout, t.A);                                         // the free action that follows keeps it
+    expect(valuesOf(t.A).riposte - ripo).toBe(sk("taunt", "riposte"));
+    takeTurn(t.bout, t.A);                                         // the own turn after that ends it
     expect(valuesOf(t.A).riposte).toBe(ripo);
   },
   "second-wind": () => {

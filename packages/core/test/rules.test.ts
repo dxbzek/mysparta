@@ -64,7 +64,7 @@ describe("rules the first draft left open", () => {
     expect(t.bout.steps).toEqual([]);
   });
 
-  it("companions use Tempo 100, Reach 0, Crit 5, Pierce 0, Armor 0 and their own Evade, Aim, Combo, Disarm", () => {
+  it("companions use Tempo 80, Reach 0, Crit 5, Pierce 0, Armor 0 and their own Evade, Aim, Combo, Disarm", () => {
     for (const id of ["raccoon", "goose", "boar"] as const) {
       const v = companionValues(COMPANIONS[id]);
       expect(v).toMatchObject({ crit: 5, pierce: 0, armor: 0, block: 0, evade: COMPANIONS[id].evade,
@@ -72,7 +72,7 @@ describe("rules the first draft left open", () => {
     }
     const t = setup(snap(["boar"]), snap([]));
     const boar = t.bout.actors.find((x) => x.id === "a1")!;
-    expect(turnBase(boar, "fists")).toBe(Math.floor((100 * bodyTempo(boar.spd)) / 100));
+    expect(turnBase(boar, "fists")).toBe(Math.floor((80 * bodyTempo(boar.spd)) / 100));
     t.B.held = "broom";
     expect(interceptChance(boar, t.B, 0)).toBe(8 * 3);
   });

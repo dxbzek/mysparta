@@ -58,14 +58,14 @@ describe("creation", () => {
       for (const p of pts) { expect(p).toBeGreaterThanOrEqual(2); expect(p).toBeLessThanOrEqual(5); }
     }
   });
-  it("gives level-1 HP 47 to 68 before the starting perk", () => {
+  it("gives level-1 HP 59 to 80 before the starting perk", () => {
     let lo = 999; let hi = 0;
     for (let i = 0; i < 2000; i++) {
       const hp = maxHpOf(effectiveOf(startStats(combineSeed("t", i))).health, 1, 0);
       lo = Math.min(lo, hp); hi = Math.max(hi, hp);
     }
-    expect(lo).toBe(47);
-    expect(hi).toBe(68);
+    expect(lo).toBe(59);
+    expect(hi).toBe(80);
   });
   it("gives the same name the same stats, starting perk, look and first offer", () => {
     for (const n of ["Marla", "Dez", "Tug", "Big Lou"]) {
@@ -323,7 +323,7 @@ describe("found perks and sheets", () => {
     }
   });
   it("takes the companion cost off max HP: two Raccoons and a Boar cost 46%", () => {
-    const base = 30 + 7 * 5 + 3 * 10;
+    const base = 44 + 7 * 5 + 10;
     expect(maxHpOf(5, 10, 46)).toBe(Math.floor((base * 54) / 100));
     const s = api.snapshotSheet({ id: "x", name: "X", look: api.rollLook(1, 0, 0), level: 10, rulesVersion: 1,
       stats: { points: { health: 5, strength: 5, agility: 5, speed: 5 }, mult: { health: 100, strength: 100, agility: 100, speed: 100 } },

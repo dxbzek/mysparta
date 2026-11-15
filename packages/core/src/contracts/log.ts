@@ -39,6 +39,13 @@
  *     `resisted`, and on the `move` of a Snatch it stops, which then has no `taken`), a shield
  *     (its id, on every block made while it is carried), Trick Shot (on the extra throw of a
  *     ricochet), Junk Collector (on a throw whose weapon it puts back in the bag).
+ *     Number skills (sim-feel pass) write a proc on the step where their number changed what
+ *     happened: Padding and Plate Vest (on a hit or slam their Armor made smaller), Sharpening
+ *     Stone, Bare Knuckle and Pitcher (on a hit they made bigger; Pitcher also on a throw whose
+ *     weapon it sends back to the bag), Pet Lover (on a companion's hit it made bigger, named for
+ *     the owner), Heavy Lifter (on the first swing or throw of a turn made with a Heavy weapon),
+ *     Quick Swap (on the first swing or throw after the empty-hand draw it made), Sand in the Eyes
+ *     (on an "evade" that happened only because of the Aim it took, named for the thrower).
  *  9. Decisive procs. A passive that only adds to a chance writes a proc on the step where
  *     the roll passed ONLY because of its bonus: Anticipation (on `intercept`), Payback (on
  *     `riposte`), Flurry (on the combo `attack`), Slippery (on an "evade" outcome), Knock Loose
@@ -46,8 +53,9 @@
  *     Taunt (on a `riposte` while its bonus is on).
  *     Head Start writes a proc on its owner's first action: the first step of its first turn
  *     that can carry procs (the `move`, the first `attack` or `throw`, or the `intercept` that
- *     stops that turn). `draw` and `swap` carry none. The sim lists the rarest skill first; the
- *     stage shows at most one tag per step.
+ *     stops that turn). `draw` and `swap` carry none. The sim writes at most one proc per step:
+ *     Last Stand first, then rule skills, then chance skills, then number skills, the rarest first
+ *     inside each group (docs/RULES.md 7, "Skill tags on stage").
  * 10. Reading an `intercept`: its `target` is the actor whose turn it is and who was dashing in;
  *     its `actor` is the defender who hit first. That target makes no `attack` and no `throw` in
  *     that turn.

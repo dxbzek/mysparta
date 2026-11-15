@@ -9,12 +9,16 @@ import { SKILLS, sk } from "../content/skills";
 import type { Actor } from "./combatant";
 import { valuesOf } from "./combatant";
 import type { Bout } from "./bout";
-import { armored, bagCopy, emit, enemiesUp, headStart, knockOut, land, pickEnemy, proc, scrapperOfSide,
+import { armored, bagCopy, emit, opening, openingCut, enemiesUp, headStart, knockOut, land, pickEnemy, proc, scrapperOfSide,
   sortProcs, tryDisarm, tryFree, tryShield } from "./bout";
 import { turnBase, turnCost } from "./clock";
 import { roll } from "./rng";
+import { armorProcs } from "./melee";
 
 export const MOVE_SLACK = 12;
+/** Taunt costs no time, so its owner acts again at once; the bonus lasts through that action and
+ *  ends at the start of the owner's turn after it. */
+export const TAUNT_TURNS = 2;
 
 /** Whether a Move's condition holds for `a` right now. */
 export function moveReady(b: Bout, a: Actor, id: MoveId): boolean {
@@ -36,7 +40,7 @@ export function moveReady(b: Bout, a: Actor, id: MoveId): boolean {
       const foe = scrapperOfSide(b, a.side === "a" ? "b" : "a");
       return foe.status === "up" && foe.sand === 0;
     }
-    case "taunt": return !a.taunt;
+    case "taunt": return a.taunt === 0;
     case "second-wind": return a.hp * 100 < a.maxHp * sk("second-wind", "belowHpPct");
     case "grapple": {
       const foe = scrapperOfSide(b, a.side === "a" ? "b" : "a");
@@ -135,7 +139,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       const hits: { target: Actor["id"]; damage: number; hpAfter: number }[] = [];
       for (const t of targets) {
         const damage = t.scrapper
-          ? roll(b.r.damage, sk("firecrackers", "damageMin"), sk("firecrackers", "damageMax"))
+          ? opening(b, t, roll(b.r.damage, sk("firecrackers", "damageMin"), sk("firecrackers", "damageMax")))
           : Math.max(1, Math.floor((t.maxHp * sk("firecrackers", "companionPct")) / 100));
         const hpAfter = land(t, damage, procs);
         hits.push({ target: t.id, damage, hpAfter });
@@ -179,7 +183,9 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       const target = pickEnemy(b, a)!;
       const variance = roll(b.r.damage, 85, 115);
       const raw = Math.floor(((sk("body-slam", "base") + sk("body-slam", "perStrength") * a.str) * variance) / 100);
-      const damage = armored(raw, valuesOf(target).armor);
+      const armor = valuesOf(target).armor;
+      armorProcs(target, armor, (x) => openingCut(b, target, armored(raw, x)), openingCut(b, target, armored(raw, armor)), procs);
+      const damage = opening(b, target, armored(raw, armor));
       const hpAfter = land(target, damage, procs);
       emit(b, moveStep(b, a, id, procs, { target: target.id, hits: [{ target: target.id, damage, hpAfter }] }));
       if (target.hp > 0) tryDisarm(b, a, target, "slam");
@@ -195,7 +201,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       return Math.floor((turnBase(a, a.held) * sk("sand-in-the-eyes", "costPct")) / 100);
     }
     case "taunt": {
-      a.taunt = true;
+      a.taunt = TAUNT_TURNS;
       emit(b, moveStep(b, a, id, procs, {}));
       return sk("taunt", "cost");
     }
@@ -211,7 +217,9 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       const foe = scrapperOfSide(b, a.side === "a" ? "b" : "a");
       const variance = roll(b.r.damage, 85, 115);
       const raw = Math.floor(((sk("grapple", "base") + sk("grapple", "perStrength") * a.str) * variance) / 100);
-      const damage = armored(raw, valuesOf(foe).armor);
+      const armor = valuesOf(foe).armor;
+      armorProcs(foe, armor, (x) => openingCut(b, foe, armored(raw, x)), openingCut(b, foe, armored(raw, armor)), procs);
+      const damage = opening(b, foe, armored(raw, armor));
       const hpAfter = land(foe, damage, procs);
       emit(b, moveStep(b, a, id, procs, { target: foe.id, hits: [{ target: foe.id, damage, hpAfter }] }));
       if (foe.hp === 0) {

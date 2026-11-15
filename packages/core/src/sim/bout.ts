@@ -9,6 +9,7 @@ import { RARITY_OF } from "../contracts/content";
 import type { Rarity } from "../contracts/content";
 import { sk } from "../content/skills";
 import { shieldNumbers } from "../content/shields";
+import { hasTag } from "../content/weapons";
 import type { Actor } from "./combatant";
 import { CAP, valuesOf } from "./combatant";
 import type { Streams } from "./rng";
@@ -38,19 +39,44 @@ export function scrapperOfSide(b: Bout, side: Side): Actor {
   return b.actors.find((x) => x.side === side && x.scrapper)!;
 }
 
-/** One random living enemy, scrapper or companion. */
+/** The enemy scrapper counts this many times in the target pick; each companion once. */
+export const SCRAPPER_TARGET_WEIGHT = 2;
+
+/** One random standing enemy, scrapper or companion, the scrapper weighted 2 to each companion's 1.
+ *  One random number. */
 export function pickEnemy(b: Bout, a: Actor): Actor | null {
   const list = enemiesUp(b, a);
   if (list.length === 0) return null;
-  return list[b.r.target.int(list.length)]!;
+  let r = b.r.target.int(list.length - 1 + SCRAPPER_TARGET_WEIGHT);
+  for (const x of list) {
+    const w = x.scrapper ? SCRAPPER_TARGET_WEIGHT : 1;
+    if (r < w) return x;
+    r -= w;
+  }
+  return list[list.length - 1]!;
 }
 
 const RANK: Readonly<Record<Rarity, number>> = { mythic: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
-/** Rarest first, then the order of the perk list. */
+/** Which proc a step keeps when several skills mattered on it. 0: Last Stand (the log's HP reading
+ *  depends on it). 1: rule skills, which made something happen that would not have happened at all.
+ *  2: chance skills, whose bonus decided a roll. 3: number skills, which changed a number. */
+const TIER: Readonly<Partial<Record<ProcId, number>>> = {
+  "last-stand": 0,
+  "firm-grip": 1, "parry": 1, "stubborn": 1, "trick-shot": 1, "junk-collector": 1, "head-start": 1,
+  "anticipation": 2, "payback": 2, "flurry": 2, "slippery": 2, "knock-loose": 2, "sharp-eye": 2, "taunt": 2,
+  "sand-in-the-eyes": 2, "quick-swap": 2,
+  "padding": 3, "plate-vest": 3, "sharpening-stone": 3, "bare-knuckle": 3, "pitcher": 3, "pet-lover": 3, "heavy-lifter": 3,
+};
+/** A shield's proc (a block made with it) is a rule proc. */
+const tierOf = (id: ProcId): number => TIER[id] ?? 1;
+
+/** At most one proc per step: the lowest tier, then the rarest skill, then the order of the perk list. */
 export function sortProcs(list: Proc[]): Proc[] | undefined {
   if (list.length === 0) return undefined;
-  return list.sort((x, y) => RANK[RARITY_OF[x.skill]] - RANK[RARITY_OF[y.skill]]
-    || PERK_IDS.indexOf(x.skill) - PERK_IDS.indexOf(y.skill));
+  const best = [...list].sort((x, y) => tierOf(x.skill) - tierOf(y.skill)
+    || RANK[RARITY_OF[x.skill]] - RANK[RARITY_OF[y.skill]]
+    || PERK_IDS.indexOf(x.skill) - PERK_IDS.indexOf(y.skill))[0]!;
+  return [best];
 }
 
 export function proc(by: Actor, skill: ProcId): Proc {
@@ -63,6 +89,56 @@ export function headStart(owner: Actor, procs: Proc[]): void {
     owner.headStartPending = false;
     procs.push(proc(owner, "head-start"));
   }
+}
+
+/** The first step of a turn that can carry procs: Head Start (its owner's first action of the
+ *  bout), Quick Swap (the draw it made this turn), Heavy Lifter (a turn made with a Heavy weapon,
+ *  which costs 30% less time). */
+export function firstAction(a: Actor, procs: Proc[]): void {
+  headStart(a, procs);
+  if (a.quickSwapPending) {
+    a.quickSwapPending = false;
+    procs.push(proc(a, "quick-swap"));
+  }
+  if (a.scrapper && a.held !== "fists" && hasTag(a.held, "heavy") && a.skills.has("heavy-lifter")) {
+    procs.push(proc(a, "heavy-lifter"));
+  }
+}
+
+/** The opening: in turns 1 to OPENING_TURNS one turn takes at most OPENING_PCT of a scrapper's max
+ *  HP (OPENING_PET_PCT of a companion's), so no bout can end before turn OPENING_TURNS + 1 and a
+ *  companion survives the first turn it is hit in. */
+export const OPENING_TURNS = 5;
+export const OPENING_PCT = 10;
+export const OPENING_PET_PCT = 50;
+
+/** What an actor can still lose in this turn of the opening (Infinity after the opening). */
+export function allowance(b: Bout, def: Actor): number {
+  if (b.turn > OPENING_TURNS) return Infinity;
+  const pct = def.scrapper ? OPENING_PCT : OPENING_PET_PCT;
+  const most = Math.max(1, Math.floor((def.maxHp * pct) / 100));
+  return most - (def.lossTurn === b.turn ? def.loss : 0);
+}
+
+/** True when an actor has nothing left to lose in this turn of the opening: the swings stop. */
+export function spent(b: Bout, def: Actor): boolean {
+  return allowance(b, def) <= 0;
+}
+
+/** What a hit of `damage` would deal after the opening cut, without booking it. */
+export function openingCut(b: Bout, def: Actor, damage: number): number {
+  const left = allowance(b, def);
+  return left === Infinity ? damage : Math.max(1, damage > left ? left : damage);
+}
+
+/** Cuts a hit to the opening allowance and books it. Never below 1 (a spent target is never swung at). */
+export function opening(b: Bout, def: Actor, damage: number): number {
+  const left = allowance(b, def);
+  if (left === Infinity) return damage;
+  const d = Math.max(1, damage > left ? left : damage);
+  if (def.lossTurn !== b.turn) { def.lossTurn = b.turn; def.loss = 0; }
+  def.loss += d;
+  return d;
 }
 
 /** Takes `damage` from `def`. Last Stand leaves 1 HP once a bout. Returns hpAfter. */

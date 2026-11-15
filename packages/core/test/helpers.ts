@@ -5,6 +5,7 @@
 import type { FighterSnapshot, Look, StatKey } from "../src/contracts/fighter";
 import type { PerkId } from "../src/contracts/ids";
 import type { Bout } from "../src/sim/bout";
+import { OPENING_TURNS } from "../src/sim/bout";
 import { buildSide } from "../src/sim/combatant";
 import type { Actor } from "../src/sim/combatant";
 import type { Stream, StreamName, Streams } from "../src/sim/rng";
@@ -42,11 +43,12 @@ export function scripted(over: Partial<Record<StreamName, Stream>> = {}): Stream
   return out;
 }
 
-/** A bout set up with both sides and no steps yet, turn 1. */
+/** A bout set up with both sides and no steps yet, at the first turn after the opening, so a rule
+ *  test sees the plain rule (the opening's cut has tests of its own). */
 export function setup(a: FighterSnapshot, b: FighterSnapshot, r: Streams = scripted()): { bout: Bout; A: Actor; B: Actor } {
   const sa = buildSide("a", a);
   const sb = buildSide("b", b);
   const actors = [...sa.actors, ...sb.actors];
-  const bout: Bout = { r, actors, bag: { a: sa.bag, b: sb.bag }, steps: [], turn: 1, ended: false };
+  const bout: Bout = { r, actors, bag: { a: sa.bag, b: sb.bag }, steps: [], turn: OPENING_TURNS + 1, ended: false };
   return { bout, A: sa.actors[0]!, B: sb.actors[0]! };
 }

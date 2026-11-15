@@ -64,8 +64,9 @@ export interface Actor {
   snareLimit: number;
   /** Aim lost to Sand in the Eyes, for the rest of the bout. */
   sand: number;
-  /** Taunt is on: Riposte up until this actor's next turn. */
-  taunt: boolean;
+  /** Taunt: own turns left before its Riposte bonus ends (0 = off). Set to 2 by the Move, so the
+   *  bonus holds through the free action that follows the Taunt and the enemy turns after it. */
+  taunt: number;
   /** A weapon left the hand by a throw: the next turn draws from the bag for sure. */
   reload: boolean;
   /** A companion's extra damage percent (Pet Lover of its owner). */
@@ -75,6 +76,10 @@ export interface Actor {
   comp: CompanionDef | null; dmg: number;
   haymaker: boolean; lastStandUsed: boolean; headStartPending: boolean;
   level: number;
+  /** HP lost in turn `lossTurn` of the opening (see OPENING_PCT). */
+  loss: number; lossTurn: number;
+  /** Quick Swap made this turn's draw: its tag goes on the turn's first swing or throw. */
+  quickSwapPending: boolean;
 }
 
 const warned = new Set<string>();
@@ -107,9 +112,10 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
   const actors: Actor[] = [{
     id: `${side}0` as ActorId, side, kind: "scrapper", scrapper: true, maxHp, hp: maxHp, status: "up",
     str: eff.strength, agi: eff.agility, spd: eff.speed, held: "fists", heldAttacked: false, shield,
-    snared: false, snareSkips: 0, snareLimit: 0, sand: 0, taunt: false, reload: false, dmgPct: 0,
+    snared: false, snareSkips: 0, snareLimit: 0, sand: 0, taunt: 0, reload: false, dmgPct: 0,
     clock: 0, priority: false, skills, comp: null, dmg: 0,
     haymaker: false, lastStandUsed: false, headStartPending: skills.has("head-start"), level: s.level,
+    loss: 0, lossTurn: 0, quickSwapPending: false,
   }];
   let n = 1;
   for (const p of perks) {
@@ -121,9 +127,9 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
       id: `${side}${n}` as ActorId, side, kind: p, scrapper: false, maxHp: hp, hp, status: "up",
       str: companionScale(def.strength, s.level), agi: def.agility, spd: def.speed,
       held: "fists", heldAttacked: false, shield: null, snared: false, snareSkips: 0, snareLimit: 0, sand: 0,
-      taunt: false, reload: false, dmgPct: petDmg, clock: 0, priority: false,
+      taunt: 0, reload: false, dmgPct: petDmg, clock: 0, priority: false,
       skills: new Set(), comp: def, dmg: def.dmg, haymaker: false, lastStandUsed: false, headStartPending: false,
-      level: s.level,
+      level: s.level, loss: 0, lossTurn: 0, quickSwapPending: false,
     });
     n += 1;
   }
@@ -144,6 +150,6 @@ export function valuesOf(a: Actor): DerivedValues {
   if (a.comp !== null) return companionValues(a.comp);
   const v = combatValues(a.skills, a.held, a.shield);
   if (a.sand !== 0) v.aim -= a.sand;
-  if (a.taunt) v.riposte += sk("taunt", "riposte");
+  if (a.taunt > 0) v.riposte += sk("taunt", "riposte");
   return v;
 }

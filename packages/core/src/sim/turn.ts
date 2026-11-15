@@ -65,6 +65,8 @@ function drawOrSwap(b: Bout, a: Actor): void {
     takeFromBag(b, a, id);
     a.held = id;
     a.heldAttacked = false;
+    // Quick Swap shows on the draws it speeds up (not the sure draw right after a throw).
+    if (!reload && a.skills.has("quick-swap")) a.quickSwapPending = true;
     emit(b, { t: "draw", turn: b.turn, actor: a.id, weapon: id, bagAfter: bagCopy(b.bag[a.side]) });
     return;
   }
@@ -81,7 +83,7 @@ function drawOrSwap(b: Bout, a: Actor): void {
 
 /** A scrapper's turn. Returns its time cost. */
 function scrapperTurn(b: Bout, a: Actor): number {
-  a.taunt = false;                                         // Taunt lasts until the next own turn
+  if (a.taunt > 0) a.taunt -= 1;                           // Taunt ends at the start of its second own turn
   const move = rollMove(b, a);
   if (move !== null) return playMove(b, a, move);
   drawOrSwap(b, a);
@@ -127,6 +129,7 @@ export function takeTurn(b: Bout, a: Actor): void {
   } else {
     cost = companionTurn(b, a);
   }
+  a.quickSwapPending = false;
   a.clock += cost;
   if (cost === 0) a.priority = true;
   overtime(b, a);
