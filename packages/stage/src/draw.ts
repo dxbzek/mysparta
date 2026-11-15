@@ -44,10 +44,12 @@ interface Placed { x: number; y: number; size: number }
 /** Text sizes on screen. Numbers and tags follow the camera up to a cap, so a close camera does
  *  not make a damage number cover a face; banners scale with the canvas width. */
 const TEXT_K_MAX = { number: 3.1, tag: 2.5 } as const;
-const BANNER_K = { perWidth: 1 / 225, max: 2.7 } as const;
-const MARGIN = 6;
+export const BANNER_K = { perWidth: 1 / 225, max: 2.7 } as const;
+export const MARGIN = 6;
 /** Numbers and tags stay below this band at the top of the canvas, where the host's controls sit. */
-const TOP_BAND = 52;
+export const TOP_BAND = 52;
+/** A sticker's box is this many times its text size tall. */
+export const STICKER_H = 1.35;
 /** Extra screen px a tag is lifted under the camera. */
 const TAG_LIFT = 12;
 
@@ -66,7 +68,7 @@ function text(env: DrawEnv, t: FrameText, fonts: PlayerOpts["fonts"], at: Placed
   // a skill's icon sits at the left of the words, inside the sticker
   const iconW = icon !== null && t.kind !== "number" ? size * 1.25 : 0;
   const boxW = t.kind === "number" ? tw : tw + size * 0.9 + iconW;
-  const boxH = t.kind === "number" ? size : size * 1.35;
+  const boxH = t.kind === "number" ? size : size * STICKER_H;
   // keep every word inside the canvas: a number rising over a tall head, a sticker near an edge
   const half = boxW / 2 + MARGIN;
   const x = view.w < 2 * half ? view.w / 2 : at.x < half ? half : at.x > view.w - half ? view.w - half : at.x;
@@ -160,6 +162,12 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
   for (const p of f.floor) {
     c.save();
     c.globalAlpha = p.alpha;
+    if (p.squash !== undefined && p.floorY !== undefined) {
+      // a fallen shield lies flat on the floor line
+      c.translate(0, p.floorY);
+      c.scale(1, p.squash);
+      c.translate(0, -p.floorY);
+    }
     rig.drawProp(env, p.item, { x: p.x, y: p.y, facing: p.facing, rot: p.rot });
     c.restore();
   }
@@ -197,8 +205,11 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
   const bk = cam ? Math.min(view.w * BANNER_K.perWidth, BANNER_K.max) : k;
   for (const t of f.texts) {
     if (t.kind === "banner" && cam) {
-      // stage-wide cards (FIGHT, the winner): centred on the canvas, a third of the way down
-      text(env, t, opts.fonts, { x: view.w / 2 + (t.x - STAGE_W / 2) * bk, y: view.h * 0.34 + (t.y - 90) * bk, size: t.size * bk }, css, dpr);
+      // stage-wide cards: centred on the canvas, a third of the way down (FIGHT), or held in the
+      // top band clear of the heads (the winner's banner, review finding 52: it covered his head)
+      const top = t.band === "top";
+      text(env, t, opts.fonts, { x: view.w / 2 + (t.x - STAGE_W / 2) * bk, y: top ? 0 : view.h * 0.34 + (t.y - 90) * bk, size: t.size * bk },
+        css, dpr, top ? TOP_BAND : 0);
       continue;
     }
     const cap = t.kind === "number" ? TEXT_K_MAX.number : TEXT_K_MAX.tag;

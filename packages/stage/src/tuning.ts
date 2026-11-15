@@ -78,6 +78,11 @@ export const CONTACT = {
   knockbackPerHp: 60,      // x damage / maxHP
   knockbackMin: 4,
   knockbackMax: 20,
+  /** A scrapper on a rig with footwork takes the blow as a step back of this many figure units
+   *  (times his drawn size), over `knockbackOutMs` eased out; the rig's flinch clips step with it
+   *  (rig content/clips/reactions.ts KNOCK_STEP draws the same numbers). The amounts above are a
+   *  pet's (and a rig without footwork's) knockback, which goes out and comes back. */
+  knockStep: { light: 6, heavy: 10 },
   burstMs: 220,
   numberPopMs: 100,
   numberPopFrom: 1.2,
@@ -109,6 +114,9 @@ export const OUTCOME = {
   evadeMs: 320,
   /** The hop starts this long before the contact, so the swing passes where the body was. */
   evadeLead: 110,
+  /** A pet's dodge (it has no evade clip): it springs back on its run, holds, and runs back in. */
+  petEvadeHoldMs: 260,
+  petEvadeBackMs: 220,
   /** The evade clip's feet leave the floor and the back one lands at these clip times: the stage
    *  carries the hop between them, on its arc (rig gate/clips/evade.ts EVADE_UP, EVADE_DOWN). */
   evadeUp: 60,
@@ -133,6 +141,8 @@ export const OUTCOME = {
   healRingMs: 400,
   healFillMs: 200,
   healHop: 10,
+  /** A pet standing where a knocked-out body will lie runs this far clear of it (choreo/fall.ts). */
+  fallClear: 3,
   healHopMs: 260,
 } as const;
 
@@ -148,7 +158,8 @@ export const FLIGHT = {
   tumblePerMs: 0.9,
   vanishMs: 160,           // a weapon going back to the bag fades over this
   dropFallMs: 260,         // a "gone" weapon falls from the target to the floor
-  rollDrop: 26,            // a rolled Tyre runs this far below the straight line (shin height)
+  rollDropShare: 0.25,     // a rolled Tyre falls to the floor in this share of its flight, then rolls on it
+  rollShin: 0.6,           // its hub stops this many radii short of the target's legs, so its rim meets the shins
   bounceDip: 34,           // a Rubber Ball dips this far down to the floor before it bounces up
 } as const;
 
@@ -202,10 +213,24 @@ export const OUTRO = {
   resultFillMs: 700,
   /** On a cap ending the loser flinches this long before it falls. */
   capFlinchMs: 300,
+  /** The winner's banner, drawn without a camera: its middle this far down the stage (the sky,
+   *  above every head and raised fist). Under the camera it sits in the view's top band. */
+  bannerY: 40,
+  /** Its text size (was 24: at the top of a 720 x 480 view it reached the winner's head while
+   *  the knockout reframe was still opening the view). */
+  bannerSize: 20,
 } as const;
 
 /** Floor props. */
-export const FLOOR = { max: 6, fadeMs: 240, lieY: 2 } as const;
+export const FLOOR = {
+  max: 6, fadeMs: 240, lieY: 2,
+  /** A dropped item keeps this clear of a pet's drawn reach, and of the stage edge. A pet counts
+   *  when its floor line is within `petDepth` of the item's. */
+  petClear: 3, petDepth: 14, edge: 4,
+  /** A fallen shield lies flat: drawn this squashed toward the floor line (seen from a little
+   *  above), squashing over `flopMs` as it falls over after it lands on its edge. */
+  shieldFlat: 0.32, flopMs: 140,
+} as const;
 
 /** Idle: each actor gets its own phase in the 1.2 s breathing loop. */
 export const IDLE = { phaseStepMs: 157 } as const;
@@ -221,6 +246,10 @@ export const TEXT = {
   banner: 22,
   sticker: 13,
   liftAbove: 8,
+  /** The widest a glyph of the fight fonts is drawn, as a share of the text size (for spacing). */
+  glyph: 0.66,
+  /** Clear room between the CRIT sticker and the crit's number beside it. */
+  critGap: 4,
 } as const;
 
 /** The pose crossfade at every clip change (fight screen v2, the Lead's animation note): the

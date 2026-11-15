@@ -10,7 +10,8 @@
  *        in the fist for a moment, and a two-hand item back in both hands)
  *   450  the back hits the floor (land), the body squashes, the head knocks back
  *   520  one small bounce
- *   600  settles flat: knees up a little, arms out, the weapon lying on the floor by his hand
+ *   600  settles flat: legs down on the floor (a knee barely bent; review finding 22: they hung
+ *        raised over nothing), arms out, the weapon lying on the floor by his hand
  * The body falls around its feet (`spin`); the engine keeps its lowest point on the floor.
  */
 import { clip, STANCE } from "./kit";
@@ -27,6 +28,6 @@ export const KO_FALL = clip(600, false, [{ t: 450, name: "land" }], [
     F: { up: -150, lo: -42, hand: 30 }, B: { up: -122, lo: -42, hand: 15 }, item: 186, scale: [1.08, 0.92], ease: "in" }],
   [520, { root: [0, -3.5], spin: -84, torso: -2, head: -9, legF: { up: -48, lo: 58, foot: 25 }, legB: { up: -22, lo: 38, foot: 15 },
     F: { up: -146, lo: -44, hand: 34 }, B: { up: -116, lo: -44, hand: 18 }, item: 178, ease: "out" }],
-  [600, { root: [0, 0], spin: -90, torso: -4, head: -14, legF: { up: -34, lo: 42, foot: 30 }, legB: { up: -12, lo: 22, foot: 20 },
+  [600, { root: [0, 0], spin: -90, torso: -4, head: -14, legF: { up: -4, lo: 20, foot: 20 }, legB: { up: 0, lo: 18, foot: 12 },
     F: { up: -156, lo: -40, hand: 40 }, B: { up: -110, lo: -46, hand: 20 }, item: 181, ease: "inOut" }],
 ], { lag: { head: 50, "armB.up": 60, "armB.lo": 60, handB: 60, "armF.lo": 30, handF: 40 } });

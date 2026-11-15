@@ -29,11 +29,19 @@ function hitStops(p: StagePlayer): number[] {
   });
   return out;
 }
-/** The largest knockback offset each contact gives its target. */
+/** The largest knockback offset each contact gives its target: a pet's nudge (out and back). */
 function knockbacks(p: StagePlayer): number[] {
   return p.timeline.contacts.map((c, ci) => {
     let most = 0;
     for (const n of p.tracks.nudges) if (n.contact === ci && n.key === "knockback") most = Math.max(most, Math.abs(n.dx));
+    return most;
+  });
+}
+/** The step back each contact drives a scrapper (review finding 17: a move his flinch steps with). */
+function knockSteps(p: StagePlayer): number[] {
+  return p.timeline.contacts.map((c, ci) => {
+    let most = 0;
+    for (const tr of p.tracks.actors) for (const m of tr.moves) if (m.knockback === ci) most = Math.max(most, Math.abs(m.x1 - m.x0));
     return most;
   });
 }
@@ -65,13 +73,20 @@ describe("reduced motion", () => {
     expect(Math.max(...reduced)).toBe(60);
   });
 
-  it("halves the knockback", () => {
+  it("halves a pet's knockback; a scrapper's step back is his own footwork and stays whole, as a block's step does", () => {
+    // (changed with review finding 17: a scrapper's knockback was a nudge, halved here, that slid
+    // both planted feet; it is now a step his flinch clip takes, so halving it would slide them again)
+    let pets = 0;
     for (const name of FIXTURE_NAMES) {
       const full = knockbacks(fixturePlayer(name));
       const reduced = knockbacks(fixturePlayer(name, "capsule", true));
       full.forEach((v, i) => expect(reduced[i]).toBeCloseTo(v / 2, 9));
-      expect(full.some((v) => v > 0)).toBe(true);
+      pets += full.filter((v) => v > 0).length;
+      const steps = knockSteps(fixturePlayer(name));
+      expect(knockSteps(fixturePlayer(name, "capsule", true))).toEqual(steps);
+      expect(steps.some((v) => v > 0), name).toBe(true);
     }
+    expect(pets).toBeGreaterThan(0);
   });
 
   it("has no slow motion: the knockout fall runs at full speed", () => {

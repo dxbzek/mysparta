@@ -8,8 +8,13 @@ import type { ActorInit, BoutLog, Step, WeaponId } from "@rankzero/core";
 import { WEAPON_META } from "@rankzero/core";
 import { l1Fists, l1Knife } from "@rankzero/core/fixtures";
 import type { FlightItem } from "../src/model";
-import { pointAt } from "../src/flight";
+import { anchorAt, pointAt } from "../src/flight";
 import { capsuleRig } from "@rankzero/rig/testing";
+import { contentPack, createRig, gatePack, toStage } from "@rankzero/rig";
+import { propBox } from "../src/bounds";
+import { hitOffset } from "../src/layout";
+
+const FULL = createRig(gatePack, contentPack);
 import { playerFor } from "./lib/setup";
 
 function throwLog(weapon: WeaponId, after: "held" | "bag" | "gone"): BoutLog {
@@ -89,7 +94,7 @@ describe("flights", () => {
     const [hub] = flightsOf("hubcap", "held");
     expect(hub!.path.kind).toBe("spin");
     expect(spin(hub!)).toBeGreaterThan(90);
-    // the Tyre is bowled: it runs below the line (shin height) and turns fast
+    // the Tyre is bowled: it runs below the line (on the floor) and turns fast
     const [tyre] = flightsOf("tyre", "held");
     expect(tyre!.path.kind).toBe("roll");
     expect(bow(tyre!)).toBeGreaterThan(20);
@@ -105,6 +110,25 @@ describe("flights", () => {
       const [f] = flightsOf(id, "held");
       const end = pointAt(f!.path, 1);
       expect(Math.hypot(end.x - f!.path.x1, end.y - f!.path.y1), id).toBeLessThan(1e-9);
+    }
+  });
+
+  it("the Tyre rolls on the floor from a quarter of its flight on and meets the shins, turning about its hub (finding 25)", () => {
+    for (const [name, rig] of [["capsule", capsuleRig], ["real art", FULL]] as const) {
+      const p = playerFor(throwLog("tyre", "held"), l1Fists, l1Knife, rig);
+      const f = p.tracks.flights.find((x) => x.item === "tyre")!;
+      const target = p.frame(f.to).actors.find((a) => a.id === "b0")!;
+      const knee = toStage(target.place, hitOffset(rig, "scrapper", target.dress, "legs")).y;
+      // from a quarter of the way its hub runs level, at its arrival height
+      for (let u = 0.25; u <= 1.0001; u += 0.05) expect(pointAt(f.path, u).y, `${name} u ${u.toFixed(2)}`).toBeCloseTo(f.path.y1, 9);
+      // and there (it arrives upright) its drawn rim stands on the floor, no higher than the knee
+      const box = propBox(rig, "tyre", { ...anchorAt(f.path, pointAt(f.path, 1)), facing: f.path.facing });
+      expect(Math.abs(box.y1 - target.floorY), name).toBeLessThan(1.2);
+      expect(box.y0, `${name}: no higher than the knee`).toBeGreaterThan(knee - 3);
+      // turning as a wheel: the hub stays put on the item as it spins (the grip goes round it)
+      const a = anchorAt(f.path, pointAt(f.path, 0.5));
+      const c = anchorAt(f.path, pointAt(f.path, 0.6));
+      expect(Math.hypot(a.x - pointAt(f.path, 0.5).x, a.y - pointAt(f.path, 0.5).y)).toBeCloseTo(Math.hypot(c.x - pointAt(f.path, 0.6).x, c.y - pointAt(f.path, 0.6).y), 6);
     }
   });
 

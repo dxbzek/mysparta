@@ -12,10 +12,10 @@ import type { ActorId, PerkId, PropId } from "@rankzero/core";
 import type { Aim, Dress, FxKind, Place, RigId } from "@rankzero/rig";
 import type { EffectKey } from "./contracts";
 import { IMPACT_FAMILIES } from "./cues";
-import { pointAt } from "./flight";
+import { anchorAt, pointAt } from "./flight";
 import type { Nudge, Seg, Tracks } from "./model";
 import { clipTime, drawPlace, eased, heldAt, segAt, shieldAt } from "./track";
-import { CONTACT, FLIGHT } from "./tuning";
+import { CONTACT, FLIGHT, FLOOR } from "./tuning";
 
 export interface FrameActor {
   id: ActorId; rig: RigId; clip: string; clipT: number; aim?: Aim; place: Place; floorY: number;
@@ -24,10 +24,14 @@ export interface FrameActor {
    *  that stands at its depth. */
   attacking: boolean;
 }
-export interface FrameProp { item: PropId; x: number; y: number; rot: number; facing: 1 | -1; alpha: number }
+export interface FrameProp { item: PropId; x: number; y: number; rot: number; facing: 1 | -1; alpha: number;
+  /** Drawn squashed to this share of its height toward the floor line `floorY` (a fallen shield). */
+  squash?: number; floorY?: number }
 export interface FrameFx { fx: FxKind; progress: number; at: Place; seed: number }
 export interface FrameText { text: string; x: number; y: number; size: number; colour: string; ink: string; alpha: number;
-  kind: "number" | "tag" | "banner" | "sticker"; icon?: PerkId }
+  kind: "number" | "tag" | "banner" | "sticker"; icon?: PerkId;
+  /** A banner held in the top band of the view (`TagItem.band`). */
+  band?: "top" }
 /** A glow round an actor in this frame (Second Wind's breath): how strong (0 to 1), where. */
 export interface FrameAura { glow: number; x: number; floorY: number; colour: string; actor: ActorId }
 export interface Present { key: EffectKey; contact: number }
@@ -76,6 +80,8 @@ export function frameAt(tr: Tracks, t: number): Frame {
     if (t < a.showFrom || t >= a.goneAt) continue;
     const p = drawPlace(a, nudgesOf.get(a.id) ?? [], t);
     for (const n of p.nudges) if (n.key === "knockback" && n.contact !== null) present.push({ key: "knockback", contact: n.contact });
+    // a scrapper's knockback is a step back (a move), not a nudge
+    for (const m of a.moves) if (m.knockback !== undefined && t >= m.from && t < m.to) present.push({ key: "knockback", contact: m.knockback });
     const seg = segAt(a, t);
     if (seg !== null && seg.flinchOf !== undefined) present.push({ key: "flinch", contact: seg.flinchOf });
     const dress: Dress = { held: a.rig === "scrapper" ? heldAt(a, t) : null, shield: a.rig === "scrapper" ? shieldAt(a, t) : null,
@@ -100,7 +106,14 @@ export function frameAt(tr: Tracks, t: number): Frame {
     const alpha = t >= f.fadeFrom ? 1 - clamp01((t - f.fadeFrom) / (f.fadeTo - f.fadeFrom)) : 1;
     const e = t - f.from;
     const bounce = e < 140 ? 3 * Math.sin((Math.PI * e) / 140) : 0;
-    floor.push({ item: f.item, x: f.x, y: f.y - bounce, rot: f.rot, facing: f.facing, alpha });
+    const fp: FrameProp = { item: f.item, x: f.x, y: f.y - bounce, rot: f.rot, facing: f.facing, alpha };
+    if (f.squash !== undefined && f.floorY !== undefined) {
+      // a shield lands on its edge and falls flat
+      fp.squash = 1 - (1 - f.squash) * eased("in", e / FLOOR.flopMs);
+      fp.floorY = f.floorY;
+      fp.y = f.y;
+    }
+    floor.push(fp);
   }
 
   // ---- flights
@@ -108,10 +121,10 @@ export function frameAt(tr: Tracks, t: number): Frame {
   for (const f of tr.flights) {
     if (t < f.from) continue;
     if (t < f.to) {
-      const q = pointAt(f.path, (t - f.from) / (f.to - f.from));
+      const q = anchorAt(f.path, pointAt(f.path, (t - f.from) / (f.to - f.from)));
       flights.push({ item: f.item, x: q.x, y: q.y, rot: q.rot, facing: f.path.facing, alpha: 1 });
     } else if (f.after === "vanish" && t < f.to + FLIGHT.vanishMs) {
-      const q = pointAt(f.path, 1);
+      const q = anchorAt(f.path, pointAt(f.path, 1));
       flights.push({ item: f.item, x: q.x, y: q.y, rot: q.rot, facing: f.path.facing, alpha: 1 - (t - f.to) / FLIGHT.vanishMs });
     }
   }
@@ -173,6 +186,7 @@ export function frameAt(tr: Tracks, t: number): Frame {
     if (g.kind === "banner" && e < 200) x = g.x - (1 - eased("out", e / 200)) * 12;
     const ft: FrameText = { text: g.text, x, y, size: g.size * pop, colour: g.colour, ink: g.ink, alpha, kind: g.kind };
     if (g.icon !== undefined) ft.icon = g.icon;
+    if (g.band !== undefined) ft.band = g.band;
     texts.push(ft);
   }
 

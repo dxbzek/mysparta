@@ -4,7 +4,9 @@
  *   tumble    Bricks: a lob on an arc, turning over and over.
  *   return    Boomerang: a curve, spinning flat; it comes back to the hand on its own flight.
  *   spin      Hubcap (and any thrown melee weapon): spinning on a low arc.
- *   roll      Tyre: bowled low, it drops to shin height early and rolls in, turning fast.
+ *   roll      Tyre: bowled low, it drops to the floor in the first quarter of its flight and rolls
+ *             in along it, turning about its own hub as a wheel does, and meets the target's shins
+ *             (review finding 25: it climbed back to chest height).
  *   bounce    Rubber Ball: down to the floor, one bounce, up into the target.
  * Anything else that is thrown (a Pitcher throw of a held weapon) spins on a low arc, and a
  * weapon knocked out of a hand goes up in an arc and comes down ("pop").
@@ -21,7 +23,10 @@ export interface FlightPath { kind: FlightKind; x0: number; y0: number; x1: numb
   /** Arc height in units (up is positive). */
   arc: number;
   /** Starting angle and spin in degrees per ms (0 for a straight flight). */
-  rot0: number; spin: number }
+  rot0: number; spin: number;
+  /** For an item that turns about a point that is not its grip (a rolled Tyre's hub): that point
+   *  in the item's own frame. The path then carries the hub, and `anchorAt` gives the grip to draw at. */
+  hub?: { x: number; y: number } }
 
 export function flightKindOf(meta: { flight?: ThrownFlight } | undefined): FlightKind {
   return meta?.flight ?? "spin";
@@ -34,7 +39,7 @@ export function localAngle(dx: number, dy: number, facing: 1 | -1): number {
 
 /** A path from one point to another for one kind of flight. `ms` is the flight time. */
 export function makePath(kind: FlightKind, x0: number, y0: number, x1: number, y1: number, facing: 1 | -1,
-  ms: number, rot0 = 0): FlightPath {
+  ms: number, rot0 = 0, hub?: { x: number; y: number; r: number }): FlightPath {
   const dist = Math.hypot(x1 - x0, y1 - y0);
   switch (kind) {
     case "straight":
@@ -45,14 +50,34 @@ export function makePath(kind: FlightKind, x0: number, y0: number, x1: number, y
       return { kind, x0, y0, x1, y1, facing, ms, arc: dist * FLIGHT.returnBow, rot0, spin: FLIGHT.spinPerMs * 1.6 };
     case "pop":
       return { kind, x0, y0, x1, y1, facing, ms, arc: 46, rot0, spin: FLIGHT.spinPerMs * 0.8 };
-    case "roll":
-      return { kind, x0, y0, x1, y1, facing, ms, arc: FLIGHT.rollDrop, rot0, spin: FLIGHT.tumblePerMs * 1.5 };
+    case "roll": {
+      // on the floor it turns as a wheel turns: its speed over its radius
+      let turn = hub !== undefined && hub.r > 0 && ms > 0 ? ((Math.abs(x1 - x0) / ms) / hub.r) * (180 / Math.PI) : FLIGHT.tumblePerMs * 1.5;
+      // it arrives upright (a whole number of turns from no turn), as its hub and radius were measured
+      if (hub !== undefined && ms > 0) turn = (Math.max(1, Math.round((rot0 + turn * ms) / 360)) * 360 - rot0) / ms;
+      const p: FlightPath = { kind, x0, y0, x1, y1, facing, ms, arc: 0, rot0, spin: turn };
+      if (hub !== undefined) p.hub = { x: hub.x, y: hub.y };
+      return p;
+    }
     case "bounce":
       return { kind, x0, y0, x1, y1, facing, ms, arc: FLIGHT.bounceDip, rot0, spin: FLIGHT.spinPerMs * 0.5 };
     case "spin":
     default:
       return { kind: "spin", x0, y0, x1, y1, facing, ms, arc: dist * 0.08, rot0, spin: FLIGHT.spinPerMs };
   }
+}
+
+/** Where to draw an item (its grip, as `rig.drawProp` takes it) whose path carries its hub. */
+export function anchorAt(p: FlightPath, q: { x: number; y: number; rot: number }): { x: number; y: number; rot: number } {
+  if (p.hub === undefined) return q;
+  return { x: q.x - p.facing * hubX(p.hub, q.rot), y: q.y - hubY(p.hub, q.rot), rot: q.rot };
+}
+/** A point of the item's own frame turned by `rot` degrees (before mirroring). */
+function hubX(h: { x: number; y: number }, rot: number): number { const r = (rot * Math.PI) / 180; return h.x * Math.cos(r) - h.y * Math.sin(r); }
+function hubY(h: { x: number; y: number }, rot: number): number { const r = (rot * Math.PI) / 180; return h.x * Math.sin(r) + h.y * Math.cos(r); }
+/** The hub of an item held at `grip` (a stage point, the item turned `rot`, facing `facing`). */
+export function hubFrom(grip: { x: number; y: number; rot: number }, hub: { x: number; y: number }, facing: 1 | -1): { x: number; y: number } {
+  return { x: grip.x + facing * hubX(hub, grip.rot), y: grip.y + hubY(hub, grip.rot) };
 }
 
 /** Flight time for a distance at the throw speed. */
@@ -76,10 +101,11 @@ export function pointAt(p: FlightPath, u: number): { x: number; y: number; rot: 
     return { x, y: y + bow, rot: p.rot0 + p.spin * ms };
   }
   if (p.kind === "roll") {
-    // down to shin height in the first quarter, then rolling in; `arc` is how far below the
-    // straight line it gets, and it still ends on the end point
-    const sag = v < 0.25 ? p.arc * (v / 0.25) : p.arc * ((1 - v) / 0.75);
-    return { x, y: y + sag, rot: p.rot0 + p.spin * ms };
+    // falls (speeding up) from the hand to the floor in the first part, then rolls on the floor
+    // line: `y1` is its hub's height there, at the target's shins
+    const d = FLIGHT.rollDropShare;
+    const fall = v < d ? p.y0 + (p.y1 - p.y0) * (v / d) * (v / d) : p.y1;
+    return { x, y: fall, rot: p.rot0 + p.spin * ms };
   }
   if (p.kind === "bounce") {
     // down to the floor at 60% of the way, then straight up into the end point

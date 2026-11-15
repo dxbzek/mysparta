@@ -7,8 +7,8 @@
  * polygons, and for any other path the control points still bound the shape. Arcs and ellipses
  * add their bounding box. A part drawn at (nearly) no opacity does not count.
  */
-import type { CompanionId } from "@rankzero/core";
-import type { Ctx2D, Dress, Pose, Rig, RigId } from "@rankzero/rig";
+import type { CompanionId, PropId } from "@rankzero/core";
+import type { Ctx2D, DrawEnv, Dress, Pose, Rig, RigId } from "@rankzero/rig";
 import type { Reach } from "./layout";
 
 export interface Box { x0: number; y0: number; x1: number; y1: number }
@@ -18,6 +18,17 @@ const paths = new Map<string, P[]>();
 
 /** The box `drawActor` paints for this pose and dress at this place, in stage units. */
 export function drawnBox(rig: Rig, pose: Pose, dress: Dress, at: { x: number; y: number; facing: 1 | -1 }): Box {
+  return paintedBox((env) => rig.drawActor(env, pose, dress, at));
+}
+
+/** The box `drawProp` paints for this item at this place and turn, in stage units (how a dropped
+ *  shield is laid on the floor and how big a rolled Tyre is). */
+export function propBox(rig: Rig, item: PropId, at: { x: number; y: number; facing: 1 | -1; rot: number }): Box {
+  return paintedBox((env) => rig.drawProp(env, item, at));
+}
+
+/** The box of everything `paint` draws on the probe. */
+function paintedBox(draw: (env: DrawEnv) => void): Box {
   let m = [1, 0, 0, 1, 0, 0];
   let alpha = 1;
   const stack: [number[], number][] = [];
@@ -70,7 +81,7 @@ export function drawnBox(rig: Rig, pose: Pose, dress: Dress, at: { x: number; y:
     get: (_, k) => (k === "globalAlpha" ? alpha : calls[k as string] ?? (() => undefined)),
     set: (_, k, v) => { if (k === "globalAlpha") alpha = v as number; return true; },
   }) as Ctx2D;
-  rig.drawActor({
+  draw({
     ctx,
     path: (d: string): unknown => {
       let p = paths.get(d);
@@ -83,7 +94,7 @@ export function drawnBox(rig: Rig, pose: Pose, dress: Dress, at: { x: number; y:
       }
       return p;
     },
-  }, pose, dress, at);
+  });
   return box;
 }
 

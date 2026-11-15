@@ -229,6 +229,7 @@ function snatch(b: Builder, step: MoveStep, i: number, s: number, c: number): Pl
     b.cue(at, i, "whoosh", 0, step.taken);
     // the robbed hand jerks back, empty
     b.play(target, "hit-light", at, { busy: false });
+    b.knockStep(target, at, false, sw.facing);
     resultTag(b, "snatch", step.actor, at + MOVE.snatchJumpMs, VOLT);
     apply = at + MOVE.snatchJumpMs;
   }

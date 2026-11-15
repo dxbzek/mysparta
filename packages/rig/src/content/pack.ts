@@ -16,6 +16,7 @@
 import type { ContentPack } from "../contracts";
 import { GATE_LOOKS } from "../gate/parts";
 import { CONTENT_CLIPS } from "./clips";
+import { HIT_LIGHT_STEP } from "./clips/reactions";
 import { USES, VARIANTS } from "./clips/use";
 import { CONTENT_FX, PROPS } from "./fx";
 import { CONTENT_UI_ICONS, SKILL_ICONS } from "./icons";
@@ -26,7 +27,8 @@ import { CONTENT_WEAPONS } from "./weapons";
 
 export const contentPack: ContentPack = {
   clips: CONTENT_CLIPS,
-  variants: VARIANTS,
+  // the light flinch with stepping feet, over the gate pack's planted one (review finding 17)
+  variants: { ...VARIANTS, "hit-light": HIT_LIGHT_STEP },
   uses: USES,
   weapons: CONTENT_WEAPONS,
   shields: SHIELD_ART,

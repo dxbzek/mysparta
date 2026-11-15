@@ -8,7 +8,9 @@
 import type { StepOf } from "@rankzero/core";
 import { WEAPON_META } from "@rankzero/core";
 import { evadeEarly, hitSpot, land } from "../effects";
-import { flightKindOf, flightMs, makePath } from "../flight";
+import type { PropId } from "@rankzero/core";
+import { propBox } from "../bounds";
+import { anchorAt, flightKindOf, flightMs, hubFrom, makePath, pointAt } from "../flight";
 import type { Builder } from "../timeline";
 import { BEAT, FLIGHT } from "../tuning";
 import type { Placed } from "./index";
@@ -39,16 +41,25 @@ export function throwStep(b: Builder, step: StepOf<"throw">, i: number): Placed 
   b.cue(release, i, "throw", 0, weapon);
   b.bag(tr.side, release, step.bagAfter);
 
-  // The flight: from the hand at the release to the target's hit point at the arrival.
+  // The flight: from the hand at the release to the target's hit point at the arrival. A rolled
+  // item (the Tyre) turns about its hub, rolls on the floor and meets the target's shins.
   const hand = b.rig.handAnchor(b.rig.samplePose(tr.rig, clip, strike), dress, { x: me.x, y: me.y, facing });
-  let arrive = release + FLIGHT.minMs;
-  let spot = hitSpot(b, step.target, arrive);
-  for (let k = 0; k < 3; k++) {
-    arrive = release + flightMs(Math.hypot(spot.x - hand.x, spot.y - hand.y));
-    spot = hitSpot(b, step.target, arrive);
-  }
   const kind = flightKindOf(WEAPON_META[weapon]);
-  const path = makePath(kind, hand.x, hand.y, spot.x, spot.y, facing, arrive - release, hand.rot);
+  const wheel = kind === "roll" && weapon !== "fists" ? wheelOf(b, weapon) : null;
+  const from = wheel !== null ? hubFrom(hand, wheel, facing) : hand;
+  const aimAt = (t: number): { x: number; y: number } => {
+    if (wheel === null) return hitSpot(b, step.target, t);
+    // its hub on its own radius over the target's floor line, its front rim at the shins
+    const p = b.place(step.target, t);
+    return { x: hitSpot(b, step.target, t, "legs").x - facing * wheel.r * FLIGHT.rollShin, y: p.y - wheel.r };
+  };
+  let arrive = release + FLIGHT.minMs;
+  let spot = aimAt(arrive);
+  for (let k = 0; k < 3; k++) {
+    arrive = release + flightMs(Math.hypot(spot.x - from.x, spot.y - from.y));
+    spot = aimAt(arrive);
+  }
+  const path = makePath(kind, from.x, from.y, spot.x, spot.y, facing, arrive - release, hand.rot, wheel ?? undefined);
   const keeps = step.after === "held" && kind !== "return";
   b.flights.push({ item: weapon === "fists" ? "pipe" : weapon, from: release, to: arrive, path,
     after: step.after === "gone" ? "floor" : "vanish" });
@@ -57,7 +68,9 @@ export function throwStep(b: Builder, step: StepOf<"throw">, i: number): Placed 
   const hitStop = b.hitStopFor(i, step.crit);
   if (step.outcome === "evade") evadeEarly(b, step.target, step.actor, arrive, i, { clip: "throw", weapon, combo });
   land(b, { i, at: arrive, attacker: step.actor, target: step.target, outcome: step.outcome, damage: step.damage,
-    crit: step.crit, hpAfter: step.hpAfter, weapon: step.weapon, hitStop, ...(step.procs !== undefined ? { procs: step.procs } : {}) });
+    crit: step.crit, hpAfter: step.hpAfter, weapon: step.weapon, hitStop, ...(step.procs !== undefined ? { procs: step.procs } : {}),
+    // a rolled item bursts where its front rim meets the shins
+    ...(wheel !== null ? { burstAt: { x: spot.x + facing * wheel.r, y: spot.y } } : {}) });
 
   let done = arrive + hitStop;
   if (weapon !== "fists") {
@@ -76,7 +89,7 @@ export function throwStep(b: Builder, step: StepOf<"throw">, i: number): Placed 
       b.setHeld(step.actor, arrive + ms, weapon);
       done = Math.max(done, arrive + ms);
     } else if (step.after === "gone") {
-      done = Math.max(done, dropOnFloor(b, i, step.target, weapon, arrive, FLIGHT.dropFallMs, "drop", { x: spot.x, y: spot.y, rot: path.rot0 + path.spin * path.ms }));
+      done = Math.max(done, dropOnFloor(b, i, step.target, weapon, arrive, FLIGHT.dropFallMs, "drop", anchorAt(path, pointAt(path, 1))));
     }
   }
   if (step.after === "held" || weapon === "fists") b.heldNow.set(step.actor, step.after === "held" ? weapon : "fists");
@@ -84,4 +97,10 @@ export function throwStep(b: Builder, step: StepOf<"throw">, i: number): Placed 
   b.cause = { step: i, at: arrive, actor: step.actor, hitStop };
   b.cursor = Math.max(done, release + restMs) + (swingsAgain(b, i, step.actor) ? 0 : BEAT.recoverMs);
   return { at: s, apply: arrive };
+}
+
+/** A rolled item's hub (the middle of its drawn box at no turn, in its own frame) and radius. */
+function wheelOf(b: Builder, item: PropId): { x: number; y: number; r: number } {
+  const box = propBox(b.rig, item, { x: 0, y: 0, facing: 1, rot: 0 });
+  return { x: (box.x0 + box.x1) / 2, y: (box.y0 + box.y1) / 2, r: (box.y1 - box.y0) / 2 };
 }

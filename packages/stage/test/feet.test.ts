@@ -51,6 +51,9 @@ function player(name: string, internal?: Internal): StagePlayer {
   cache.set(key, p);
   return p;
 }
+/** A flinch's feet: the toe planted under the shove holds within this (the crossfade into the
+ *  flinch adds a little; a nudge slid them up to 39 units).  */
+const FLINCH_SLIDE = 1;
 const describeSlide = (s: ReturnType<typeof slides>[number]): string =>
   `${s.actor} ${s.foot} ${s.point} ${Math.round(s.from)}-${Math.round(s.to)} ms: ${s.slide.toFixed(2)} units (${s.clips.join(" > ")})`;
 
@@ -83,13 +86,26 @@ describe("feet on the floor in real bouts, measured on the drawn feet", () => {
     });
   }
 
+  it("a blow drives him back a step: no foot on the floor slides in a flinch (review finding 17)", () => {
+    let flinches = 0;
+    for (const b of BOUTS) {
+      const p = player(b.name);
+      flinches += p.tracks.actors.reduce((n, tr) => n + (tr.rig === "scrapper" ? tr.segs.filter((g) => g.clip === "hit-light" || g.clip === "hit-heavy").length : 0), 0);
+      const bad = slides(p, FULL, FLINCH_SLIDE, { only: new Set(["hit-light", "hit-heavy"]) });
+      expect(bad.slice(0, 4).map(describeSlide), b.name).toEqual([]);
+    }
+    expect(flinches).toBeGreaterThan(10);
+  });
+
   it("the bouts hold the footwork: runs with a push-off and a brake, shuffles, slips, hop-backs and blocks", () => {
     const count = (clip: string): number => BOUTS.reduce((n, b) => n + player(b.name).tracks.actors.reduce((m, tr) =>
       m + tr.segs.filter((g) => g.clip === clip && tr.rig === "scrapper").length, 0), 0);
     for (const clip of ["dash-push", "brake", "shuffle", "slip", "evade", "block", "block-shield"]) expect(count(clip), clip).toBeGreaterThan(0);
-    // the find-bout bout at level 30 alone has every one of them
+    // the find-bout bout at level 30 alone has the shuffles and both dodges (its runs went with the
+    // pet spacing fix: an attacked pet now steps out in front of its owner, so the attacker no
+    // longer runs past him to reach it; the runs are counted over all the bouts above)
     const l30 = player("find-bout level 30 n 2").tracks.actors.flatMap((tr) => tr.segs.map((g) => g.clip));
-    for (const clip of ["dash-push", "brake", "shuffle", "slip", "evade"]) expect(l30, clip).toContain(clip);
+    for (const clip of ["shuffle", "slip", "evade"]) expect(l30, clip).toContain(clip);
   });
 
   it("a run speeds up from rest, holds the run speed and slows to rest in the brake, never faster", () => {

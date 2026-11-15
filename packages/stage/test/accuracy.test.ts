@@ -4,7 +4,8 @@
  * stage (a scrapper on any rig at head or body, or at the legs when a pet bites, a companion on
  * any rig's body), at each contact
  * the striking end drawn on the sampled frame is within 3 units of the target's hit point. A
- * throw is measured where the item arrives. A planted 20-unit error in the stop turns it red.
+ * throw is measured where the item arrives; a rolled one (the Tyre) where it meets the target's
+ * legs, standing on the floor. A planted 20-unit error in the stop turns it red.
  *
  * The striking end on the frame: `rig.strikePoint` of the frame's own clip, dress and aim, placed
  * at the frame's place. That is the drawn end only when the frame's clip time is the strike
@@ -18,6 +19,8 @@ import type { Rig } from "@rankzero/rig";
 import { toStage } from "@rankzero/rig";
 import { capsuleGateRig, capsuleRig } from "@rankzero/rig/testing";
 import type { StagePlayer } from "../src/createFightPlayer";
+import { propBox } from "../src/bounds";
+import { anchorAt, pointAt } from "../src/flight";
 import { hitOffset } from "../src/layout";
 import type { Internal } from "../src/timeline";
 import { playerFor } from "./lib/setup";
@@ -87,6 +90,16 @@ function gaps(player: StagePlayer, rig: Rig, log: BoutLog): Miss[] {
       const fl = player.tracks.flights.find((x) => x.to === c.at);
       if (fl === undefined) { out.push({ what: `${what}: no flight arrives at the contact`, gap: Infinity }); return; }
       const end = { x: fl.path.x1, y: fl.path.y1 };
+      if (fl.path.kind === "roll") {
+        // a rolled item (review finding 25) arrives on the floor at the target's shins: its drawn
+        // box stands on the target's floor line and reaches its legs
+        const box = propBox(rig, fl.item, { ...anchorAt(fl.path, pointAt(fl.path, 1)), facing: fl.path.facing });
+        const legs = toStage(tg.place, hitOffset(rig, tg.rig, tg.dress, "legs"));
+        const floorGap = Math.abs(box.y1 - tg.floorY);
+        const reach = legs.x < box.x0 ? box.x0 - legs.x : legs.x > box.x1 ? legs.x - box.x1 : 0;
+        out.push({ what: `${what}: rolled, ${floorGap.toFixed(1)} off the floor, ${reach.toFixed(1)} short of the legs`, gap: Math.max(floorGap, reach) });
+        return;
+      }
       out.push({ what, gap: Math.min(...hits.map((h) => Math.hypot(end.x - h.x, end.y - h.y))) });
       return;
     }

@@ -7,7 +7,7 @@ import type { StepOf } from "@rankzero/core";
 import { scrapperOf } from "@rankzero/core";
 import { INK } from "../palette";
 import type { Builder } from "../timeline";
-import { basePos, facingAt } from "../track";
+import { fallFocus } from "./fall";
 import { OUTRO } from "../tuning";
 import type { Placed } from "./index";
 
@@ -22,13 +22,14 @@ export function end(b: Builder, step: StepOf<"end">, i: number): Placed {
     const tr = b.track(loser);
     const f = outro;
     b.play(loser, "hit-heavy", f, { until: f + OUTRO.capFlinchMs });
+    // the flinch steps back with its shove (Builder.knockStep), away from the winner
+    if (b.has(winner)) b.knockStep(loser, f, true, b.place(winner, f).x < b.place(loser, f).x ? 1 : -1);
     const fall = b.info(tr.rig, "ko-fall");
     b.play(loser, "ko-fall", f + OUTRO.capFlinchMs, { hold: true });
     const land = fall.events.find((e) => e.name === "land")?.t ?? fall.durationMs;
     b.cue(f + OUTRO.capFlinchMs + land, i, "landing");
     b.status.set(loser, "ko");
-    const at = basePos(tr, f + OUTRO.capFlinchMs);
-    b.koFocus = { at: f + OUTRO.capFlinchMs, x: at.x, y: at.floorY, back: facingAt(tr, f) === 1 ? -1 : 1 };
+    b.koFocus = fallFocus(b, loser, f + OUTRO.capFlinchMs, "ko-fall");
     outro = f + OUTRO.capFlinchMs + fall.durationMs;
   }
   if (b.has(winner) && b.status.get(winner) === "up") {
@@ -37,8 +38,9 @@ export function end(b: Builder, step: StepOf<"end">, i: number): Placed {
     b.play(winner, "win", outro, { until: Infinity, busy: false });
   }
   const name = b.snaps[step.winner].name;
+  // in the top band of the view, above the heads and the winner's raised fists (review finding 52)
   b.tags.push({ from: outro + OUTRO.bannerAt, to: Infinity, text: b.opts.text.wins(name), colour: "#FFD23F", ink: INK,
-    actor: null, x: 180, y: 84, size: 24, kind: "banner" });
+    actor: null, x: 180, y: OUTRO.bannerY, size: OUTRO.bannerSize, kind: "banner", band: "top" });
   // side a is the one who started the bout: the player in a live bout
   b.cue(outro + OUTRO.bannerAt, i, step.winner === "a" ? "win" : "loss");
   if (b.motion.tape) b.tape = { from: outro, to: outro + OUTRO.tapeMs };

@@ -34,8 +34,11 @@ export const CAMERA = {
   /** Space under the scrappers' floor line, and under a companion's (which stands nearer). */
   under: 13,
   underCompanion: 7,
-  /** How far behind its mark a knocked-out body reaches, lying on its back (head and arms). */
+  /** How far behind its mark a knocked-out body reaches, lying on its back (head and arms), when
+   *  the timeline has not measured it (`koFocus.reach`, review finding 22: 92 cut a hand off). */
   bodyLength: 92,
+  /** Room kept past the far end of the measured body. */
+  bodyMargin: 6,
   /** The knockout reframe: eased over this long. Its fastest zoom is 1.5 x ln(k0 / k1) / 2.6 s,
    *  about 22% per second for the widest case (a body lying at the stage's edge), once per bout. */
   koMoveMs: 2600,
@@ -84,7 +87,8 @@ export function outroSpan(tr: Tracks): Span {
   const s = frameSpan(tr);
   const f = tr.koFocus;
   if (f === null) return s;
-  const far = Math.max(0, Math.min(STAGE_W, f.x + f.back * CAMERA.bodyLength));
+  // the body as the rig draws it lying there (choreo/fall.ts), and a little room past the hand
+  const far = Math.max(0, Math.min(STAGE_W, f.x + f.back * ((f.reach ?? CAMERA.bodyLength) + CAMERA.bodyMargin)));
   const must = s.must ?? { x0: s.x0, x1: s.x1 };
   return { x0: Math.min(s.x0, far), x1: Math.max(s.x1, far), bottom: s.bottom, keep: f.back === 1 ? "x1" : "x0", keepAt: far,
     must: { x0: Math.min(must.x0, far), x1: Math.max(must.x1, far) } };

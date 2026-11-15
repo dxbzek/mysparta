@@ -161,6 +161,19 @@ export function hitOffset(rig: Rig, target: RigId, dress: Dress, zone: Zone): Of
 }
 
 /**
+ * Room between bodies (review finding 1, 15 Nov 2026: fighters stopped inside each other).
+ *  - `body`: the least distance between two scrappers' places at a swing's stop, times the larger
+ *    drawn size (a bare-handed jab to the head stands 38 apart), so the torsos never merge and the legs never interleave.
+ *    A swing aimed at the head that would stop nearer (an overhead smash with a short reach: the
+ *    anvil, the ball and chain) aims at the body instead, which its arc meets further forward, so
+ *    the arms reach out rather than the feet walking in.
+ *  - `petClear`: a pet that is attacked while it stands behind its owner steps out in front of
+ *    him, its box this far clear of his drawn front and its floor line `petDepth` behind his, so
+ *    the attacker hits it from the near side of the owner and never walks through him.
+ */
+export const BODY_GAP = { body: 36, petClear: 4, petDepth: 0.5 } as const;
+
+/**
  * The floor x where an attacker must stand so that its aimed strike point lands on the target's
  * hit point, and the aim to pass to `samplePose`. Both actors stand on the same floor y (the
  * attacker walks to the target's depth). `targetX` and `targetFacing` are the target's place at

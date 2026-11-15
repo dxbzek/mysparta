@@ -19,7 +19,7 @@ import type { TagItem } from "./model";
 import type { Builder } from "./timeline";
 import { CONTACT, MOVE, OUTCOME, TEXT } from "./tuning";
 import type { Zone } from "./layout";
-import { aimZone, hitOffset } from "./layout";
+import { STAGE_W, aimZone, hitOffset } from "./layout";
 
 export interface Landing {
   i: number; at: number; attacker: ActorId | null; target: ActorId;
@@ -32,6 +32,8 @@ export interface Landing {
   ownClip?: boolean;
   /** The Firecrackers' own burst instead of the star. */
   burstFx?: "burst" | "crackers";
+  /** Where the burst goes instead of the target's hit point (a rolled Tyre: at the shins). */
+  burstAt?: { x: number; y: number };
   procs?: readonly Proc[];
 }
 
@@ -67,6 +69,24 @@ export function tagOver(b: Builder, id: ActorId, at: number, text: string, colou
     size: TEXT.tag, kind: "tag" };
   if (icon !== undefined) tag.icon = icon;
   b.tags.push(tag);
+}
+
+/**
+ * The CRIT sticker beside the crit's number, not above it (review finding 23: the number rose
+ * straight into the sticker and hid under it). It stands level with where the number starts, on
+ * the side away from the attacker, its edge `TEXT.critGap` clear of the number's widest box (the
+ * number pops at `CONTACT.numberPopFrom` x `CONTACT.critScale` of `TEXT.number`), so the number
+ * rises past it. Near a stage edge it goes on the other side.
+ */
+export function critTag(b: Builder, id: ActorId, at: number, head: { x: number; y: number }, number: string, dir: 1 | -1): void {
+  const text = b.opts.text.crit;
+  const numberHalf = (TEXT.glyph * TEXT.number * CONTACT.critScale * CONTACT.numberPopFrom * number.length) / 2;
+  const tagHalf = (TEXT.glyph * TEXT.tag * text.length + 0.9 * TEXT.tag) / 2;
+  const off = numberHalf + TEXT.critGap + tagHalf;
+  const fits = (sd: 1 | -1): boolean => head.x + sd * off - tagHalf >= 4 && head.x + sd * off + tagHalf <= STAGE_W - 4;
+  const side = fits(dir) ? dir : -dir;
+  b.tags.push({ from: at, to: at + OUTCOME.tagMs, text, colour: VOLT, ink: INK, actor: id, x: head.x + side * off, y: head.y,
+    size: TEXT.tag, kind: "tag" });
 }
 
 /** The skill tag of a step: at most one, the first proc (the sim lists the rarest first), with the
@@ -107,7 +127,7 @@ export function land(b: Builder, L: Landing, ci?: number): number {
   }
   const s = (k: EffectKey): number => b.effectStart(c, k, L.at);
   // a pet's bite lands on a fighter's legs (layout.aimZone)
-  const spot = hitSpot(b, L.target, L.at, L.attacker !== null && b.has(L.attacker) ? aimZone(b.track(L.attacker).rig, ttr.rig, 0) : "body");
+  const spot = L.burstAt ?? hitSpot(b, L.target, L.at, L.attacker !== null && b.has(L.attacker) ? aimZone(b.track(L.attacker).rig, ttr.rig, 0) : "body");
   const dir: 1 | -1 = L.attacker !== null && b.place(L.attacker, L.at).x > b.place(L.target, L.at).x ? -1 : 1;
   const seed = (b.opts.cosmeticSeed ^ (L.i * 7919)) | 0;
 
@@ -116,10 +136,12 @@ export function land(b: Builder, L: Landing, ci?: number): number {
     if (m.flash) b.flashes.push({ actor: L.target, from: s("flash"), ms: CONTACT.flashMs, contact: c });
     if (L.ownClip !== true) {
       b.play(L.target, b.flinchClip(ttr.rig, heavy), s("flinch"), { flinchOf: c });
-      const amount = clampNum(CONTACT.knockbackBase + (CONTACT.knockbackPerHp * L.damage) / ttr.maxHp,
-        CONTACT.knockbackMin, CONTACT.knockbackMax) * m.knockback;
-      b.nudge({ actor: L.target, key: "knockback", from: s("knockback"), outMs: CONTACT.knockbackOutMs, holdMs: 0,
-        backMs: CONTACT.knockbackBackMs, dx: dir * amount, arc: 0, contact: c });
+      if (!b.knockStep(L.target, s("knockback"), heavy, dir, c)) {
+        const amount = clampNum(CONTACT.knockbackBase + (CONTACT.knockbackPerHp * L.damage) / ttr.maxHp,
+          CONTACT.knockbackMin, CONTACT.knockbackMax) * m.knockback;
+        b.nudge({ actor: L.target, key: "knockback", from: s("knockback"), outMs: CONTACT.knockbackOutMs, holdMs: 0,
+          backMs: CONTACT.knockbackBackMs, dx: dir * amount, arc: 0, contact: c });
+      }
     }
     const fx = L.burstFx ?? "burst";
     if (fx === "crackers") {
@@ -134,7 +156,7 @@ export function land(b: Builder, L: Landing, ci?: number): number {
     const head = overHead(b, L.target, L.at);
     b.numbers.push({ from: s("number"), x: head.x, y: head.y, text: `-${L.damage}`, colour: L.crit ? VOLT : WHITE,
       scale: L.crit ? CONTACT.critScale : 1, contact: c });
-    if (L.crit) tagOver(b, L.target, L.at, b.opts.text.crit, VOLT);
+    if (L.crit) critTag(b, L.target, L.at, head, `-${L.damage}`, dir);
     b.hp.push({ actor: L.target, at: s("hp"), from: before, to: L.hpAfter, ms: CONTACT.hpDropMs, kind: "loss", contact: c });
     if (shakes) {
       const k = kill ? CONTACT.shake.knockout : CONTACT.shake.crit;
@@ -240,6 +262,16 @@ export function evadeEarly(b: Builder, target: ActorId, attacker: ActorId, at: n
     b.move(target, from + OUTCOME.evadeUp, OUTCOME.evadeDown - OUTCOME.evadeUp, p.x + dir * OUTCOME.evadeHop * drawnScale(b, target), p.y,
       OUTCOME.evadeArc, "linear");
     b.out.add(target);
+    return;
+  }
+  if (tr.rig !== "scrapper") {
+    // a pet has no dodge clip: it springs back off its legs (its run, in the air on the hop's arc),
+    // stands its ground, and runs back in (review finding 20: it used to glide in its idle pose)
+    const hold = OUTCOME.petEvadeHoldMs;
+    b.play(target, "run", from, { until: from + OUTCOME.evadeMs });
+    b.play(target, "run", from + OUTCOME.evadeMs + hold, { until: from + OUTCOME.evadeMs + hold + OUTCOME.petEvadeBackMs });
+    b.nudge({ actor: target, key: "hop", from, outMs: OUTCOME.evadeMs, holdMs: hold, backMs: OUTCOME.petEvadeBackMs,
+      dx: dir * OUTCOME.evadeHop, arc: OUTCOME.evadeArc, contact: null });
     return;
   }
   b.play(target, "evade", from);

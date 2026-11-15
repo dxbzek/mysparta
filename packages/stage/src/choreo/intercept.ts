@@ -31,11 +31,13 @@ export function intercept(b: Builder, step: StepOf<"intercept">, i: number): Pla
   const dashMs = way !== null ? way.ms : Math.max(BEAT.dashMinMs, Math.round((dist / BEAT.dashSpeed) * 1000));
   const arrive = s + BEAT.anticipationMs + dashMs;
   b.face(dasher, s, facing);
-  // (a shuffle needs no brace before it: its own dip is the wind-up)
-  if (atr.rig === "scrapper" && way?.kind !== "hop") {
-    b.play(dasher, "brace", s, { rate: way !== null ? b.info("scrapper", "brace").durationMs / BEAT.anticipationMs : 1, until: s + BEAT.anticipationMs });
-  }
-  else b.play(dasher, "run", s, { rate: 0, until: s + BEAT.anticipationMs });
+  // a scrapper braces before a run; a shuffle needs no brace (its own dip is the wind-up) and a
+  // scrapper has no "run" clip, so it stands in its guard; a companion crouches in its run
+  if (atr.rig === "scrapper") {
+    if (way?.kind !== "hop") {
+      b.play(dasher, "brace", s, { rate: way !== null ? b.info("scrapper", "brace").durationMs / BEAT.anticipationMs : 1, until: s + BEAT.anticipationMs });
+    }
+  } else b.play(dasher, "run", s, { rate: 0, until: s + BEAT.anticipationMs });
   if (way !== null) layWay(b, dasher, s + BEAT.anticipationMs, xA, yA, way);
   else {
     b.move(dasher, s + BEAT.anticipationMs, dashMs, xA, yA, 0, "out");
