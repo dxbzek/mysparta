@@ -214,7 +214,7 @@ describe("choreography", () => {
           const enemy = s.actor.startsWith("a") ? "b0" : "a0";
           expect(resultOver(enemy, s.move, at), why).toBe(true);
           expect(segsOf(enemy).some((g) => g.clip === "snared" && g.from > at), `${why}: covers its ears`).toBe(true);
-          for (const n of next) if (n.s.t === "flee") expect(tr.tags.some((g) => g.actor === n.s.actor && g.text === "FLED:AIR-HORN"), why).toBe(true);
+          for (const n of next) { const f = n.s; if (f.t === "flee") expect(tr.tags.some((g) => g.actor === f.actor && g.text === "FLED:AIR-HORN"), why).toBe(true); }
           break;
         }
         case "tarp":
