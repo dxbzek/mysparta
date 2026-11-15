@@ -90,6 +90,10 @@ export const UI = {
 
   bout: {
     missing: "That bout is not in this save.",
+    /** While the weapon and arena art loads before a fight (a second at most on a phone). */
+    loading: "Setting up the ring…",
+    loadFailed: "The fight art did not load. Check the connection and try again.",
+    retry: "Try again",
   },
 
   levelUp: {

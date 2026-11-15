@@ -6,6 +6,7 @@
 import { useCallback, useMemo } from "react";
 import { useDoc, useGame } from "../../app/context";
 import type { Settings } from "../../contracts";
+import { RigGate } from "../../app/RigGate";
 import { FightScreen } from "../../fight/FightScreen";
 import { UI } from "../../text/ui";
 import { Panel } from "../../ui/Panel";
@@ -28,6 +29,7 @@ export function ReplayScreen({ id }: { id: string }) {
   const onFinished = useCallback(() => undefined, []);
   if (!bout || !log) return <main className={common.body}><Panel><p>{UI.replay.missing}</p></Panel></main>;
   return (
+    <RigGate>
     <FightScreen
       log={log}
       a={bout.snapshotA}
@@ -39,5 +41,6 @@ export function ReplayScreen({ id }: { id: string }) {
       result={null}
       onResultAction={(a) => go(a === "locker" ? { name: "locker" } : { name: "bouts" })}
     />
+    </RigGate>
   );
 }

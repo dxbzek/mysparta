@@ -93,7 +93,7 @@ export const TYRE_IRON: WeaponArt = weapon([
   scuffs(105, 5, 2, 18, -0.6, 0.6, 3, 0.2),
 ], [29.2, 0]);
 
-/** Golf Club: a rubber grip, a thin steel shaft and an iron head below the line; full golf
+/** Golf Club: a rubber grip, a thin steel shaft and a flat steel club face below the line; full golf
  *  swing low to high, the club head hits. */
 export const GOLF_CLUB: WeaponArt = weapon([
   fillOf(bar(-6.6, 5.5, [[0, 1.05], [1, 0.75]], 0.6), "hair", 0),

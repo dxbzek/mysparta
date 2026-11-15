@@ -9,6 +9,7 @@ import type { BagItem, BoutLog, FighterSnapshot } from "@rankzero/core";
 import { BOUT_FIXTURES, SNAPSHOTS, l10Raccoon, l1Fists, l1Knife, l1Pipe, l20Thrower } from "@rankzero/core/fixtures";
 import type { DebugHandle, ResultCardData, Settings } from "../contracts";
 import { BagStrip } from "../fight/BagStrip";
+import { RigGate } from "../app/RigGate";
 import { FightScreen } from "../fight/FightScreen";
 import type { FightHandle } from "../fight/FightScreen";
 import { ActorStage } from "../ui/ActorStage";
@@ -87,6 +88,7 @@ function DebugBout({ route }: { route: Extract<DebugRoute, { page: "bout" }> }) 
   const won = bout.log.result.winner === "a";
   const result: ResultCardData = { won, line: won ? `${bout.a.name} folded ${bout.b.name} like a deckchair.` : `${bout.a.name} went looking for a fight and found a better one.`, xpBefore: 3, xpAfter: won ? 5 : 4, xpToNext: 8, levelUp: false, boutsLeft: 5 };
   return (
+    <RigGate>
     <FightScreen
       log={bout.log}
       a={bout.a}
@@ -101,6 +103,7 @@ function DebugBout({ route }: { route: Extract<DebugRoute, { page: "bout" }> }) 
       startPaused={route.paused}
       onHandle={onHandle}
     />
+    </RigGate>
   );
 }
 

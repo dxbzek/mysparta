@@ -14,6 +14,7 @@ import type { Dress, FxKind, MoveProp, WeaponArt } from "../../src/contracts";
 import { createRig, inspectOf } from "../../src/engine/createRig";
 import { gatePack } from "../../src/gate/pack";
 import { INK, allColours } from "../../src/gate/style";
+import { ANATOMY, BUILDS } from "../../src/gate/skeleton";
 import type { Pt } from "../../src/gate/vocab";
 import { parsePolys } from "../../src/gate/vocab";
 import { contentPack } from "../../src/content/pack";
@@ -164,7 +165,13 @@ describe("accurate weapon use (13.3): the strike point is the drawn tip", () => 
       expect(WEAPON_META[id].flex === true, id).toBe((art.segments?.length ?? 0) >= 3);
     }
   });
-  it("pins the back hand within 1 unit of grip2 on every two-hand weapon in the held poses (idle, brace, draw)", () => {
+  it("pins the back hand within 1 unit of grip2 on every two-hand weapon in the held poses (idle, brace, draw), every build and size, the back arm inside ANATOMY.reach", () => {
+    const bones = ins.rigDef(S).bones;
+    const up = bones.findIndex((b) => b.id === "armB.up");
+    const lo = bones.findIndex((b) => b.id === "armB.lo");
+    const hb = bones.findIndex((b) => b.id === "handB");
+    const armLen = Math.hypot(bones[lo]!.x, bones[lo]!.y) + Math.hypot(bones[hb]!.x, bones[hb]!.y);
+    let checked = 0;
     for (const id of CONTENT_HELD) {
       const art = contentPack.weapons[id];
       if (art.grip2 === undefined) continue;
@@ -172,17 +179,39 @@ describe("accurate weapon use (13.3): the strike point is the drawn tip", () => 
         const d = rig.clipInfo(S, c).durationMs;
         for (let t = 0; t <= d; t += 1000 / 60) {
           const p = rig.samplePose(S, c, t);
-          const dr = dressOf(id);
-          const a = rig.handAnchor(p, dr, HOME);
-          const r = (a.rot * Math.PI) / 180;
-          const gx = art.grip2.x - art.grip.x;
-          const gy = art.grip2.y - art.grip.y;
-          const got = ins.backGrip(p, dr, HOME);
-          const err = Math.hypot(got[0] - (a.x + gx * Math.cos(r) - gy * Math.sin(r)), got[1] - (a.y + gx * Math.sin(r) + gy * Math.cos(r)));
-          expect(err, `${id} ${c} @${Math.round(t)}`).toBeLessThanOrEqual(1);
+          for (let li = 0; li < LOOKS.length; li++) for (const scale of [1, 1.15]) {
+            const dr = { ...dressOf(id, null, li), scale };
+            const a = rig.handAnchor(p, dr, HOME);
+            const r = (a.rot * Math.PI) / 180;
+            const gx = art.grip2.x - art.grip.x;
+            const gy = art.grip2.y - art.grip.y;
+            const got = ins.backGrip(p, dr, HOME);
+            const err = Math.hypot(got[0] - (a.x + gx * Math.cos(r) - gy * Math.sin(r)), got[1] - (a.y + gx * Math.sin(r) + gy * Math.cos(r)));
+            const what = `${id} ${c} @${Math.round(t)} build ${li} scale ${scale}`;
+            expect(err, what).toBeLessThanOrEqual(1);
+            // the drawn back arm (shoulder to wrist, in body units) is never pulled straight
+            const j = ins.joints(p, dr, HOME);
+            const bodyScale = BUILDS[LOOKS[li]!.build]!.scale * scale;
+            expect(Math.hypot(j[hb]![0] - j[up]![0], j[hb]![1] - j[up]![1]) / (armLen * bodyScale), what).toBeLessThanOrEqual(ANATOMY.reach + 1e-3);
+            checked++;
+          }
         }
       }
     }
+    expect(checked).toBeGreaterThan(1000);
+  });
+  it("pins grip2 in item units, not body units: exact on the tall build at size 1.15, where body units would miss by 2.4", () => {
+    // the item is drawn at its own size; pinning grip2 scaled with the body (x1.08 x1.15) put the
+    // back hand 10 x 0.242 = 2.4 units past the Broom's grip2
+    const art = contentPack.weapons.broom;
+    const p = rig.samplePose(S, "idle", 0);
+    const dr = { ...dressOf("broom", null, 2), scale: 1.15 };
+    const a = rig.handAnchor(p, dr, HOME);
+    const r = (a.rot * Math.PI) / 180;
+    const ox = art.grip2!.x - art.grip.x;
+    const oy = art.grip2!.y - art.grip.y;
+    const got = ins.backGrip(p, dr, HOME);
+    expect(Math.hypot(got[0] - (a.x + ox * Math.cos(r) - oy * Math.sin(r)), got[1] - (a.y + ox * Math.sin(r) + oy * Math.cos(r)))).toBeLessThan(1e-6);
   });
   it("draws items at their own size: a weapon is 20 to 60 percent larger than life is checked by eye; here, nothing is longer than a scrapper", () => {
     for (const id of CONTENT_HELD) expect(contentPack.weapons[id].length, id).toBeLessThan(84);
