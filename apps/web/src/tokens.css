@@ -64,6 +64,16 @@
   --t-on-rarity-epic: #ffffff;
   --c-rarity-mythic: #f2c200;
   --t-on-rarity-mythic: #15130f;
+  /* Inventory (owner, 15 November 2026: "has effects"): a glow round an unlocked Epic or Mythic
+     tile, and the one sweep of light that crosses the unlocked tiles when the screen opens. */
+  --glow-epic: 0 0 0 2px #15130f, 0 0 16px 3px rgba(122, 76, 208, 0.7);
+  --glow-mythic: 0 0 0 2px #15130f, 0 0 18px 4px rgba(242, 194, 0, 0.75);
+  --tex-shine: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.55) 48%, transparent 66%);
+  --c-locked: #2b2722;           /* a locked tile: asphalt, its art a flat silhouette */
+  --t-on-locked: #e9e4da;
+  --t-on-locked-dim: #b9b2a6;
+  --c-silhouette: #0b0a08;
+  --c-silhouette-edge: #8a8278; /* the rim light round a silhouette, so its shape reads on the tile */
 
   /* ---------------------------------------------------------------- results */
   --c-win: #2e9b47;

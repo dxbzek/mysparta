@@ -23,7 +23,12 @@ import { PerkDetail } from "../parts/Perk";
 import css from "./Locker.module.css";
 
 export function tabRoute(tab: LockerTab) {
-  return tab === "kit" ? ({ name: "kit", tab: "kit" } as const) : tab === "history" ? ({ name: "bouts" } as const) : ({ name: "locker" } as const);
+  switch (tab) {
+    case "kit": return { name: "kit", tab: "kit" } as const;
+    case "inventory": return { name: "inventory" } as const;
+    case "history": return { name: "bouts" } as const;
+    default: return { name: "locker" } as const;
+  }
 }
 
 function useMinuteTick(clock: { now(): number }): number {

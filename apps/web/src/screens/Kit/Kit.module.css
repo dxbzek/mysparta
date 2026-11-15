@@ -121,59 +121,6 @@
   margin: 0;
 }
 
-/* found sheet */
-.foundGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-.tile {
-  position: relative;
-  display: grid;
-  justify-items: center;
-  align-content: start;
-  gap: 4px;
-  min-width: 0;
-  min-height: 88px;
-  padding: 6px 2px;
-  border: var(--line-thin) solid var(--c-ink);
-  border-radius: var(--rough-radius-sm);
-  background: var(--c-raised);
-  color: var(--t-on-raised);
-  font: inherit;
-  cursor: pointer;
-}
-.tileName {
-  font: 900 14px / 1.05 var(--font-display);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  text-align: center;
-  overflow-wrap: anywhere;
-}
-.tileDark {
-  background: var(--tex-halftone), var(--c-panel);
-  cursor: default;
-}
-.silhouette {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  filter: brightness(0);
-  opacity: 0.8;
-}
-.dotR {
-  width: 12px;
-  height: 12px;
-  border: 1px solid var(--c-ink);
-  border-radius: 50%;
-}
-.r-common { background: var(--c-rarity-common); }
-.r-uncommon { background: var(--c-rarity-uncommon); }
-.r-rare { background: var(--c-rarity-rare); }
-.r-epic { background: var(--c-rarity-epic); }
-.r-mythic { background: var(--c-rarity-mythic); }
-
 /* ------------------------------------------------------------ route */
 .intro {
   margin: 0;
@@ -343,9 +290,6 @@
 @media (min-width: 900px) {
   .list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .foundGrid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
   .derived {
     grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -3,33 +3,30 @@
  * stats"). Three tabs:
  *   Kit         every owned perk as a card: icon, name, rarity word, kind, the one-line effect and
  *               its costs, built from the content tables. Tap for exact numbers. "Found N of 92"
- *               opens all 92: found ones in colour with names, the rest as dark silhouettes with
- *               only a rarity dot.
+ *               opens the Inventory tab (every perk, unlocked or locked).
  *   Level path  the Route: every level reached, the card taken and the card not taken.
  *   Stats       each stat with its number, bar and icon, max HP, and every derived value with a
  *               plain line, then "How bouts work".
  * Also here: "Retire this scrapper".
  */
 import { useMemo, useState } from "react";
-import { PERK_IDS, RARITY_OF, perkKind } from "@rankzero/core";
+import { PERK_IDS, perkKind } from "@rankzero/core";
 import type { PerkId, ScrapperRecord } from "@rankzero/core";
 import { activeRecord } from "../../app/guards";
 import { useDoc, useGame } from "../../app/context";
 import type { KitTab } from "../../app/router";
 import { shownRecord } from "../../state/actions";
 import { NAMES } from "../../text/names";
-import { RARITY_WORD } from "../../text/perks";
 import { DERIVED_CAP, DERIVED_KEYS, DERIVED_LINE, DERIVED_NAME, HOW_BOUTS_WORK, STAT_KEYS, STAT_LINE } from "../../text/stats";
 import { LOCKER_WORDS, UI } from "../../text/ui";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
 import { PerkIcon } from "../../ui/PerkIcon";
-import { SvgArtView } from "../../ui/SvgArt";
-import { rig } from "../../seams/rig";
 import { Portrait } from "../../ui/Portrait";
 import { Sheet } from "../../ui/Sheet";
 import { StatBar } from "../../ui/StatBar";
 import { Sticker } from "../../ui/Sticker";
+import { MAIN_TABS } from "../../ui/LockerView";
 import { TabBar } from "../../ui/TabBar";
 import { tabRoute } from "../Locker/Locker";
 import { BackGlyph, HeartGlyph } from "../parts/Glyphs";
@@ -70,17 +67,16 @@ export function KitScreen({ tab }: { tab: KitTab }) {
         {tab === "stats" ? <StatsTabView rec={shown} /> : null}
       </main>
       <div className={common.tabs}>
-        <TabBar tabs={(["home", "kit", "history"] as const).map((k) => ({ key: k, label: LOCKER_WORDS.tabs[k] }))} active="kit" onSelect={(k) => go(tabRoute(k))} />
+        <TabBar tabs={MAIN_TABS.map((k) => ({ key: k, label: LOCKER_WORDS.tabs[k] }))} active="kit" onSelect={(k) => go(tabRoute(k))} />
       </div>
     </div>
   );
 }
 
 function KitTabView({ rec, perks }: { rec: ScrapperRecord; perks: PerkId[] }) {
-  const { core } = useGame();
+  const { core, go } = useGame();
   const doc = useDoc();
   const [open, setOpen] = useState<PerkId | null>(null);
-  const [found, setFound] = useState(false);
   const [retire, setRetire] = useState(false);
   const foundIds = useMemo(() => new Set(core.foundPerks([...doc.fighters, ...doc.retired])), [core, doc.fighters, doc.retired]);
   const groups = [
@@ -91,7 +87,7 @@ function KitTabView({ rec, perks }: { rec: ScrapperRecord; perks: PerkId[] }) {
   ];
   return (
     <>
-      <button type="button" className={css.found} onClick={() => setFound(true)}>
+      <button type="button" className={css.found} onClick={() => go({ name: "inventory" })}>
         <span className={css.foundCount}>{UI.kit.found(foundIds.size, PERK_IDS.length)}</span>
         <span className={css.foundBar} aria-hidden="true"><span style={{ width: `${((foundIds.size / PERK_IDS.length) * 100).toFixed(1)}%` }} /></span>
         <span className={css.foundSub}>{UI.kit.foundSub}</span>
@@ -119,25 +115,6 @@ function KitTabView({ rec, perks }: { rec: ScrapperRecord; perks: PerkId[] }) {
 
       <Sheet open={open !== null} title={UI.locker.perkSheet} onClose={() => setOpen(null)}>
         {open ? <PerkDetail id={open} owned={perks} /> : null}
-      </Sheet>
-      <Sheet open={found} title={UI.kit.foundTitle(foundIds.size, PERK_IDS.length)} onClose={() => setFound(false)}>
-        <div className={css.foundGrid}>
-          {PERK_IDS.map((id) => {
-            const has = foundIds.has(id);
-            const r = RARITY_OF[id];
-            return has ? (
-              <button key={id} type="button" className={css.tile} onClick={() => { setFound(false); setOpen(id); }}>
-                <PerkIcon id={id} size={44} rarity />
-                <span className={css.tileName}>{NAMES[id]}</span>
-              </button>
-            ) : (
-              <span key={id} className={`${css.tile} ${css.tileDark}`} role="img" aria-label={`${UI.kit.unknownPerk}, ${RARITY_WORD[r]}`}>
-                <span className={css.silhouette}><SvgArtView art={rig.icon(id)} size={40} /></span>
-                <span className={`${css.dotR} ${css[`r-${r}`]}`} aria-hidden="true" />
-              </span>
-            );
-          })}
-        </div>
       </Sheet>
       <RetireSheet open={retire} rec={rec} onClose={() => setRetire(false)} />
     </>

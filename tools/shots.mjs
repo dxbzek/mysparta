@@ -195,9 +195,6 @@ async function shootInner(browser, sizeName, base, ctx) {
   await page.locator("main section button[aria-label]").first().click();
   await shot("kit-perk", 500);
   await page.keyboard.press("Escape");
-  await page.locator("button", { hasText: /Found \d+ of \d+/ }).first().click();
-  await shot("kit-found", 500);
-  await page.keyboard.press("Escape");
   await btn("Retire this scrapper").click();
   await shot("kit-retire", 500);
   await page.keyboard.press("Escape");
@@ -205,6 +202,29 @@ async function shootInner(browser, sizeName, base, ctx) {
   await shot("kit-route");
   await hash("#/kit/stats");
   await shot("kit-stats");
+  // Inventory: the Kit's "Found N of 92" opens it; then the tab, filters, and both sheets
+  await hash("#/kit");
+  await page.locator("button", { hasText: /Found \d+ of \d+/ }).first().click();
+  await page.waitForURL(/#\/inventory$/);
+  await shot("inventory", 1500);
+  await page.locator("button[data-state='unlocked']").first().click();
+  await shot("inventory-item", 600);
+  await page.keyboard.press("Escape");
+  await page.locator("button[data-state='locked']").first().click();
+  await shot("inventory-locked-item", 600);
+  await page.keyboard.press("Escape");
+  await page.getByRole("group", { name: "Show" }).getByRole("button", { name: "Weapons", exact: true }).click();
+  await shot("inventory-weapons", 300);
+  const weapon = page.locator("button[data-state='unlocked']").first();
+  if (await weapon.count()) {
+    await weapon.click();
+    await shot("inventory-weapon-item", 900);
+    await page.keyboard.press("Escape");
+  }
+  await page.getByRole("group", { name: "Show" }).getByRole("button", { name: "All", exact: true }).click();
+  await btn("Show locked").click();
+  await shot("inventory-unlocked-only", 300);
+  await btn("Show locked").click();
   await hash("#/bouts");
   await shot("history");
   await page.locator("button[aria-label^='Replay the bout with']").first().click();
