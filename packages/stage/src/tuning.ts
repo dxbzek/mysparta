@@ -203,8 +203,13 @@ export const MOVE = {
   earsMs: 1100,
   /** A Move's result tag ("-25 AIM", "SNARED") stays this long. */
   resultMs: 1100,
-  /** A whistled pet runs to its owner's side, this far in front of it, at this speed. */
+  /** A blow's sound rings start this far in front of the mouth: past the whistle's and the horn's
+   *  end, so the object shows (units, in the user's facing). */
+  ringsOut: { whistle: 13, horn: 19 },
+  /** A whistled pet runs to its owner's side, this far behind it (in front when that is within
+   *  `petFloorEdge` of the stage's edge), at this speed. */
   petRunGap: 34,
+  petFloorEdge: 24,
   petRunSpeed: 260,        // units per second
   freeMs: 220,
   fleeSpeed: 300,          // units per second

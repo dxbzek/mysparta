@@ -237,7 +237,8 @@ const whistle: Painter = (c, s, me) => {
   for (let k = 0; k < 3; k++) {
     const u = (s.e / 300 + k / 3) % 1;
     c.globalAlpha = s.alpha * (1 - u);
-    arc(c, me.mouth, 6 + u * 34, dir - 0.6, dir + 0.6, TEAL, 2.6);
+    // (from the whistle's end, so the whistle itself shows)
+    arc(c, { x: me.mouth.x + me.f * 12, y: me.mouth.y }, 4 + u * 34, dir - 0.6, dir + 0.6, TEAL, 2.6);
   }
   c.globalAlpha = s.alpha;
   // the shrill note: sharp marks over his head

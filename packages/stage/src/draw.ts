@@ -9,9 +9,9 @@ import type { PlayerOpts } from "./contracts";
 import type { Frame, FrameText } from "./frame";
 import { STAGE_H, STAGE_W } from "./layout";
 import type { CameraView } from "./camera";
-import { MARGIN, STICKER_H, TOP_BAND, fitView, layoutLabels, screenOf } from "./labels";
+import { MARGIN, STICKER_H, TOP_BAND, fitView, layoutLabels, layoutNumbers, screenOf } from "./labels";
 export { MARGIN, STICKER_H, TOP_BAND, fitView };
-import type { Spot } from "./labels";
+import type { NumSpot, Spot } from "./labels";
 import { INK } from "./palette";
 import { drawSig } from "./sigs";
 
@@ -40,9 +40,7 @@ function roundRect(env: DrawEnv, x: number, y: number, w: number, h: number, r: 
 /** Where a text is painted, in CSS px of the canvas, and its font size in px. */
 interface Placed { x: number; y: number; size: number }
 
-/** Text sizes on screen. Numbers follow the camera up to a cap, so a close camera does not make a
- *  damage number cover a face (tags: labels.ts); banners scale with the canvas width. */
-const TEXT_K_MAX = { number: 3.1 } as const;
+/** Banner text scales with the canvas width (tags and numbers: labels.ts). */
 export const BANNER_K = { perWidth: 1 / 225, max: 2.7 } as const;
 /** The banner in the top band shrinks to fit above the standing heads, down to this (CSS px). */
 export const BANNER_MIN_PX = 14;
@@ -171,7 +169,7 @@ function drawSlung(env: DrawEnv, rig: Rig, a: Frame["actors"][number]): void {
 }
 
 export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, view: { w: number; h: number; dpr: number }, cam?: CameraView,
-  pose?: (a: Frame["actors"][number]) => Pose, spots?: ReadonlyMap<number, Spot>): void {
+  pose?: (a: Frame["actors"][number]) => Pose, spots?: ReadonlyMap<number, Spot>, numSpots?: ReadonlyMap<number, NumSpot>): void {
   const poseOf = (a: Frame["actors"][number]): Pose => (pose ? pose(a) : rig.samplePose(a.rig, a.clip, a.clipT, a.aim));
   const c = env.ctx;
   const dpr = view.dpr > 0 ? view.dpr : 1;
@@ -255,16 +253,16 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
     } else text(env, t, opts.fonts, { x: t.x * k + ox, y: t.y * k + oy, size: t.size * k }, css, dpr, 0);
   }
   // tags and stickers: laid out so no two overlap (labels.ts), each riding on its actor
-  for (const l of layoutLabels(f, screenOf(css, cam), spots)) {
+  const scr = screenOf(css, cam);
+  const labels = layoutLabels(f, scr, spots);
+  for (const l of labels) {
     const shaken = l.t.kind === "tag";
     const icon = l.t.icon !== undefined ? rig.icon(l.t.icon) : null;
     const pop = l.t.size0 !== undefined && l.t.size0 > 0 ? l.t.size / l.t.size0 : 1;
     text(env, l.t, opts.fonts, { x: l.x + (shaken ? sx : 0), y: l.y + (shaken ? sy : 0), size: l.size * pop }, css, dpr, cam ? TOP_BAND : 0, icon);
   }
-  // numbers last, so a heal's +14 is never under its Move's own tag
-  for (const t of f.texts) {
-    if (t.kind !== "number") continue;
-    const tk = cam ? Math.min(k, TEXT_K_MAX.number) : k;
-    text(env, t, opts.fonts, { x: t.x * k + ox + sx, y: t.y * k + oy + sy, size: t.size * tk }, css, dpr, cam ? TOP_BAND : 0);
+  // numbers last, beside the tags, never on one (labels.ts)
+  for (const n of layoutNumbers(f, scr, labels, numSpots)) {
+    text(env, n.t, opts.fonts, { x: n.x + sx, y: n.y + sy, size: n.size }, css, dpr, cam ? TOP_BAND : 0);
   }
 }

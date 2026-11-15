@@ -21,7 +21,7 @@ import { Path2D, createCanvas } from "@napi-rs/canvas";
 import { buildPlayer } from "../src/createFightPlayer";
 import type { StagePlayer } from "../src/createFightPlayer";
 import { PASSIVES } from "../src/effects";
-import { boxOf, birthsFor, layoutLabels, screenOf } from "../src/labels";
+import { avoidOf, boxOf, birthsFor, layoutLabels, layoutNumbers, numbersFor, screenOf } from "../src/labels";
 import { cameraAt } from "../src/camera";
 import { PAINTERS, PROC_MARK, bodyOf, drawSig } from "../src/sigs";
 import type { Body } from "../src/sigs";
@@ -178,10 +178,12 @@ describe("every skill shows what it does, on the full rig", () => {
     }
   });
 
-  it("on the phone, no two tags cover each other and no tag pops in over a fighter's head", () => {
+  it("on the phone, no two tags cover each other and tags keep off the fighters' heads and chests", () => {
     const view = { w: 390, h: 260 };
     let frames = 0;
     let overlaps = 0;
+    let tagged = 0;
+    let onBody = 0;
     for (const bt of bouts) {
       const spots = birthsFor(bt.p.tracks, view, false);
       for (let t = 0; t < bt.p.timeline.durationMs; t += 50) {
@@ -189,6 +191,13 @@ describe("every skill shows what it does, on the full rig", () => {
         const s = screenOf(view, cameraAt(bt.p.tracks, t, view, false));
         const ls = layoutLabels(f, s, spots);
         frames++;
+        // a tag over a fighter's head or chest (to the belt) hides the Move's action
+        const bodies = avoidOf(f, s);
+        for (const l of ls) {
+          tagged++;
+          const p = boxOf(l);
+          if (bodies.some((q) => Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0) > 2 && Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0) > 2)) onBody++;
+        }
         for (let x = 0; x < ls.length; x++) {
           for (let y = x + 1; y < ls.length; y++) {
             const p = boxOf(ls[x]!);
@@ -201,5 +210,50 @@ describe("every skill shows what it does, on the full rig", () => {
     expect(frames).toBeGreaterThan(500);
     // the layout falls back to its first wish only when the whole canvas is full
     expect(overlaps / frames).toBeLessThan(0.01);
+    // (a rider that walks under a tag, or a crowded canvas; with the old head-only box it was 55%)
+    expect(onBody / tagged).toBeLessThan(0.15);
+  });
+
+  it("on the phone, no damage or heal number lands on a tag (it broke the words: 'EN+59RINK') or on another number", () => {
+    const view = { w: 390, h: 260 };
+    let pairs = 0;
+    let hits = 0;
+    let frames = 0;
+    let numOnNum = 0;
+    const seen: string[] = [];
+    for (const bt of bouts) {
+      const spots = birthsFor(bt.p.tracks, view, false);
+      const nums = numbersFor(bt.p.tracks, view, false);
+      for (let t = 0; t < bt.p.timeline.durationMs; t += 25) {
+        const f = bt.p.frame(t);
+        const s = screenOf(view, cameraAt(bt.p.tracks, t, view, false));
+        const ls = layoutLabels(f, s, spots);
+        const placed = layoutNumbers(f, s, ls, nums);
+        frames++;
+        for (let x = 0; x < placed.length; x++) {
+          for (let y = x + 1; y < placed.length; y++) {
+            const p = boxOf(placed[x]!);
+            const q = boxOf(placed[y]!);
+            if (Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0) > 1 && Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0) > 1) numOnNum++;
+          }
+        }
+        for (const n of placed) {
+          const p = boxOf(n);
+          for (const l of ls) {
+            pairs++;
+            const q = boxOf(l);
+            if (Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0) > 1 && Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0) > 1) {
+              hits++;
+              if (seen.length < 8) seen.push(`n ${bt.n} t ${t}: ${n.t.text} on ${l.t.text}`);
+            }
+          }
+        }
+      }
+    }
+    expect(pairs).toBeGreaterThan(200);
+    expect(seen, seen.join("; ")).toEqual([]);
+    expect(hits).toBe(0);
+    // and a number rising into the one before it ("+7" over "-26") only where there is no room
+    expect(numOnNum / frames).toBeLessThan(0.005);
   });
 });

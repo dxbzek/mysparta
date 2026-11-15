@@ -16,8 +16,8 @@
  *      Energy Drink  he lifts the can and chugs it, head back (drink clip, the can in hand), fizz
  *                    off the can; a green glow and crackle as it kicks in.
  *      Tarp          he throws; the tarp flies over the target, drops and wraps it.
- *      Whistle       he blows the whistle: teal sound arcs from his mouth; the pet sprints to
- *                    his side.
+ *      Whistle       he blows the whistle (the whistle in front of his face): teal sound arcs
+ *                    from his mouth; the pet sprints to his side, behind him, away from the enemy.
  *      Firecrackers  the lit bundle fizzes in his hand, he throws, it lands at the enemy's feet
  *                    and pops all round it.
  *      Snatch        he dashes in and flicks the weapon out of the enemy's hand into his own.
@@ -166,8 +166,10 @@ function blow(b: Builder, step: MoveStep, i: number, s: number, c: number, prop:
   b.play(step.actor, "power-up", c, { c0: w0, rate: (w1 - w0) / MOVE.blowMs, until: c + MOVE.blowMs, prop });
   const head = overHead(b, step.actor, c);
   const p = b.place(step.actor, c);
-  b.fx.push({ fx: "rings", from: c, to: c + MOVE.ringsMs, x: 0, y: 0, facing: p.facing, seed: b.opts.cosmeticSeed + i,
-    contact: null, follow: step.actor, dy: head.y + 80 - p.y });   // the rings draw 66 above `at`: centred on the mouth
+  // the rings draw 66 above `at`: centred on the mouth, out past the object's end, so the
+  // whistle or the horn in front of the face is not under them
+  b.fx.push({ fx: "rings", from: c, to: c + MOVE.ringsMs, x: MOVE.ringsOut[prop], y: 0, facing: p.facing, seed: b.opts.cosmeticSeed + i,
+    contact: null, follow: step.actor, dy: head.y + 80 - p.y });
   if (prop === "whistle") sig(b, step, c, c + MOVE.blowMs);
   if (prop === "horn") {
     // the blast crosses the stage: rings at a third and two thirds of the way to the enemy, then

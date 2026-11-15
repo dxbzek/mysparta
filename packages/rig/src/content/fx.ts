@@ -172,8 +172,16 @@ export const trail: FxDraw = (env, progress, at) => {
 export const CONTENT_FX = { tarp, tape, crackers, rings, plus, trail };
 
 // ---------------------------------------------------------------------------- Move props
+/** A prop's outline points scaled about its grip: the whistle and the horn are drawn a size up from
+ *  life (verify, 16 Nov 2026: on the phone the whistle itself did not show, only the hand at the
+ *  mouth), the way the comic draws a held object to read. */
+const up = (k: number, pts: readonly Pt[]): Pt[] => pts.map(([x, y]) => [x * k, y * k]);
+const WHISTLE_K = 1.6;
+const HORN_K = 1.3;
+
 /** The can of the Energy Drink, the referee whistle and the air horn: small real objects drawn
- *  in the back hand while their Move plays (item units, grip at the origin). */
+ *  in the back hand while their Move plays (item units, grip at the origin). The rig draws one in
+ *  front of the face while the hand is up at the mouth. The whistle hangs on a bright lanyard. */
 export const PROPS: Record<MoveProp, PropArt> = {
   can: { grip: { x: 0, y: 0, rot: 80 }, shapes: [
     fillOf(roundRect(-6, -2.6, 12, 5.2, 0.8), "metal", 0),
@@ -182,14 +190,19 @@ export const PROPS: Record<MoveProp, PropArt> = {
     fillOf(bar(4.8, 6.6, [[0, 2.2], [1, 1.6]], 0), "metal", 1.5),
   ] },
   whistle: { grip: { x: 0, y: 0, rot: -10 }, shapes: [
-    fillOf([[-1, -1.2], [4, -1.2], [5, -0.4], [7.4, -0.6], [8.6, 1.4], [7, 3.4], [4.4, 3], [2.6, 1.2], [-1, 1.2]], "metal", 0),
-    blob(6.4, 1.4, 0.7, 0.7, 1, 8),
-    fillOf(ellipsePoly(-1.6, 0, 1.2, 1.2, 10), "accent", 0.5),
+    // the lanyard: from the ring down toward the neck
+    fillOf(up(WHISTLE_K, [[-2.2, 0.2], [-1.2, 0.4], [-1.4, 4], [-2.4, 7.4], [-3.4, 7.2], [-2.4, 3.8]]), "accent", -1),
+    fillOf(up(WHISTLE_K, [[-1, -1.2], [4, -1.2], [5, -0.4], [7.4, -0.6], [8.6, 1.4], [7, 3.4], [4.4, 3], [2.6, 1.2], [-1, 1.2]]), "white", 0),
+    // a shade along the underside of the barrel (a bright chrome whistle: it must not melt into
+    // the skin of the hand and the face behind it)
+    fillOf(up(WHISTLE_K, [[4.6, 2.2], [7.2, 2.6], [6.8, 3.2], [4.4, 2.9]]), "metal", 0.5),
+    blob(6.4 * WHISTLE_K, 1.4 * WHISTLE_K, 0.7 * WHISTLE_K, 0.7 * WHISTLE_K, 1, 8),
+    fillOf(ellipsePoly(-1.6 * WHISTLE_K, 0, 1.2 * WHISTLE_K, 1.2 * WHISTLE_K, 10), "accent", 0.5),
   ] },
   horn: { grip: { x: 0, y: 0, rot: -10 }, shapes: [
-    fillOf(rod(-3.6, 3, 2.2, 0.4), "accent", 0),
-    fillOf(roundRect(2.4, -1.2, 2.6, 2.4, 0.3), "metal", 1),
-    fillOf([[4.6, -0.9], [8, -0.9], [12.6, -3.6], [12.6, 3.6], [8, 0.9], [4.6, 0.9]], "metal", 2),
-    line([[12.4, -3.2], [12.4, 3.2]], 0.3, 3, false),
+    fillOf(up(HORN_K, rod(-3.6, 3, 2.2, 0.4)), "accent", 0),
+    fillOf(up(HORN_K, roundRect(2.4, -1.2, 2.6, 2.4, 0.3)), "metal", 1),
+    fillOf(up(HORN_K, [[4.6, -0.9], [8, -0.9], [12.6, -3.6], [12.6, 3.6], [8, 0.9], [4.6, 0.9]]), "metal", 2),
+    line(up(HORN_K, [[12.4, -3.2], [12.4, 3.2]]), 0.3 * HORN_K, 3, false),
   ] },
 };

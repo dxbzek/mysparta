@@ -41,7 +41,9 @@ export interface FrameText { text: string; x: number; y: number; size: number; c
    *  head that its box sits on; of any other text, its centre. */
   role?: TagRole; actor?: ActorId; idx?: number; from?: number;
   /** Its size without the pop, in stage units: what labels.ts lays out. */
-  size0?: number }
+  size0?: number;
+  /** A number's index in `Tracks.numbers`, for labels.ts (it keeps the number off the tags). */
+  num?: number }
 /** A skill's signature in this frame (`Sig`): ms since it began, its progress, its fade and the
  *  actors it is drawn on. */
 export interface FrameSig { kind: SigKind; skill?: SkillId; e: number; progress: number; alpha: number; actor: FrameActor | null;
@@ -191,16 +193,17 @@ export function frameAt(tr: Tracks, t: number): Frame {
 
   // ---- numbers and stickers
   const texts: FrameText[] = [];
-  for (const n of tr.numbers) {
+  tr.numbers.forEach((n, num) => {
     const e = t - n.from;
-    if (e < 0 || e >= CONTACT.numberMs) continue;
+    if (e < 0 || e >= CONTACT.numberMs) return;
     const pop = e < CONTACT.numberPopMs ? CONTACT.numberPopFrom + (1 - CONTACT.numberPopFrom) * (e / CONTACT.numberPopMs) : 1;
     const rise = CONTACT.numberRise * eased("out", e / CONTACT.numberMs);
     const fadeFrom = CONTACT.numberMs - CONTACT.numberFadeMs;
     const alpha = e > fadeFrom ? 1 - (e - fadeFrom) / CONTACT.numberFadeMs : 1;
-    texts.push({ text: n.text, x: n.x, y: n.y - rise, size: 13 * n.scale * pop, colour: n.colour, ink: "#14152B", alpha, kind: "number" });
+    texts.push({ text: n.text, x: n.x, y: n.y - rise, size: 13 * n.scale * pop, colour: n.colour, ink: "#14152B", alpha, kind: "number", num,
+      from: n.from });
     if (n.contact !== null) present.push({ key: "number", contact: n.contact });
-  }
+  });
   tr.tags.forEach((g, idx) => {
     if (t < g.from || t >= g.to) return;
     const e = t - g.from;
