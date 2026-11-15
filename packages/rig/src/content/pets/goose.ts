@@ -8,7 +8,8 @@
  *   body, tail; neck1-3 then head and jaw (the bill opens to hiss); the neck's pieces overlap
  *   with slanted joints in one outline group, so the bones bend it and it still draws as one
  *   tube with one outline.
- *   wingF / wingB (arm and coverts, from the shoulder) and .tip (the primaries): folded over the
+ *   wingF / wingB (arm and coverts, from the shoulder), .mid (the secondaries) and .tip (the
+ *   primaries): three blades that lie stacked when folded and fan apart as the wing opens,
  *   back at rest, raised and spread to threaten.
  *   legs: .up the drumstick (tibiotarsus; the knee is hidden in the body), .lo the bare shank
  *   (tarsometatarsus), .foot the webbed toes. The joint between .up and .lo is the ankle: its
@@ -42,7 +43,7 @@ const NECK_W = [1.6, 1.5, 1.42, 1.34, 1.27, 1.21, 1.16, 1.12, 1.1];
 const NECK_JOINT = [1, 3, 5, 7];       // neck1, neck2, neck3, head
 
 export function goose(): PetArt & { anatomy: Anatomy } {
-  const rest: Rot = { body: 0, tail: 0, neck1: 0, neck2: 0, neck3: 0, head: 0, jaw: 0, wingF: 0, "wingF.tip": 0, wingB: 0, "wingB.tip": 0 };
+  const rest: Rot = { body: 0, tail: 0, neck1: 0, neck2: 0, neck3: 0, head: 0, jaw: 0, wingF: 0, "wingF.mid": 0, "wingF.tip": 0, wingB: 0, "wingB.mid": 0, "wingB.tip": 0 };
   restLeg(rest, "legF", "foot", 0, LEG, 0);
   restLeg(rest, "legB", "foot", 0, shift(LEG, FAR), 0);
   const a = new Anatomy(rest);
@@ -54,9 +55,11 @@ export function goose(): PetArt & { anatomy: Anatomy } {
   a.bone("head", "neck3", NECK[NECK_JOINT[3]!]!, [-85, 70]);
   a.bone("jaw", "head", [9.0, -25.05], [0, 35]);
   a.bone("wingB", "body", [4.0, -13.7], [-20, 110]);
-  a.bone("wingB.tip", "wingB", [-6.2, -13.8], [-70, 40]);
+  a.bone("wingB.mid", "wingB", [0.4, -14.2], [-60, 30]);
+  a.bone("wingB.tip", "wingB.mid", [-6.2, -13.8], [-70, 40]);
   a.bone("wingF", "body", [3.6, -13.3], [-20, 110]);
-  a.bone("wingF.tip", "wingF", [-6.6, -13.4], [-70, 40]);
+  a.bone("wingF.mid", "wingF", [0.0, -13.8], [-60, 30]);
+  a.bone("wingF.tip", "wingF.mid", [-6.6, -13.4], [-70, 40]);
   const G = GOOSE_LIMITS;
   a.leg("legB", "foot", "body", shift(LEG, FAR), -1, [G.hip, G.ankle, G.toes], [TOE[0] + FAR[0], FAR[1]], SOLE.map((p) => [p[0] + FAR[0], p[1] + FAR[1]] as Pt));
   a.leg("legF", "foot", "body", LEG, -1, [G.hip, G.ankle, G.toes], TOE, SOLE);
@@ -78,11 +81,13 @@ export function goose(): PetArt & { anatomy: Anatomy } {
     a.fill(`${n}.tip`, mv(S([[-5.6, -14.6], [-9.6, -15.1], [-13.0, -15.7], [-15.3, -16.0], [-14.2, -15.0], [-11.2, -13.5], [-7.8, -12.4], [-5.6, -12.4]]), d), "hair", z, sh);
     if (!far) a.ink(`${n}.tip`, [line([[-8.0, -13.9], [-11.4, -14.7], [-14.4, -15.6]]), line([[-8.2, -13.0], [-11.0, -13.9], [-13.0, -14.6]])], 0.2, z + 0.05);
     // the arm with coverts and secondaries: a teardrop over the flank, the saddle dark on top
-    a.fill(n, mv(S([[4.8, -13.0], [3.6, -14.7], [-0.2, -15.4], [-4.2, -15.1], [-7.0, -14.2], [-7.6, -12.9], [-6.0, -11.6], [-3.4, -10.4], [-0.4, -9.6], [2.4, -9.8], [4.4, -11.1]]), d), "skin", z + 0.1, sh);
+    // the secondaries: a broad blade under the coverts, its trailing edge scalloped
+    a.fill(`${n}.mid`, mv(S([[0.6, -13.9], [-3.0, -13.7], [-6.6, -13.2], [-7.8, -12.3], [-6.4, -10.9], [-3.4, -9.9], [-0.4, -9.5], [2.2, -9.7], [2.4, -11.4]]), d), "skin", z + 0.05, sh);
+    if (!far) a.ink(`${n}.mid`, [[[-5.6, -11.2], [-5.0, -10.4]], [[-3.6, -10.6], [-3.1, -9.9]], [[-1.4, -10.2], [-1.0, -9.6]]], 0.18, z + 0.06);
+    a.fill(n, mv(S([[4.8, -13.0], [3.6, -14.7], [-0.2, -15.4], [-3.8, -15.0], [-5.4, -13.8], [-3.6, -12.2], [-0.2, -11.4], [2.8, -11.3], [4.6, -12.0]]), d), "skin", z + 0.1, sh);
     if (!far) {
       a.fill(n, S([[3.4, -14.6], [-0.2, -15.3], [-4.2, -15.0], [-7.0, -14.0], [-4.4, -13.4], [0.4, -13.7]]), "hair", z + 0.12);
-      a.ink(n, [line([[-6.6, -12.2], [-4.4, -11.2], [-1.6, -10.4]]), line([[-5.6, -13.0], [-2.8, -12.0], [0.4, -11.5]]), line([[-3.0, -13.2], [-0.2, -12.7], [2.6, -12.5]]),
-        [[-4.6, -11.0], [-4.0, -10.3]], [[-2.4, -10.2], [-1.9, -9.6]], [[-0.2, -9.7], [0.2, -9.3]]], 0.2, z + 0.15);
+      a.ink(n, [line([[-3.8, -13.0], [-1.2, -12.4], [1.6, -12.2]]), line([[-2.6, -14.0], [0.2, -13.4], [2.8, -13.2]])], 0.2, z + 0.15);
     }
   };
   wing("wingB", [0.4, -0.4], 18, true);
@@ -157,7 +162,7 @@ function gooseClips(a: Anatomy): Record<CompanionClip, Clip> {
   const legs = a.legs;
   const TX = legs.find((l) => l.name === "legF")!.restContact[0];
   const S0: Hi = {
-    x: 0, y: 0, rot: { body: 0, tail: 0, neck1: 0, neck2: 0, neck3: 0, head: 0, jaw: 0, wingF: 0, "wingF.tip": 0, wingB: 0, "wingB.tip": 0 },
+    x: 0, y: 0, rot: { body: 0, tail: 0, neck1: 0, neck2: 0, neck3: 0, head: 0, jaw: 0, wingF: 0, "wingF.mid": 0, "wingF.tip": 0, wingB: 0, "wingB.mid": 0, "wingB.tip": 0 },
     feet: { legF: { x: TX + 0.8, y: 0, a: 0 }, legB: { x: TX - 0.6, y: 0, a: 0 } },
   };
   // the toes: flat on the floor, the heel peeling up at the push-off, curled down (web folded) as
@@ -165,7 +170,15 @@ function gooseClips(a: Anatomy): Record<CompanionClip, Clip> {
   const stance = profile([[0, 0], [0.55, 0], [1, 34]]);
   const swing = profile([[0, 30], [0.35, 36], [0.7, 16], [0.9, -3], [1, 0]]);
 
-  const idle = sampleClip(bones, legs, P.idle.durationMs, true, 40, (t) => {
+  // the wing opens as a fan: the secondaries take most of the primaries' spread, the primaries the
+  // rest, so a spread wing shows three blades fanned from the shoulder
+  const fan = (h: Hi): Hi => {
+    const rot = { ...h.rot };
+    for (const w of ["wingF", "wingB"]) { const t = rot[`${w}.tip`] ?? 0; rot[`${w}.mid`] = 0.9 * t; rot[`${w}.tip`] = 0.75 * t; }
+    return { ...h, rot };
+  };
+  const sampleFan: typeof sampleClip = (b, l, d, loop, step, at, r) => sampleClip(b, l, d, loop, step, (t) => fan(at(t)), r);
+  const idle = sampleFan(bones, legs, P.idle.durationMs, true, 40, (t) => {
     const u = t / P.idle.durationMs;
     const look = Math.max(0, 1 - Math.abs(t - 640) / 200);
     return poseFrom(S0, { y: 0.15 * sn(u, 1, 0.25),
@@ -192,8 +205,8 @@ function gooseClips(a: Anatomy): Record<CompanionClip, Clip> {
         wingB: (fast ? 48 : 20) + (fast ? 34 : 5) * flap - 3 * roll, "wingB.tip": (fast ? -20 : -8) + 22 * flap } };
     };
   };
-  const run = sampleClip(bones, legs, P.run.durationMs, true, 10, gait(GOOSE_GAITS.run, false), { events: P.run.events, lag: { "wingF.tip": 25, "wingB.tip": 25, tail: 30 } });
-  const flee = sampleClip(bones, legs, P.flee.durationMs, true, 10, gait(GOOSE_GAITS.flee, true), { events: P.flee.events, lag: { "wingF.tip": 25, "wingB.tip": 25, tail: 30 } });
+  const run = sampleFan(bones, legs, P.run.durationMs, true, 10, gait(GOOSE_GAITS.run, false), { events: P.run.events, lag: { "wingF.tip": 25, "wingB.tip": 25, tail: 30 } });
+  const flee = sampleFan(bones, legs, P.flee.durationMs, true, 10, gait(GOOSE_GAITS.flee, true), { events: P.flee.events, lag: { "wingF.tip": 25, "wingB.tip": 25, tail: 30 } });
 
   // ---- attack: rear back into an S with wings spread and the bill open (the hiss), then strike
   const hiss = poseFrom(S0, { x: -0.8, y: 0.4, rot: { body: -10, tail: 14, neck1: -6, neck2: 26, neck3: -44, head: 34, jaw: 30,
@@ -201,14 +214,14 @@ function gooseClips(a: Anatomy): Record<CompanionClip, Clip> {
   const strike = poseFrom(S0, { x: 2.2, y: 1.0, rot: { body: 14, tail: -6, neck1: 46, neck2: 10, neck3: 6, head: -66, jaw: 4,
     wingF: 66, "wingF.tip": -34, wingB: 60, "wingB.tip": -30 }, feet: { legF: { x: 2.6, a: 0 }, legB: { a: 28 } } });
   const step: Hi = poseFrom(strike, { rot: { neck1: -22, neck2: 10, head: 52, jaw: 20 }, feet: { legF: { y: -1.4, x: -0.8, a: 14 } } });
-  const attack = sampleClip(bones, legs, P.attack.durationMs, false, 10, track([
+  const attack = sampleFan(bones, legs, P.attack.durationMs, false, 10, track([
     [0, S0], [80, hiss, "out"], [106, poseFrom(hiss, { rot: { neck2: 4, neck3: -6, head: 4 } }), "inOut"], [126, step, "lin"], [150, strike, "lin"],
     [185, poseFrom(strike, { rot: { neck1: -6, head: 6, jaw: 22 } }), "inOut"], [215, poseFrom(strike, { rot: { neck1: -14, neck2: 10, head: 4, jaw: 4, wingF: -20, wingB: -20 } }), "inOut"], [280, S0, "inOut"],
   ]), { events: P.attack.events, lag: { "wingF.tip": 25, "wingB.tip": 25, tail: 30 } });
 
   const recoil = poseFrom(S0, { x: -1.4, y: 0.4, rot: { body: -14, tail: 16, neck1: -24, neck2: 10, neck3: 16, head: -10, jaw: 16,
     wingF: 74, "wingF.tip": -40, wingB: 68, "wingB.tip": -36 }, feet: { legF: { y: -1.2, x: -1.0, a: 14 } } });
-  const hit = sampleClip(bones, legs, P.hit.durationMs, false, 10, track([
+  const hit = sampleFan(bones, legs, P.hit.durationMs, false, 10, track([
     [0, S0], [60, recoil, "out"], [140, poseFrom(recoil, { x: 1.0, rot: { neck1: 12, wingF: -40, wingB: -40, jaw: -10 }, feet: { legF: { y: 1.2, x: 1.0, a: -14 } } }), "inOut"], [300, S0, "inOut"],
   ]), { events: P.hit.events, lag: { "wingF.tip": 30, "wingB.tip": 30, head: 30 } });
 
@@ -218,7 +231,7 @@ function gooseClips(a: Anatomy): Record<CompanionClip, Clip> {
     feet: { legF: { x: -1.2, a: 30 }, legB: { x: -1.0, a: 30 } } });
   const down = poseFrom(S0, { x: 0.6, y: 4.6, rot: { body: 8, tail: -10, neck1: 66, neck2: 14, neck3: 2, head: -66, jaw: 14,
     wingF: 22, "wingF.tip": -20, wingB: 8, "wingB.tip": -6 }, feet: { legF: { x: -3.2, y: -0.4, a: 30 }, legB: { x: -2.8, y: -0.4, a: 30 } } });
-  const ko = sampleClip(bones, legs, P.ko.durationMs, false, 20, track([
+  const ko = sampleFan(bones, legs, P.ko.durationMs, false, 20, track([
     [0, S0], [90, poseFrom(S0, { x: -1, rot: { body: -10, neck1: -18, neck2: 12, head: -8, wingF: 60, wingB: 54 } }), "out"], [240, slump, "in"],
     [400, down, "in"], [470, poseFrom(down, { y: -0.4, rot: { neck1: -4, head: -6, wingF: 6 } }), "out"], [600, down, "inOut"],
   ]), { events: P.ko.events, lag: { "wingF.tip": 40, "wingB.tip": 40, head: 40 } });

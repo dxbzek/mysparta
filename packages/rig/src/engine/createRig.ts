@@ -616,11 +616,13 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     const [cx] = apply(f.map, (x0 + x1) / 2, 0);
     shadow(env, cx, at.y, ((x1 - x0) / 2 + 3) * f.s, pose.lift);
     const parts: Paint[] = [];
+    // a pet's ink outline: its art's own weight (thinner for a small animal), times its scale
+    const line = ((f.art as { line?: number }).line ?? LINE.figure) * f.s;
     for (const sh of f.art.shapes) {
       const bi = f.body.model.index.get(sh.bone);
       if (bi === undefined) continue;
       const lit = sh.slot === "white" ? FIXED.white : slotColour(sh.slot, colours);
-      const p: Paint = { d: sh.d, z: sh.z, xf: mul(f.map, f.fr[bi]!), lit, shade: shadeOf(lit), ink: sh.slot === "ink" };
+      const p: Paint = { d: sh.d, z: sh.z, xf: mul(f.map, f.fr[bi]!), lit, shade: shadeOf(lit), ink: sh.slot === "ink", line };
       if (sh.shade !== undefined) p.extra = sh.shade;
       parts.push(p);
     }

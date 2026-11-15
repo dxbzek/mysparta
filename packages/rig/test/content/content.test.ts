@@ -233,7 +233,7 @@ describe("the pets", () => {
     }
   });
   it("stand on the floor in idle, inside their joint limits, at the rules' sizes", () => {
-    const heights: Record<string, number> = { raccoon: 26, goose: 29, boar: 52, "stray-dog": 25, crow: 26, "alley-cat": 26 };
+    const heights: Record<string, number> = { raccoon: 20, goose: 37.7, boar: 42, "stray-dog": 27.3, crow: 25, "alley-cat": 22.7 };
     for (const id of COMPANION_IDS) for (const t of [0, 300, 600, 900]) {
       const p = rig.samplePose(id, "idle", t);
       expect(Math.abs(ins.lowest(p)), `${id} @${t}`).toBeLessThan(0.01);

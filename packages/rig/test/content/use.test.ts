@@ -274,7 +274,8 @@ describe("pets in motion", () => {
         const mb = sb.reduce((a, x) => a + x, 0) / sb.length;
         const mf = sf.reduce((a, x) => a + x, 0) / sf.length;
         const cov = sb.reduce((a, x, k) => a + (x - mb) * (sf[k]! - mf), 0);
-        if (pair === "leg" || id === "raccoon") expect(cov, `${id} ${c} ${pair} legs alternate`).toBeLessThan(0);
+        // a trot and a waddle alternate the two legs of a pair; a gallop or a bound need not
+        if (pair === "leg" || (id === "raccoon" && c === "run")) expect(cov, `${id} ${c} ${pair} legs alternate`).toBeLessThan(0);
       }
       const first = rig.samplePose(id, c, 0).rot;
       const last = rig.samplePose(id, c, rig.clipInfo(id, c).durationMs - 0.001).rot;
