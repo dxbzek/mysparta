@@ -17,7 +17,9 @@ import type { Pt } from "../../gate/vocab";
 import type { Hi, Rot } from "./anatomy";
 import { Anatomy, ellipse, line, poseFrom, profile, restLeg, sampleClip, smooth, sn, track } from "./anatomy";
 import type { PetArt } from "./kind";
+import { CROW_TORSO } from "./traced-torsos";
 import { floorClamp } from "./quad-build";
+import { topBand, topEdge } from "./frames";
 import { gaitOf } from "./quad";
 
 const P = PLACEHOLDER_COMPANION_CLIPS;
@@ -73,11 +75,11 @@ export function crow(): PetArt & { anatomy: Anatomy } {
   legParts("legB", FAR, 10, true);
   wing("B", [0.5, -0.4], 18, true);
   // body masses: tail under the body under the neck under the head, one outline
-  a.fill("tail", [[-4.6, -9.3], [-8.4, -8.5], [-11.6, -7.1], [-12.1, -6.0], [-11.0, -5.6], [-7.6, -6.2], [-4.8, -7.0]], "skin", 20.0);
-  a.ink("tail", [line([[-6.0, -7.9], [-9.4, -7.0], [-11.4, -6.3]])], 0.14, 20.01);
-  a.fill("body", S([[4.6, -11.4], [2.0, -12.6], [-1.6, -12.4], [-4.6, -10.8], [-6.2, -8.8], [-5.4, -6.8], [-3.0, -5.4], [0.4, -4.9], [3.2, -5.6], [5.0, -7.4], [5.6, -9.6]]), "skin", 20.05);
-  a.fill("body", S([[3.6, -12.0], [0.6, -12.6], [-2.4, -12.1], [-4.4, -10.8], [-1.6, -11.2], [1.6, -11.4]], 3), "accent", 20.07);   // sheen on the back
-  a.fill("neck", S([[2.6, -12.4], [4.6, -13.6], [6.4, -13.2], [7.0, -11.4], [6.4, -9.6], [4.4, -9.0], [2.8, -10.0]]), "skin", 20.1);
+  // the body and tail traced from a USFWS photograph of a crow on the ice (traced-torsos.ts)
+  a.fill("body", CROW_TORSO, "skin", 20.05);
+  a.fill("neck", ellipse(4.8, -12.0, 2.0, 2.4, -20, 14), "skin", 20.1);                                            // the neck under the head
+  a.fill("body", topBand(CROW_TORSO, -9.5, 4.8, 2.6, 0), "accent", 20.07);                                     // blue-grey sheen on the back
+  a.ink("tail", [topEdge(CROW_TORSO, -10.6, -6.0, 4).map(([x, y]) => [x, y + 0.9] as Pt)], 0.14, 20.08);   // the tail feathers' line
   a.fill("neck", S([[3.4, -12.6], [4.8, -13.5], [5.9, -13.3], [4.8, -12.6]], 3), "accent", 20.11);                                // sheen on the nape
   a.fill("jaw", [[8.2, -13.7], [11.0, -13.55], [10.8, -15.0], [8.3, -15.0]], "ink", 20.12);
   a.fill("jaw", [[8.0, -13.75], [11.4, -13.5], [10.6, -13.0], [8.4, -12.9]], "skin", 20.13);

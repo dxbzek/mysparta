@@ -13,12 +13,16 @@ import type { Clip, CompanionClip } from "../../contracts";
 import { PLACEHOLDER_COMPANION_CLIPS } from "../../contracts";
 import type { Pt } from "../../gate/vocab";
 import type { Anatomy, Hi } from "./anatomy";
-import { band, ellipse, line, poseFrom, profile, sampleClip, smooth, sn, track } from "./anatomy";
+import { band, ellipse, line, poseFrom, profile, sampleClip as sampleBones, smooth, sn, track } from "./anatomy";
 import type { PetArt } from "./kind";
 import { floorClamp, mv, quadSkeleton } from "./quad-build";
+import { RACCOON_TORSO } from "./traced-torsos";
+import { topBand } from "./frames";
 import { gaitOf } from "./quad";
 
 const P = PLACEHOLDER_COMPANION_CLIPS;
+/** The traced torso is one rigid picture: the spine does not flex (the legs, head and tail move). */
+const sampleClip: typeof sampleBones = (b, l, d, loop, step, at, r) => sampleBones(b, l, d, loop, step, (t) => { const h = at(t); return { ...h, rot: { ...h.rot, hips: 0, chest: 0 } }; }, r);
 /** Touch-down share of the cycle per leg and the duty factor of each gait (the tests read these). */
 export const RACCOON_GAITS = {
   run: { hindB: 0, foreF: 0.02, hindF: 0.5, foreB: 0.52, duty: 0.55 },
@@ -77,14 +81,10 @@ export function raccoon(): PetArt & { anatomy: Anatomy } {
   a.fill("ear", [[9.1, -12.5], [9.3, -14.5], [10.1, -15.3], [10.9, -14.4], [11.0, -12.7]], "skin", 19.5, true);
   a.xf = fitP;
   // body masses: hips under loin under chest under neck under head
-  a.fill("hips", S([[-1, -14.6], [-4, -15.4], [-7.5, -15.0], [-10.0, -13.6], [-11.0, -10.8], [-10.5, -7.8], [-8.4, -6.0], [-5.6, -5.8], [-3.2, -7.0], [-1.6, -10]]), "skin", 20.0);
-  a.fill("body", S([[-6.4, -15.2], [-2, -15.6], [2, -14.6], [4, -12.6], [3.6, -7.0], [1.2, -5.0], [-2, -4.8], [-5, -5.4], [-6.6, -8], [-7, -12.6]]), "skin", 20.1);
-  a.fill("body", S([[-5.0, -15.3], [-1.4, -15.6], [2.0, -14.7], [0.0, -14.0], [-3.8, -14.2]]), "hair", 20.12);           // dark grizzled back
-  a.fill("body", S([[-4.6, -5.6], [-1.8, -5.0], [1.0, -5.1], [2.6, -6.0], [0.4, -6.4], [-3.0, -6.2]]), "accent", 20.13);     // pale belly fur
-  a.fill("chest", S([[-0.6, -14.6], [2.4, -14.2], [5.0, -12.8], [7.0, -11.0], [7.6, -8.6], [6.8, -6.2], [4.8, -4.8], [2.2, -4.8], [0, -6.0], [-1.2, -9.2], [-1.4, -12.6]]), "skin", 20.2);
-  a.ink("chest", [line([[1.4, -13.0], [2.0, -11.6]]), line([[-0.6, -13.4], [0.0, -12.0]]), line([[3.4, -12.0], [3.8, -10.8]])], 0.18, 20.25);   // fur tufts
-  a.fill("neck", S([[3.6, -13.4], [6.0, -13.0], [8.2, -12.4], [9.4, -10.6], [9.0, -8.4], [7.4, -7.0], [5.2, -7.6], [3.8, -10.0]]), "skin", 20.3);
-  a.fill("neck", S([[7.4, -11.4], [8.8, -11.0], [9.2, -9.0], [8.2, -7.6], [7.2, -8.6]]), "accent", 20.31);                 // pale cheek ruff
+  // the torso traced from a USFWS photograph (traced-torsos.ts): the hunched back, the fur
+  a.fill("body", RACCOON_TORSO, "skin", 20.1);
+  a.fill("body", topBand(RACCOON_TORSO, -9.5, 6.5, 1.6, 0), "hair", 20.12);                                    // dark grizzled back
+  a.ink("body", [[[-6, -14.4], [-5.4, -12.6]], [[-2.4, -15.6], [-2, -13.6]], [[1.2, -15.6], [1.6, -13.8]], [[4.4, -14.2], [4.8, -12.6]]], 0.2, 20.15);   // guard hairs
   a.xf = headP;
   a.fill("ear", [[7.8, -12.4], [7.9, -14.6], [8.8, -15.6], [9.8, -14.6], [10.0, -12.8]], "skin", 20.35);
   a.fill("ear", [[8.3, -13.0], [8.4, -14.5], [8.9, -15.0], [9.4, -14.4], [9.4, -13.0]], "accent", 20.355);

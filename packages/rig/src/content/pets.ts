@@ -29,7 +29,7 @@ export type { PetArt };
  * to its share: the stage's numbers stay below 1 for every rig.
  */
 export const PET_UNIT: Readonly<Record<CompanionId, number>> = {
-  raccoon: 1.11, goose: 1.3, boar: 1.2, "stray-dog": 1.09, crow: 1.56, "alley-cat": 1.08,
+  raccoon: 1.11, goose: 1.3, boar: 1.31, "stray-dog": 1.09, crow: 1.56, "alley-cat": 1.08,
 };
 /** A pet's art scaled by k: bone offsets, shapes, the rig height and the clips' root travel. */
 /** Each pet's share of a fighter's height (owner, 15 Nov 2026). */
