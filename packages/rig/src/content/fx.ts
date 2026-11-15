@@ -64,24 +64,53 @@ export const tape: FxDraw = (env, progress, at, seed) => {
   }
 };
 
-/** Crackers: firecrackers popping round the target's feet, a few at a time. */
+/** Where the lit bundle phase of the crackers ends (progress 0 to this: a bundle with a burning
+ *  fuse, in the hand or in the air; after it, the pops round the target). */
+export const CRACKERS_LIT = 0.2;
+
+/** Crackers (Firecrackers): first a bundle of red sticks with a fizzing fuse (progress 0 to
+ *  `CRACKERS_LIT`: held, then flying, turning end over end), then a string of pops round the
+ *  target's feet and body, a few at a time, each a hot star with a puff of smoke after it. */
 export const crackers: FxDraw = (env, progress, at, seed) => {
   const c = env.ctx;
   c.translate(at.x, at.y);
   const s = qs(seed);
-  for (let i = 0; i < 6; i++) {
-    const t0 = hash01(s, i) * 0.7;
-    const u = (progress - t0) / 0.25;
-    if (u < 0 || u > 1) continue;
-    const x = (hash01(s, i + 9) - 0.5) * 40;
-    const y = -2 - hash01(s, i + 19) * 30 * u;
-    const r = 3 + 5 * Math.sin(u * Math.PI);
+  if (progress < CRACKERS_LIT) {
+    const u = progress / CRACKERS_LIT;
+    c.rotate(u * 5.5);
+    const sticks: Pt[][] = [];
+    for (let i = 0; i < 3; i++) sticks.push([[-4.2 + i * 2.8, -2.4], [-1.8 + i * 2.8, -2.4], [-1.8 + i * 2.8, 5.6], [-4.2 + i * 2.8, 5.6]]);
+    paint(env, dPolys(sticks), ALLEY.sign);
+    paint(env, dPoly([[-4.6, 1], [4.6, 1], [4.6, 2.4], [-4.6, 2.4]]), FX.burst, 0.5);
+    paint(env, dPoly(inkLine([[0, -2.4], [1.2, -5], [0.4, -7.2]], 0.7, false)), INK, 0);
+    // the fuse fizzes: a spark that flickers with the seed and the progress
+    const f = 1.6 + 1.4 * Math.abs(Math.sin(u * 40 + s));
     const star: Pt[] = [];
-    for (let k = 0; k < 14; k++) { const a = (k * Math.PI) / 7; const rr = k % 2 === 0 ? r : r * 0.45; star.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr]); }
-    paint(env, dPoly(star), k2(i) ? FX.spark : GLOW_HOT);
+    for (let k = 0; k < 10; k++) { const a = (k * Math.PI) / 5; const rr = k % 2 === 0 ? f : f * 0.4; star.push([0.4 + Math.cos(a) * rr, -7.4 + Math.sin(a) * rr]); }
+    paint(env, dPoly(star), FX.spark, 0.5);
+    return;
+  }
+  const v = (progress - CRACKERS_LIT) / (1 - CRACKERS_LIT);
+  for (let i = 0; i < 8; i++) {
+    const t0 = hash01(s, i) * 0.72;
+    const u = (v - t0) / 0.26;
+    if (u < 0 || u > 1.6) continue;
+    const x = (hash01(s, i + 9) - 0.5) * 44;
+    const y = -3 - hash01(s, i + 19) * 46;
+    if (u > 1) {
+      // the smoke after the pop
+      const k = u - 1;
+      c.globalAlpha = 1 - k / 0.6;
+      paint(env, dPoly(ellipsePoly(x, y - k * 8, 3 + k * 6, 2.4 + k * 4, 10)), ALLEY.paint, 0.6);
+      c.globalAlpha = 1;
+      continue;
+    }
+    const r = 3.5 + 6 * Math.sin(u * Math.PI);
+    const star: Pt[] = [];
+    for (let k = 0; k < 14; k++) { const a = (k * Math.PI) / 7 + i; const rr = k % 2 === 0 ? r : r * 0.42; star.push([x + Math.cos(a) * rr, y + Math.sin(a) * rr]); }
+    paint(env, dPoly(star), i % 2 === 0 ? FX.spark : GLOW_HOT);
     paint(env, dPoly(ellipsePoly(x, y, r * 0.3, r * 0.3, 8)), FX.burstCore, 0);
   }
-  function k2(i: number): boolean { return i % 2 === 0; }
 };
 
 /** Rings: sound rings spreading forward from the user (Whistle, Air Horn). */

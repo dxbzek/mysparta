@@ -58,13 +58,15 @@ describe("Hud", () => {
     expect(at(1)).not.toContain("opacity");
   });
 
-  it("shows the turn badge and shakes a bar that was just hit only from t", () => {
+  it("shows the turn badge and lights a bar that was just hit, which never shakes (calm fight)", () => {
     const frame: HudFrame = { hp: { a0: { now: 30, trail: 45, max: 60 }, b0: { now: 50, trail: 50, max: 50 } }, bag: { a: [], b: [] },
       stepsShown: 0, phase: "bout", winner: null, namesIn: 1, resultIn: 0 };
     const actors = [{ id: "a0" as const, kind: "scrapper" as const, maxHp: 60 }, { id: "b0" as const, kind: "scrapper" as const, maxHp: 50 }];
     const html = renderToStaticMarkup(<Hud frame={frame} sides={sides} actors={actors} t={100} turn={7} />);
     expect(html).toContain("Turn 7");
-    expect(html).toContain("translateX(");
+    expect(html).not.toContain("translateX(");
+    expect(html).not.toContain("scale(");
+    expect(html).toContain("opacity:");
     expect(renderToStaticMarkup(<Hud frame={frame} sides={sides} actors={actors} t={100} turn={7} reduced />)).not.toContain("translateX(");
     expect(hitGlow(30, 45, 60)).toBe(1);
     expect(hitGlow(50, 50, 50)).toBe(0);
@@ -110,8 +112,18 @@ describe("beats", () => {
   it("the overlay is a pure function of t", () => {
     const at = (t: number) => renderToStaticMarkup(<StageOverlay beats={beats} t={t} reduced={false} names={{ a: a.name, b: b.name }} />);
     for (const t of [0, 3000, 9000, player.timeline.durationMs]) expect(at(t)).toBe(at(t));
-    const f = beats.fires.find((x) => x.kind !== "shield")!;
+    // a Move's banner: in through its wind-up, with the Move's icon and name, and no slam (no scale)
+    const f = beats.fires.find((x) => x.kind === "move")!;
     expect(at(f.at + 300)).toContain("rotate(");
+    expect(at(f.at + 300)).toContain(`data-move="${f.id}"`);
+    expect(at(f.at + 300)).toContain('role="img"');
+    expect(at(f.at + 40)).not.toContain("scale(");
+    expect(f.until! - f.at).toBeGreaterThanOrEqual(1000);
+    // a passive's proc has no banner (its tag is on the stage, its tile lights on the card)
+    const proc = beats.fires.find((x) => x.kind === "proc");
+    if (proc !== undefined && !beats.fires.some((x) => x.kind === "move" && proc.at >= x.at && proc.at < x.until!)) {
+      expect(at(proc.at + 100)).not.toContain("data-move");
+    }
     if (beats.koAt !== null) expect(at(beats.koAt + 600)).toContain("K.O.");
   });
 });

@@ -43,7 +43,11 @@ export type SfxItem = HeldId | ShieldId | CompanionId;
 export type SfxOn = "body" | "shield" | "weapon";
 /** Every word the stage paints. The stage holds no player text of its own. */
 export interface StageText { fight: string; wins(name: string): string; block: string; miss: string;
-  crit: string; overtime: string; moveName(id: MoveId): string; skillName(id: ProcId): string }   // a skill, or a shield (content v2)
+  crit: string; overtime: string; moveName(id: MoveId): string; skillName(id: ProcId): string;   // a skill, or a shield (content v2)
+  /** The words of a Move's visible result over its user or target ("-25 AIM", "SNARED"), or ""
+   *  for a Move whose result is a number already. `part` "pet" is the word over a companion an
+   *  Air Horn scares off. Optional (calm fight, skills pass): a host without it shows no words. */
+  moveResult?(id: MoveId, part?: "pet"): string }
 /** `cosmeticSeed` picks flinch, particle and sound variations. It never changes a time.
  *  `stage` is the arena to draw. The host passes `stageFor(log.seed)`, so a replay of the same
  *  bout shows the same place; the player itself never derives it. */

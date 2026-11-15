@@ -3,6 +3,7 @@
  */
 import type { MoveId, ProcId } from "@rankzero/core";
 import type { StageText } from "@rankzero/stage";
+import { moveResult } from "./moves";
 import { NAMES } from "./names";
 
 export const STAGE_TEXT: StageText = {
@@ -14,4 +15,5 @@ export const STAGE_TEXT: StageText = {
   overtime: "OVERTIME",
   moveName: (id: MoveId) => NAMES[id].toUpperCase(),
   skillName: (id: ProcId) => NAMES[id].toUpperCase(),          // a skill, or the shield that blocked
+  moveResult: (id: MoveId, part?: "pet") => moveResult(id, part).toUpperCase(),
 };

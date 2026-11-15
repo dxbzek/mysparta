@@ -9,6 +9,7 @@
  * late must fail, for each of the nine effects.
  */
 import { describe, expect, it } from "vitest";
+import { BOUT_FIXTURES } from "@rankzero/core/fixtures";
 import type { EffectKey } from "../src/contracts";
 import type { StagePlayer } from "../src/createFightPlayer";
 import { EFFECT_KEYS, measureStarts } from "./lib/measure";
@@ -43,11 +44,21 @@ describe("contact sync, measured from sampled frames", () => {
     }
   }
 
-  it("every hit of the gate bout shows all nine effects", () => {
+  it("every hit of the gate bout shows the calm set: no white flash, a shake only on a crit or the knockout, the crowd only at the knockout", () => {
     const p = fixturePlayer("bout-gate");
+    const log = BOUT_FIXTURES["bout-gate"].log;
     const hits = p.timeline.contacts.filter((c) => c.starts.flinch !== null);
     expect(hits.length).toBe(14);                         // 15 swings, one of them evaded
-    for (const c of hits) for (const k of EFFECT_KEYS) expect(c.starts[k], `step ${c.step} ${k}`).toBe(c.at);
+    for (const c of hits) {
+      const s = log.steps[c.step]!;
+      const kill = c.step === p.timeline.killStep;
+      const crit = "crit" in s && s.crit;
+      for (const k of ["flinch", "knockback", "burst", "number", "hp", "sound"] as const) expect(c.starts[k], `step ${c.step} ${k}`).toBe(c.at);
+      expect(c.starts.flash, `step ${c.step} flash`).toBeNull();
+      expect(c.starts.shake, `step ${c.step} shake`).toBe(kill || crit ? c.at : null);
+      expect(c.starts.crowd, `step ${c.step} crowd`).toBe(kill ? c.at : null);
+    }
+    expect(hits.filter((c) => c.starts.shake !== null).length).toBeGreaterThan(0);
   });
 
   it("the contact marks hold `at` or null and nothing else", () => {
@@ -60,9 +71,13 @@ describe("contact sync, measured from sampled frames", () => {
 });
 
 describe("control: a planted 50 ms shift turns the check red", () => {
-  for (const key of EFFECT_KEYS) {
+  // the white flash never plays any more (calm fight), so there is nothing to shift; the shake and
+  // the crowd play only on the knockout blow, so they are planted there
+  const kill = fixturePlayer("bout-gate").timeline.contacts.findIndex((c) => c.step === fixturePlayer("bout-gate").timeline.killStep);
+  for (const key of EFFECT_KEYS.filter((k) => k !== "flash")) {
     it(`${key} planted 50 ms late is caught`, () => {
-      const p = fixturePlayer("bout-gate", "capsule", false, { shiftEffect: { key: key as EffectKey, ms: 50, contact: 3 } });
+      const contact = key === "shake" || key === "crowd" ? kill : 3;
+      const p = fixturePlayer("bout-gate", "capsule", false, { shiftEffect: { key: key as EffectKey, ms: 50, contact } });
       const problems = syncProblems(p);
       expect(problems.length).toBeGreaterThan(0);
       expect(problems.some((s) => s.includes(`${key} starts at`) && s.includes("+50 ms"))).toBe(true);

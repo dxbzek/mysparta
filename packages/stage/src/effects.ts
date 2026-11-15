@@ -7,12 +7,13 @@
  * stage's test does not trust it and measures every start from sampled frames.
  * Block and evade, the skill tag, the OVERTIME sticker and the ticket tape are here too.
  */
-import type { ActorId, HeldId, Proc } from "@rankzero/core";
+import type { ActorId, HeldId, MoveId, PerkId, Proc } from "@rankzero/core";
 import { impactFamily } from "@rankzero/core";
 import { toStage } from "@rankzero/rig";
 import type { EffectKey, SfxItem } from "./contracts";
 import { noise } from "./cues";
-import { CORAL, INK, PAPER, SKY, TEAL, VOLT, WHITE } from "./palette";
+import { CORAL, GREEN, INK, PAPER, SKY, VOLT, WHITE } from "./palette";
+import type { TagItem } from "./model";
 import type { Builder } from "./timeline";
 import { CONTACT, MOVE, OUTCOME, TEXT } from "./tuning";
 
@@ -23,8 +24,6 @@ export interface Landing {
   /** Heavy flinch forced (a Haymaker swing). Otherwise a crit or 25% of max HP. */
   heavy?: boolean;
   hitStop: number;
-  /** Knockout-size shake (the kill, a Body Slam). */
-  bigShake?: boolean;
   /** No flinch clip and no knockback: the target plays its own clip (slammed). */
   ownClip?: boolean;
   /** The Firecrackers' own burst instead of the star. */
@@ -56,18 +55,30 @@ export function overHead(b: Builder, id: ActorId, at: number): { x: number; y: n
 }
 
 /** A sticker over an actor. Tags of the same actor at the same time stack upward. */
-export function tagOver(b: Builder, id: ActorId, at: number, text: string, colour: string, ms: number = OUTCOME.tagMs): void {
+export function tagOver(b: Builder, id: ActorId, at: number, text: string, colour: string, ms: number = OUTCOME.tagMs,
+  icon?: PerkId): void {
   const p = overHead(b, id, at);
   const stacked = b.tags.filter((t) => t.actor === id && t.from < at + ms && at < t.to).length;
-  b.tags.push({ from: at, to: at + ms, text, colour, ink: INK, actor: id, x: p.x, y: p.y - 12 - stacked * 11,
-    size: TEXT.tag, kind: "tag" });
+  const tag: TagItem = { from: at, to: at + ms, text, colour, ink: INK, actor: id, x: p.x, y: p.y - 12 - stacked * 11,
+    size: TEXT.tag, kind: "tag" };
+  if (icon !== undefined) tag.icon = icon;
+  b.tags.push(tag);
 }
 
-/** The skill tag of a step: at most one, the first proc (the sim lists the rarest first). */
+/** The skill tag of a step: at most one, the first proc (the sim lists the rarest first), with the
+ *  skill's icon and an exclamation mark ("PARRY!"), held long enough to read. */
 export function skillTag(b: Builder, procs: readonly Proc[] | undefined, at: number): void {
   const p = procs?.[0];
   if (p === undefined || !b.has(p.by)) return;
-  tagOver(b, p.by, at, b.opts.text.skillName(p.skill).toUpperCase(), SKY);
+  tagOver(b, p.by, at, `${b.opts.text.skillName(p.skill).toUpperCase()}!`, SKY, OUTCOME.skillTagMs, p.skill as PerkId);
+}
+
+/** A Move's visible result over an actor, in the host's words ("-25 AIM", "SNARED"), with the
+ *  Move's icon. No words from the host: no tag. */
+export function resultTag(b: Builder, move: MoveId, id: ActorId, at: number, colour: string, part?: "pet"): void {
+  const text = b.opts.text.moveResult?.(move, part) ?? "";
+  if (text === "" || !b.has(id)) return;
+  tagOver(b, id, at, text.toUpperCase(), colour, MOVE.resultMs, move);
 }
 
 /** Lands one swing, throw or Move hit on one target. Returns the contact's index. */
@@ -75,10 +86,14 @@ export function land(b: Builder, L: Landing, ci?: number): number {
   const ttr = b.track(L.target);
   const m = b.motion;
   const hit = L.outcome === "hit";
+  const kill = L.i === b.killStep;
+  // calm camera: the screen shakes only on a crit or the knockout blow, the crowd stirs only at the knockout
+  const shakes = m.shake && (kill || L.crit);
+  const stirs = m.crowd && kill;
   const before = b.hpNow.get(L.target) ?? ttr.maxHp;
   const starts: Partial<Record<EffectKey, number | null>> = hit
     ? { flash: m.flash ? L.at : null, flinch: L.ownClip === true ? null : L.at, knockback: L.ownClip === true ? null : L.at,
-        burst: L.at, number: L.at, hp: L.at, shake: m.shake ? L.at : null, crowd: m.crowd ? L.at : null, sound: L.at }
+        burst: L.at, number: L.at, hp: L.at, shake: shakes ? L.at : null, crowd: stirs ? L.at : null, sound: L.at }
     : L.outcome === "block" ? { burst: L.at, sound: L.at } : { sound: L.at };
   const c = ci ?? b.addContact(L.i, L.at, starts);
   if (ci !== undefined) {
@@ -102,18 +117,25 @@ export function land(b: Builder, L: Landing, ci?: number): number {
         backMs: CONTACT.knockbackBackMs, dx: dir * amount, arc: 0, contact: c });
     }
     const fx = L.burstFx ?? "burst";
-    b.fx.push({ fx, from: s("burst"), to: s("burst") + (fx === "crackers" ? MOVE.crackersMs : CONTACT.burstMs),
-      x: spot.x, y: spot.y, facing: dir === 1 ? -1 : 1, seed, contact: c, key: "burst" });
+    if (fx === "crackers") {
+      // the bundle has landed at the feet: its pops (the second part of the crackers effect) go off all round the target
+      const feet = b.place(L.target, L.at);
+      b.fx.push({ fx, from: s("burst"), to: s("burst") + MOVE.crackersMs, x: feet.x, y: feet.y - 2, facing: 1, seed, contact: c,
+        key: "burst", p0: MOVE.crackersLit, p1: 1 });
+    } else {
+      b.fx.push({ fx, from: s("burst"), to: s("burst") + CONTACT.burstMs, x: spot.x, y: spot.y, facing: dir === 1 ? -1 : 1, seed,
+        contact: c, key: "burst" });
+    }
     const head = overHead(b, L.target, L.at);
     b.numbers.push({ from: s("number"), x: head.x, y: head.y, text: `-${L.damage}`, colour: L.crit ? VOLT : WHITE,
       scale: L.crit ? CONTACT.critScale : 1, contact: c });
     if (L.crit) tagOver(b, L.target, L.at, b.opts.text.crit, VOLT);
     b.hp.push({ actor: L.target, at: s("hp"), from: before, to: L.hpAfter, ms: CONTACT.hpDropMs, kind: "loss", contact: c });
-    if (m.shake) {
-      const k = L.bigShake === true || L.i === b.killStep ? CONTACT.shake.knockout : L.crit ? CONTACT.shake.crit : CONTACT.shake.plain;
-      b.shakes.push({ from: s("shake"), ms: k.ms, amp: k.amp, contact: c, seed });
+    if (shakes) {
+      const k = kill ? CONTACT.shake.knockout : CONTACT.shake.crit;
+      b.shakes.push({ from: s("shake"), ms: k.ms, amp: k.amp * (b.internal.shakeScale ?? 1), contact: c, seed });
     }
-    if (m.crowd) {
+    if (stirs) {
       b.crowds.push({ from: s("crowd"), ms: CONTACT.crowdMs, contact: c });
       b.cue(s("crowd"), L.i, "crowd");
     }
@@ -164,7 +186,7 @@ export function healAt(b: Builder, i: number, target: ActorId, at: number, amoun
   const p = b.place(target, at);
   b.fx.push({ fx: "plus", from: at, to: at + OUTCOME.healRingMs, x: p.x, y: p.y, facing: p.facing,
     seed: (b.opts.cosmeticSeed ^ i) | 0, contact: null, follow: target });
-  b.numbers.push({ from: at, x: head.x, y: head.y, text: `+${amount}`, colour: TEAL, scale: 1, contact: null });
+  b.numbers.push({ from: at, x: head.x, y: head.y, text: `+${amount}`, colour: GREEN, scale: 1.25, contact: null });
   b.hp.push({ actor: target, at, from: before, to: hpAfter, ms: OUTCOME.healFillMs, kind: "gain", contact: null });
   b.hpNow.set(target, hpAfter);
   b.busy(at, at + OUTCOME.healRingMs);

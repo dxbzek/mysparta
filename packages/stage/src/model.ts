@@ -3,7 +3,7 @@
  * times. `frame.ts` reads it at any `t` (a pure function) and `draw.ts` paints a frame.
  * Nothing in here is mutated after `buildTimeline` returns.
  */
-import type { ActorId, BagItem, CompanionId, HeldId, Look, PropId, ShieldId, Side } from "@rankzero/core";
+import type { ActorId, BagItem, CompanionId, HeldId, Look, PerkId, PropId, ShieldId, Side } from "@rankzero/core";
 import type { Aim, FxKind, MoveProp, RigId } from "@rankzero/rig";
 import type { Cue, EffectKey, Timeline } from "./contracts";
 import type { FlightPath } from "./flight";
@@ -54,7 +54,18 @@ export interface ActorTrack {
 export interface FxItem { fx: FxKind; from: number; to: number; x: number; y: number; facing: 1 | -1; seed: number;
   contact: number | null; key?: EffectKey; follow?: ActorId; dy?: number; loopMs?: number;
   /** For an effect that flies (the tarp, the crackers): from this point to (x, y) over `flyMs`. */
-  fly?: { x0: number; y0: number; ms: number; arc: number } }
+  fly?: { x0: number; y0: number; ms: number; arc: number };
+  /** The progress range drawn over the life of the effect (default 0 to 1): the lit crackers in the
+   *  hand draw only the start of the crackers effect, their pops the rest. */
+  p0?: number; p1?: number;
+  /** For an effect carried in a hand: where it is at sampled times (it is drawn at the point
+   *  interpolated between them). Read instead of x, y. */
+  track?: readonly { t: number; x: number; y: number }[] }
+
+/** A Move's spotlight (calm fight, skills pass): from its wind-up to the end of its action the
+ *  arena dims a little and a ring glows on the floor under the user, so the eye goes to it. With
+ *  `aura` a glow of that colour stands round the user too (Second Wind's breath). */
+export interface Spot { from: number; to: number; actor: ActorId; colour: string; aura?: boolean }
 
 export interface NumberItem { from: number; x: number; y: number; text: string; colour: string; scale: number;
   contact: number | null }
@@ -62,7 +73,9 @@ export interface NumberItem { from: number; x: number; y: number; text: string; 
 /** A sticker over an actor (BLOCK, MISS, CRIT, a skill name) or across the stage (FIGHT, the Move
  *  banner, OVERTIME, the winner's banner). */
 export interface TagItem { from: number; to: number; text: string; colour: string; ink: string;
-  actor: ActorId | null; x: number; y: number; size: number; kind: "tag" | "banner" | "sticker" }
+  actor: ActorId | null; x: number; y: number; size: number; kind: "tag" | "banner" | "sticker";
+  /** A skill's icon drawn at the left of the words (a skill tag, a Move's result). */
+  icon?: PerkId }
 
 /** A thing in the air: thrown, knocked off, dropped, snatched. */
 export interface FlightItem { item: PropId; from: number; to: number; path: FlightPath;
@@ -101,6 +114,10 @@ export interface Tracks {
   shakes: Shake[];
   flashes: Flash[];
   crowds: Crowd[];
+  spots: Spot[];
+  /** Where and when the knockout falls, and which way the body falls (+1 toward +x): the camera's
+   *  one reframe starts here (null: nobody falls). */
+  koFocus: { at: number; x: number; y: number; back: 1 | -1 } | null;
   /** Ticket tape: from, to (null with reduced motion). */
   tape: { from: number; to: number } | null;
   /** Steps applied at a time: `stepEnd`, kept separately so `state` is a lookup. */

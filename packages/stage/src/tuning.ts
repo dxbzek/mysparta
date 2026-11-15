@@ -54,15 +54,17 @@ export const CONTACT = {
   knockbackBase: 4,
   knockbackPerHp: 60,      // x damage / maxHP
   knockbackMin: 4,
-  knockbackMax: 26,
+  knockbackMax: 20,
   burstMs: 220,
   numberPopMs: 100,
-  numberPopFrom: 1.5,
+  numberPopFrom: 1.2,
   numberRise: 44,
   numberMs: 800,
   numberFadeMs: 250,
   critScale: 1.4,
-  shake: { plain: { amp: 3, ms: 160 }, crit: { amp: 6, ms: 240 }, knockout: { amp: 8, ms: 300 } },
+  /** Screen shake, in CSS px under the camera (calm camera): none on a plain hit; a crit and the
+   *  knockout blow get a small, short one. The frame keeps the shake inside 3 px. */
+  shake: { crit: { amp: 2, ms: 120 }, knockout: { amp: 2.6, ms: 140 } },
   hpDropMs: 80,
   hpTrailWaitMs: 250,
   hpTrailShrinkMs: 300,
@@ -94,7 +96,8 @@ export const OUTCOME = {
   swapBounce: 8,
   overtimeStickerMs: 700,
   overtimeBeatMs: 520,
-  skillTagMs: 500,
+  /** A skill tag ("PARRY!") with its icon stays this long (was 500: too short to read the name). */
+  skillTagMs: 900,
   healRingMs: 400,
   healFillMs: 200,
   healHop: 10,
@@ -119,12 +122,43 @@ export const FLIGHT = {
 
 /** Moves. */
 export const MOVE = {
-  bannerMs: 500,
+  /** The wind-up of every Move (owner, 15 Nov 2026: "proper use of skill is not it"): the action
+   *  pauses on the user while it draws a deep breath, its banner shows the name, the icon and what
+   *  it does, the arena dims and the opponent waits. Then the action. */
+  windUpMs: 420,
+  /** The banner sticker over the user (drawn without a camera; the host shows its own banner). */
+  bannerMs: 900,
+  /** The parts of the rig's power-up clip (the breath every wind-up plays, the Haymaker's charge,
+   *  the whistle or horn blow) and the slam clip's grab are read from their `step` events in
+   *  `rig.clipInfo` (choreo/move.ts). A clip without them is split by these shares of its length. */
+  partShares: [0.35, 0.7, 0.75],
+  /** A Haymaker holds its charge this long; a blow lasts this long; Second Wind holds its breath. */
+  chargeMs: 520,
+  blowMs: 420,
+  breathHoldMs: 520,
+  /** A Grapple squeezes for this long; the squeeze hurts this far into it. */
+  squeezeMs: 700,
+  squeezeHitMs: 260,
+  /** How close a Grapple stands to its target (stage units between the two places). */
+  grappleGap: 27,
   tarpFlightMs: 240,
   tarpDropMs: 140,
-  crackersMs: 400,
+  /** The pops of the Firecrackers round each target after they land. */
+  crackersMs: 650,
+  /** Where the lit-bundle part of the content crackers effect ends (content/fx.ts CRACKERS_LIT). */
+  crackersLit: 0.2,
   snatchJumpMs: 250,
   ringsMs: 400,
+  /** Sand: the handful flies as a few puffs, this far apart; the target rubs its eyes this long. */
+  sandGapMs: 45,
+  rubMs: 900,
+  /** An Air Horn's blast: the enemy scrapper covers its ears this long. */
+  earsMs: 520,
+  /** A Move's result tag ("-25 AIM", "SNARED") stays this long. */
+  resultMs: 1100,
+  /** A whistled pet runs to its owner's side, this far in front of it, at this speed. */
+  petRunGap: 22,
+  petRunSpeed: 260,        // units per second
   freeMs: 220,
   fleeSpeed: 300,          // units per second
 } as const;

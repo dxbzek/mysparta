@@ -173,38 +173,59 @@
   pointer-events: none;
   overflow: hidden;
 }
+/* The Move banner: compact, in the band under the controls, so it never covers a fighter's head
+   (calm fight, skills pass). */
 .banner {
   position: absolute;
-  left: 7%;
-  right: 7%;
-  top: 50px;
+  left: 4%;
+  right: 4%;
+  top: 48px;
   display: grid;
   justify-items: center;
-  padding: 8px 10px 9px;
+  padding: 4px 10px 5px;
   border: var(--line) solid var(--c-ink);
   border-radius: var(--rough-radius);
-  box-shadow: 5px 6px 0 var(--c-ink);
+  box-shadow: 4px 5px 0 var(--c-ink);
   text-align: center;
 }
 .bannerA { background: var(--tex-halftone-sodium), var(--c-sodium); color: var(--t-on-sodium); }
 .bannerB { background: var(--tex-halftone-sodium), var(--c-teal); color: var(--t-on-teal); }
+.bannerHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+.bannerIcon {
+  flex: none;
+}
+.bannerTitle {
+  display: grid;
+  justify-items: start;
+  min-width: 0;
+}
 .bannerWho {
-  font: 700 12px / 1.1 var(--font-body);
+  font: 700 10px / 1.1 var(--font-body);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 .bannerName {
-  font: 900 clamp(28px, 9vw, 42px) / 0.95 var(--font-display);
+  font: 900 clamp(20px, 7vw, 28px) / 0.95 var(--font-display);
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 .bannerLine {
-  margin-top: 5px;
-  padding: 3px 8px;
+  max-width: 100%;
+  margin-top: 3px;
+  padding: 2px 7px;
+  overflow: hidden;
   border-radius: 3px;
   background: var(--c-card-deep);
   color: var(--t-on-card-deep);
-  font: 600 12px / 1.25 var(--font-body);
+  font: 600 11px / 1.25 var(--font-body);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .combo {
   position: absolute;
@@ -220,11 +241,6 @@
 }
 .comboA { left: 6%; color: var(--t-on-night-sodium); }
 .comboB { right: 6%; color: var(--t-on-night-teal); }
-.flash {
-  position: absolute;
-  inset: 0;
-  background: var(--c-flash);
-}
 .koStamp {
   position: absolute;
   left: 50%;

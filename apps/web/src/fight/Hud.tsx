@@ -2,10 +2,11 @@
  * The HUD over the stage (fight screen v2, after the owner's style-13 sample): mirrored name tapes
  * and level tags, HP bars with the trailing segment, big inked HP numbers and the turn badge in the
  * middle. It reads ONE thing that changes: the `HudFrame` for the current `t` (and `t` itself, for
- * the shake of a bar that was just hit). No timer, no state, no CSS animation.
+ * a bar that was just hit). No timer, no state, no CSS animation.
  *
- * A bar that was just hit flashes and shakes: the size of both is the gap between the fill and
- * its trail, which the player already animates from the fight clock.
+ * A bar that was just hit lights up a little: the size is the gap between the fill and its trail,
+ * which the player already animates from the fight clock. It never shakes or swells (calm camera,
+ * owner 15 Nov 2026: "I'm getting dizzy watching it").
  */
 import type { ActorId, ActorInit, Side } from "@rankzero/core";
 import type { HudFrame } from "@rankzero/stage";
@@ -19,7 +20,7 @@ export interface HudProps {
   sides: Readonly<Record<Side, HudSideInfo>>;
   actors: readonly ActorInit[];
   levelLabel?(n: number): string;
-  /** The fight clock's time, for the hit shake. Absent: no shake. */
+  /** The fight clock's time. Kept for hosts that pass it; the bars no longer shake (calm camera). */
   t?: number;
   /** The turn badge. Absent: no badge. */
   turn?: number;
@@ -35,12 +36,11 @@ export function hitGlow(now: number, trail: number, max: number): number {
   return g <= 0 ? 0 : g > 1 ? 1 : g;
 }
 
-function SideHud({ side, frame, info, levelLabel, t, reduced }: { side: Side; frame: HudFrame; info: HudSideInfo; levelLabel(n: number): string; t?: number; reduced: boolean }) {
+function SideHud({ side, frame, info, levelLabel, reduced }: { side: Side; frame: HudFrame; info: HudSideInfo; levelLabel(n: number): string; reduced: boolean }) {
   const main = frame.hp[`${side}0` as ActorId];
   const max = main?.max ?? 0;
   const now = main ? Math.max(0, Math.round(main.now)) : 0;
   const g = hitGlow(main?.now ?? 0, main?.trail ?? 0, max);
-  const shake = t !== undefined && !reduced && g > 0 ? Math.sin(t * 0.13 + (side === "a" ? 0 : 1.7)) * 4 * g : 0;
   return (
     <div className={`${css.side} ${side === "b" ? css.sideB : css.sideA}`} data-side={side}>
       <div className={css.nameRow}>
@@ -54,11 +54,10 @@ function SideHud({ side, frame, info, levelLabel, t, reduced }: { side: Side; fr
         aria-valuemin={0}
         aria-valuemax={max}
         aria-valuenow={now}
-        style={shake !== 0 ? { transform: `translateX(${shake.toFixed(2)}px)` } : undefined}
       >
         <span className={css.hpTrail} style={{ width: pct(main?.trail ?? 0, max || 1) }} />
         <span className={css.hpFill} style={{ width: pct(main?.now ?? 0, max || 1) }} />
-        {g > 0 ? <span className={css.hpFlash} style={{ opacity: (reduced ? 0.35 : 0.85) * g }} /> : null}
+        {g > 0 ? <span className={css.hpFlash} style={{ opacity: (reduced ? 0.25 : 0.4) * g }} /> : null}
       </span>
     </div>
   );
@@ -67,15 +66,13 @@ function SideHud({ side, frame, info, levelLabel, t, reduced }: { side: Side; fr
 function HpNumber({ side, frame }: { side: Side; frame: HudFrame }) {
   const main = frame.hp[`${side}0` as ActorId];
   const now = main ? Math.max(0, Math.round(main.now)) : 0;
-  const g = hitGlow(main?.now ?? 0, main?.trail ?? 0, main?.max ?? 0);
-  const style = g > 0 ? { transform: `scale(${(1 + 0.18 * g).toFixed(3)})` } : undefined;
-  return <span className={`${css.hpNum} ${side === "b" ? css.hpNumB : ""} ${now === 0 ? css.hpZero : ""}`} data-hp={now} style={style}>{now}</span>;
+  return <span className={`${css.hpNum} ${side === "b" ? css.hpNumB : ""} ${now === 0 ? css.hpZero : ""}`} data-hp={now}>{now}</span>;
 }
 
-export function Hud({ frame, sides, levelLabel = (n) => `LV ${n}`, t, turn, reduced = false }: HudProps) {
+export function Hud({ frame, sides, levelLabel = (n) => `LV ${n}`, turn, reduced = false }: HudProps) {
   return (
     <header className={css.hud}>
-      <SideHud side="a" frame={frame} info={sides.a} levelLabel={levelLabel} t={t} reduced={reduced} />
+      <SideHud side="a" frame={frame} info={sides.a} levelLabel={levelLabel} reduced={reduced} />
       <div className={css.hudMid}>
         {turn !== undefined ? <span className={css.badge}>{turn > 0 ? `Turn ${turn}` : "Ready"}</span> : null}
         <div className={css.hpNums}>
@@ -83,7 +80,7 @@ export function Hud({ frame, sides, levelLabel = (n) => `LV ${n}`, t, turn, redu
           <HpNumber side="b" frame={frame} />
         </div>
       </div>
-      <SideHud side="b" frame={frame} info={sides.b} levelLabel={levelLabel} t={t} reduced={reduced} />
+      <SideHud side="b" frame={frame} info={sides.b} levelLabel={levelLabel} reduced={reduced} />
     </header>
   );
 }
