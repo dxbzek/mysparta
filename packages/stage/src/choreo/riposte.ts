@@ -15,7 +15,7 @@ export function riposte(b: Builder, step: StepOf<"riposte">, i: number): Placed 
   const clip = b.swingClip(step.actor, weapon);
   const hitStop = b.hitStopFor(i, step.crit);
   const sw = b.swing({ i, actor: step.actor, target: step.target, clip, dress: b.dress(step.actor, weapon),
-    zone: aimZone(b.track(step.target).rig, i), start: s, mode: "step", combo: false, hitStop, slow: i === b.killStep });
+    zone: aimZone(dtr.rig, b.track(step.target).rig, i), start: s, mode: "step", combo: false, hitStop, slow: i === b.killStep });
   if (dtr.rig !== "scrapper") b.cue(s, i, "companion", 0, dtr.rig);
   if (step.outcome === "evade") evadeEarly(b, step.target, step.actor, sw.contactAt);
   const ci = land(b, { i, at: sw.contactAt, attacker: step.actor, target: step.target, outcome: step.outcome,

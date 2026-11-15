@@ -25,8 +25,9 @@ export const CAMERA = {
   /** Half the width kept around a scrapper's home mark: its body, a knockback, a heavy lean back.
    *  A thing that goes further (a pet running off) leaves the frame; the frame does not chase it. */
   scrapperExtent: 40,
-  /** Around a companion's mark (pets stand at their owner's feet, so this rarely widens the frame). */
-  companionExtent: 14,
+  /** Room kept round a pet's drawn box at its mark (layout.PET_MARKS: pets stand beside their
+   *  owner, on his back side), for its idle breathing. */
+  companionMargin: 3,
   /** The camera never shows less height than this, so a scrapper (about 80 units) fills at most
    *  about 65% of the canvas and numbers keep some air above the heads. */
   minVisibleH: 122,
@@ -43,23 +44,39 @@ export const CAMERA = {
 /** The part of the stage in view: its left and top edge in stage units, and stage units to CSS px. */
 export interface CameraView { x0: number; y0: number; k: number }
 
-/** `keep` is the edge kept in view when the canvas is too narrow for the whole span. */
-interface Span { x0: number; x1: number; bottom: number; keep?: "x0" | "x1" }
+/** The span to keep in view. On a canvas too narrow for all of it (a tall phone shows at most
+ *  240 x w / h stage units across), `must` stays in view: the scrappers' marks and room, and in
+ *  the outro the knocked-out body; the pets at the far ends are the ones cut. When even `must`
+ *  does not fit, the body's far end (`keepAt`, on the `keep` side) stays in. */
+interface Span { x0: number; x1: number; bottom: number; must?: { x0: number; x1: number }; keep?: "x0" | "x1"; keepAt?: number }
 
 /** The fixed frame of a bout: the stage span to keep in view and the lowest floor line. */
 export function frameSpan(tr: Tracks): Span {
   let x0 = Infinity;
   let x1 = -Infinity;
+  let c0 = Infinity;
+  let c1 = -Infinity;
   let bottom = FLOOR_Y + CAMERA.under;
   for (const a of tr.actors) {
     const scrapper = a.rig === "scrapper";
-    const ext = scrapper ? CAMERA.scrapperExtent : CAMERA.companionExtent;
-    x0 = Math.min(x0, a.home.x - ext);
-    x1 = Math.max(x1, a.home.x + ext);
+    if (scrapper) {
+      c0 = Math.min(c0, a.home.x - CAMERA.scrapperExtent);
+      c1 = Math.max(c1, a.home.x + CAMERA.scrapperExtent);
+      x0 = Math.min(x0, c0);
+      x1 = Math.max(x1, c1);
+    } else {
+      // the pet's whole drawn box at its mark, facing the fight
+      const m = CAMERA.companionMargin;
+      const [l, r] = a.homeFacing === 1 ? [a.reach.back, a.reach.front] : [a.reach.front, a.reach.back];
+      x0 = Math.min(x0, a.home.x - l - m);
+      x1 = Math.max(x1, a.home.x + r + m);
+    }
     bottom = Math.max(bottom, a.home.y + (scrapper ? CAMERA.under : CAMERA.underCompanion));
   }
   if (x0 === Infinity) { x0 = 0; x1 = STAGE_W; }
-  return { x0, x1, bottom: Math.min(STAGE_H, bottom) };
+  const s: Span = { x0, x1, bottom: Math.min(STAGE_H, bottom) };
+  if (c0 !== Infinity) s.must = { x0: c0, x1: c1 };
+  return s;
 }
 
 /** The outro frame: the bout's frame and the knocked-out body on the floor. */
@@ -68,7 +85,9 @@ export function outroSpan(tr: Tracks): Span {
   const f = tr.koFocus;
   if (f === null) return s;
   const far = Math.max(0, Math.min(STAGE_W, f.x + f.back * CAMERA.bodyLength));
-  return { x0: Math.min(s.x0, far), x1: Math.max(s.x1, far), bottom: s.bottom, keep: f.back === 1 ? "x1" : "x0" };
+  const must = s.must ?? { x0: s.x0, x1: s.x1 };
+  return { x0: Math.min(s.x0, far), x1: Math.max(s.x1, far), bottom: s.bottom, keep: f.back === 1 ? "x1" : "x0", keepAt: far,
+    must: { x0: Math.min(must.x0, far), x1: Math.max(must.x1, far) } };
 }
 
 /** How far the knockout reframe has gone at `t`, 0 to 1 (eased; 0 until the knockout). */
@@ -86,8 +105,14 @@ function fit(s: Span, w: number, h: number): CameraView {
   const kFloor = Math.max(w / STAGE_W, h / STAGE_H);
   const k = Math.max(kFloor, Math.min(w / (s.x1 - s.x0), h / CAMERA.minVisibleH));
   const vw = w / k;
-  // a tall canvas cannot always open wide enough: then the edge that matters (the fallen body) stays in
-  const x0 = vw >= s.x1 - s.x0 || s.keep === undefined ? (s.x0 + s.x1) / 2 - vw / 2 : s.keep === "x1" ? s.x1 - vw : s.x0;
+  let x0 = (s.x0 + s.x1) / 2 - vw / 2;
+  const m = s.must ?? s;
+  // a tall canvas cannot always open wide enough: the scrappers (and a fallen body) stay in;
+  // when even they do not fit, the fallen body's far end does
+  if (vw < s.x1 - s.x0) {
+    x0 = vw >= m.x1 - m.x0 ? Math.min(m.x0, Math.max(m.x1 - vw, x0))
+      : s.keepAt === undefined ? (m.x0 + m.x1 - vw) / 2 : s.keep === "x1" ? s.keepAt - vw : s.keepAt;
+  }
   return clampView({ x0, y0: s.bottom - h / k, k }, w, h);
 }
 

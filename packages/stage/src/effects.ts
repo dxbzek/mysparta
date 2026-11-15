@@ -16,6 +16,8 @@ import { CORAL, GREEN, INK, PAPER, SKY, VOLT, WHITE } from "./palette";
 import type { TagItem } from "./model";
 import type { Builder } from "./timeline";
 import { CONTACT, MOVE, OUTCOME, TEXT } from "./tuning";
+import type { Zone } from "./layout";
+import { aimZone, hitOffset } from "./layout";
 
 export interface Landing {
   i: number; at: number; attacker: ActorId | null; target: ActorId;
@@ -34,10 +36,10 @@ export interface Landing {
 const clampNum = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 
 /** The point on the target that is hit, as a stage point at time `at`. */
-export function hitSpot(b: Builder, target: ActorId, at: number, zone: "head" | "body" = "body"): { x: number; y: number } {
+export function hitSpot(b: Builder, target: ActorId, at: number, zone: Zone = "body"): { x: number; y: number } {
   const tr = b.track(target);
   const p = b.place(target, at);
-  return toStage(p, b.rig.hitPoint(tr.rig, b.dress(target), zone));
+  return toStage(p, hitOffset(b.rig, tr.rig, b.dress(target), zone));
 }
 /** Above the head, where numbers and tags pop. */
 /** What struck: the weapon of the step, else the attacking companion, else fists. */
@@ -102,7 +104,8 @@ export function land(b: Builder, L: Landing, ci?: number): number {
     for (const k of Object.keys(starts) as EffectKey[]) if (starts[k] !== null && starts[k] !== undefined) mark.starts[k] = L.at;
   }
   const s = (k: EffectKey): number => b.effectStart(c, k, L.at);
-  const spot = hitSpot(b, L.target, L.at);
+  // a pet's bite lands on a fighter's legs (layout.aimZone)
+  const spot = hitSpot(b, L.target, L.at, L.attacker !== null && b.has(L.attacker) ? aimZone(b.track(L.attacker).rig, ttr.rig, 0) : "body");
   const dir: 1 | -1 = L.attacker !== null && b.place(L.attacker, L.at).x > b.place(L.target, L.at).x ? -1 : 1;
   const seed = (b.opts.cosmeticSeed ^ (L.i * 7919)) | 0;
 

@@ -25,7 +25,7 @@ export function attack(b: Builder, step: StepOf<"attack">, i: number): Placed {
   const clip = b.swingClip(step.actor, weapon);
   const hitStop = b.hitStopFor(i, step.crit);
   const boosted = step.boosted === true;
-  const sw = b.swing({ i, actor: step.actor, target: step.target, clip, dress, zone: aimZone(b.track(step.target).rig, i),
+  const sw = b.swing({ i, actor: step.actor, target: step.target, clip, dress, zone: aimZone(atr.rig, b.track(step.target).rig, i),
     start: s, mode: combo ? "step" : "dash", combo, hitStop, slow: i === b.killStep });
   if (step.outcome === "evade") evadeEarly(b, step.target, step.actor, sw.contactAt);
   const ci = land(b, { i, at: sw.contactAt, attacker: step.actor, target: step.target, outcome: step.outcome,

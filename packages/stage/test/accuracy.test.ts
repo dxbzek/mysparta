@@ -1,7 +1,8 @@
 /**
  * Accurate weapon use by construction (owner amendment 13.3, fix round 2 wording). For every held
  * id, every attacker build, every target build and every attacker and target pair the stage can
- * stage (a scrapper on any rig at head or body, a companion on any rig's body), at each contact
+ * stage (a scrapper on any rig at head or body, or at the legs when a pet bites, a companion on
+ * any rig's body), at each contact
  * the striking end drawn on the sampled frame is within 3 units of the target's hit point. A
  * throw is measured where the item arrives. A planted 20-unit error in the stop turns it red.
  *
@@ -17,6 +18,7 @@ import type { Rig } from "@rankzero/rig";
 import { toStage } from "@rankzero/rig";
 import { capsuleGateRig, capsuleRig } from "@rankzero/rig/testing";
 import type { StagePlayer } from "../src/createFightPlayer";
+import { hitOffset } from "../src/layout";
 import type { Internal } from "../src/timeline";
 import { playerFor } from "./lib/setup";
 
@@ -76,8 +78,9 @@ function gaps(player: StagePlayer, rig: Rig, log: BoutLog): Miss[] {
     if (!("target" in step) || step.target === undefined || !("outcome" in step) || step.outcome !== "hit") return;
     const f = player.frame(c.at);
     const tg = f.actors.find((a) => a.id === step.target)!;
-    const zones = tg.rig === "scrapper" ? (["head", "body"] as const) : (["body"] as const);
-    const hits = zones.map((z) => toStage(tg.place, rig.hitPoint(tg.rig, tg.dress, z)));
+    // a pet goes for a fighter's legs (layout.aimZone)
+    const zones = tg.rig === "scrapper" ? (["head", "body", "legs"] as const) : (["body"] as const);
+    const hits = zones.map((z) => toStage(tg.place, hitOffset(rig, tg.rig, tg.dress, z)));
     const what = `step ${c.step} ${step.t} ${step.actor}(${String(step.weapon)})->${step.target}(${tg.rig})`;
     if (step.t === "throw") {
       // measured where the item arrives: the flight's point at the contact frame
