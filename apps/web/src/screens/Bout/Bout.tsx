@@ -7,6 +7,7 @@
 import { useCallback, useMemo } from "react";
 import { useDoc, useGame } from "../../app/context";
 import type { ResultCardData, Settings } from "../../contracts";
+import { RigGate } from "../../app/RigGate";
 import { FightScreen } from "../../fight/FightScreen";
 import { resultLine } from "../../text/results";
 import { UI } from "../../text/ui";
@@ -45,6 +46,7 @@ export function BoutScreen({ id }: { id: string }) {
     return <main className={common.body}><Panel><p>{UI.bout.missing}</p></Panel></main>;
   }
   return (
+    <RigGate>
     <FightScreen
       log={log}
       a={bout.snapshotA}
@@ -56,5 +58,6 @@ export function BoutScreen({ id }: { id: string }) {
       result={result}
       onResultAction={(a) => void onAction(a)}
     />
+    </RigGate>
   );
 }

@@ -130,12 +130,6 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
   }
   const SWAP: readonly (readonly [number, number])[] = [[BONE.armBup, BONE.armFup], [BONE.armBlo, BONE.armFlo], [BONE.handB, BONE.handF]];
 
-  function itemFrame(handFrame: Xf, handAngle: number, art: PropArt): Xf {
-    // in figure space: the grip point and the item's angle; the item keeps its own size
-    void handAngle;
-    return mul(mul(handFrame, rotXf(art.grip.rot)), moveXf(-art.grip.x, -art.grip.y));
-  }
-
   function figure(pose: Pose, dress: Dress, at: Place): Fig {
     const build = pick(looks.builds, dress.look?.build);
     const s = (dress.scale > 0 ? dress.scale : 1) * build.scale;
@@ -146,12 +140,19 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     if (backLeads) for (const [b, f] of SWAP) { const t = rot[b]!; rot[b] = rot[f]!; rot[f] = t; }
     const art = held === "fists" ? null : weaponArt(held);
     if (art?.grip2 !== undefined) {
-      // the back hand on the shaft: pinned by two-bone IK to grip2, turned along the item
+      // the back hand on the shaft: pinned by two-bone IK to grip2, turned along the item. The
+      // item is drawn at its own size (itemStageXf), not at the body's, so grip2's offset from the
+      // grip is turned into figure units by dividing out the body scale; pinning it in item units
+      // put the back hand short of or past grip2 by (scale - 1) times that offset on any build
+      // or size other than 1 (8% of it on the tall build).
       const fr0 = frames(model, rot, pose.root.x, pose.root.y);
       const wa0 = worldAngles(model, rot);
-      const item = itemFrame(fr0[BONE.held]!, wa0[BONE.held]!, art);
-      const [gx, gy] = apply(item, art.grip2.x, art.grip2.y);
       const handWorld = wa0[BONE.held]!;
+      const ia = (handWorld + art.grip.rot) * Math.PI / 180;
+      const ox = art.grip2.x - art.grip.x;
+      const oy = art.grip2.y - art.grip.y;
+      const gx = fr0[BONE.held]!.e + (ox * Math.cos(ia) - oy * Math.sin(ia)) / (s * pose.root.sx);
+      const gy = fr0[BONE.held]!.f + (ox * Math.sin(ia) + oy * Math.cos(ia)) / (s * pose.root.sy);
       const g = model.def.bones[BONE.held]!;
       const c = Math.cos(handWorld * Math.PI / 180);
       const sn = Math.sin(handWorld * Math.PI / 180);

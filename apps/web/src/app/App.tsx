@@ -38,6 +38,7 @@ import { SandboxScreen } from "./debug/Sandbox";
 import { GameContext, useGame, useStatus } from "./context";
 import type { Game } from "./context";
 import { ErrorBoundary } from "./ErrorBoundary";
+import { loadFullRig, useRigVersion } from "../seams/rig";
 import { activeRecord, guard } from "./guards";
 import { hrefOf, parseRoute, sameRoute } from "./router";
 import type { Route } from "./router";
@@ -90,6 +91,7 @@ export function App(props: AppProps) {
   const { store, clock } = env;
   const { status, notice } = useStatus(store);
   useMotionFlag(store);
+  useFullRigAfterPaint();
   const [toasts, setToasts] = useState<string[]>([]);
 
   useEffect(() => {
@@ -154,6 +156,23 @@ export function App(props: AppProps) {
       </div>
     </GameContext.Provider>
   );
+}
+
+/**
+ * The content art (weapons, shields, pets, arenas) is its own chunk so the first screen does not
+ * wait for it: start loading it once the first frame is on screen, and re-render the app when it
+ * arrives, so icons and portraits drawn during render pick up the full art. A fight waits for it
+ * in <RigGate>.
+ */
+function useFullRigAfterPaint(): void {
+  useRigVersion();
+  useEffect(() => {
+    let timer = 0;
+    const frame = requestAnimationFrame(() => {
+      timer = window.setTimeout(() => void loadFullRig().catch((e: unknown) => console.warn("rig: the content art did not load yet", e)), 0);
+    });
+    return () => { cancelAnimationFrame(frame); window.clearTimeout(timer); };
+  }, []);
 }
 
 /**

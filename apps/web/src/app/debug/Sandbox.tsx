@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { COMPANION_IDS, SKILL_IDS, WEAPON_IDS, api } from "@rankzero/core";
 import type { BoutLog, FighterSnapshot, PerkId, StatKey } from "@rankzero/core";
 import type { Settings } from "../../contracts";
+import { RigGate } from "../RigGate";
 import { FightScreen } from "../../fight/FightScreen";
 import { NAMES } from "../../text/names";
 import { UI } from "../../text/ui";
@@ -63,9 +64,11 @@ export function SandboxScreen() {
 
   if (bout) {
     return (
+      <RigGate>
       <FightScreen log={bout.log} a={bout.a} b={bout.b} mode="replay" settings={settings}
         onSettings={(p) => setSettings((s) => ({ ...s, ...p }))} onFinished={() => undefined} result={null}
         onResultAction={() => setBout(null)} />
+      </RigGate>
     );
   }
   return (
