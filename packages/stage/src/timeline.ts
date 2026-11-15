@@ -267,9 +267,10 @@ export class Builder {
   /** The clip of a swing: the weapon's clip, "punch" for bare hands, "attack" for a companion. */
   swingClip(id: ActorId, weapon: HeldId | null, thrown = false): string {
     if (this.track(id).rig !== "scrapper") return "attack";
-    if (thrown) return "throw";
     const meta = WEAPON_META[weapon ?? "fists"];
-    return meta === undefined ? "punch" : meta.clip;
+    const base = thrown ? "throw" : meta === undefined ? "punch" : meta.clip;
+    // The rig names the weapon's own variant (side-arm boomerang, rolled tyre, two-hand bat).
+    return this.rig.attackClip?.(weapon, base) ?? base;
   }
   /** On every second swing of a combo the other hand of a pair leads. */
   leadFor(weapon: HeldId | null, n: number): "F" | "B" | undefined {
