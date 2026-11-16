@@ -48,8 +48,16 @@
  * every build. Swap in a recording (Envato or CC0) by replacing the layer in its set.
  *
  * The build fails when a sound ends more than `LOUD_TOL` dB under its set's loudness target (the
- * balance cannot drift silently: the paint can sat 4 dB under a punch), or a swish is shorter than
- * `SWISH_MIN_MS` (two fist swishes of three were a 57-65 ms tick).
+ * balance cannot drift silently: the paint can sat 4 dB under a punch), or a swish or throw is
+ * shorter than `SWISH_MIN_MS` (two fist swishes of three were a 57-65 ms tick).
+ *
+ * Phone speakers: the game is played on a phone, and a phone speaker gives back little under
+ * 400 Hz. Full-band loudness cannot see that (the Taunt shout met its -15 dB target and was
+ * 14 dB quieter over 400 Hz: under the crowd murmur on a phone). So every sound is also measured
+ * over `PHONE_HZ` (`phone` in sfx.json). A sound whose phone band sits too far under its loudness
+ * gets a presence shelf (see `prepare`; `shelf` in sfx.json is the dB added), and the build fails
+ * when a sound's phone band ends more than `PHONE_GAP` dB (or the set's own `phone`) under the
+ * set's target. A punch sits 4 to 7 dB under; the voiced Move sounds are held to 4 or 5.
  *
  * Needs ffmpeg on PATH, and tar (Windows bsdtar reads zip and 7z) or unzip / 7z to unpack.
  */
@@ -74,7 +82,12 @@ const GAP_MS = 50;
 const CAP = 300 * 1024;
 const PEAK = 10 ** (-1 / 20);            // -1 dBFS
 const LOUD_TOL = 1.5;                     // dB a sound may end under its target
-const SWISH_MIN_MS = 120;
+const SWISH_MIN_MS = 150;
+const PRESENCE_HZ = 600;
+const PRESENCE_MAX = 18;                  // dB, the most the presence shelf may add
+const PHONE_MARGIN = 1;                   // dB the shelf aims inside the gate
+const PHONE_HZ = 400;                     // a phone speaker gives back little under this
+const PHONE_GAP = 9;                      // dB a sound's phone-band loudness may sit under its target
 
 const OGA = "https://opengameart.org/sites/default/files/";
 const CC0 = { licence: "CC0 1.0", licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/" };
@@ -136,6 +149,23 @@ function rng(seed) {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+/** A second-order (Butterworth) high-pass; returns a new array. */
+function highpass2(x, hz) {
+  const w = (2 * Math.PI * hz) / RATE;
+  const c = Math.cos(w);
+  const al = Math.sin(w) / Math.SQRT2;
+  const b0 = (1 + c) / 2 / (1 + al);
+  const b1 = -(1 + c) / (1 + al);
+  const a1 = (-2 * c) / (1 + al);
+  const a2 = (1 - al) / (1 + al);
+  const y = new Float32Array(x.length);
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  for (let i = 0; i < x.length; i++) {
+    const v = b0 * x[i] + b1 * x1 + b0 * x2 - a1 * y1 - a2 * y2;
+    x2 = x1; x1 = x[i]; y2 = y1; y1 = v; y[i] = v;
+  }
+  return y;
 }
 /** One-pole filters and a fade envelope, in place. */
 function lowpass(x, hz) {
@@ -294,18 +324,19 @@ export const SETS = [
   ["block-frame", 420, -13.5, [`${MW("metal_hit_03")} + break75:bfh1_metal_falling_02.ogg*0.5`]],
   // ---- swings
   // light: a fast air swoosh (swish_2 85% 500-2k, 297 ms from its onset), a thin blade swish
-  // (sword.6), and two quick swishes run together; every one 120 ms or more (swish-11 and -13
-  // alone shipped at 65 and 57 ms: two fist swings of three were a click, round 2 review)
-  ["swish-light", 220, -20, ["battle:battle_sound_effects/swish_2.wav", "sword20:sword - StarNinjas/sword.6.ogg", "swishes:swishes/swish-9.wav + swishes:swishes/swish-11.wav~60*0.7"]],
-  // (swish-7 alone trimmed to 110 ms; a second swish under its tail carries it on)
-  ["swish-medium", 340, -19, ["battle:battle_sound_effects/swish_3.wav", "battle:battle_sound_effects/swish_4.wav", "swishes:swishes/swish-7.wav + swishes:swishes/swish-4.wav~60*0.6"]],
+  // (sword.6), and a bright air swish (swish_4) with a quick one under it; every one 150 ms or
+  // more (swish-11 and -13 alone shipped at 65 and 57 ms, then a 123 ms pair of low swishes that a
+  // phone speaker dropped: one fist swing in three was a click, round 2 review)
+  ["swish-light", 220, -20, ["battle:battle_sound_effects/swish_2.wav", "sword20:sword - StarNinjas/sword.6.ogg", "battle:battle_sound_effects/swish_4.wav + swishes:swishes/swish-10.wav*0.5"]],
+  // (swish-7 alone trimmed to 110 ms and sat under 400 Hz; a bright swoosh carries it on)
+  ["swish-medium", 340, -19, ["battle:battle_sound_effects/swish_3.wav", "battle:battle_sound_effects/swish_4.wav", "swishes:swishes/swish-7.wav + battle:battle_sound_effects/swish_2.wav~40*0.8"], { phone: 6 }],
   // heavy whoomp: low swish (swish-3 centroid 206 Hz) + a metal swing (175 Hz, 857 ms)
-  ["swish-heavy", 520, -17, ["swishes:swishes/swish-3.wav + metalint:metal_interactions/metal_swing1.wav*0.8", "swishes:swishes/swish-8.wav + metalint:metal_interactions/metal_swing1.wav*0.6"]],
+  ["swish-heavy", 520, -17, ["swishes:swishes/swish-3.wav + metalint:metal_interactions/metal_swing1.wav*0.8 + battle:battle_sound_effects/swish_3.wav*0.5", "swishes:swishes/swish-8.wav + metalint:metal_interactions/metal_swing1.wav*0.6 + battle:battle_sound_effects/swish_3.wav*0.5"]],
   // chain whip: high whoosh with a rattle
   ["swish-whip", 380, -18, ["sword20:sword - StarNinjas/sword.5.ogg + rpg80:chain_03.ogg*0.5"]],
   // ---- throws (flight sound at the release)
   // the plain air whoosh of a thrown thing (and of a Move's throw): no blade in it
-  ["throw", 380, -17, ["battle:battle_sound_effects/swish_3.wav", "swishes:swishes/swish-7.wav"]],
+  ["throw", 380, -17, ["battle:battle_sound_effects/swish_3.wav", "swishes:swishes/swish-7.wav + battle:battle_sound_effects/swish_4.wav~30*0.7"], { phone: 6 }],
   // boomerang, hubcap, tyre: spinning whirr (car_spinning 55% <150, 673 ms)
   ["throw-spin", 650, -16, ["spin:car_spinning.wav"]],
   // ---- drops on the floor, by material
@@ -360,7 +391,7 @@ export const SETS = [
   ["move-air-horn", 650, -14, ["synth:air-horn"]],
   // Body Slam: the heave (a low male grunt, grunt_03 126-160 Hz, voiced), then the body hitting
   // the floor (slam_02 50% <150 Hz) in place of the punch; the floor's "landing" plays under it
-  ["move-heave", 450, -17, ["creature80:grunt_03.ogg + rpgaudio:OGG/cloth3.ogg*0.4"]],
+  ["move-heave", 450, -17, ["creature80:grunt_03.ogg + rpgaudio:OGG/cloth3.ogg*0.4"], { phone: 5 }],
   ["move-slam", 520, -12, [`${S100("slam_02")} + ${QP(3)}*0.6`]],
   // Sand in the Eyes: the handful scooped (a grit scatter, quiet), then the hiss and patter of sand
   // on the face (noise_01 hiss, stones_04 83% 2-6k grit)
@@ -368,17 +399,17 @@ export const SETS = [
   ["move-sand", 420, -16, [`${S100("noise_01")} + rpg80:stones_04.ogg*0.45 + rpgaudio:OGG/cloth2.ogg*0.4`]],
   // Taunt: his shout (misc_09, a voiced male call at 161 Hz, 86% 150-500), then the enemy's angry
   // snort (nose, 84 Hz)
-  ["move-shout", 520, -15, ["creature80:misc_09.ogg"]],
-  ["move-snort", 360, -17, ["creature80:nose.ogg"]],
+  ["move-shout", 520, -15, ["creature80:misc_09.ogg"], { phone: 4 }],
+  ["move-snort", 360, -17, ["creature80:nose.ogg"], { phone: 5 }],
   // Second Wind: the deep breath in (breath, 52% 500-2k + 32% 2-6k: air through the mouth)
   ["move-breath", 700, -17, ["creature80:breath.ogg"]],
   // Grapple: the grab (a short male grunt, hurt_05 122-129 Hz, and the cloth bunching), then the
   // squeeze: a long strain grunt (grunt_01) and cloth crushed, in place of the punch
-  ["move-grab-grunt", 420, -17, ["creature80:hurt_05.ogg*0.8 + rpgaudio:OGG/cloth3.ogg*0.6"]],
-  ["move-squeeze", 600, -14, [`creature80:grunt_01.ogg + rpgaudio:OGG/cloth1.ogg*0.6 + ${QP(4)}*0.4`]],
+  ["move-grab-grunt", 420, -17, ["creature80:hurt_05.ogg*0.8 + rpgaudio:OGG/cloth3.ogg*0.6"], { phone: 5 }],
+  ["move-squeeze", 600, -14, [`creature80:grunt_01.ogg + rpgaudio:OGG/cloth1.ogg*0.6 + ${QP(4)}*0.4`], { phone: 4 }],
   // ---- the heavy layer under a crit or the knockout blow: a low body slam (slam_02) and a deep
   // thump, about 5 dB under the blow itself
-  ["hit-accent", 520, -18, [`${S100("slam_02")} + ${HIT(30)}*0.5`]],
+  ["hit-accent", 520, -18, [`${S100("slam_02")} + ${HIT(30)}*0.5`], { phone: 5 }],
   ["win", 2200, -14, ["winjingle:WinBrass.wav"]],
   ["loss", 1100, -14, ["jingles:OGG/jingles_SAX/jingles_SAX01.ogg"]],
   ["ui-tap", 120, -23, ["interface:Audio/click_001.ogg", "interface:Audio/select_001.ogg"]],
@@ -457,6 +488,10 @@ function loudness(pcm) {
   return dB(best);
 }
 
+/** What a phone speaker gives back: the sound with everything under PHONE_HZ cut (24 dB per
+ *  octave), measured the same way as `loudness`. */
+const phoneLoudness = (pcm) => loudness(highpass2(highpass2(pcm, PHONE_HZ), PHONE_HZ));
+
 function parseLayer(spec) {
   const m = /^([a-z0-9-]+):(.+?)(?:@(\d+))?(?:~(\d+))?(?:\*([\d.]+))?$/.exec(spec.trim());
   if (!m) throw new Error(`bad layer "${spec}"`);
@@ -509,11 +544,41 @@ function prepare(dirs, spec, maxMs, target, opts = {}) {
   // trim the quiet tail (-50 dB of the peak)
   const pk = peakOf(out);
   while (len > 10 && Math.abs(out[len - 1]) < pk * 0.003) len--;
-  const clip = out.slice(0, len);
-  // fades: in 2 ms (8 ms for a window cut from a long recording, which starts 10 ms before its
-  // onset), out up to 60 ms
-  const fin = Math.min(len, Math.round((layers[0].at !== null ? 0.008 : 0.002) * RATE));
-  for (let i = 0; i < fin; i++) clip[i] *= i / fin;
+  let clip = out.slice(0, len);
+  // presence: when the sound's phone band sits further under its full-band loudness than the set
+  // allows (`phone`, default PHONE_GAP), the band over PRESENCE_HZ is turned up (a shelf, in 1 dB
+  // steps, at most PRESENCE_MAX), so a low voice or a low thud keeps its body and still comes out
+  // of a phone speaker. A sound that is already bright is not touched.
+  const allowed = (opts.phone ?? PHONE_GAP) - PHONE_MARGIN;
+  const windowed = layers[0].at !== null;
+  // fade in: 2 ms (8 ms for a window cut from a long recording, which starts 10 ms before its
+  // onset); before the shelf, so the cut start is not a click the shelf would turn up
+  const fadeIn = () => {
+    const fin = Math.min(len, Math.round((windowed ? 0.008 : 0.002) * RATE));
+    for (let i = 0; i < fin; i++) clip[i] *= i / fin;
+  };
+  fadeIn();
+  let shelfDb = 0;
+  {
+    const hi = highpass2(clip, PRESENCE_HZ);
+    const dry = Float32Array.from(clip);
+    while (loudness(clip) - phoneLoudness(clip) > allowed && shelfDb < PRESENCE_MAX) {
+      shelfDb += 1;
+      const g = 10 ** (shelfDb / 20) - 1;
+      for (let i = 0; i < len; i++) clip[i] = dry[i] + g * hi[i];
+    }
+    // the shelf moves the sound's weight to its bright part, which may start later than the low
+    // part did: start again at the onset (half the new peak, minus the same lead), so the part a
+    // phone plays still lands on the cue
+    if (shelfDb > 0) {
+      const half = 0.5 * peakOf(clip);
+      let on = 0;
+      while (on < len && Math.abs(clip[on]) < half) on++;
+      const cut = on - Math.round((windowed ? 0.01 : 0.005) * RATE);
+      if (cut > 0) { clip = clip.slice(cut); len -= cut; fadeIn(); }
+    }
+  }
+  // fade out: up to 60 ms
   const fout = Math.min(Math.round(0.06 * RATE), Math.round(len * 0.3));
   for (let i = 0; i < fout; i++) clip[len - 1 - i] *= 0.5 - 0.5 * Math.cos((Math.PI * i) / fout);
   // -1 dBFS peak, then down to the family's loudness, or up by at most `lift` dB through a soft
@@ -544,7 +609,7 @@ function prepare(dirs, spec, maxMs, target, opts = {}) {
   // onset: the first sample at half the final peak (where the sound is plainly heard)
   let on = 0;
   while (on < len && Math.abs(clip[on]) < 0.5 * Math.abs(clip[at])) on++;
-  return { clip, layers, peakDb: dB(peakOf(clip)), loudDb: loudness(clip), peakAtMs: ms(at), onsetMs: ms(on) };
+  return { clip, layers, peakDb: dB(peakOf(clip)), loudDb: loudness(clip), phoneDb: phoneLoudness(clip), shelfDb, peakAtMs: ms(at), onsetMs: ms(on) };
 }
 
 function wav(pcm) {
@@ -582,10 +647,12 @@ for (const sp of SPRITES) {
     slots.forEach((spec, v) => {
       const p = prepare(dirs, spec, maxMs, target, opts);
       if (p.loudDb < target - LOUD_TOL) problems.push(`${family}[${v}] ends at ${p.loudDb.toFixed(1)} dB, more than ${LOUD_TOL} dB under its ${target} dB target (give the set a lift or a louder source)`);
-      if (family.startsWith("swish-") && ms(p.clip.length) < SWISH_MIN_MS) problems.push(`${family}[${v}] is ${ms(p.clip.length)} ms, a tick, not a swish (at least ${SWISH_MIN_MS} ms)`);
+      const gapMax = opts?.phone ?? PHONE_GAP;
+      if (p.phoneDb < target - gapMax) problems.push(`${family}[${v}] is ${p.phoneDb.toFixed(1)} dB over ${PHONE_HZ} Hz, more than ${gapMax} dB under its ${target} dB target: a phone speaker drops it (pick or layer a source with more over ${PHONE_HZ} Hz)`);
+      if (/^(swish|throw)/.test(family) && ms(p.clip.length) < SWISH_MIN_MS) problems.push(`${family}[${v}] is ${ms(p.clip.length)} ms, a tick, not a swish (at least ${SWISH_MIN_MS} ms)`);
       parts.push({ at: cursor, clip: p.clip });
       list.push({ at: cursor, len: p.clip.length });
-      used.push({ family, variant: v, sprite: sp.file, files: p.layers.map((l) => `${l.pack}:${l.path}`), lenMs: ms(p.clip.length), peakDb: Number(p.peakDb.toFixed(1)), loudDb: Number(p.loudDb.toFixed(1)), peakAtMs: p.peakAtMs, onsetMs: p.onsetMs });
+      used.push({ family, variant: v, sprite: sp.file, files: p.layers.map((l) => `${l.pack}:${l.path}`), lenMs: ms(p.clip.length), peakDb: Number(p.peakDb.toFixed(1)), loudDb: Number(p.loudDb.toFixed(1)), phoneDb: Number(p.phoneDb.toFixed(1)), shelfDb: p.shelfDb, peakAtMs: p.peakAtMs, onsetMs: p.onsetMs });
       cursor += p.clip.length + gap;
     });
     sp.planned.push([family, list]);
@@ -657,12 +724,12 @@ const json = {
   note: "Offsets in ms, measured on the decoded MP3 (not planned); `f` is the index in `files`. Built by tools/build-audio.mjs. Credits: see `credits` and CREDITS.md.",
   sets: map,
   families: ALIASES,
-  sources: used.map((u) => ({ set: u.family, variant: u.variant, files: u.files, loud: u.loudDb, onset: u.onsetMs, peakAt: u.peakAtMs })),
+  sources: used.map((u) => ({ set: u.family, variant: u.variant, files: u.files, loud: u.loudDb, phone: u.phoneDb, shelf: u.shelfDb, onset: u.onsetMs, peakAt: u.peakAtMs })),
   credits: packsUsed.map((p) => ({ pack: p.id, name: p.name, author: p.author, licence: p.licence, licenceUrl: p.licenceUrl, page: p.page, fetched: p.fetched })),
 };
 writeFileSync(join(OUT, "sfx.json"), `${JSON.stringify(json, null, 1)}\n`);
 writeCredits();
-for (const u of used) console.log(`${`${u.family}[${u.variant}]`.padEnd(20)} ${String(u.lenMs).padStart(6)} ms  peak ${String(u.peakDb).padStart(5)} dB  loud ${String(u.loudDb).padStart(6)} dB  onset ${String(u.onsetMs).padStart(5)} ms  peak at ${String(u.peakAtMs).padStart(5)} ms  ${u.files.join(" + ")}`);
+for (const u of used) console.log(`${`${u.family}[${u.variant}]`.padEnd(20)} ${String(u.lenMs).padStart(6)} ms  peak ${String(u.peakDb).padStart(5)} dB  loud ${String(u.loudDb).padStart(6)} dB  phone ${String(u.phoneDb).padStart(6)} dB  shelf ${String(u.shelfDb).padStart(2)} dB  onset ${String(u.onsetMs).padStart(5)} ms  peak at ${String(u.peakAtMs).padStart(5)} ms  ${u.files.join(" + ")}`);
 console.log(`whole-sprite trim ${dB(trim).toFixed(2)} dB; ${k - disagree} of ${k} sounds agree on their file's encoder shift within 1 ms`);
 for (const pr of problems) console.error(`build-audio: ${pr}`);
 if (failed || problems.length > 0) process.exit(1);

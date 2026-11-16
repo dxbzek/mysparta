@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { AudioContextLike, AudioHost } from "../../src/audio/engine";
-import { createAudioEngine } from "../../src/audio/engine";
+import { LOAD_TIMEOUT_MS, createAudioEngine } from "../../src/audio/engine";
 
 function rig(opts: { failJson?: number; failContent?: number; state?: string } = {}) {
   let jsonFails = opts.failJson ?? 0;
@@ -88,6 +88,62 @@ describe("a failed load retries on a later gesture", () => {
     } finally {
       g.fetch = keep;
     }
+  });
+});
+
+describe("a slow or hanging request", () => {
+  it("taps while the content file is still on its way do not fetch it again", async () => {
+    const r = rig();
+    let release: (() => void) | null = null;
+    const plain = r.host.fetchBytes;
+    r.host.fetchBytes = async (url, signal) => {
+      if (url.endsWith("sfx-content.mp3")) {
+        r.fetched.push(url);
+        await new Promise<void>((done) => { release = done; });
+        return new ArrayBuffer(8);
+      }
+      return plain(url, signal);
+    };
+    const engine = createAudioEngine("./", r.host);
+    await engine.unlock();                         // core in, content request still out
+    for (let k = 0; k < 4; k++) { r.advance(5000); await engine.unlock(); }
+    expect(r.fetched.filter((u) => u.endsWith("sfx-content.mp3"))).toHaveLength(1);
+    (release as (() => void) | null)?.();
+    await engine.content();
+    expect(engine.size("hit-pipe")).toBe(1);
+    r.advance(60_000);
+    await engine.unlock();
+    await engine.content();
+    expect(r.fetched.filter((u) => u.endsWith("sfx-content.mp3"))).toHaveLength(1);
+  });
+
+  it("a request that never answers is aborted after the timeout, and the next tap tries again", async () => {
+    const r = rig();
+    const timers: (() => void)[] = [];
+    r.host.setTimer = (fn) => { timers.push(fn); return timers.length - 1; };
+    r.host.clearTimer = () => undefined;
+    let hang = true;
+    let aborted = 0;
+    const plain = r.host.fetchJson;
+    r.host.fetchJson = (url, signal) => {
+      if (!hang) return plain(url, signal);
+      r.fetched.push(url);
+      signal?.addEventListener("abort", () => { aborted++; });
+      return new Promise<unknown>(() => undefined);      // no answer, no error
+    };
+    const engine = createAudioEngine("./", r.host);
+    const first = engine.unlock();
+    expect(engine.state).toBe("loading");
+    expect(timers).toHaveLength(1);
+    timers[0]!();                                   // the deadline passes
+    await first;
+    expect(engine.state).toBe("failed");
+    expect(aborted).toBe(1);
+    hang = false;
+    r.advance(LOAD_TIMEOUT_MS);
+    await engine.unlock();
+    expect(engine.state).toBe("ready");
+    expect(engine.play("fist", 0)).toBe(true);
   });
 });
 

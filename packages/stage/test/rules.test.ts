@@ -88,11 +88,33 @@ describe("sound cues", () => {
     const moves = steps.flatMap((s, i) => (s.t === "move" ? [[i, s.move] as const] : []));
     for (const [i, id] of moves) {
       const acts = p.timeline.cues.filter((c) => c.step === i && c.beat === "act");
-      expect(acts.length, `step ${i} ${id}`).toBe(1);
-      expect(acts[0]!.move, `step ${i}`).toBe(id);
+      // a Snatch that takes nothing grabs air: no grab sound (its swing swish is all there is)
+      const st = steps[i]!;
+      const silent = st.t === "move" && st.move === "snatch" && st.taken === undefined;
+      expect(acts.length, `step ${i} ${id}`).toBe(silent ? 0 : 1);
+      if (!silent) expect(acts[0]!.move, `step ${i}`).toBe(id);
     }
     for (const c of p.timeline.cues.filter((q) => q.family === "move")) expect(c.move, `move cue at ${c.at}`).toBeDefined();
     expect(p.timeline.cues.filter((c) => c.family === "landing" && c.at < 1500).length).toBe(2);
+  });
+
+  it("a Snatch that takes nothing makes no grab sound; one that takes the weapon does", () => {
+    const fx = BOUT_FIXTURES["bout-all-steps"];
+    const i = fx.log.steps.findIndex((st) => st.t === "move" && st.move === "snatch" && st.taken !== undefined);
+    expect(i).toBeGreaterThanOrEqual(0);
+    const grabs = (p: { timeline: { cues: { step: number; move?: string }[] } }): number =>
+      p.timeline.cues.filter((c) => c.step === i && c.move === "snatch").length;
+    expect(grabs(fixturePlayer("bout-all-steps"))).toBe(1);
+    // the same bout with the snatch resisted (nothing taken)
+    const steps = fx.log.steps.map((st, k) => {
+      if (k !== i || st.t !== "move") return st;
+      const { taken: _taken, ...rest } = st;
+      return rest;
+    });
+    const p = buildPlayer({ ...fx.log, steps }, fx.a, fx.b, capsuleRig, optsFor(fx.log));
+    expect(grabs(p)).toBe(0);
+    // the reach is still heard: the swing's own swish
+    expect(p.timeline.cues.some((c) => c.step === i && c.family === "swing")).toBe(true);
   });
 
   it("gives Move hits their Move's sound, not a bare fist, and a crit or knockout a heavy layer (contract rev 4)", () => {

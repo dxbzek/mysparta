@@ -28,10 +28,10 @@ Open licence question (round 2 audio review, 16 Nov 2026): the repo is public an
 | metal_07.ogg (100 CC0 SFX) | hit-pipe | https://opengameart.org/content/100-cc0-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | cloth3.ogg (RPG Audio (Kenney)) | block-arms, move-heave, move-grab-grunt | https://opengameart.org/content/50-rpg-sound-effects | Kenney | CC0 1.0 | 2026-11-15 |
 | cloth1.ogg (RPG Audio (Kenney)) | block-arms, move-tarp-land, move-squeeze, hit-umbrella | https://opengameart.org/content/50-rpg-sound-effects | Kenney | CC0 1.0 | 2026-11-15 |
-| swish_3.wav (Battle Sound Effects) | swish-medium, throw | https://opengameart.org/content/battle-sound-effects | artisticdude | CC0 1.0 | 2026-11-15 |
-| swish_4.wav (Battle Sound Effects) | swish-medium | https://opengameart.org/content/battle-sound-effects | artisticdude | CC0 1.0 | 2026-11-15 |
+| swish_3.wav (Battle Sound Effects) | swish-medium, throw, swish-heavy | https://opengameart.org/content/battle-sound-effects | artisticdude | CC0 1.0 | 2026-11-15 |
+| swish_4.wav (Battle Sound Effects) | swish-medium, throw, swish-light | https://opengameart.org/content/battle-sound-effects | artisticdude | CC0 1.0 | 2026-11-15 |
 | swish-7.wav (Swishes Sound Pack) | swish-medium, throw, dash | https://opengameart.org/content/swishes-sound-pack | artisticdude | CC0 1.0 | 2026-11-15 |
-| swish-4.wav (Swishes Sound Pack) | swish-medium | https://opengameart.org/content/swishes-sound-pack | artisticdude | CC0 1.0 | 2026-11-15 |
+| swish_2.wav (Battle Sound Effects) | swish-medium, swish-light | https://opengameart.org/content/battle-sound-effects | artisticdude | CC0 1.0 | 2026-11-15 |
 | bfh1_metal_falling_02.ogg (75 CC0 breaking / falling / hit sfx) | drop-metal, block-frame | https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | metal_falling_02.ogg (100 CC0 metal and wood SFX) | drop-metal | https://opengameart.org/content/100-cc0-metal-and-wood-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | Dog Bark 1.wav (Dog sounds) | voice-dog | https://opengameart.org/content/dog-sounds | pauliuw | CC0 1.0 | 2026-11-15 |
@@ -47,7 +47,7 @@ Open licence question (round 2 audio review, 16 Nov 2026): the repo is public an
 | Cat 7.wav (Cat SFX (Cat 7)) | voice-cat | https://opengameart.org/content/cat-sfx | Dan Knoflicek (Macro) | CC BY 3.0 | 2026-11-15 |
 | Cat 8.wav (Cat SFX (Cat 8)) | voice-cat | https://opengameart.org/content/cat-sfx | Dan Knoflicek (Macro) | CC BY 3.0 | 2026-11-15 |
 | footstep01.ogg (RPG Audio (Kenney)) | dash | https://opengameart.org/content/50-rpg-sound-effects | Kenney | CC0 1.0 | 2026-11-15 |
-| swish-9.wav (Swishes Sound Pack) | dash, swish-light | https://opengameart.org/content/swishes-sound-pack | artisticdude | CC0 1.0 | 2026-11-15 |
+| swish-9.wav (Swishes Sound Pack) | dash | https://opengameart.org/content/swishes-sound-pack | artisticdude | CC0 1.0 | 2026-11-15 |
 | footstep08.ogg (RPG Audio (Kenney)) | dash | https://opengameart.org/content/50-rpg-sound-effects | Kenney | CC0 1.0 | 2026-11-15 |
 | hit30.mp3.flac (37 hits/punches) | landing, hit-accent | https://opengameart.org/content/37-hitspunches | Independent.nu (submitted by qubodup) | CC0 1.0 | 2026-11-15 |
 | qubodupPunch03.flac (Punch) | landing, move-slam, hit-wood, hit-heavy, hit-squeak, hit-plunger, hit-chain, hit-brick, hit-plastic, hit-ball, hit-hubcap, hit-rubber, hit-bite, hit-peck, hit-gore, drop-stone | https://opengameart.org/content/punch | Iwan 'qubodup' Gabovitch | CC0 1.0 | 2026-11-15 |
@@ -118,7 +118,7 @@ Open licence question (round 2 audio review, 16 Nov 2026): the repo is public an
 | metal_sheet_04.ogg (100 CC0 metal and wood SFX) | hit-hubcap, block-tin | https://opengameart.org/content/100-cc0-metal-and-wood-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | eat_02.ogg (80 CC0 creature SFX) | hit-bite | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | eat_03.ogg (80 CC0 creature SFX) | hit-bite | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
-| swish-11.wav (Swishes Sound Pack) | hit-claw, swish-light | https://opengameart.org/content/swishes-sound-pack | artisticdude | CC0 1.0 | 2026-11-15 |
+| swish-11.wav (Swishes Sound Pack) | hit-claw | https://opengameart.org/content/swishes-sound-pack | artisticdude | CC0 1.0 | 2026-11-15 |
 | swish-13.wav (Swishes Sound Pack) | hit-claw | https://opengameart.org/content/swishes-sound-pack | artisticdude | CC0 1.0 | 2026-11-15 |
 | bfh1_metal_hit_02.ogg (75 CC0 breaking / falling / hit sfx) | block-parry | https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | metal_02.ogg (100 CC0 SFX) | block-tin | https://opengameart.org/content/100-cc0-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
@@ -127,8 +127,8 @@ Open licence question (round 2 audio review, 16 Nov 2026): the repo is public an
 | wood_slam_01.ogg (100 CC0 metal and wood SFX) | block-wood | https://opengameart.org/content/100-cc0-metal-and-wood-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | wood_slam_04.ogg (100 CC0 metal and wood SFX) | block-wood | https://opengameart.org/content/100-cc0-metal-and-wood-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | wood_03.ogg (80 CC0 RPG SFX) | block-wood | https://opengameart.org/content/80-cc0-rpg-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
-| swish_2.wav (Battle Sound Effects) | swish-light | https://opengameart.org/content/battle-sound-effects | artisticdude | CC0 1.0 | 2026-11-15 |
 | sword.6.ogg (20 Sword Sound Effects (Attacks and Clashes)) | swish-light | https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes | StarNinjas | CC0 1.0 | 2026-11-15 |
+| swish-10.wav (Swishes Sound Pack) | swish-light | https://opengameart.org/content/swishes-sound-pack | artisticdude | CC0 1.0 | 2026-11-15 |
 | swish-3.wav (Swishes Sound Pack) | swish-heavy | https://opengameart.org/content/swishes-sound-pack | artisticdude | CC0 1.0 | 2026-11-15 |
 | metal_swing1.wav (Metal Interactions) | swish-heavy | https://opengameart.org/content/metal-interactions | qubodup | CC0 1.0 | 2026-11-15 |
 | swish-8.wav (Swishes Sound Pack) | swish-heavy | https://opengameart.org/content/swishes-sound-pack | artisticdude | CC0 1.0 | 2026-11-15 |

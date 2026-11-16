@@ -61,7 +61,9 @@ export function move(b: Builder, step: MoveStep, i: number): Placed {
   b.bag(b.track(step.actor).side, s, step.bagAfter);
   moveNameTag(b, step.move, step.actor, s);
   const placed = action(b, step, i, s, s);
-  if (!b.cues.some((q) => q.step === i && q.beat === "act")) b.moveCue(s, i, step.move, "act");
+  // (a Snatch that takes nothing has no act sound: the hand closes on air, its swing swish is all)
+  const noSound = step.move === "snatch" && step.taken === undefined;
+  if (!noSound && !b.cues.some((q) => q.step === i && q.beat === "act")) b.moveCue(s, i, step.move, "act");
   // the user's own clips of this Move end where its last one does
   const end = Math.max(b.cursor, ...b.track(step.actor).segs.filter((g) => g.from >= s).map((g) => g.to));
   sling(b, step.actor, s, end, step.move !== "snatch");
@@ -277,7 +279,6 @@ function snatch(b: Builder, step: MoveStep, i: number, s: number, c: number): Pl
     mode: "dash", combo: false, hitStop: 0, slow: false });
   const at = sw.contactAt;
   let apply = at;
-  b.moveCue(at, i, "snatch", "act");   // the grab on the weapon
   // the robbed hand shows: the target's shield goes on its back for the moment of the snatch
   sling(b, target, at - 260, at + MOVE.snatchJumpMs + 160, false);
   if (step.taken !== undefined) {
@@ -290,6 +291,7 @@ function snatch(b: Builder, step: MoveStep, i: number, s: number, c: number): Pl
     b.heldNow.set(target, "fists");
     b.setHeld(step.actor, at + MOVE.snatchJumpMs, step.taken);
     b.heldNow.set(step.actor, step.taken);
+    b.moveCue(at, i, "snatch", "act");   // the grab on the weapon (only when there is one to grab)
     b.cue(at, i, "whoosh", 0, step.taken);
     // the robbed hand jerks back, empty
     b.play(target, "hit-light", at, { busy: false });

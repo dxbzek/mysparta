@@ -21,7 +21,9 @@
  *
  * Phone networks drop requests: a failed load (or a response that is not ok) is tried again on a
  * later gesture, at least `RETRY_MS` after the last try and at most `MAX_TRIES` times; a content
- * file that failed is fetched again the same way, while the core sounds keep playing.
+ * file that failed is fetched again the same way, while the core sounds keep playing. A request
+ * that hangs (no answer, no error) is given up after `LOAD_TIMEOUT_MS` and counts as a failure, so
+ * the retry still happens. While a content file is on its way, later taps do not ask for it again.
  */
 import type { SfxFamily } from "@rankzero/stage";
 
@@ -39,12 +41,18 @@ export const MAX_VOICES = 10;
 export const RETRY_MS = 2000;
 /** Tries per file before the engine gives up for the session. */
 export const MAX_TRIES = 5;
+/** A request with no answer after this long is aborted and counts as failed. */
+export const LOAD_TIMEOUT_MS = 20_000;
 
 /** The parts of Web Audio the engine calls. A test passes a fake. */
 export interface AudioHost {
   createContext(): AudioContextLike;
-  fetchBytes(url: string): Promise<ArrayBuffer>;
-  fetchJson(url: string): Promise<unknown>;
+  /** `signal` aborts the request when the engine gives up on it (see LOAD_TIMEOUT_MS). */
+  fetchBytes(url: string, signal?: AbortSignal): Promise<ArrayBuffer>;
+  fetchJson(url: string, signal?: AbortSignal): Promise<unknown>;
+  /** Timers for the load timeout (default setTimeout / clearTimeout). */
+  setTimer?(fn: () => void, ms: number): unknown;
+  clearTimer?(id: unknown): void;
   /** ms clock for the retry backoff (default Date.now). */
   now?(): number;
 }
@@ -94,13 +102,13 @@ export interface AudioEngine {
 }
 
 /** A fetch that throws on a response that is not ok, so a 404 page is never decoded as sound. */
-const fetchOk = async (url: string): Promise<Response> => {
-  const res = await fetch(url);
+const fetchOk = async (url: string, signal?: AbortSignal): Promise<Response> => {
+  const res = await (signal ? fetch(url, { signal }) : fetch(url));
   if (!res.ok) throw new Error(`audio: ${url} answered ${res.status}`);
   return res;
 };
-export const browserFetchBytes = async (url: string): Promise<ArrayBuffer> => (await fetchOk(url)).arrayBuffer();
-export const browserFetchJson = async (url: string): Promise<unknown> => (await fetchOk(url)).json();
+export const browserFetchBytes = async (url: string, signal?: AbortSignal): Promise<ArrayBuffer> => (await fetchOk(url, signal)).arrayBuffer();
+export const browserFetchJson = async (url: string, signal?: AbortSignal): Promise<unknown> => (await fetchOk(url, signal)).json();
 
 const browserHost = (): AudioHost => ({
   createContext: () => {
@@ -121,6 +129,7 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
   let map: SpriteMap | null = null;
   let loading: Promise<void> | null = null;
   let contentLoad: Promise<void> = Promise.resolve();
+  let contentBusy = false;
   let played = 0;
   let enabled = true;
   const active: SourceLike[] = [];
@@ -138,9 +147,28 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
     tries.set(key, { n, next: now() + RETRY_MS * 2 ** (n - 1) });
   };
 
+  /** One request with a deadline: aborted and rejected when no answer came in LOAD_TIMEOUT_MS (a
+   *  request that hangs on a phone network must fail, or nothing ever retries it). */
+  const timed = <T>(url: string, ask: (signal?: AbortSignal) => Promise<T>): Promise<T> => {
+    const abort = typeof AbortController === "undefined" ? null : new AbortController();
+    const setTimer = host.setTimer ?? ((fn: () => void, ms: number): unknown => setTimeout(fn, ms));
+    const clearTimer = host.clearTimer ?? ((id: unknown): void => clearTimeout(id as ReturnType<typeof setTimeout>));
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimer(() => {
+        abort?.abort();
+        reject(new Error(`audio: ${url} did not answer in ${LOAD_TIMEOUT_MS} ms`));
+      }, LOAD_TIMEOUT_MS);
+      ask(abort?.signal).then(
+        (v) => { clearTimer(timer); resolve(v); },
+        (e: unknown) => { clearTimer(timer); reject(e instanceof Error ? e : new Error(String(e))); },
+      );
+    });
+  };
+
   const fetchFile = async (i: number): Promise<void> => {
     if (ctx === null || map === null) return;
-    const bytes = await host.fetchBytes(`${base}audio/${map.files[i]}`);
+    const url = `${base}audio/${map.files[i]}`;
+    const bytes = await timed(url, (signal) => host.fetchBytes(url, signal));
     buffers[i] = await ctx.decodeAudioData(bytes);
   };
 
@@ -184,22 +212,28 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
   /** The content files not in yet, each when its backoff allows; never holds up `unlock`. A
    *  failure leaves the core sounds playing and is tried again on a later gesture. */
   const loadContent = (): void => {
+    // one content load at a time: a tap while a file is on its way must not queue the same file
+    // again behind it (it would be downloaded and decoded twice, and burn the file's tries)
+    if (contentBusy) return;
     const due: number[] = [];
     for (let i = 1; i < (map?.files.length ?? 0); i++) if (buffers[i] === undefined && mayTry(i)) due.push(i);
     if (due.length === 0) return;
+    contentBusy = true;
     contentLoad = contentLoad.then(async () => {
       for (const i of due) {
+        if (buffers[i] !== undefined) continue;
         tried(i);
         await fetchFile(i).catch((error: unknown) => console.warn(`audio: ${map?.files[i]} did not load`, error));
       }
-    });
+    }).finally(() => { contentBusy = false; });
   };
 
   const load = async (): Promise<void> => {
     state = "loading";
     tried("core");
     try {
-      map = (await host.fetchJson(`${base}audio/sfx.json`)) as SpriteMap;
+      const url = `${base}audio/sfx.json`;
+      map = (await timed(url, (signal) => host.fetchJson(url, signal))) as SpriteMap;
       await fetchFile(0);
       state = "ready";
     } catch (error) {

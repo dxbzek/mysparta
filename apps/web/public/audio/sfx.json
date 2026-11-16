@@ -83,342 +83,342 @@
    {
     "f": 0,
     "start": 5146.5,
-    "dur": 139.3
+    "dur": 200.5
    }
   ],
   "throw": [
    {
     "f": 0,
-    "start": 5335.9,
+    "start": 5397,
     "dur": 379.8
    },
    {
     "f": 0,
-    "start": 5765.7,
-    "dur": 110.4
+    "start": 5826.8,
+    "dur": 262.1
    }
   ],
   "drop-metal": [
    {
     "f": 0,
-    "start": 5926.1,
+    "start": 6138.9,
     "dur": 480
    },
    {
     "f": 0,
-    "start": 6456.1,
+    "start": 6668.9,
     "dur": 480
    }
   ],
   "voice-dog": [
    {
     "f": 0,
-    "start": 6986.1,
+    "start": 7198.9,
     "dur": 194
    },
    {
     "f": 0,
-    "start": 7230.1,
+    "start": 7442.9,
     "dur": 232.5
    },
    {
     "f": 0,
-    "start": 7512.6,
+    "start": 7725.4,
     "dur": 420
    }
   ],
   "voice-crow": [
    {
     "f": 0,
-    "start": 7982.6,
+    "start": 8195.4,
     "dur": 450
    },
    {
     "f": 0,
-    "start": 8482.6,
+    "start": 8695.4,
     "dur": 450
    }
   ],
   "voice-goose": [
    {
     "f": 0,
-    "start": 8982.6,
+    "start": 9195.4,
     "dur": 520
    },
    {
     "f": 0,
-    "start": 9552.5,
+    "start": 9765.4,
     "dur": 520
    }
   ],
   "voice-raccoon": [
    {
     "f": 0,
-    "start": 10122.5,
+    "start": 10335.4,
     "dur": 420
    },
    {
     "f": 0,
-    "start": 10592.5,
+    "start": 10805.4,
     "dur": 420
    }
   ],
   "voice-boar": [
    {
     "f": 0,
-    "start": 11062.5,
+    "start": 11275.4,
     "dur": 308
    },
    {
     "f": 0,
-    "start": 11420.5,
+    "start": 11633.4,
     "dur": 337.2
    },
    {
     "f": 0,
-    "start": 11807.7,
-    "dur": 400
+    "start": 12020.6,
+    "dur": 383.7
    }
   ],
   "voice-cat": [
    {
     "f": 0,
-    "start": 12257.7,
+    "start": 12454.2,
     "dur": 600
    },
    {
     "f": 0,
-    "start": 12907.7,
+    "start": 13104.2,
     "dur": 539.2
    }
   ],
   "dash": [
    {
     "f": 0,
-    "start": 13496.9,
+    "start": 13693.4,
     "dur": 229.4
    },
    {
     "f": 0,
-    "start": 13776.3,
+    "start": 13972.8,
     "dur": 213.5
    }
   ],
   "landing": [
    {
     "f": 0,
-    "start": 14039.8,
+    "start": 14236.3,
     "dur": 487.3
    },
    {
     "f": 0,
-    "start": 14577.1,
+    "start": 14773.7,
     "dur": 513.9
    }
   ],
   "crowd": [
    {
     "f": 0,
-    "start": 15141,
+    "start": 15337.5,
     "dur": 650
    },
    {
     "f": 0,
-    "start": 15841,
+    "start": 16037.5,
     "dur": 650
    }
   ],
   "move": [
    {
     "f": 0,
-    "start": 16541,
+    "start": 16737.5,
     "dur": 278.1
    }
   ],
   "move-charge": [
    {
     "f": 0,
-    "start": 16869.1,
+    "start": 17065.6,
     "dur": 600
    }
   ],
   "move-haymaker-hit": [
    {
     "f": 0,
-    "start": 17519.1,
+    "start": 17715.6,
     "dur": 409.4
    }
   ],
   "move-can-open": [
    {
     "f": 0,
-    "start": 17978.5,
+    "start": 18175,
     "dur": 282.1
    }
   ],
   "move-gulp": [
    {
     "f": 0,
-    "start": 18310.6,
+    "start": 18507.1,
     "dur": 480
    }
   ],
   "move-tarp-shake": [
    {
     "f": 0,
-    "start": 18840.6,
+    "start": 19037.1,
     "dur": 360
    }
   ],
   "move-tarp-land": [
    {
     "f": 0,
-    "start": 19250.6,
+    "start": 19447.1,
     "dur": 420
    }
   ],
   "move-whistle": [
    {
     "f": 0,
-    "start": 19720.6,
+    "start": 19917.1,
     "dur": 474.7
    }
   ],
   "move-fuse": [
    {
     "f": 0,
-    "start": 20245.3,
+    "start": 20441.8,
     "dur": 520
    }
   ],
   "move-crackers": [
    {
     "f": 0,
-    "start": 20815.3,
+    "start": 21011.8,
     "dur": 649.5
    }
   ],
   "move-grab": [
    {
     "f": 0,
-    "start": 21514.7,
+    "start": 21711.2,
     "dur": 280
    }
   ],
   "move-air-horn": [
    {
     "f": 0,
-    "start": 21844.7,
+    "start": 22041.2,
     "dur": 613.6
    }
   ],
   "move-heave": [
    {
     "f": 0,
-    "start": 22508.3,
-    "dur": 411.5
+    "start": 22704.8,
+    "dur": 394.1
    }
   ],
   "move-slam": [
    {
     "f": 0,
-    "start": 22969.8,
+    "start": 23148.8,
     "dur": 474
    }
   ],
   "move-sand-scoop": [
    {
     "f": 0,
-    "start": 23493.8,
+    "start": 23672.8,
     "dur": 299.7
    }
   ],
   "move-sand": [
    {
     "f": 0,
-    "start": 23843.5,
+    "start": 24022.5,
     "dur": 257.2
    }
   ],
   "move-shout": [
    {
     "f": 0,
-    "start": 24150.7,
-    "dur": 475.9
+    "start": 24329.7,
+    "dur": 470.5
    }
   ],
   "move-snort": [
    {
     "f": 0,
-    "start": 24676.6,
-    "dur": 263.7
+    "start": 24850.2,
+    "dur": 226.4
    }
   ],
   "move-breath": [
    {
     "f": 0,
-    "start": 24990.3,
+    "start": 25126.6,
     "dur": 476.6
    }
   ],
   "move-grab-grunt": [
    {
     "f": 0,
-    "start": 25516.8,
+    "start": 25653.1,
     "dur": 414
    }
   ],
   "move-squeeze": [
    {
     "f": 0,
-    "start": 25980.9,
+    "start": 26117.2,
     "dur": 600
    }
   ],
   "hit-accent": [
    {
     "f": 0,
-    "start": 26630.9,
-    "dur": 487.3
+    "start": 26767.2,
+    "dur": 487.2
    }
   ],
   "win": [
    {
     "f": 0,
-    "start": 27168.2,
+    "start": 27304.3,
     "dur": 1957.9
    }
   ],
   "loss": [
    {
     "f": 0,
-    "start": 29176.1,
+    "start": 29312.2,
     "dur": 815.7
    }
   ],
   "ui-tap": [
    {
     "f": 0,
-    "start": 30041.8,
+    "start": 30177.9,
     "dur": 41.2
    },
    {
     "f": 0,
-    "start": 30133,
+    "start": 30269.1,
     "dur": 39.7
    }
   ],
   "card-flip": [
    {
     "f": 0,
-    "start": 30222.7,
+    "start": 30358.8,
     "dur": 199.6
    }
   ],
   "level-up": [
    {
     "f": 0,
-    "start": 30472.3,
+    "start": 30608.4,
     "dur": 895.9
    }
   ],
@@ -460,406 +460,406 @@
    {
     "f": 1,
     "start": 2572,
-    "dur": 415.3
+    "dur": 414.4
    }
   ],
   "hit-heavy": [
    {
     "f": 1,
-    "start": 3037.3,
+    "start": 3036.3,
     "dur": 650
    },
    {
     "f": 1,
-    "start": 3737.3,
-    "dur": 635.6
+    "start": 3736.3,
+    "dur": 633.4
    }
   ],
   "hit-pan": [
    {
     "f": 1,
-    "start": 4422.8,
+    "start": 4419.8,
     "dur": 599.9
    },
    {
     "f": 1,
-    "start": 5072.7,
+    "start": 5069.6,
     "dur": 597.1
    }
   ],
   "hit-shovel": [
    {
     "f": 1,
-    "start": 5719.9,
+    "start": 5716.8,
     "dur": 415.2
    },
    {
     "f": 1,
-    "start": 6185.1,
+    "start": 6182,
     "dur": 394.2
    }
   ],
   "hit-chair": [
    {
     "f": 1,
-    "start": 6629.3,
+    "start": 6626.2,
     "dur": 449.9
    },
    {
     "f": 1,
-    "start": 7129.2,
+    "start": 7126.1,
     "dur": 394.2
    }
   ],
   "hit-stab": [
    {
     "f": 1,
-    "start": 7573.4,
+    "start": 7570.3,
     "dur": 319.1
    },
    {
     "f": 1,
-    "start": 7942.5,
+    "start": 7939.4,
     "dur": 320
    }
   ],
   "hit-light-metal": [
    {
     "f": 1,
-    "start": 8312.5,
+    "start": 8309.4,
     "dur": 380
    },
    {
     "f": 1,
-    "start": 8742.5,
+    "start": 8739.4,
     "dur": 380
    }
   ],
   "hit-squeak": [
    {
     "f": 1,
-    "start": 9172.5,
+    "start": 9169.4,
     "dur": 298.9
    },
    {
     "f": 1,
-    "start": 9521.4,
+    "start": 9518.3,
     "dur": 300
    }
   ],
   "hit-plunger": [
    {
     "f": 1,
-    "start": 9871.4,
+    "start": 9868.3,
     "dur": 299.1
    },
    {
     "f": 1,
-    "start": 10220.5,
+    "start": 10217.4,
     "dur": 300
    }
   ],
   "hit-umbrella": [
    {
     "f": 1,
-    "start": 10570.5,
+    "start": 10567.4,
     "dur": 360
    }
   ],
   "hit-chain": [
    {
     "f": 1,
-    "start": 10980.5,
+    "start": 10977.4,
     "dur": 399.5
    },
    {
     "f": 1,
-    "start": 11430,
+    "start": 11426.9,
     "dur": 403.4
    }
   ],
   "hit-darts": [
    {
     "f": 1,
-    "start": 11883.4,
+    "start": 11880.4,
     "dur": 121.5
    },
    {
     "f": 1,
-    "start": 12054.9,
+    "start": 12051.8,
     "dur": 194.4
    }
   ],
   "hit-brick": [
    {
     "f": 1,
-    "start": 12299.4,
+    "start": 12296.3,
     "dur": 450
    },
    {
     "f": 1,
-    "start": 12799.4,
+    "start": 12796.3,
     "dur": 415.7
    }
   ],
   "hit-paint": [
    {
     "f": 1,
-    "start": 13265.1,
+    "start": 13262,
     "dur": 387.7
    }
   ],
   "hit-plastic": [
    {
     "f": 1,
-    "start": 13702.8,
+    "start": 13699.7,
     "dur": 246.5
    },
    {
     "f": 1,
-    "start": 13999.3,
+    "start": 13996.2,
     "dur": 250
    }
   ],
   "hit-ball": [
    {
     "f": 1,
-    "start": 14299.3,
+    "start": 14296.2,
     "dur": 360
    },
    {
     "f": 1,
-    "start": 14709.3,
+    "start": 14706.2,
     "dur": 360
    }
   ],
   "hit-hubcap": [
    {
     "f": 1,
-    "start": 15119.3,
+    "start": 15116.2,
     "dur": 387.8
    },
    {
     "f": 1,
-    "start": 15557.1,
+    "start": 15554,
     "dur": 387.7
    }
   ],
   "hit-rubber": [
    {
     "f": 1,
-    "start": 15994.7,
+    "start": 15991.7,
     "dur": 320
    },
    {
     "f": 1,
-    "start": 16364.7,
+    "start": 16361.7,
     "dur": 319.1
    }
   ],
   "hit-bite": [
    {
     "f": 1,
-    "start": 16733.9,
+    "start": 16730.8,
     "dur": 319.1
    },
    {
     "f": 1,
-    "start": 17103,
+    "start": 17099.9,
     "dur": 320
    }
   ],
   "hit-peck": [
    {
     "f": 1,
-    "start": 17473,
+    "start": 17469.9,
     "dur": 200
    },
    {
     "f": 1,
-    "start": 17723,
+    "start": 17719.9,
     "dur": 198.6
    }
   ],
   "hit-claw": [
    {
     "f": 1,
-    "start": 17971.6,
+    "start": 17968.5,
     "dur": 280
    },
    {
     "f": 1,
-    "start": 18301.6,
+    "start": 18298.5,
     "dur": 280
    }
   ],
   "hit-gore": [
    {
     "f": 1,
-    "start": 18631.6,
+    "start": 18628.5,
     "dur": 409.6
    },
    {
     "f": 1,
-    "start": 19091.2,
+    "start": 19088.1,
     "dur": 450
    }
   ],
   "block-parry": [
    {
     "f": 1,
-    "start": 19591.2,
+    "start": 19588.1,
     "dur": 328.8
    },
    {
     "f": 1,
-    "start": 19970,
+    "start": 19966.9,
     "dur": 273.9
    }
   ],
   "block-sheet": [
    {
     "f": 1,
-    "start": 20293.9,
+    "start": 20290.8,
     "dur": 364.3
    },
    {
     "f": 1,
-    "start": 20708.2,
+    "start": 20705.1,
     "dur": 449.9
    }
   ],
   "block-tin": [
    {
     "f": 1,
-    "start": 21208.1,
+    "start": 21205,
     "dur": 338.1
    },
    {
     "f": 1,
-    "start": 21596.2,
+    "start": 21593.1,
     "dur": 333.3
    }
   ],
   "block-plastic": [
    {
     "f": 1,
-    "start": 21979.5,
+    "start": 21976.4,
     "dur": 298.7
    },
    {
     "f": 1,
-    "start": 22328.2,
+    "start": 22325.1,
     "dur": 299.6
    }
   ],
   "block-wood": [
    {
     "f": 1,
-    "start": 22677.8,
+    "start": 22674.7,
     "dur": 205.6
    },
    {
     "f": 1,
-    "start": 22933.4,
+    "start": 22930.3,
     "dur": 270.6
    },
    {
     "f": 1,
-    "start": 23253.9,
+    "start": 23250.9,
     "dur": 232.3
    }
   ],
   "block-frame": [
    {
     "f": 1,
-    "start": 23536.3,
+    "start": 23533.2,
     "dur": 420
    }
   ],
   "swish-light": [
    {
     "f": 1,
-    "start": 24006.3,
+    "start": 24003.2,
     "dur": 182.3
    },
    {
     "f": 1,
-    "start": 24238.5,
+    "start": 24235.5,
     "dur": 220
    },
    {
     "f": 1,
-    "start": 24508.5,
-    "dur": 123.1
+    "start": 24505.5,
+    "dur": 219.7
    }
   ],
   "swish-heavy": [
    {
     "f": 1,
-    "start": 24681.6,
+    "start": 24775.2,
     "dur": 520
    },
    {
     "f": 1,
-    "start": 25251.6,
-    "dur": 519.9
+    "start": 25345.1,
+    "dur": 520
    }
   ],
   "swish-whip": [
    {
     "f": 1,
-    "start": 25821.5,
+    "start": 25915.1,
     "dur": 380
    }
   ],
   "throw-spin": [
    {
     "f": 1,
-    "start": 26251.5,
+    "start": 26345.1,
     "dur": 467.7
    }
   ],
   "drop-wood": [
    {
     "f": 1,
-    "start": 26769.1,
+    "start": 26862.8,
     "dur": 330.9
    },
    {
     "f": 1,
-    "start": 27150,
+    "start": 27243.7,
     "dur": 420
    }
   ],
   "drop-soft": [
    {
     "f": 1,
-    "start": 27620,
+    "start": 27713.7,
     "dur": 299.5
    },
    {
     "f": 1,
-    "start": 27969.5,
+    "start": 28063.2,
     "dur": 300
    }
   ],
   "drop-stone": [
    {
     "f": 1,
-    "start": 28319.5,
+    "start": 28413.2,
     "dur": 480
    },
    {
     "f": 1,
-    "start": 28849.5,
+    "start": 28943.2,
     "dur": 397.6
    }
   ],
   "drop-sheet": [
    {
     "f": 1,
-    "start": 29297.1,
+    "start": 29390.8,
     "dur": 405.7
    }
   ]
@@ -892,6 +892,8 @@
     "hits37:hits/hit10.mp3.flac"
    ],
    "loud": -12.5,
+   "phone": -18.2,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 9.4
   },
@@ -902,6 +904,8 @@
     "hits37:hits/hit11.mp3.flac"
    ],
    "loud": -12.5,
+   "phone": -16.2,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 18.3
   },
@@ -913,6 +917,8 @@
     "break75:bfh1_hit_10.ogg"
    ],
    "loud": -12.5,
+   "phone": -19.3,
+   "shelf": 0,
    "onset": 2.3,
    "peakAt": 2.6
   },
@@ -924,6 +930,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -13.6,
+   "phone": -16.2,
+   "shelf": 0,
    "onset": 4.7,
    "peakAt": 5.4
   },
@@ -935,6 +943,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -13.6,
+   "phone": -14.2,
+   "shelf": 0,
    "onset": 4.7,
    "peakAt": 5.2
   },
@@ -946,6 +956,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -13.6,
+   "phone": -16.9,
+   "shelf": 0,
    "onset": 2.8,
    "peakAt": 33.6
   },
@@ -957,6 +969,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -14,
+   "phone": -16.2,
+   "shelf": 0,
    "onset": 5.3,
    "peakAt": 11.7
   },
@@ -968,6 +982,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -14,
+   "phone": -16.5,
+   "shelf": 0,
    "onset": 1.7,
    "peakAt": 8.6
   },
@@ -979,6 +995,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -14,
+   "phone": -19.8,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 8.8
   },
@@ -990,6 +1008,8 @@
     "rpgaudio:OGG/cloth3.ogg"
    ],
    "loud": -15,
+   "phone": -21.7,
+   "shelf": 0,
    "onset": 2.7,
    "peakAt": 7.7
   },
@@ -1001,6 +1021,8 @@
     "rpgaudio:OGG/cloth1.ogg"
    ],
    "loud": -15,
+   "phone": -22.9,
+   "shelf": 3,
    "onset": 5,
    "peakAt": 5.1
   },
@@ -1011,6 +1033,8 @@
     "battle:battle_sound_effects/swish_3.wav"
    ],
    "loud": -19,
+   "phone": -20.6,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 14.6
   },
@@ -1021,6 +1045,8 @@
     "battle:battle_sound_effects/swish_4.wav"
    ],
    "loud": -19,
+   "phone": -23.6,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 26.2
   },
@@ -1029,11 +1055,13 @@
    "variant": 2,
    "files": [
     "swishes:swishes/swish-7.wav",
-    "swishes:swishes/swish-4.wav"
+    "battle:battle_sound_effects/swish_2.wav"
    ],
    "loud": -19,
+   "phone": -24,
+   "shelf": 9,
    "onset": 5,
-   "peakAt": 30.9
+   "peakAt": 41.7
   },
   {
    "set": "throw",
@@ -1042,6 +1070,8 @@
     "battle:battle_sound_effects/swish_3.wav"
    ],
    "loud": -17,
+   "phone": -18.6,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 14.6
   },
@@ -1049,11 +1079,14 @@
    "set": "throw",
    "variant": 1,
    "files": [
-    "swishes:swishes/swish-7.wav"
+    "swishes:swishes/swish-7.wav",
+    "battle:battle_sound_effects/swish_4.wav"
    ],
    "loud": -17,
+   "phone": -21.2,
+   "shelf": 8,
    "onset": 5,
-   "peakAt": 30.9
+   "peakAt": 47.4
   },
   {
    "set": "drop-metal",
@@ -1062,6 +1095,8 @@
     "break75:bfh1_metal_falling_02.ogg"
    ],
    "loud": -15,
+   "phone": -15.9,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 68.7
   },
@@ -1072,6 +1107,8 @@
     "metalwood:metal_falling_02.ogg"
    ],
    "loud": -15,
+   "phone": -15,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 110.2
   },
@@ -1082,6 +1119,8 @@
     "dogsounds:Dog/Dog Bark 1.wav"
    ],
    "loud": -15,
+   "phone": -18.5,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 37.1
   },
@@ -1092,6 +1131,8 @@
     "dogsounds:Dog/Dog Bark 3.wav"
    ],
    "loud": -15,
+   "phone": -16,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 35.9
   },
@@ -1102,6 +1143,8 @@
     "dogsnarl:dog/dog-growl.flac"
    ],
    "loud": -15,
+   "phone": -21.3,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 116.7
   },
@@ -1112,6 +1155,8 @@
     "crowcaw:crow_caw.wav"
    ],
    "loud": -15,
+   "phone": -15,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 132.3
   },
@@ -1122,6 +1167,8 @@
     "crow:crow.ogg"
    ],
    "loud": -15,
+   "phone": -15.6,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 342.1
   },
@@ -1132,6 +1179,8 @@
     "goose:GooseHonksBizarre AT085701.wav"
    ],
    "loud": -16,
+   "phone": -16.5,
+   "shelf": 0,
    "onset": 10,
    "peakAt": 156.6
   },
@@ -1142,6 +1191,8 @@
     "goose:GooseHonksBizarre AT085701.wav"
    ],
    "loud": -16,
+   "phone": -16.5,
+   "shelf": 0,
    "onset": 10,
    "peakAt": 59.4
   },
@@ -1152,6 +1203,8 @@
     "raccoon:Raccoon_Snorts_and_Growls_OCP-1199-05.wav"
    ],
    "loud": -16,
+   "phone": -16.9,
+   "shelf": 0,
    "onset": 10,
    "peakAt": 113.4
   },
@@ -1162,6 +1215,8 @@
     "raccoon:Raccoon_Snorts_and_Growls_OCP-1199-05.wav"
    ],
    "loud": -16,
+   "phone": -22.7,
+   "shelf": 0,
    "onset": 10,
    "peakAt": 111.8
   },
@@ -1172,6 +1227,8 @@
     "pig:pig_hit1.mp3"
    ],
    "loud": -15,
+   "phone": -16.5,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 54
   },
@@ -1182,6 +1239,8 @@
     "pig2:pig_hit2.mp3"
    ],
    "loud": -15,
+   "phone": -16.7,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 134
   },
@@ -1192,8 +1251,10 @@
     "creature80:grunt_02.ogg"
    ],
    "loud": -15,
+   "phone": -22.1,
+   "shelf": 17,
    "onset": 5,
-   "peakAt": 202.6
+   "peakAt": 185.7
   },
   {
    "set": "voice-cat",
@@ -1202,6 +1263,8 @@
     "catsfx:Cat 7.wav"
    ],
    "loud": -16,
+   "phone": -16.7,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 202.8
   },
@@ -1212,6 +1275,8 @@
     "catsfx8:Cat 8.wav"
    ],
    "loud": -16,
+   "phone": -16.4,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 332.1
   },
@@ -1223,6 +1288,8 @@
     "swishes:swishes/swish-9.wav"
    ],
    "loud": -20,
+   "phone": -25.4,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 5.7
   },
@@ -1234,6 +1301,8 @@
     "swishes:swishes/swish-7.wav"
    ],
    "loud": -20,
+   "phone": -27.3,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 5
   },
@@ -1245,6 +1314,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -11,
+   "phone": -18.5,
+   "shelf": 0,
    "onset": 3.9,
    "peakAt": 64.3
   },
@@ -1256,7 +1327,9 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -11,
-   "onset": 3.2,
+   "phone": -18.4,
+   "shelf": 4,
+   "onset": 3.1,
    "peakAt": 33.5
   },
   {
@@ -1266,6 +1339,8 @@
     "cheer:Gregor Quendel - Free Crowd Cheering Sounds - MP3/Gregor Quendel - Crowd Cheering Sounds - 03 - Strong cheering - I.mp3"
    ],
    "loud": -22,
+   "phone": -23,
+   "shelf": 0,
    "onset": 10,
    "peakAt": 72.5
   },
@@ -1276,6 +1351,8 @@
     "crowdshout:crowd_shouting.ogg"
    ],
    "loud": -22,
+   "phone": -22.7,
+   "shelf": 0,
    "onset": 8.2,
    "peakAt": 335.9
   },
@@ -1286,6 +1363,8 @@
     "rpgaudio:OGG/cloth2.ogg"
    ],
    "loud": -24,
+   "phone": -25.8,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 7.7
   },
@@ -1297,6 +1376,8 @@
     "rpg80:spell_fire_06.ogg"
    ],
    "loud": -18,
+   "phone": -18.1,
+   "shelf": 0,
    "onset": 7.3,
    "peakAt": 22.5
   },
@@ -1308,6 +1389,8 @@
     "rpg80:spell_02.ogg"
    ],
    "loud": -15.2,
+   "phone": -16.1,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 5.2
   },
@@ -1319,6 +1402,8 @@
     "sfx100:noise_01.ogg"
    ],
    "loud": -18,
+   "phone": -18.1,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 36.8
   },
@@ -1329,6 +1414,8 @@
     "creature80:burble_02.ogg"
    ],
    "loud": -17,
+   "phone": -17.2,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 19.8
   },
@@ -1340,6 +1427,8 @@
     "rpgaudio:OGG/clothBelt2.ogg"
    ],
    "loud": -22,
+   "phone": -24.5,
+   "shelf": 0,
    "onset": 18.6,
    "peakAt": 19.4
   },
@@ -1352,6 +1441,8 @@
     "thwack:PCM/thwack-05.wav"
    ],
    "loud": -15,
+   "phone": -22.7,
+   "shelf": 1,
    "onset": 4.8,
    "peakAt": 24.5
   },
@@ -1362,6 +1453,8 @@
     "synth:pea-whistle"
    ],
    "loud": -15,
+   "phone": -15,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 188.3
   },
@@ -1372,6 +1465,8 @@
     "rpg80:spell_fire_06.ogg"
    ],
    "loud": -21,
+   "phone": -21.5,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 56.2
   },
@@ -1387,6 +1482,8 @@
     "sfx100:explosion.ogg"
    ],
    "loud": -13.2,
+   "phone": -14,
+   "shelf": 0,
    "onset": 5.2,
    "peakAt": 6
   },
@@ -1399,6 +1496,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -17,
+   "phone": -21.8,
+   "shelf": 0,
    "onset": 4.6,
    "peakAt": 7.4
   },
@@ -1409,6 +1508,8 @@
     "synth:air-horn"
    ],
    "loud": -14,
+   "phone": -16.4,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 225.7
   },
@@ -1420,8 +1521,10 @@
     "rpgaudio:OGG/cloth3.ogg"
    ],
    "loud": -17,
-   "onset": 6.3,
-   "peakAt": 87.8
+   "phone": -20.3,
+   "shelf": 7,
+   "onset": 5,
+   "peakAt": 63.4
   },
   {
    "set": "move-slam",
@@ -1431,6 +1534,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -12,
+   "phone": -19.8,
+   "shelf": 1,
    "onset": 3.9,
    "peakAt": 43
   },
@@ -1442,6 +1547,8 @@
     "rpgaudio:OGG/cloth4.ogg"
    ],
    "loud": -23,
+   "phone": -24,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 19.7
   },
@@ -1454,6 +1561,8 @@
     "rpgaudio:OGG/cloth2.ogg"
    ],
    "loud": -16,
+   "phone": -16.3,
+   "shelf": 0,
    "onset": 5.1,
    "peakAt": 7.2
   },
@@ -1464,8 +1573,10 @@
     "creature80:misc_09.ogg"
    ],
    "loud": -15,
+   "phone": -17.6,
+   "shelf": 13,
    "onset": 5,
-   "peakAt": 49.1
+   "peakAt": 43.3
   },
   {
    "set": "move-snort",
@@ -1473,9 +1584,11 @@
    "files": [
     "creature80:nose.ogg"
    ],
-   "loud": -17,
+   "loud": -17.5,
+   "phone": -19.4,
+   "shelf": 7,
    "onset": 5,
-   "peakAt": 55.6
+   "peakAt": 18.3
   },
   {
    "set": "move-breath",
@@ -1484,6 +1597,8 @@
     "creature80:breath.ogg"
    ],
    "loud": -17,
+   "phone": -17.5,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 14
   },
@@ -1495,8 +1610,10 @@
     "rpgaudio:OGG/cloth3.ogg"
    ],
    "loud": -17,
+   "phone": -20.5,
+   "shelf": 3,
    "onset": 4.9,
-   "peakAt": 39
+   "peakAt": 38.9
   },
   {
    "set": "move-squeeze",
@@ -1507,8 +1624,10 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -14,
-   "onset": 4.6,
-   "peakAt": 5.2
+   "phone": -16.8,
+   "shelf": 10,
+   "onset": 3.1,
+   "peakAt": 5
   },
   {
    "set": "hit-accent",
@@ -1518,8 +1637,10 @@
     "hits37:hits/hit30.mp3.flac"
    ],
    "loud": -18,
-   "onset": 5.2,
-   "peakAt": 43
+   "phone": -21.6,
+   "shelf": 5,
+   "onset": 5,
+   "peakAt": 42.9
   },
   {
    "set": "win",
@@ -1528,6 +1649,8 @@
     "winjingle:WinBrass.wav"
    ],
    "loud": -14,
+   "phone": -15.8,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 1600
   },
@@ -1538,6 +1661,8 @@
     "jingles:OGG/jingles_SAX/jingles_SAX01.ogg"
    ],
    "loud": -14,
+   "phone": -14.9,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 129.1
   },
@@ -1548,6 +1673,8 @@
     "interface:Audio/click_001.ogg"
    ],
    "loud": -23,
+   "phone": -25,
+   "shelf": 0,
    "onset": 0.8,
    "peakAt": 1.1
   },
@@ -1558,6 +1685,8 @@
     "interface:Audio/select_001.ogg"
    ],
    "loud": -23,
+   "phone": -23.2,
+   "shelf": 0,
    "onset": 1.8,
    "peakAt": 1.9
   },
@@ -1568,6 +1697,8 @@
     "rpgaudio:OGG/bookFlip3.ogg"
    ],
    "loud": -23,
+   "phone": -23,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 5
   },
@@ -1578,6 +1709,8 @@
     "jingles:OGG/jingles_STEEL/jingles_STEEL04.ogg"
    ],
    "loud": -13,
+   "phone": -16.4,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 126.1
   },
@@ -1589,6 +1722,8 @@
     "metalwood:metal_hit_01.ogg"
    ],
    "loud": -12.5,
+   "phone": -17.5,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 9.2
   },
@@ -1600,6 +1735,8 @@
     "metalwood:metal_hit_05.ogg"
    ],
    "loud": -12.9,
+   "phone": -19.6,
+   "shelf": 0,
    "onset": 2.3,
    "peakAt": 5.4
   },
@@ -1611,6 +1748,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -13.1,
+   "phone": -15,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 9
   },
@@ -1622,6 +1761,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -13.1,
+   "phone": -17.6,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 5.1
   },
@@ -1633,8 +1774,10 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -13,
-   "onset": 3.5,
-   "peakAt": 8.7
+   "phone": -20.4,
+   "shelf": 7,
+   "onset": 2.8,
+   "peakAt": 26.6
   },
   {
    "set": "hit-wood",
@@ -1644,6 +1787,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -13,
+   "phone": -18.7,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 7.5
   },
@@ -1654,9 +1799,11 @@
     "metalwood:wood_hit_08.ogg",
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
-   "loud": -13.6,
-   "onset": 6,
-   "peakAt": 7.4
+   "loud": -13.5,
+   "phone": -21.6,
+   "shelf": 1,
+   "onset": 5,
+   "peakAt": 6.4
   },
   {
    "set": "hit-heavy",
@@ -1666,6 +1813,8 @@
     "sfx100:gong_02.ogg"
    ],
    "loud": -12,
+   "phone": -18,
+   "shelf": 0,
    "onset": 3.1,
    "peakAt": 3.2
   },
@@ -1676,9 +1825,11 @@
     "sfx100:metal_08.ogg",
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
-   "loud": -12.4,
-   "onset": 7.4,
-   "peakAt": 12.5
+   "loud": -12.6,
+   "phone": -20.6,
+   "shelf": 3,
+   "onset": 5,
+   "peakAt": 10.3
   },
   {
    "set": "hit-pan",
@@ -1688,6 +1839,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -13.6,
+   "phone": -15.5,
+   "shelf": 0,
    "onset": 1.8,
    "peakAt": 11.7
   },
@@ -1699,6 +1852,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -13,
+   "phone": -14,
+   "shelf": 0,
    "onset": 1.6,
    "peakAt": 5.5
   },
@@ -1710,6 +1865,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -13.9,
+   "phone": -16,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 17.3
   },
@@ -1721,6 +1878,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -13.8,
+   "phone": -16.1,
+   "shelf": 0,
    "onset": 5.7,
    "peakAt": 15.1
   },
@@ -1732,6 +1891,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -12.6,
+   "phone": -15,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 7.1
   },
@@ -1744,6 +1905,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -13,
+   "phone": -17.5,
+   "shelf": 0,
    "onset": 4.8,
    "peakAt": 7.8
   },
@@ -1755,6 +1918,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -13.1,
+   "phone": -15.4,
+   "shelf": 0,
    "onset": 2.7,
    "peakAt": 5.2
   },
@@ -1766,6 +1931,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -13.2,
+   "phone": -14.5,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 5.4
   },
@@ -1777,6 +1944,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -13,
+   "phone": -15.4,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 12.3
   },
@@ -1788,6 +1957,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -14.3,
+   "phone": -16.7,
+   "shelf": 0,
    "onset": 2.8,
    "peakAt": 5.6
   },
@@ -1799,6 +1970,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -14,
+   "phone": -14.1,
+   "shelf": 0,
    "onset": 5.4,
    "peakAt": 8
   },
@@ -1810,6 +1983,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -14,
+   "phone": -14.3,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 15.2
   },
@@ -1821,6 +1996,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -14,
+   "phone": -15.1,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 7.9
   },
@@ -1832,6 +2009,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -14,
+   "phone": -15.3,
+   "shelf": 0,
    "onset": 6.2,
    "peakAt": 8.8
   },
@@ -1843,6 +2022,8 @@
     "metalwood:wood_hit_06.ogg"
    ],
    "loud": -15,
+   "phone": -18.6,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 24.5
   },
@@ -1854,6 +2035,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -14,
+   "phone": -14.1,
+   "shelf": 0,
    "onset": 3.4,
    "peakAt": 149.8
   },
@@ -1865,6 +2048,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -14,
+   "phone": -14.2,
+   "shelf": 0,
    "onset": 4.8,
    "peakAt": 46.2
   },
@@ -1876,6 +2061,8 @@
     "metalwood:metal_hit_01.ogg"
    ],
    "loud": -15.2,
+   "phone": -18.7,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 6
   },
@@ -1887,6 +2074,8 @@
     "metalwood:metal_hit_05.ogg"
    ],
    "loud": -15.2,
+   "phone": -15.3,
+   "shelf": 0,
    "onset": 4.7,
    "peakAt": 6.8
   },
@@ -1898,6 +2087,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -12,
+   "phone": -19.6,
+   "shelf": 2,
    "onset": 3,
    "peakAt": 3.2
   },
@@ -1909,6 +2100,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -13.2,
+   "phone": -19.5,
+   "shelf": 0,
    "onset": 5.1,
    "peakAt": 25.6
   },
@@ -1920,6 +2113,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -12.1,
+   "phone": -19.7,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 5.1
   },
@@ -1931,6 +2126,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -14.1,
+   "phone": -15.6,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 5.6
   },
@@ -1942,6 +2139,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -14.1,
+   "phone": -17.5,
+   "shelf": 0,
    "onset": 2.8,
    "peakAt": 5.7
   },
@@ -1953,6 +2152,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -14,
+   "phone": -21.1,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 8.1
   },
@@ -1965,6 +2166,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -14.2,
+   "phone": -20.4,
+   "shelf": 0,
    "onset": 5.1,
    "peakAt": 7.5
   },
@@ -1976,6 +2179,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -14.1,
+   "phone": -15.6,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 5.2
   },
@@ -1987,6 +2192,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -14.1,
+   "phone": -16,
+   "shelf": 0,
    "onset": 4.8,
    "peakAt": 5
   },
@@ -1998,6 +2205,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -13.2,
+   "phone": -20.6,
+   "shelf": 0,
    "onset": 3.1,
    "peakAt": 7.5
   },
@@ -2009,8 +2218,10 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -13,
+   "phone": -21,
+   "shelf": 5,
    "onset": 2.7,
-   "peakAt": 10.2
+   "peakAt": 11.8
   },
   {
    "set": "hit-bite",
@@ -2020,6 +2231,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -13.5,
+   "phone": -18.2,
+   "shelf": 0,
    "onset": 5.4,
    "peakAt": 78.4
   },
@@ -2031,6 +2244,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -13.6,
+   "phone": -14.7,
+   "shelf": 0,
    "onset": 4.9,
    "peakAt": 12.4
   },
@@ -2042,6 +2257,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -14.2,
+   "phone": -18.9,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 6
   },
@@ -2053,6 +2270,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -14.1,
+   "phone": -15.2,
+   "shelf": 0,
    "onset": 3.2,
    "peakAt": 6.7
   },
@@ -2065,6 +2284,8 @@
     "qpunch:qubodupPunch/qubodupPunch04.flac"
    ],
    "loud": -14,
+   "phone": -16.8,
+   "shelf": 0,
    "onset": 4.8,
    "peakAt": 7.5
   },
@@ -2077,6 +2298,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -14.1,
+   "phone": -17.3,
+   "shelf": 0,
    "onset": 5.3,
    "peakAt": 7.6
   },
@@ -2088,6 +2311,8 @@
     "pig:pig_hit1.mp3"
    ],
    "loud": -12.7,
+   "phone": -19.6,
+   "shelf": 0,
    "onset": 3.1,
    "peakAt": 3.2
   },
@@ -2100,7 +2325,9 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -12.5,
-   "onset": 4.6,
+   "phone": -20.3,
+   "shelf": 6,
+   "onset": 4.5,
    "peakAt": 78.9
   },
   {
@@ -2110,6 +2337,8 @@
     "break75:bfh1_metal_hit_02.ogg"
    ],
    "loud": -14,
+   "phone": -16.3,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 19.5
   },
@@ -2120,6 +2349,8 @@
     "metalwood:metal_hit_04.ogg"
    ],
    "loud": -14.1,
+   "phone": -14.2,
+   "shelf": 0,
    "onset": 4.7,
    "peakAt": 5.6
   },
@@ -2131,6 +2362,8 @@
     "metalwood:metal_sheet_02.ogg"
    ],
    "loud": -12.6,
+   "phone": -15.7,
+   "shelf": 0,
    "onset": 4.8,
    "peakAt": 5
   },
@@ -2142,6 +2375,8 @@
     "qpunch:qubodupPunch/qubodupPunch02.flac"
    ],
    "loud": -12.6,
+   "phone": -14.4,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 7.1
   },
@@ -2153,6 +2388,8 @@
     "sfx100:metal_02.ogg"
    ],
    "loud": -13.1,
+   "phone": -13.6,
+   "shelf": 0,
    "onset": 4.5,
    "peakAt": 6.9
   },
@@ -2163,6 +2400,8 @@
     "metalwood:metal_sheet_04.ogg"
    ],
    "loud": -13.2,
+   "phone": -13.6,
+   "shelf": 0,
    "onset": 4.8,
    "peakAt": 5
   },
@@ -2173,6 +2412,8 @@
     "sfx100:hit_03.ogg"
    ],
    "loud": -14.1,
+   "phone": -15.3,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 6.5
   },
@@ -2183,6 +2424,8 @@
     "sfx100:hit_04.ogg"
    ],
    "loud": -13.5,
+   "phone": -16,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 26.1
   },
@@ -2193,6 +2436,8 @@
     "metalwood:wood_slam_01.ogg"
    ],
    "loud": -13.6,
+   "phone": -16.4,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 5.2
   },
@@ -2203,6 +2448,8 @@
     "metalwood:wood_slam_04.ogg"
    ],
    "loud": -13.5,
+   "phone": -18.4,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 27.5
   },
@@ -2213,6 +2460,8 @@
     "rpg80:wood_03.ogg"
    ],
    "loud": -13.5,
+   "phone": -16.9,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 7.7
   },
@@ -2224,6 +2473,8 @@
     "break75:bfh1_metal_falling_02.ogg"
    ],
    "loud": -13.5,
+   "phone": -14,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 27
   },
@@ -2234,6 +2485,8 @@
     "battle:battle_sound_effects/swish_2.wav"
    ],
    "loud": -20,
+   "phone": -23.4,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 10.1
   },
@@ -2244,6 +2497,8 @@
     "sword20:sword - StarNinjas/sword.6.ogg"
    ],
    "loud": -20,
+   "phone": -20,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 10.8
   },
@@ -2251,34 +2506,42 @@
    "set": "swish-light",
    "variant": 2,
    "files": [
-    "swishes:swishes/swish-9.wav",
-    "swishes:swishes/swish-11.wav"
+    "battle:battle_sound_effects/swish_4.wav",
+    "swishes:swishes/swish-10.wav"
    ],
    "loud": -20,
-   "onset": 5,
-   "peakAt": 24.6
+   "phone": -24.2,
+   "shelf": 0,
+   "onset": 4.5,
+   "peakAt": 21.6
   },
   {
    "set": "swish-heavy",
    "variant": 0,
    "files": [
     "swishes:swishes/swish-3.wav",
-    "metalint:metal_interactions/metal_swing1.wav"
+    "metalint:metal_interactions/metal_swing1.wav",
+    "battle:battle_sound_effects/swish_3.wav"
    ],
    "loud": -17,
-   "onset": 4.8,
-   "peakAt": 15.9
+   "phone": -24.4,
+   "shelf": 10,
+   "onset": 4.6,
+   "peakAt": 7.8
   },
   {
    "set": "swish-heavy",
    "variant": 1,
    "files": [
     "swishes:swishes/swish-8.wav",
-    "metalint:metal_interactions/metal_swing1.wav"
+    "metalint:metal_interactions/metal_swing1.wav",
+    "battle:battle_sound_effects/swish_3.wav"
    ],
    "loud": -17,
-   "onset": 4.7,
-   "peakAt": 30.3
+   "phone": -24.7,
+   "shelf": 5,
+   "onset": 2.8,
+   "peakAt": 19.6
   },
   {
    "set": "swish-whip",
@@ -2288,6 +2551,8 @@
     "rpg80:chain_03.ogg"
    ],
    "loud": -18,
+   "phone": -18.6,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 154.3
   },
@@ -2298,6 +2563,8 @@
     "spin:car_spinning.wav"
    ],
    "loud": -16,
+   "phone": -17.4,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 81.6
   },
@@ -2308,6 +2575,8 @@
     "break75:bfh1_wood_falling_02.ogg"
    ],
    "loud": -15,
+   "phone": -15.1,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 36.6
   },
@@ -2318,6 +2587,8 @@
     "metalwood:wood_falling_01.ogg"
    ],
    "loud": -15,
+   "phone": -15.1,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 8.4
   },
@@ -2328,8 +2599,10 @@
     "thwack:PCM/thwack-05.wav"
    ],
    "loud": -15,
-   "onset": 5,
-   "peakAt": 5.4
+   "phone": -22.4,
+   "shelf": 14,
+   "onset": 3.1,
+   "peakAt": 5.2
   },
   {
    "set": "drop-soft",
@@ -2338,6 +2611,8 @@
     "thwack:PCM/thwack-07.wav"
    ],
    "loud": -15,
+   "phone": -21.6,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 12.2
   },
@@ -2349,6 +2624,8 @@
     "break75:bfh1_hit_02.ogg"
    ],
    "loud": -14,
+   "phone": -19.7,
+   "shelf": 0,
    "onset": 1.3,
    "peakAt": 17.4
   },
@@ -2360,6 +2637,8 @@
     "qpunch:qubodupPunch/qubodupPunch03.flac"
    ],
    "loud": -14.2,
+   "phone": -20.5,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 10.4
   },
@@ -2371,6 +2650,8 @@
     "metalwood:metal_sheet_03.ogg"
    ],
    "loud": -14.1,
+   "phone": -18.1,
+   "shelf": 0,
    "onset": 5,
    "peakAt": 5
   }

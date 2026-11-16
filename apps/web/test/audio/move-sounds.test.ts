@@ -16,7 +16,7 @@ const PUB = fileURLToPath(new URL("../../public/", import.meta.url));
 interface Entry { start: number; dur: number; f?: number }
 const map = JSON.parse(readFileSync(`${PUB}audio/sfx.json`, "utf8")) as {
   sets: Record<string, Entry[]>; families: Record<string, string>;
-  sources: { set: string; variant: number; files: string[]; loud: number }[];
+  sources: { set: string; variant: number; files: string[]; loud: number; phone: number }[];
 };
 const size = (n: string): number => map.sets[n]?.length ?? 0;
 const filesOf = (set: string): string[] => map.sources.filter((s) => s.set === set).flatMap((s) => s.files);
@@ -76,6 +76,33 @@ describe("Move sounds (contract rev 4)", () => {
   });
 });
 
+describe("heard on a phone speaker (little comes back under 400 Hz)", () => {
+  const phoneOf = (set: string): number[] => map.sources.filter((s) => s.set === set).map((s) => s.phone);
+  it("no sound has its phone band more than 9 dB under its loudness (the Taunt shout sat 14 dB under)", () => {
+    for (const s of map.sources) expect(s.loud - s.phone, `${s.set}[${s.variant}]`).toBeLessThanOrEqual(9 + 1.5);
+  });
+
+  it("the voiced Move sounds come through like a punch does: shout, snort, heave, grab grunt, squeeze", () => {
+    const quietPunch = Math.min(...phoneOf("hit-fist"));
+    // the shout and the squeeze (it replaces the punch) as loud as a punch in the phone band
+    for (const set of [MOVE_SET.taunt.act, MOVE_SET.grapple.effect!]) {
+      for (const p of phoneOf(set)) expect(p, set).toBeGreaterThanOrEqual(quietPunch - 0.5);
+    }
+    // each of them well over the crowd murmur
+    const crowd = Math.max(...phoneOf("crowd"));
+    for (const set of [MOVE_SET.taunt.act, MOVE_SET.taunt.effect!, MOVE_SET["body-slam"].act, MOVE_SET.grapple.act, MOVE_SET.grapple.effect!]) {
+      for (const p of phoneOf(set)) expect(p, set).toBeGreaterThan(crowd + 1);
+    }
+  });
+
+  it("every swish and throw variant carries in the phone band, none 8 dB under its loudest sibling", () => {
+    for (const set of ["swish-light", "swish-medium", "throw"]) {
+      const ps = phoneOf(set);
+      expect(Math.max(...ps) - Math.min(...ps), set).toBeLessThanOrEqual(8);
+    }
+  });
+});
+
 describe("balance and character", () => {
   it("the paint can hits as hard as a punch and no set has variants more than 1.5 dB apart", () => {
     expect(Math.min(...loudOf("hit-paint"))).toBeGreaterThanOrEqual(Math.max(...loudOf("hit-fist")) - 1.5);
@@ -85,9 +112,9 @@ describe("balance and character", () => {
     }
   });
 
-  it("every swish is a swoosh of 120 ms or more, never a tick", () => {
-    for (const set of new Set(Object.values(SWISH_SET))) {
-      for (const e of map.sets[set]!) expect(e.dur, set).toBeGreaterThanOrEqual(120);
+  it("every swish and throw whoosh is 150 ms or more, never a tick", () => {
+    for (const set of new Set([...Object.values(SWISH_SET), "throw", "throw-spin"])) {
+      for (const e of map.sets[set]!) expect(e.dur, set).toBeGreaterThanOrEqual(150);
     }
   });
 
