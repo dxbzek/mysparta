@@ -22,8 +22,8 @@ export const OVERTIME_PCT = 8;
 /** Swap chance while holding a weapon that has attacked: 30%, Quick Swap 50%, Firm Grip 15%
  *  (Quick Swap counts when both are owned). */
 export function swapChance(a: Actor): number {
-  if (a.skills.has("quick-swap")) return sk("quick-swap", "swapChance");
-  return a.skills.has("firm-grip") ? sk("firm-grip", "swapChance") : SWAP_PCT;
+  if (a.skills.has("firm-grip")) return sk("firm-grip", "swapChance");
+  return a.skills.has("quick-swap") ? sk("quick-swap", "swapChance") : SWAP_PCT;
 }
 
 /** The slack of the empty-hand draw: 6, Quick Swap 2, Bare Knuckle 12 (Quick Swap counts when both
@@ -63,6 +63,8 @@ function drawOrSwap(b: Bout, a: Actor): void {
   const reload = a.reload || a.startDraw;
   a.reload = false;
   a.startDraw = false;
+  // Bare Knuckle opens with fists: its owner's first turn that is not a Move draws nothing.
+  if (a.fistsFirst) { a.fistsFirst = false; return; }
   const hasWeapons = b.bag[a.side].some((it) => it.k === "weapon");
   if (!hasWeapons) return;
   if (a.held === "fists") {
@@ -71,19 +73,23 @@ function drawOrSwap(b: Bout, a: Actor): void {
     takeFromBag(b, a, id);
     a.held = id;
     a.heldAttacked = false;
-    if (a.skills.has("quick-swap")) a.quickSwapPending = true;
+    if (a.skills.has("quick-swap")) { a.quickSwapPending = true; a.quickSwapTag = !reload; }
     emit(b, { t: "draw", turn: b.turn, actor: a.id, weapon: id, bagAfter: bagCopy(b.bag[a.side]) });
     return;
   }
   if (!a.heldAttacked) return;
-  if (!(b.r.draw.int(100) < swapChance(a))) return;
+  const roll = b.r.draw.int(100);
+  if (!(roll < swapChance(a))) {
+    if (roll < SWAP_PCT && a.skills.has("firm-grip")) a.firmGripKept = true;
+    return;
+  }
   const id = drawRoll(b, a, true);
   if (id === null) return;
   const dropped = a.held as WeaponId;
   takeFromBag(b, a, id);
   a.held = id;
   a.heldAttacked = false;
-  if (a.skills.has("quick-swap")) a.quickSwapPending = true;
+  if (a.skills.has("quick-swap")) { a.quickSwapPending = true; a.quickSwapTag = true; }
   emit(b, { t: "swap", turn: b.turn, actor: a.id, dropped, weapon: id, bagAfter: bagCopy(b.bag[a.side]) });
 }
 
@@ -147,6 +153,7 @@ export function takeTurn(b: Bout, a: Actor): void {
     cost = companionTurn(b, a);
   }
   a.quickSwapPending = false;
+  a.firmGripKept = false;
   a.clock += cost;
   if (cost === 0) a.priority = true;
   overtime(b, a);

@@ -11,7 +11,7 @@ import type { Actor } from "./combatant";
 import { valuesOf } from "./combatant";
 import type { Bout } from "./bout";
 import { armored, bagCopy, emit, opening, openingCut, enemiesUp, headStart, knockOut, land, pickEnemy, proc, scrapperOfSide,
-  pickProc, tryDisarm, tryFree, tryShield, OPENING_TURNS } from "./bout";
+  pickProc, screenNow, tryDisarm, tryFree, tryShield, OPENING_TURNS } from "./bout";
 import { turnBase, turnCost } from "./clock";
 import { roll } from "./rng";
 import { armorProcs } from "./melee";
@@ -97,7 +97,7 @@ function moveStep(b: Bout, a: Actor, id: MoveId, procs: Proc[], extra: Partial<E
   const step = { t: "move", turn: b.turn, actor: a.id, move: id, bagAfter: bagCopy(b.bag[a.side]), ...extra } as Step & { procs?: Proc[] };
   const p = pickProc(b, procs);
   if (p !== undefined) step.procs = p;
-  b.lastOften = b.turn;
+  b.lastTag = screenNow(b);
   return step;
 }
 

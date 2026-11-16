@@ -110,6 +110,8 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   const blocked = !def.snared && rb < bl;
   if (blocked) {
     if (def.shield !== null) procs.push(proc(def, def.shield));
+    // Parry's Block decided the roll.
+    if (def.skills.has("parry") && rb >= blockChance(att, def, -sk("parry", "block"), thrown)) procs.push(proc(def, "parry"));
     return { outcome: "block", damage: 0, crit: false, hpAfter: def.hp, procs, blocked: true };
   }
   if (sePierce > 0 && !def.snared && rb < blockChance(att, def, sePierce, thrown)) wouldMiss = true;
@@ -132,6 +134,8 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   }
   if (armor !== null) armorProcs(def, armor, (a) => cut(damageOf(raw, variance, mult, crit, a)), cut(full), procs);
   boosterProcs(b, att, def, "hit", procs);
+  // Light Feet's Agility also adds to Thrown damage: it may name itself on its owner's landed throw.
+  if (thrown && att.scrapper && att.skills.has("light-feet")) procs.push(proc(att, "light-feet"));
   const damage = opening(b, def, full, big);
   const hpAfter = land(def, damage, procs);
   return { outcome: "hit", damage, crit, hpAfter, procs, blocked: false };
@@ -213,6 +217,8 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
     const procs: Proc[] = [];
     if (whyProc !== null) procs.push(whyProc);
     if (n === 0) firstAction(b, att, procs);
+    // Bare Knuckle: its owner swings with fists on purpose (it opens with them); once a bout.
+    if (att.scrapper && att.held === "fists" && att.skills.has("bare-knuckle")) procs.push(proc(att, "bare-knuckle"));
     // Light Feet's Agility also drives the combo chance: it may name itself on a combo swing.
     if (why === "combo" && att.scrapper && att.skills.has("light-feet")) procs.push(proc(att, "light-feet"));
     const boosted = n === 0 && att.scrapper && att.haymaker;

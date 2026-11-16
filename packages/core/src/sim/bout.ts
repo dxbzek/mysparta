@@ -23,14 +23,36 @@ export interface Bout {
   ended: boolean;
   /** Once-a-bout tags already shown, as "actor|skill" (see `pickProc`). */
   shown: Set<string>;
-  /** The turn of the last Move or tag of the OFTEN group (see `pickProc`); far in the past at the
+  /** The screen clock (`screenNow`) of the last tag or Move (see `pickProc`); far in the past at the
    *  start. */
-  lastOften: number;
+  lastTag: number;
   /** Tags of the RARE group that lost their step to another tag, as "actor|skill" (see `due`). */
   owed: Set<string>;
+  /** The screen clock (`screenNow`): ms so far, and the turn of the last step. Created on first use. */
+  screen?: { ms: number; turn: number };
+  /** The screen clock at which each once-a-bout tag was first offered, as "actor|skill" (see
+   *  `pickProc`). Created on first use. */
+  waiting?: Map<string, number>;
+}
+
+/** About how long the stage plays a step, in ms (measured on stage for 160 pool bouts at levels 10
+ *  and 30, medians), and the extra time a new turn adds. Only the spacing of tags uses it. */
+const SCREEN_MS: Readonly<Partial<Record<Step["t"], number>>> = {
+  attack: 580, riposte: 450, intercept: 500, throw: 380, draw: 200, swap: 450, move: 550, disarm: 250, ko: 400,
+  heal: 400, free: 220, snare: 200, shieldOff: 400, enter: 0,
+};
+const COMBO_MS = 420;
+const TURN_MS = 280;
+
+/** The screen clock of the step about to be emitted (see SCREEN_MS). */
+export function screenNow(b: Bout): number {
+  return (b.screen ??= { ms: 0, turn: 0 }).ms + (b.turn !== b.screen.turn ? TURN_MS : 0);
 }
 
 export function emit(b: Bout, step: Step): void {
+  const sc = (b.screen ??= { ms: 0, turn: 0 });
+  if (step.turn !== sc.turn) { sc.ms += TURN_MS; sc.turn = step.turn; }
+  sc.ms += step.t === "attack" && (step as { n?: number }).n !== 0 ? COMBO_MS : SCREEN_MS[step.t] ?? 250;
   b.steps.push(step);
 }
 
@@ -71,9 +93,9 @@ const TIER: Readonly<Partial<Record<ProcId, number>>> = {
   "last-stand": 0,
   "firm-grip": 1, "parry": 1, "stubborn": 1, "trick-shot": 1, "junk-collector": 1, "head-start": 1,
   "anticipation": 2, "payback": 2, "flurry": 2, "slippery": 2, "knock-loose": 2, "sharp-eye": 2, "taunt": 2,
-  "sand-in-the-eyes": 2, "quick-swap": 2,
-  "padding": 3, "plate-vest": 3, "sharpening-stone": 3, "bare-knuckle": 3, "pitcher": 3, "pet-lover": 3, "heavy-lifter": 3,
-  "big-heart": 3, "heavy-hands": 3, "light-feet": 3, "fast-twitch": 3, "glass-cannon": 3, "mountain": 3,
+  "sand-in-the-eyes": 2, "bare-knuckle": 2, "sharpening-stone": 2, "heavy-lifter": 2,
+  "padding": 3, "plate-vest": 3, "pitcher": 3, "pet-lover": 3, "quick-swap": 3,
+  "light-feet": 3, "big-heart": 4, "heavy-hands": 4, "fast-twitch": 4, "glass-cannon": 4, "mountain": 4,
 };
 /** A shield's proc (a block made with it) is a rule proc. */
 const tierOf = (id: ProcId): number => TIER[id] ?? 1;
@@ -88,32 +110,34 @@ export function sortProcs(list: Proc[]): Proc[] | undefined {
 }
 
 /** Skills whose tag shows at most once per bout per owner (round-2 review: at level 30 they made a
- *  tag every 1.0 s and buried the Moves). Two groups.
- *  RARE: the chance passives, Head Start and Quick Swap. Their moment comes seldom, so their tag
- *  never waits; one that loses its step to another tag is owed (`due`).
- *  OFTEN: the number skills, the boosters and shields (by the shield id, see `onceOnly`). Their
- *  moment comes again on most hits, so their tag waits for a quiet turn (TAG_GAP_TURNS).
- *  Every tag of the rule skills (Last Stand, Parry, Stubborn, Firm Grip, Trick Shot, Junk
- *  Collector) and of the Moves' own effects (Taunt's riposte, Sand in the Eyes' miss) still shows. */
+ *  tag every 1.0 s and buried the Moves). Two groups (round 2, second pass).
+ *  RARE: the chance passives, Head Start, Bare Knuckle, Light Feet, and the number skills of a
+ *  weapon kind or a throw (Sharpening Stone, Heavy Lifter, Pitcher). Their moment comes seldom, so
+ *  their tag never waits; one that loses its step to another tag is owed (`due`).
+ *  OFTEN: Padding, Plate Vest, Pet Lover, Quick Swap, the other boosters and shields (by the shield
+ *  id, see `onceOnly`). Their moment comes again on most hits, so their tag waits (TAG_GAP_MS). */
 const RARE: ReadonlySet<string> = new Set<string>(["anticipation", "payback", "flurry", "slippery", "knock-loose",
-  "sharp-eye", "head-start", "bare-knuckle", "light-feet"]);
-const OFTEN: ReadonlySet<string> = new Set<string>(["padding", "plate-vest", "sharpening-stone", "quick-swap", "pitcher",
-  "pet-lover", "heavy-lifter", "big-heart", "heavy-hands", "fast-twitch", "glass-cannon", "mountain"]);
+  "sharp-eye", "head-start", "bare-knuckle", "light-feet", "sharpening-stone", "heavy-lifter", "pitcher", "quick-swap"]);
+const OFTEN: ReadonlySet<string> = new Set<string>(["padding", "plate-vest",
+  "pet-lover", "big-heart", "heavy-hands", "fast-twitch", "glass-cannon", "mountain"]);
 /** Whether a proc's tag shows only once per bout per owner. */
 export function onceOnly(id: ProcId): boolean {
   return RARE.has(id) || OFTEN.has(id) || isShieldId(id);
 }
-/** Whether a once-a-bout tag waits for a quiet turn (the OFTEN group and shields). */
-function waits(id: ProcId): boolean {
-  return OFTEN.has(id) || isShieldId(id);
-}
+/** Rule skills (and the Moves' own effect tags): each tag marks something that would not have
+ *  happened at all, so every one can show. The first of a bout never waits; a repeat waits. Last
+ *  Stand never waits (the log's HP reading depends on it). */
+const RULE: ReadonlySet<string> = new Set<string>(["parry", "stubborn", "firm-grip", "trick-shot", "junk-collector",
+  "taunt", "sand-in-the-eyes"]);
+const RULE_FIRST: ReadonlySet<string> = new Set<string>(["stubborn", "trick-shot", "junk-collector", "firm-grip", "parry", "taunt", "sand-in-the-eyes"]);
 
-/** A tag of the OFTEN group waits until TAG_GAP_TURNS turns have passed since the last Move or tag
- *  of that group, so the tags of a skill-heavy kit come one at a time instead of every second. Its
- *  moment comes again on a later hit. (The first version of round 2 made every once-a-bout tag wait
- *  after any tag: at level 30 nearly every turn was inside the wait, and Flurry, Payback and Knock
- *  Loose showed in 6 to 8% of their owner's bouts.) */
-export const TAG_GAP_TURNS = 2;
+/** A tag that waits needs this much screen time (`screenNow`) since the last tag or Move. With
+ *  2 turns (the first version), at level 30 nearly every turn was inside the wait and Flurry,
+ *  Payback and Knock Loose showed in 6 to 8% of their owner's bouts; with no wait for the rare tags
+ *  (the first refix) the median gap between skill moments fell to 1.37 s. Measured on stage over
+ *  300 level-30 pool bouts: median gap 1.52 s between skill moments (tags and Moves), 1.89 s
+ *  between tags. */
+export const TAG_GAP_MS = 1600;
 
 const key = (p: Proc): string => `${p.by}|${p.skill}`;
 
@@ -125,18 +149,47 @@ export function due(b: Bout, who: Actor, id: ProcId, decided: boolean): boolean 
   return decided || b.owed.has(`${who.id}|${id}`);
 }
 
-/** The proc a step keeps (sortProcs), after dropping the once-a-bout tags their owner has already
- *  shown in this bout, and the tags that wait (`waits`) while the last Move or waiting tag is under
- *  TAG_GAP_TURNS turns old. The kept one is booked as shown; a RARE one left out is booked as owed. */
+/** Whether a proc may show while the last tag or Move is under TAG_GAP_MS old. */
+function passesWait(b: Bout, p: Proc): boolean {
+  if (p.skill === "last-stand" || RARE.has(p.skill)) return true;
+  if (RULE_FIRST.has(p.skill)) return !b.shown.has(key(p));
+  if (RULE.has(p.skill)) return !b.shown.has(key(p)) && b.owed.has(key(p));
+  return false;
+}
+
+/** The order of the tiers in `pickProc`: Last Stand, rule skills, then chance and number skills
+ *  together, then the boosters and Quick Swap. */
+const group = (p: Proc): number => { const t = tierOf(p.skill); return t <= 1 ? t : t === 4 ? 3 : 2; };
+
+/** The proc a step keeps, after dropping the once-a-bout tags their owner has already shown in this
+ *  bout and, while the last tag or Move is under TAG_GAP_MS old, the tags that wait (`passesWait`).
+ *  Of those left: the first group (`group`), then the tag first offered longest ago in this bout (so
+ *  a skill offered from the first hit cannot keep a later one out every time), then `sortProcs`.
+ *  The kept one is booked as shown; a RARE one left out is owed and shows on the next step of its
+ *  kind. */
 export function pickProc(b: Bout, list: Proc[]): Proc[] | undefined {
-  const quiet = b.turn - b.lastOften < TAG_GAP_TURNS;
-  const open = list.filter((p) => !(onceOnly(p.skill) && (b.shown.has(key(p)) || (quiet && waits(p.skill)))));
-  const best = sortProcs(open);
-  if (best !== undefined) {
-    if (onceOnly(best[0]!.skill)) { b.shown.add(key(best[0]!)); b.owed.delete(key(best[0]!)); }
-    if (waits(best[0]!.skill)) b.lastOften = b.turn;
+  const now = screenNow(b);
+  const fresh = list.filter((p) => !(onceOnly(p.skill) && b.shown.has(key(p))));
+  const waiting = (b.waiting ??= new Map());
+  for (const p of fresh) if (onceOnly(p.skill) && !waiting.has(key(p))) waiting.set(key(p), now);
+  const open = now - b.lastTag < TAG_GAP_MS ? fresh.filter((p) => passesWait(b, p)) : fresh;
+  let best: Proc[] | undefined;
+  if (open.length > 0) {
+    const g = Math.min(...open.map(group));
+    const inGroup = open.filter((p) => group(p) === g);
+    const since = (p: Proc): number => waiting.get(key(p)) ?? now;
+    const first = Math.min(...inGroup.map(since));
+    best = sortProcs(inGroup.filter((p) => since(p) === first));
   }
-  for (const p of open) if (RARE.has(p.skill) && (best === undefined || key(p) !== key(best[0]!))) b.owed.add(key(p));
+  if (best !== undefined) {
+    b.shown.add(key(best[0]!));
+    b.owed.delete(key(best[0]!));
+    b.lastTag = now;
+  }
+  for (const p of fresh) {
+    if (best !== undefined && key(p) === key(best[0]!)) continue;
+    if (RARE.has(p.skill) || (RULE.has(p.skill) && !b.shown.has(key(p)))) b.owed.add(key(p));
+  }
   return best;
 }
 
@@ -166,6 +219,8 @@ export function boosterProcs(b: Bout, att: Actor, def: Actor, outcome: "hit" | "
   add(att, "glass-cannon");
   add(def, "big-heart");
   add(def, "mountain");
+  // Glass Cannon's lost Health is felt on the first hit its owner takes as well.
+  add(def, "glass-cannon");
 }
 
 /** The first step of a turn that can carry procs: Head Start (its owner's first action of the
@@ -175,7 +230,8 @@ export function firstAction(b: Bout, a: Actor, procs: Proc[]): void {
   headStart(b, a, procs);
   // Fast Twitch: offered on every first action until its tag has shown once (pickProc).
   if (a.scrapper && a.skills.has("fast-twitch")) procs.push(proc(a, "fast-twitch"));
-  if (a.quickSwapPending) procs.push(proc(a, "quick-swap"));
+  if (a.quickSwapPending && a.quickSwapTag) procs.push(proc(a, "quick-swap"));
+  if (a.firmGripKept && !b.shown.has(`${a.id}|firm-grip`)) procs.push(proc(a, "firm-grip"));
   if (a.scrapper && a.held !== "fists" && hasTag(a.held, "heavy") && a.skills.has("heavy-lifter")) {
     procs.push(proc(a, "heavy-lifter"));
   }

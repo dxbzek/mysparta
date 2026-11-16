@@ -28,7 +28,7 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "sharpening-stone": def("sharpening-stone", "passive", { bladeDamage: 40 }),
   "bare-knuckle": def("bare-knuckle", "passive", { fistDamage: 150, unarmedCombo: 10, drawSlack: 12 }),
   "payback": def("payback", "passive", { riposte: 25 }),
-  "flurry": def("flurry", "passive", { combo: 20 }),
+  "flurry": def("flurry", "passive", { combo: 28 }),
   "firm-grip": def("firm-grip", "passive", { resist: 80, swapChance: 15 }),
   "head-start": def("head-start", "passive", { startClock: -150 }),
   "sharp-eye": def("sharp-eye", "passive", { aim: 16, pierce: 16 }),
@@ -38,13 +38,13 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "plate-vest": def("plate-vest", "passive", { armor: 22, speedMult: -15 }),
   "knock-loose": def("knock-loose", "passive", { disarm: 40 }),
   "last-stand": def("last-stand", "passive", { saves: 1 }),
-  "stubborn": def("stubborn", "passive", { chance: 50 }),
+  "stubborn": def("stubborn", "passive", { chance: 95 }),
   "slippery": def("slippery", "passive", { evade: 25 }),
   // content v2 passives
   "quick-swap": def("quick-swap", "passive", { drawSlack: 2, swapChance: 50, swapTime: -30 }),
   "pet-lover": def("pet-lover", "passive", { petHp: 30, petDamage: 50 }),
-  "junk-collector": def("junk-collector", "passive", { returnChance: 90, throwChance: 35 }),
-  "trick-shot": def("trick-shot", "passive", { ricochet: 35 }),
+  "junk-collector": def("junk-collector", "passive", { returnChance: 90, throwChance: 65 }),
+  "trick-shot": def("trick-shot", "passive", { ricochet: 50 }),
 
   // Moves: fire by weighted chance at the start of a turn, limited uses per bout.
   // `cost` is in beats; `costPct` is a share of one normal turn of that scrapper.
@@ -53,7 +53,7 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "tarp": def("tarp", "move", { skips: 3, costPct: 20 }, { weight: 5, uses: 1 }),
   "whistle": def("whistle", "move", { healPct: 60, belowHpPct: 90, cost: 10 }, { weight: 20, uses: 2 }),
   "firecrackers": def("firecrackers", "move", { damageMin: 12, damageMax: 20, companionPct: 40, costPct: 50 }, { weight: 4, uses: 2 }),
-  "snatch": def("snatch", "move", { cost: 0 }, { weight: 13, uses: 1 }),
+  "snatch": def("snatch", "move", { cost: 0 }, { weight: 16, uses: 1 }),
   "air-horn": def("air-horn", "move", { fleeChance: 50, clockPush: 40, clockPushNoPet: 60, cost: 20 }, { weight: 8, uses: 1 }),
   "body-slam": def("body-slam", "move", { base: 14, perStrength: 4, extraCost: 100 }, { weight: 12, uses: 1 }),
   // content v2 Moves

@@ -86,6 +86,14 @@ export interface Actor {
   /** A Quick Swap owner drew or swapped a weapon this turn: the turn costs less time and its first
    *  swing or throw can carry the tag. */
   quickSwapPending: boolean;
+  /** Firm Grip turned away this turn's swap roll (it would have passed at the usual 30%): the
+   *  turn's first swing or throw can carry the tag, once a bout. */
+  /** The Quick Swap draw or swap of this turn was not a sure draw (the first of the bout or the one
+   *  after a throw, which every scrapper makes): only then can the turn carry the tag. */
+  quickSwapTag: boolean;
+  firmGripKept: boolean;
+  /** Bare Knuckle: the first turn that is not a Move is fought with fists, no draw (turn.ts). */
+  fistsFirst: boolean;
   /** The actor's last own turn was a Move: this turn rolls no Move (turn.ts). */
   movedLast: boolean;
 }
@@ -125,7 +133,7 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
     startDraw: !skills.has("bare-knuckle"), dmgPct: 0,
     clock: 0, priority: false, skills, comp: null, dmg: 0,
     haymaker: false, lastStandUsed: false, headStartPending: skills.has("head-start"), level: s.level,
-    loss: 0, lossTurn: 0, quickSwapPending: false, movedLast: false,
+    loss: 0, lossTurn: 0, quickSwapPending: false, quickSwapTag: false, firmGripKept: false, fistsFirst: skills.has("bare-knuckle"), movedLast: false,
   }];
   let n = 1;
   for (const p of perks) {
@@ -139,7 +147,7 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
       held: "fists", heldAttacked: false, shield: null, snared: false, snareSkips: 0, snareLimit: 0, sand: 0,
       taunt: 0, reload: false, startDraw: false, dmgPct: petDmg, clock: 0, priority: false,
       skills: new Set(), comp: def, dmg: def.dmg, haymaker: false, lastStandUsed: false, headStartPending: false,
-      level: s.level, loss: 0, lossTurn: 0, quickSwapPending: false, movedLast: false,
+      level: s.level, loss: 0, lossTurn: 0, quickSwapPending: false, quickSwapTag: false, firmGripKept: false, fistsFirst: false, movedLast: false,
     });
     n += 1;
   }

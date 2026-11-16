@@ -239,14 +239,14 @@ describe("the weapon cap and the dead passives", () => {
     expect(fits("bare-knuckle", ["pipe", "bat", "broom"])).toBe(false);
   });
 
-  it("Snatch has weight 13 and one use (at 28 and 2 uses it won 75% of level-2 bouts)", () => {
-    expect(SKILLS["snatch"].move).toEqual({ weight: 13, uses: 1 });
+  it("Snatch has weight 16 and one use (at 28 and 2 uses it won 75% of level-2 bouts; at 13 it fired in 33% of its owner's level-30 bouts)", () => {
+    expect(SKILLS["snatch"].move).toEqual({ weight: 16, uses: 1 });
   });
 
-  it("Junk Collector throws a used weapon as often as Pitcher while a weapon waits in the bag", () => {
+  it("Junk Collector throws a used weapon 65% of the time while a weapon waits in the bag (35% showed in 24% of its owner's level-30 bouts)", () => {
     const t = setup(snap(["junk-collector", "pipe", "bat"]), snap([]));
     expect(throwChance(t.A, true)).toBe(sk("junk-collector", "throwChance"));
-    expect(sk("junk-collector", "throwChance")).toBe(sk("pitcher", "throwChance"));
+    expect(sk("junk-collector", "throwChance")).toBe(65);
     expect(throwChance(t.A, false)).toBe(THROW_LAST_PCT);
   });
 

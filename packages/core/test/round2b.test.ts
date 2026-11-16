@@ -13,7 +13,7 @@ import { combineSeed, makeRng } from "../src/prng";
 import { fighterSeed } from "../src/progress/create";
 import { STAT_CARD_MORE, statCardAmount, walk, walkWith } from "../src/progress/route";
 import { rivalSnapshot } from "../src/progress/rivals";
-import { LAST_WEAPON_DISARM_PCT, TAG_GAP_TURNS, due, pickProc, proc, tryDisarm } from "../src/sim/bout";
+import { LAST_WEAPON_DISARM_PCT, TAG_GAP_MS, due, pickProc, proc, tryDisarm } from "../src/sim/bout";
 import { buildSide } from "../src/sim/combatant";
 import { meleeAttack } from "../src/sim/melee";
 import { simulateFight } from "../src/sim/simulate";
@@ -52,21 +52,39 @@ function shownShare(level: number, n: number): Map<string, number> {
 }
 
 describe("a once-a-bout tag is spaced, not hidden", () => {
-  it("a tag of a rare moment never waits; a tag of a frequent one waits 2 turns after a Move or a tag of its kind", () => {
-    const t = setup(snap(["flurry", "padding", "plate-vest"]), snap([]));
-    t.bout.turn = 10;
-    t.bout.lastOften = 10;
+  it("a tag of a rare moment never waits; a frequent one waits TAG_GAP_MS of screen time after any tag or Move", () => {
+    const t = setup(snap(["flurry", "padding", "plate-vest", "parry"]), snap([]));
+    const at = (ms: number): void => { t.bout.turn = 10; t.bout.screen = { ms, turn: 10 }; };
+    at(10_000);
+    t.bout.lastTag = 10_000;
     expect(pickProc(t.bout, [proc(t.A, "padding")])).toBeUndefined();
+    // The rare tag shows inside the wait, and starts a new one.
     expect(pickProc(t.bout, [proc(t.A, "flurry")])).toEqual([{ by: "a0", skill: "flurry" }]);
-    // The rare tag does not start a wait.
-    t.bout.turn = 10 + TAG_GAP_TURNS;
+    at(10_000 + TAG_GAP_MS - 1);
+    expect(pickProc(t.bout, [proc(t.A, "padding")])).toBeUndefined();
+    at(10_000 + TAG_GAP_MS);
     expect(pickProc(t.bout, [proc(t.A, "padding")])).toEqual([{ by: "a0", skill: "padding" }]);
-    // The frequent one does, and each shows once.
-    t.bout.turn += 1;
-    expect(pickProc(t.bout, [proc(t.A, "plate-vest")])).toBeUndefined();
-    expect(pickProc(t.bout, [proc(t.A, "flurry")])).toBeUndefined();
-    t.bout.turn += 1;
+    // A rule skill's first tag never waits; its repeat does.
+    at(10_000 + TAG_GAP_MS + 100);
+    expect(pickProc(t.bout, [proc(t.A, "parry")])).toEqual([{ by: "a0", skill: "parry" }]);
+    expect(pickProc(t.bout, [proc(t.A, "parry")])).toBeUndefined();
+    // Once a bout: Padding never again; after the wait the one offered longest ago wins a step.
+    at(20_000);
+    pickProc(t.bout, [proc(t.A, "padding")]);
+    at(30_000);
     expect(pickProc(t.bout, [proc(t.A, "padding"), proc(t.A, "plate-vest")])).toEqual([{ by: "a0", skill: "plate-vest" }]);
+  });
+
+  it("among tags of one tier group, the one first offered longest ago in the bout wins the step", () => {
+    const t = setup(snap(["padding", "plate-vest"]), snap(["sharp-eye"]));
+    t.bout.turn = 3;
+    t.bout.screen = { ms: 5_000, turn: 3 };
+    t.bout.lastTag = 4_000;
+    // Inside the wait: Padding is offered and waits; Plate Vest has not been offered yet.
+    expect(pickProc(t.bout, [proc(t.A, "padding")])).toBeUndefined();
+    t.bout.screen = { ms: 9_000, turn: 3 };
+    // Plate Vest is rarer, but Padding has waited since 5 s.
+    expect(pickProc(t.bout, [proc(t.A, "plate-vest"), proc(t.A, "padding")])).toEqual([{ by: "a0", skill: "padding" }]);
   });
 
   it("a rare tag that loses its step to a rule tag is owed, and shows on the next step of its kind", () => {
@@ -90,27 +108,28 @@ describe("a once-a-bout tag is spaced, not hidden", () => {
     expect(procsOf(r)).toEqual([]);
   });
 
-  it("at level 30 no chance passive is hidden (Flurry, Payback and Knock Loose showed in 6 to 8% of their owner's bouts)", () => {
+  // The checker's line: no owned skill under about 35% of its owner's bouts at levels 10 and 30
+  // (Flurry, Payback and Knock Loose showed in 6 to 8% at level 30, Head Start in 77%). A skill
+  // with under 100 owner bouts in the sample is not measured. Shields are not skills.
+  const skillShares = (share: Map<string, number>): [string, number][] =>
+    [...share].filter(([id]) => perkKind(id as PerkId) === "skill");
+
+  it("at level 30 every owned skill shows in a third or more of its owner's bouts (lowest measured 34.4%)", () => {
     const share = shownShare(30, 2500);
-    for (const id of ["flurry", "payback", "knock-loose", "sharp-eye", "anticipation", "slippery"]) {
-      expect(share.get(id), id).toBeGreaterThan(0.3);
-    }
+    const skills = skillShares(share);
+    expect(skills.length).toBeGreaterThan(35);
+    for (const [id, r] of skills) expect(r, id).toBeGreaterThan(0.33);
+    for (const id of ["flurry", "payback", "knock-loose"]) expect(share.get(id), id).toBeGreaterThan(0.4);
     expect(share.get("head-start")).toBeGreaterThan(0.97);
-    expect(share.get("quick-swap")).toBeGreaterThan(0.6);
-    // The frequent tags share what is left of 19 turns: none under a fifth.
-    for (const id of ["padding", "pitcher", "heavy-lifter", "plate-vest", "big-heart", "heavy-hands", "fast-twitch"]) {
-      expect(share.get(id), id).toBeGreaterThan(0.2);
-    }
+    expect(share.get("quick-swap")).toBeGreaterThan(0.45);
   });
 
-  it("at level 10 the same skills show in 40% or more of their owner's bouts, Quick Swap in 80%", () => {
+  it("at level 10 every owned skill shows in 40% or more of its owner's bouts (lowest measured 44.8%)", () => {
     const share = shownShare(10, 2500);
-    for (const id of ["flurry", "payback", "knock-loose", "sharp-eye", "anticipation", "padding", "pitcher", "heavy-lifter"]) {
-      // A skill with under 100 owner bouts in the sample is not measured.
-      if (share.has(id)) expect(share.get(id), id).toBeGreaterThan(0.4);
-    }
-    expect(share.size).toBeGreaterThan(25);
-    expect(share.get("quick-swap")).toBeGreaterThan(0.8);
+    const skills = skillShares(share);
+    expect(skills.length).toBeGreaterThan(25);
+    for (const [id, r] of skills) expect(r, id).toBeGreaterThan(0.4);
+    expect(share.get("quick-swap")).toBeGreaterThan(0.7);
   });
 });
 
@@ -119,7 +138,8 @@ describe("Quick Swap is a fast hand (it showed in 0 to 15% of its owner's bouts 
     const t = setup(snap(["quick-swap", "pipe"]), snap([]));
     expect(swapChance(t.A)).toBe(50);
     expect(drawSlack(t.A)).toBe(2);
-    expect(swapChance(setup(snap(["quick-swap", "firm-grip", "pipe"]), snap([])).A)).toBe(50);
+    // Firm Grip wins when both are owned: it keeps the weapon (and can show that it did).
+    expect(swapChance(setup(snap(["quick-swap", "firm-grip", "pipe"]), snap([])).A)).toBe(sk("firm-grip", "swapChance"));
   });
 
   it("a turn with a draw or a swap costs 30% less time and carries the tag; a turn without does not", () => {
