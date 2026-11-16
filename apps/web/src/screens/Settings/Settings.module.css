@@ -33,6 +33,11 @@
   font-size: var(--fs-small);
   color: var(--t-on-panel-dim);
 }
+.codeLabel {
+  font: 900 15px / 1.1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
 .code {
   width: 100%;
   padding: 8px;

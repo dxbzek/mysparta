@@ -9,7 +9,7 @@ import type { HeldId, Pick as Side2, RouteCard, ScrapperRecord } from "@rankzero
 import { RARITY_OF, perkKind } from "@rankzero/core";
 import { activeRecord } from "../../app/guards";
 import { useDoc, useGame } from "../../app/context";
-import { STAT_KEYS, STAT_NAME } from "../../text/stats";
+import { STAT_NAME } from "../../text/stats";
 import { UI } from "../../text/ui";
 import { ActorStage } from "../../ui/ActorStage";
 import { Button } from "../../ui/Button";
@@ -18,6 +18,7 @@ import { Sticker } from "../../ui/Sticker";
 import { StatIconDot } from "../parts/MiniStats";
 import { RouteCardFace, cardTitle, previewCard } from "../parts/RouteCard";
 import { useShortScreen } from "../parts/motion";
+import { chipRow, previewSheet } from "./chips";
 import common from "../common.module.css";
 import css from "./LevelUp.module.css";
 
@@ -38,7 +39,13 @@ export function LevelUpScreen() {
   if (!offer || !before || !snap || !live) return null;
   const level = before.level + 1;
   const held = (before.perks.find((p) => perkKind(p) === "weapon") ?? null) as HeldId | null;
-  const moreWaiting = taken !== null && core.sheetOf(live).levelUpWaiting;
+  const liveSheet = core.sheetOf(live);
+  const moreWaiting = taken !== null && liveSheet.levelUpWaiting;
+  // Taken: the live record. Lifted stat card: a preview. Otherwise the row as it stands.
+  const selCard = sel === "L" ? offer.left : sel === "R" ? offer.right : null;
+  const after = taken !== null ? liveSheet : previewSheet(core, snap, selCard);
+  const chips = chipRow(before, after);
+  const chipState = taken !== null ? css.chipTaken : css.chipPreview;
 
   const take = async (): Promise<void> => {
     if (!sel || busy || taken) return;
@@ -96,13 +103,19 @@ export function LevelUpScreen() {
           </div>
         </Panel>
         <div className={css.statsRow} aria-label={UI.kit.statsTitle}>
-          <span className={`${css.statChip} ${css.hpChip}`}><b>{before.maxHp}</b><span className={css.chipName}>{UI.maxHp}</span></span>
-          {STAT_KEYS.map((k) => (
-            <span key={k} className={css.statChip} aria-label={`${STAT_NAME[k]} ${before.effective[k]}`}>
-              <span className={css.chipTop}><StatIconDot stat={k} size={20} /><b>{before.effective[k]}</b></span>
-              <span className={css.chipName} aria-hidden="true">{STAT_NAME[k]}</span>
-            </span>
-          ))}
+          {chips.map((c) => {
+            const value = c.changed ? <b>{c.from}<span className={css.chipArrow} aria-hidden="true">{"→"}</span>{c.to}</b> : <b>{c.to}</b>;
+            const moved = c.changed ? chipState : "";
+            if (c.key === "maxHp") {
+              return <span key={c.key} className={`${css.statChip} ${css.hpChip} ${moved}`} aria-label={`${UI.maxHp} ${c.changed ? UI.levelUp.fromTo(c.from, c.to) : c.to}`}>{value}<span className={css.chipName} aria-hidden="true">{UI.maxHp}</span></span>;
+            }
+            return (
+              <span key={c.key} className={`${css.statChip} ${moved}`} aria-label={`${STAT_NAME[c.key]} ${c.changed ? UI.levelUp.fromTo(c.from, c.to) : c.to}`}>
+                <span className={css.chipTop}><StatIconDot stat={c.key} size={20} />{value}</span>
+                <span className={css.chipName} aria-hidden="true">{STAT_NAME[c.key]}</span>
+              </span>
+            );
+          })}
         </div>
         <h1 className={css.pick}>{taken ? (taken === "L" ? cardTitle(offer.left) : cardTitle(offer.right)) : UI.levelUp.pick}</h1>
         <div className={css.cards}>

@@ -24,13 +24,24 @@
 .tools {
   margin-bottom: 14px;
 }
+.line {
+  margin: 0;
+  color: var(--t-on-page-dim);
+  font-size: var(--fs-small);
+}
 .group {
   margin: 0 0 10px;
   padding: 0;
   border: none;
 }
+.group[open] > .legend {
+  margin-bottom: 8px;
+}
 .legend {
-  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: pointer;
   font: 900 16px / 1 var(--font-display);
   letter-spacing: 0.05em;
   text-transform: uppercase;

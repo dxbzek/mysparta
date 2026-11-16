@@ -1,5 +1,5 @@
 /**
- * The slim log strip under the stage: the newest two sentences, the newest bold, skill and Move
+ * The log strip under the stage: the newest two sentences (more when the phone has room), the newest bold, skill and Move
  * names coloured, and the "Log" button that opens the full text log in a sheet. It shows the
  * steps below `HudFrame.stepsShown` and nothing else.
  */
@@ -40,20 +40,43 @@ export function stripSteps(steps: readonly Step[], stepsShown: number, n = 2): S
   return out;
 }
 
-function LogStripView({ steps, stepsShown, names, live, onOpen }: { steps: readonly Step[]; stepsShown: number; names: ActorNames; live: boolean; onOpen(): void }) {
-  const lines = stripSteps(steps, stepsShown);
+/** Older lines shown under the newest two when the phone has spare height (review r2: the room
+ *  under the cards was an empty band). They sit in a box that adds no height of its own, so on a
+ *  short phone they simply do not show. */
+export const STRIP_MORE = 8;
+
+function Line({ step, names, cls }: { step: Step; names: ActorNames; cls: string | undefined }) {
+  return (
+    <li className={cls}>
+      {stripParts(step, names).map((p, j) => (
+        <span key={j} className={p.skill === "a" ? css.skillA : p.skill === "b" ? css.skillB : undefined}>{p.text}</span>
+      ))}
+    </li>
+  );
+}
+
+function LogStripView({ steps, stepsShown, names, live, note = null, onOpen }: { steps: readonly Step[]; stepsShown: number; names: ActorNames; live: boolean; note?: string | null; onOpen(): void }) {
+  const all = stripSteps(steps, stepsShown, 2 + STRIP_MORE);
+  const lines = all.slice(0, 2);
+  const more = all.slice(2);
   return (
     <div className={css.strip}>
-      <ol className={css.stripLines} aria-label="Latest in the bout" aria-live={live ? "polite" : "off"} aria-relevant="additions">
-        {lines.length === 0 ? <li className={css.stripLine}>&nbsp;</li> : null}
-        {lines.map((s, i) => (
-          <li key={stepsShown - i} className={`${css.stripLine} ${i === 0 ? css.stripNew : ""}`}>
-            {stripParts(s, names).map((p, j) => (
-              <span key={j} className={p.skill === "a" ? css.skillA : p.skill === "b" ? css.skillB : undefined}>{p.text}</span>
-            ))}
-          </li>
-        ))}
-      </ol>
+      <div className={css.stripCol}>
+        {/* a short note (the locked 3x) shows here, never on the stage where the damage numbers
+            and tags are (owner: numbers and tags never overlap). The status box is always there,
+            so a screen reader hears the note when it fills. */}
+        <p className={note ? css.stripNote : "rz-visually-hidden"} role="status">{note ?? ""}</p>
+        <ol className={css.stripLines} aria-label="Latest in the bout" aria-live={live ? "polite" : "off"} aria-relevant="additions">
+          {lines.length === 0 ? <li className={css.stripLine}>&nbsp;</li> : null}
+          {lines.map((s, i) => <Line key={stepsShown - i} step={s} names={names} cls={`${css.stripLine} ${i === 0 ? css.stripNew : ""}`} />)}
+        </ol>
+        {/* earlier lines repeat what was already announced, and the full log is one tap away */}
+        <div className={css.stripMoreBox} aria-hidden="true">
+          <ol className={css.stripMore}>
+            {more.map((s, i) => <Line key={stepsShown - 2 - i} step={s} names={names} cls={css.stripLine} />)}
+          </ol>
+        </div>
+      </div>
       <button type="button" className={css.logButton} onClick={onOpen} aria-label="Open the full bout log">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></svg>
         <span>Log</span>
