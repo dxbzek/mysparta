@@ -136,13 +136,19 @@ describe("room between bodies, measured on every frame (real art)", () => {
   }
 
   for (const [name, bout] of [["bout-all-steps", BOUT_FIXTURES["bout-all-steps"]], ["find-bout level 10 n 29", found(10, 29)],
-    // Level 30 n 3 since sim version 4 (round 2); it was n 2. The Body Slam at a pet behind its
-    // owner that ran the attacker past the owner in level 30 n 2 under sim version 4 is kept under
-    // test in open-defects.test.ts (a built log, so no sim change moves it away).
+    // Level 30 n 2 is back (round 2, third pass): under sim version 4 a0 Body Slammed the pet b1
+    // behind its owner b0 and ran past b0 to reach it; a Move at a pet now has the swing's
+    // step-out (choreo/move.ts closeIn). The built-log case for every pet is in open-defects.test.ts.
+    ["find-bout level 30 n 2", found(30, 2)],
+    // Body Slams at a pet under sim version 6: b0 at a1 on step 4 (n 52), a0 at b2 on step 6 (n 136),
+    // a0 at b1 on step 8 (n 332).
+    ["find-bout level 30 n 52 (Body Slam at a pet)", found(30, 52)],
+    ["find-bout level 30 n 136 (Body Slam at a pet)", found(30, 136)],
+    ["find-bout level 30 n 332 (Body Slam at a pet)", found(30, 332)],
     ["find-bout level 30 n 3", found(30, 3)],
     // a0 hits a pet while it is snared behind its owner: it cannot come out, so he gives room.
-    // n 96 since sim version 5 (round 2, second pass); it was n 4, then n 53.
-    ["find-bout level 30 n 96 (snared pet)", found(30, 96)]] as const) {
+    // n 58 since sim version 6 (round 2, third pass); it was n 4, then n 53, then n 96.
+    ["find-bout level 30 n 58 (snared pet)", found(30, 58)]] as const) {
     it(`${name}: the same, in a real bout`, () => {
       const p = playerFor(bout.log, bout.a, bout.b, FULL);
       const r = spacing(p, bout.log);
@@ -156,13 +162,13 @@ describe("room between bodies, measured on every frame (real art)", () => {
 
 // The verifier's case (level 30 n 4, step 57) changed with the sim start pass; level 30 n 31,
 // step 21 was the same scene under it, level 30 n 68, step 21 under sim version 4 (round 2), and
-// level 30 n 96, step 17 under sim version 5 (round 2, second pass): a0 swings at the snared pet b1
-// standing behind b0.
-describe("a snared pet behind its owner (verifier, 15 Nov 2026: level 30 n 4, step 57; now n 96, step 17)", () => {
+// level 30 n 96, step 17 under sim version 5 (round 2, second pass), and level 30 n 58, step 28 under
+// sim version 6 (round 2, third pass): a0 swings at the snared pet b1 standing behind b0.
+describe("a snared pet behind its owner (verifier, 15 Nov 2026: level 30 n 4, step 57; now n 58, step 28)", () => {
   it("the owner steps back past it, and its tarp is drawn with the pet, under him", () => {
-    const { log, a, b } = found(30, 96);
+    const { log, a, b } = found(30, 58);
     const p = playerFor(log, a, b, FULL);
-    const c = p.timeline.contacts.find((x) => x.step === 17)!;
+    const c = p.timeline.contacts.find((x) => x.step === 28)!;
     expect(c).toBeDefined();
     const f = p.frame(c.at);
     const atk = f.actors.find((x) => x.id === "a0")!;

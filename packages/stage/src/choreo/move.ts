@@ -46,7 +46,7 @@ import { flightMs, makePath } from "../flight";
 import { CORAL, GREEN, SKY, VOLT } from "../palette";
 import { layWay, planWay } from "../footwork";
 import type { Sig, SigKind } from "../model";
-import type { Builder } from "../timeline";
+import type { Builder, SwingPlan } from "../timeline";
 import { BEAT, MOVE } from "../tuning";
 import type { Placed } from "./index";
 
@@ -338,11 +338,32 @@ function taunt(b: Builder, step: MoveStep, i: number, s: number, c: number): Pla
   return { at: s, apply: c };
 }
 
-/** Body Slam and Grapple close in the same way: a dash to stand right against the target. */
-function closeIn(b: Builder, i: number, actor: ActorId, target: ActorId, c: number): { at: number; facing: 1 | -1 } {
-  const me = b.place(actor, c);
-  const tp = b.place(target, c);
-  const facing: 1 | -1 = tp.x >= me.x ? 1 : -1;
+/** Body Slam and Grapple close in the same way: a dash to stand right against the target. A pet
+ *  that stands behind its owner (seen from the attacker) runs out in front of him first, as for a
+ *  swing (Builder.petMeets), and one that cannot come out has its owner step back past it
+ *  (Builder.ownerGives); without that the attacker ran through the owner to reach it (round 2:
+ *  find-bout level 30 n 2 under sim version 4). */
+function closeIn(b: Builder, i: number, actor: ActorId, target: ActorId, c0: number): { at: number; facing: 1 | -1 } {
+  let c = c0;
+  const scrapperAtPet = b.track(actor).rig === "scrapper" && b.track(target).rig !== "scrapper";
+  const plan = (start: number): SwingPlan => ({ i, actor, target, clip: "slam", dress: b.dress(actor), zone: "body", start,
+    mode: "dash", combo: false, hitStop: 0, slow: false });
+  if (scrapperAtPet) {
+    const met = b.petMeets(plan(c), b.place(actor, c).x);
+    if (met !== null) c = Math.max(c, met + BEAT.restMs - BEAT.anticipationMs);
+  }
+  let me = b.place(actor, c);
+  let tp = b.place(target, c);
+  let facing: 1 | -1 = tp.x >= me.x ? 1 : -1;
+  if (scrapperAtPet) {
+    const gave = b.ownerGives(plan(c), me.x, tp.x - facing * MOVE.grappleGap, facing);
+    if (gave !== null) {
+      c = Math.max(c, gave + BEAT.restMs - BEAT.anticipationMs);
+      me = b.place(actor, c);
+      tp = b.place(target, c);
+      facing = tp.x >= me.x ? 1 : -1;
+    }
+  }
   const stopX = tp.x - facing * MOVE.grappleGap;
   const feet = b.track(actor).rig === "scrapper" && b.internal.easedDash !== true;
   // real footwork (footwork.ts): the run or the shuffle, set at the target when it ends

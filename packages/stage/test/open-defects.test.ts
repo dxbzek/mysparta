@@ -1,19 +1,21 @@
 /**
- * Stage defects that the round-2 sim (versions 4 and 5) brought into real bouts, kept under test
+ * Stage defects that the round-2 sim (versions 4 to 6) brought into real bouts, kept under test
  * here so they are not lost between lanes. The OPEN ones are written with `it.fails`: they pass
  * while the defect is there and turn red on the day the stage fixes it; that day, change `it.fails`
  * to `it`. (A pinned find-bout case can also turn red because a sim change moved the scene away:
  * then find a new case with the same check.)
- *  1. OPEN. A Move at a pet standing behind its owner (a Body Slam; a Grapple cannot target a pet)
- *     runs the attacker past the owner: a swing at a pet has a step-out (the pet comes out in
- *     front, or the owner gives room), a Move has none. Seen in find-bout level 30 n 2 under sim
- *     version 4. The log is built by hand, so no sim change moves this scene away.
- *  2. OPEN. A pet's dodge hop can leave the camera's bout frame: level 10 n 36 under sim version
- *     4, level 8 n 37 under sim version 5 (b1 at 1.94 s, box 251.2 to 298.7, frame 100 to 296).
- *     A hop in a built log of one to three pets stays inside; the real case is pinned.
+ *  1. FIXED (round 2, third pass). A Move at a pet standing behind its owner (a Body Slam) ran the
+ *     attacker past the owner: a swing at a pet had a step-out (the pet comes out in front, or the
+ *     owner gives room), a Move had none (choreo/move.ts closeIn now uses both). Seen in find-bout
+ *     level 30 n 2 under sim version 4; real bouts under sim version 6 are in spacing.test.ts.
+ *  2. FIXED (round 2, third pass). A pet's dodge hop left the camera's bout frame (level 10 n 36
+ *     under sim version 4, level 8 n 37 under sim version 5): the frame was set by a pet's idle
+ *     reach and its run pose is wider (layout.PET_FRAME_REACH), the hop was clamped by reach and
+ *     not by the drawn body, and a pet hit during its hop was knocked out of the frame. The real
+ *     bouts are back in pets.test.ts.
  *  3. OPEN. A foot on the floor slides in a flinch (over 1 unit) or in footwork (over 0.5 units) in
- *     these sim-version-5 bouts: flinch in level 10 n 1 and level 30 n 3, 10, 22, 34; footwork in
- *     level 30 n 12, 27, 34, 36. feet.test.ts measures clean bouts; these are the dirty ones.
+ *     these sim-version-6 bouts: flinch in level 10 n 1 and level 30 n 5, 22, 32, 34, 37; footwork
+ *     in level 30 n 5, 12, 29, 34, 36. feet.test.ts measures clean bouts; these are the dirty ones.
  */
 import { describe, expect, it } from "vitest";
 import type { ActorId, ActorInit, BoutLog, CompanionId, FighterSnapshot, Step } from "@rankzero/core";
@@ -96,21 +98,21 @@ function hopsOutOfFrame(kinds: readonly CompanionId[]): { hops: number; out: str
   return hopsOut(playerFor(log, snap(l1Fists, "open-a"), snap(l1Knife, "open-b"), FULL), kinds.join("+"));
 }
 
-describe("open stage defects from the round-2 sim (versions 4 and 5)", () => {
-  it.fails("a Body Slam at a pet behind its owner never runs the attacker past the owner", () => {
+describe("stage defects from the round-2 sim (versions 4 to 6)", () => {
+  it("a Body Slam at a pet behind its owner never runs the attacker past the owner, for every pet", () => {
     const out: string[] = [];
     for (const kind of COMPANION_IDS) out.push(...crossed(slamAtPet(kind)).slice(0, 1).map((x) => `${kind}: ${x}`));
     expect(out).toEqual([]);
   });
 
-  it.fails("a pet's dodge hop stays inside the bout frame in find-bout level 8 n 37", () => {
+  it("a pet's dodge hop stays inside the bout frame in find-bout level 8 n 37 (it left it under sim version 5)", () => {
     const r = hopsOut(foundPlayer(8, 37), "L8 n37");
     expect(r.hops).toBeGreaterThan(0);
     expect(r.out).toEqual([]);
   });
 
-  for (const [level, n, what] of [[10, 1, "flinch"], [30, 3, "flinch"], [30, 10, "flinch"], [30, 22, "flinch"], [30, 34, "flinch"],
-    [30, 12, "footwork"], [30, 27, "footwork"], [30, 34, "footwork"], [30, 36, "footwork"]] as const) {
+  for (const [level, n, what] of [[10, 1, "flinch"], [30, 5, "flinch"], [30, 22, "flinch"], [30, 32, "flinch"], [30, 34, "flinch"],
+    [30, 37, "flinch"], [30, 5, "footwork"], [30, 12, "footwork"], [30, 29, "footwork"], [30, 34, "footwork"], [30, 36, "footwork"]] as const) {
     it.fails(`no foot slides in a ${what} in find-bout level ${level} n ${n}`, () => {
       const p = foundPlayer(level, n);
       const bad = what === "flinch" ? slides(p, FULL, 1, { only: new Set(["hit-light", "hit-heavy"]) }) : slides(p, FULL);
