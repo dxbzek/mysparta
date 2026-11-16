@@ -45,7 +45,7 @@ describe("content tables", () => {
     expect(SKILLS.mountain.tiers[0]).toMatchObject({ healthMult: 150, agilityMult: -20, speedMult: -20, startClock: 150 });
     expect(SKILLS.parry.tiers[0]).toEqual({ block: 10, riposteAfterBlock: 80 });
     expect(SKILLS.haymaker.move).toEqual({ weight: 5, uses: 1 });
-    expect(SKILLS["body-slam"].tiers[0]).toMatchObject({ base: 14, perStrength: 4, extraCost: 100 });
+    expect(SKILLS["body-slam"].tiers[0]).toMatchObject({ base: 19, perStrength: 4, extraCost: 100 });
     expect(SKILLS.whistle.move).toEqual({ weight: 20, uses: 2 });
     expect(SKILLS.whistle.tiers[0]).toMatchObject({ belowHpPct: 90 });
   });

@@ -181,11 +181,11 @@ describe("Quick Swap is a fast hand (it showed in 0 to 15% of its owner's bouts 
 });
 
 describe("Bare Knuckle opens with fists (it showed in 2% of its owner's level-30 bouts)", () => {
-  it("has no sure first draw, draws with slack 12 and hits 150% harder with fists", () => {
+  it("has no sure first draw, draws with slack 12 and hits 200% harder with fists", () => {
     expect(buildSide("a", snap(["bare-knuckle", "pipe"])).actors[0]!.startDraw).toBe(false);
     expect(buildSide("a", snap(["pipe"])).actors[0]!.startDraw).toBe(true);
     expect(drawSlack(setup(snap(["bare-knuckle", "pipe"]), snap([])).A)).toBe(12);
-    expect(sk("bare-knuckle", "fistDamage")).toBe(150);
+    expect(sk("bare-knuckle", "fistDamage")).toBe(200);
   });
 });
 
@@ -240,7 +240,7 @@ describe("the stat card is not the losing card either", () => {
 });
 
 describe("the starting weapon does not decide level 1, Rare starts included (it spread 26 points)", () => {
-  it("every start with 500 bouts or more (Rare and up to Common) wins 42 to 63%, and they spread 20 points at most", () => {
+  it("every start with 500 bouts or more (Rare and up to Common) wins 42 to 63%, and they spread 18 points at most", () => {
     const rng = makeRng(combineSeed("round2b", "start-table"));
     const by = new Map<string, { w: number; n: number }>();
     for (let i = 0; i < 40_000; i++) {
@@ -261,6 +261,6 @@ describe("the starting weapon does not decide level 1, Rare starts included (it 
       expect(r, id).toBeLessThanOrEqual(63);
     }
     const all = rates.map(([, r]) => r);
-    expect(Math.max(...all) - Math.min(...all)).toBeLessThanOrEqual(20);
+    expect(Math.max(...all) - Math.min(...all)).toBeLessThanOrEqual(18);
   });
 });

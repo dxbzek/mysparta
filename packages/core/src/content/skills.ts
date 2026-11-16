@@ -26,7 +26,7 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "padding": def("padding", "passive", { armor: 10 }),
   "anticipation": def("anticipation", "passive", { intercept: 20 }),
   "sharpening-stone": def("sharpening-stone", "passive", { bladeDamage: 40 }),
-  "bare-knuckle": def("bare-knuckle", "passive", { fistDamage: 150, unarmedCombo: 10, drawSlack: 12 }),
+  "bare-knuckle": def("bare-knuckle", "passive", { fistDamage: 200, unarmedCombo: 20, drawSlack: 12 }),
   "payback": def("payback", "passive", { riposte: 25 }),
   "flurry": def("flurry", "passive", { combo: 28 }),
   "firm-grip": def("firm-grip", "passive", { resist: 80, swapChance: 15 }),
@@ -55,7 +55,7 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "firecrackers": def("firecrackers", "move", { damageMin: 12, damageMax: 20, companionPct: 40, costPct: 50 }, { weight: 4, uses: 2 }),
   "snatch": def("snatch", "move", { cost: 0 }, { weight: 16, uses: 1 }),
   "air-horn": def("air-horn", "move", { fleeChance: 50, clockPush: 40, clockPushNoPet: 60, cost: 20 }, { weight: 8, uses: 1 }),
-  "body-slam": def("body-slam", "move", { base: 14, perStrength: 4, extraCost: 100 }, { weight: 12, uses: 1 }),
+  "body-slam": def("body-slam", "move", { base: 19, perStrength: 4, extraCost: 100 }, { weight: 12, uses: 1 }),
   // content v2 Moves
   "sand-in-the-eyes": def("sand-in-the-eyes", "move", { aimLoss: 25, costPct: 30 }, { weight: 4, uses: 1 }),
   "taunt": def("taunt", "move", { riposte: 40, cost: 0 }, { weight: 4, uses: 1 }),

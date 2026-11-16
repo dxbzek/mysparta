@@ -20,5 +20,8 @@
  *      keeps its weapon over Quick Swap and shows a kept weapon, Bare Knuckle's first turn is
  *      fists, Parry shows on its own blocks, Light Feet on throws, Glass Cannon on the first hit
  *      taken, Stubborn 95, Junk Collector 65, Trick Shot 50, Flurry 28, Snatch weight 16.
+ *   7: round 2, third pass, gate fixes (17 November 2026): Bare Knuckle fists +200% and Combo +20
+ *      while unarmed (it now really opens with fists: 39.5% ownership at level 2), Body Slam base 19
+ *      (46.9% with-and-without at level 30).
  */
-export const SIM_VERSION = 6;
+export const SIM_VERSION = 7;
