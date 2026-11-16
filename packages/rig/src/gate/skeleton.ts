@@ -47,17 +47,23 @@ export const BONE = {
 
 /**
  * The stow channel (review round 2, 16 Nov 2026): bone `stow` draws nothing; a clip whose hands
- * go to the head (the Move reactions: ears, rub-eyes, angry, snared) keys it to `STOW.on`, and
- * while it is over `STOW.on / 2` the rig draws the held item put away (a short one-hand item at
- * the front hip, a long or two-hand one slung on the back) and both hands empty, so no blade,
- * tine or sign goes through the face. It is a bone angle, not a flag, so it lives in the pose
- * data and survives every crossfade and offset the stage applies to a pose.
+ * go to the head (the Move reactions: ears, rub-eyes, angry, snared) keys it to `STOW.on`. It is
+ * a bone angle, not a flag, so it lives in the pose data and the stage's crossfade blends it like
+ * any joint: over the crossfade into such a clip it turns from 0 to `on`, and back at the end.
+ * That turn IS the put-away motion: the rig moves the held item from the hand to where it is
+ * kept (a short one-hand item at the front hip, a long or two-hand one slung on the back, a
+ * bulky one set down on the floor) as the channel goes from 0 to `away` of `on`, so the item
+ * has left the hand before the hands are up at the head, and no blade, tine or sign goes through
+ * the face. `on` is a wide angle on purpose: the stage gives a bigger gap a longer crossfade, so
+ * the put-away always gets the longest one and is a motion a viewer sees, never a jump.
  */
-export const STOW = { on: 12 } as const;
+export const STOW = { on: 52, away: 0.9 } as const;
 /** Items worn on the hands, never put away (they sit on the fists at the ears). */
 export const WORN_ITEMS: readonly string[] = ["knuckle-dusters"];
-/** Is this pose's held item put away? */
-export const isStowed = (rot: readonly number[]): boolean => (rot[BONE.stow] ?? 0) > STOW.on / 2;
+/** How far this pose's held item is put away: 0 in the hand, 1 the channel fully on. */
+export const stowAmount = (rot: readonly number[]): number => Math.min(1, Math.max(0, (rot[BONE.stow] ?? 0) / STOW.on));
+/** Is this pose's held item out of the hand? */
+export const isStowed = (rot: readonly number[]): boolean => stowAmount(rot) > 1e-4;
 
 /** Where the hair hinges on the head (the back of the crown), in the head bone's frame. */
 export const HAIR_PIVOT = [-1.4, -12.6] as const;

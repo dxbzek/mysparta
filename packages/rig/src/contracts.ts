@@ -272,7 +272,7 @@ export interface ContentPack {              // the content-art lane: packages/ri
    *  item (fists, the gate's pipe and knife included), drawn for 28-64 px. `rig.icon` uses these
    *  over the engine's whole-weapon drawing, which turns a long pole into a hairline and a
    *  weapon drawn as links into an empty icon. */
-  icons: Record<SkillId | `ui:${ContentUi}` | ShieldId | HeldId, IconArt>;
+  icons: Record<SkillId | `ui:${ContentUi}` | ShieldId | HeldId, IconArt> & Partial<Record<CompanionId, IconArt>>;
   /** Animation pass (16 Nov 2026), optional: the clip variants a held item plays in place of a
    *  base clip (`uses[held][base]` names one of `variants`), so each weapon is used the way the
    *  real object is. A variant keeps its base clip's length and events (a rig test). */

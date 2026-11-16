@@ -193,7 +193,12 @@ export const CONTENT_FX = { tarp, tape, crackers, rings, plus, trail };
  *  mouth), the way the comic draws a held object to read. */
 const up = (k: number, pts: readonly Pt[]): Pt[] => pts.map(([x, y]) => [x * k, y * k]);
 const WHISTLE_K = 1.6;
-const HORN_K = 1.3;
+/** The air horn a size and a half up, and turned in the hand so the bell points level at the
+ *  enemy from in front of the face (review round 2: at 1.3 and the old grip turn the can poked
+ *  out behind the skull and the bell pointed down at the chest; the blow's back hand points
+ *  about 30 degrees down as drawn, so a grip turn of -31 puts the horn level; the hand holds the back of
+ *  the can, so the can sits in front of the face, not behind the skull). */
+const HORN_K = 1.6;
 
 /** The can of the Energy Drink, the referee whistle and the air horn: small real objects drawn
  *  in the back hand while their Move plays (item units, grip at the origin). The rig draws one in
@@ -215,7 +220,7 @@ export const PROPS: Record<MoveProp, PropArt> = {
     blob(6.4 * WHISTLE_K, 1.4 * WHISTLE_K, 0.7 * WHISTLE_K, 0.7 * WHISTLE_K, 1, 8),
     fillOf(ellipsePoly(-1.6 * WHISTLE_K, 0, 1.2 * WHISTLE_K, 1.2 * WHISTLE_K, 10), "accent", 0.5),
   ] },
-  horn: { grip: { x: 0, y: 0, rot: -10 }, shapes: [
+  horn: { grip: { x: -2 * HORN_K, y: 0, rot: -31 }, shapes: [
     fillOf(up(HORN_K, rod(-3.6, 3, 2.2, 0.4)), "accent", 0),
     fillOf(up(HORN_K, roundRect(2.4, -1.2, 2.6, 2.4, 0.3)), "metal", 1),
     fillOf(up(HORN_K, [[4.6, -0.9], [8, -0.9], [12.6, -3.6], [12.6, 3.6], [8, 0.9], [4.6, 0.9]]), "metal", 2),

@@ -96,9 +96,13 @@ export const COMPANION_COLOURS = {
   goose: { body: "#E8D2AE", dark: "#5A4A3A", light: "#F2C070" },
   boar: { body: "#8A5A3A", dark: "#3A2418", light: "#C89A6A" },
   "stray-dog": { body: "#9A7A52", dark: "#3A2A1A", light: "#D8B888" },   // content v2 stand-ins
-  // a blue-grey crow with a clear sheen (movement pass 2: the near-black one vanished on the
-  // night arena's teal floor and brick); the eye stays the pale cream of FIXED.white
-  crow: { body: "#5A667E", dark: "#323A4A", light: "#8494B0" },
+  // a blue-grey crow, dark flight feathers, a bright blue lamp rim on the back, nape, crown and
+  // bill. The body stays this light on purpose: a near-black one vanishes on the night arenas'
+  // floors (movement pass 2; and again in review round 2, when a blue-black body measured 1.1:1
+  // on the back yard). The content test holds every pet's body at 2:1 or more on every floor.
+  // The crow reads as a crow by its shape, black wing and tail, and heavy bill, not by grey paint.
+  // The eye stays the pale cream of FIXED.white.
+  crow: { body: "#5A667E", dark: "#232936", light: "#86A6D6" },
   "alley-cat": { body: "#C8823A", dark: "#4A2A10", light: "#F0C080" },
 } as const;
 

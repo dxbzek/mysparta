@@ -76,15 +76,23 @@ export const MONKEY_WRENCH: WeaponArt = weapon([
   line([[-5, -0.3], [8.8, -0.4]], 0.18, 3),
 ], [27.6, -2.0]);
 
-/** Frying Pan: a heavy pan seen from below, black grip; forehand swing, the flat base hits. */
+/** Frying Pan: a heavy cast-iron pan in three-quarter view (review round 2, 16 Nov 2026: drawn
+ *  face-on it read as a bullseye on a stick): the elliptical rim with the inside of the pan
+ *  showing, the lip's thickness and the dark underside below it, black grip; forehand swing,
+ *  the flat base hits. */
 export const FRYING_PAN: WeaponArt = weapon([
   fillOf(bar(-6.5, 10, [[0, 1.2], [1, 0.95]], 0.8), "hair", 0),
   fillOf(rod(9, 12.5, 1.05, 0.2), "metal", 1),
-  fillOf(ellipsePoly(20.5, 0, 9.2, 9.2, 30), "metal", 2),
-  fillOf(ringPoly(20.5, 0, 6.6, 7.2, 30), "ink", 3),
-  fillOf(ringPoly(20.5, 0, 3.4, 3.8, 24), "ink", 3),
+  // the underside and the side wall, seen below the rim
+  fillOf(ellipsePoly(20.5, 1.6, 9.0, 4.6, 30), "hair", 1.5),
+  // the rim
+  fillOf(ellipsePoly(20.5, 0, 9.2, 4.4, 30), "metal", 2),
+  // the inside of the pan, darker, inside the lip
+  fillOf(ellipsePoly(20.8, 0.4, 7.4, 3.1, 28), "bottom", 2.5),
+  // a lamp highlight on the far lip
+  line([[15.4, -2.6], [20.4, -3.5], [25, -2.8]], 0.35, 3, false),
   blob(-5.3, 0, 0.55, 0.55, 3, 8),
-  scuffs(104, 7, 14, 27, -6, 6, 3, 0.24),
+  scuffs(104, 5, 15, 26, -2, 2.4, 3, 0.22),
   line([[11.4, -0.9], [11.4, 0.9]], 0.25, 3, false),
 ], [26, 0]);
 

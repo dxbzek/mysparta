@@ -4,13 +4,15 @@
  *    arena's floor, the lamp-lit floor and the lit brick (the old wall teal was 1.2-1.4:1);
  *  - objects wear their real paint: the stop sign's face is sign red, the cone safety orange, the
  *    rubber ball red, the lawn flamingo pink, the paint tin's label blue;
- *  - the gym's floor is as dark as the alleys' (it was a bright maple court).
+ *  - the gym's floor is as dark as the alleys' (it was a bright maple court);
+ *  - every pet's body stands off every arena floor, 2:1 or more (a blue-black crow measured
+ *    1.1:1 on the back yard and was all but gone at phone size).
  */
 import { describe, expect, it } from "vitest";
 import { STAGE_IDS } from "@rankzero/core";
 import { contentPack } from "../../src/content/pack";
 import { ARENA_FLOOR } from "../../src/content/stages";
-import { ALLEY, FIXED } from "../../src/gate/style";
+import { ALLEY, COMPANION_COLOURS, FIXED } from "../../src/gate/style";
 
 /** WCAG relative luminance and contrast ratio. */
 function lum(hex: string): number {
@@ -29,6 +31,13 @@ describe("colour reads", () => {
     for (const b of backs) expect(contrast(ALLEY.tarp, b), `tarp on ${b}`).toBeGreaterThanOrEqual(3);
     // planted fault: the old wall-teal tarp fails
     expect(contrast(ALLEY.shutter, ALLEY.floor)).toBeLessThan(3);
+  });
+  it("every pet's body is 2:1 or more on every arena floor", () => {
+    for (const [pet, c] of Object.entries(COMPANION_COLOURS)) for (const [arena, floor] of Object.entries(ARENA_FLOOR)) {
+      expect(contrast(c.body, floor), `${pet} on ${arena}`).toBeGreaterThanOrEqual(2);
+    }
+    // planted fault: the blue-black crow of review round 2 fails on the back yard
+    expect(contrast("#353B4C", ARENA_FLOOR.backyard)).toBeLessThan(2);
   });
   it("objects wear their real paint", () => {
     const slots = (id: keyof typeof contentPack.weapons): string[] => contentPack.weapons[id].shapes.map((s) => s.slot);
