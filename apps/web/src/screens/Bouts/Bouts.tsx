@@ -61,8 +61,11 @@ export function BoutsScreen() {
                     <Portrait look={b.snapshotB.look} size={40} label="" />
                     <span className={css.text}>
                       {/* the level is its own chip, so a long name never leaves the digit alone on a line (review r2) */}
-                      <span className={css.opp} aria-label={UI.history.vs(b.snapshotB.name, b.snapshotB.level)}>
-                        <span aria-hidden="true">{b.snapshotB.name}</span> <span className={css.lv} aria-hidden="true">{UI.history.lv(b.snapshotB.level)}</span>
+                      {/* the name stays plain text; screen readers get ", level 3" from a hidden span, not an
+                          aria-label on a generic span (ARIA 1.2 forbids it and browse mode often skips it) */}
+                      <span className={css.opp}>
+                        {b.snapshotB.name}<span className="rz-visually-hidden">{UI.history.levelWords(b.snapshotB.level)}</span>{" "}
+                        <span className={css.lv} aria-hidden="true">{UI.history.lv(b.snapshotB.level)}</span>
                       </span>
                       <span className={css.line}>{b.watched ? resultLine(b.lineId, won, b.snapshotA.name, b.snapshotB.name) : UI.locker.lastBoutLine(b.snapshotA.name, b.snapshotB.name)}</span>
                     </span>

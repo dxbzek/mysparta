@@ -106,12 +106,18 @@ function coverOf(d: string, transform: string | undefined, viewBox: string): num
  *  rough square and its shadow, the first two shapes), so Whistle, Taunt, Tarp and Air Horn were
  *  one identical square. A backdrop (an untransformed shape spanning 90% of the box) is dropped,
  *  and for a skill the badge and its shadow, so the silhouette is the item's own shape. */
+/** How many leading parts of a skill icon are its frame (the badge and its inner disc). Mirrors the
+ *  rig's `FRAME_PARTS` (packages/rig/src/content/icons.ts), which the rig's public entry does not
+ *  export; importing `@rankzero/rig/content` here would pull the whole content pack into this
+ *  chunk. A test fails if the two ever differ. */
+export const SKILL_FRAME_PARTS = 2;
+
 export function silhouetteArt(art: SvgArt, kind?: PerkKind): { viewBox: string; parts: SilhouettePart[] } {
   const drop = new Set<number>();
   if (kind !== "skill") art.parts.forEach((p, i) => { if (coverOf(p.d, p.transform, art.viewBox) >= 0.9) drop.add(i); });
   // every skill icon is drawn on a badge (a round one for a passive, a rough square for a Move):
   // its first two shapes, the badge and its shadow
-  if (kind === "skill" && art.parts.length > 2) { drop.add(0); drop.add(1); }
+  if (kind === "skill" && art.parts.length > SKILL_FRAME_PARTS) for (let i = 0; i < SKILL_FRAME_PARTS; i++) drop.add(i);
   const kept = drop.size < art.parts.length ? art.parts.filter((_, i) => !drop.has(i)) : art.parts;
   return {
     viewBox: art.viewBox,

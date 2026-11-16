@@ -9,7 +9,7 @@ import type { PerkId } from "@rankzero/core";
 import { GameContext } from "../../src/app/context";
 import type { Game } from "../../src/app/context";
 import { LocalRivalSource } from "../../src/state/opponents";
-import { FILTERS, InventoryDetail, InventoryScreen, inventoryItems, inventorySections, ownersOf, silhouetteArt, sortedPerks } from "../../src/screens/Inventory/Inventory";
+import { FILTERS, InventoryDetail, InventoryScreen, inventoryItems, inventorySections, ownersOf, silhouetteArt, SKILL_FRAME_PARTS, sortedPerks } from "../../src/screens/Inventory/Inventory";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { tabRoute } from "../../src/screens/Locker/Locker";
@@ -17,6 +17,8 @@ import { MAIN_TABS } from "../../src/ui/LockerView";
 import { rig } from "../../src/seams/rig";
 import { perkText, shortEffect } from "../../src/text/perks";
 import { memGame, playUntilLevelUp } from "../state/helpers";
+// test only: the rig's frame count, read from its source (its public entry does not export it)
+import { FRAME_PARTS as RIG_FRAME_PARTS } from "../../../../packages/rig/src/content/icons";
 
 const RANK = { common: 0, uncommon: 1, rare: 2, epic: 3, mythic: 4 } as const;
 
@@ -95,11 +97,31 @@ describe("inventory", () => {
       void w; void h;
     }
     // skills: every icon sits on the same badge (a rough square and its shadow); the silhouette keeps only the item
+    // The dropped parts must really be the frame, checked from the drawn geometry and not from the
+    // drop rule itself: the first is one outline that spans nearly the whole 24-unit box, centred;
+    // the second is one outline inside it, also centred (the inner disc or square).
+    const box = (d: string) => {
+      const n = (d.match(/-?\d*\.?\d+(?:e-?\d+)?/gi) ?? []).map(Number);
+      const xs = n.filter((_, i) => i % 2 === 0);
+      const ys = n.filter((_, i) => i % 2 === 1);
+      return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+    };
+    const centred = (b: ReturnType<typeof box>) => Math.abs((b.x0 + b.x1) / 2 - 12) < 1.5 && Math.abs((b.y0 + b.y1) / 2 - 12) < 1.5;
+    expect(SKILL_FRAME_PARTS).toBe(RIG_FRAME_PARTS);
     for (const id of SKILL_IDS) {
       const art = rig.icon(id);
+      expect(art.viewBox, id).toBe("0 0 24 24");
+      const [outer, inner] = art.parts.slice(0, SKILL_FRAME_PARTS).map((p) => {
+        expect(p.transform, id).toBeFalsy();
+        expect(p.d.match(/M/g), id).toHaveLength(1);
+        return box(p.d);
+      });
+      expect(outer!.x1 - outer!.x0, id).toBeGreaterThan(19);
+      expect(outer!.y1 - outer!.y0, id).toBeGreaterThan(19);
+      expect(centred(outer!) && centred(inner!), id).toBe(true);
+      expect(inner!.x0 > outer!.x0 && inner!.x1 < outer!.x1 && inner!.y0 > outer!.y0 && inner!.y1 < outer!.y1, id).toBe(true);
       const sil = silhouetteArt(art, "skill");
-      expect(sil.parts.length, id).toBe(art.parts.length - 2);
-      expect(sil.parts[0]!.d, id).toBe(art.parts[2]!.d);
+      expect(sil.parts.map((p) => p.d), id).toEqual(art.parts.slice(SKILL_FRAME_PARTS).map((p) => p.d));
     }
     // two badge-only silhouettes that used to look the same now differ
     const sig = (id: PerkId) => silhouetteArt(rig.icon(id), "skill").parts.map((p) => p.d).join("|");

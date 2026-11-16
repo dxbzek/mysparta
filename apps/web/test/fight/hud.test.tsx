@@ -16,7 +16,7 @@ import { BAG_SHOWN, BagStrip, SideBag, bagView } from "../../src/fight/BagStrip"
 import { beatsOf, litAt } from "../../src/fight/beats";
 import { FighterCard, cardInfo } from "../../src/fight/FighterCard";
 import { Hud, hitGlow } from "../../src/fight/Hud";
-import { LogStrip, stripParts, stripSteps } from "../../src/fight/LogStrip";
+import { LogStrip, STRIP_MORE, stripParts, stripSteps } from "../../src/fight/LogStrip";
 import { StageOverlay } from "../../src/fight/StageOverlay";
 import { TextLog, logLines } from "../../src/fight/TextLog";
 import { actorNames } from "../../src/text/log";
@@ -207,6 +207,19 @@ describe("LogStrip", () => {
     expect(stripSteps(log.steps, n)).toHaveLength(Math.min(2, n));
     if (n > 0) expect(html).toContain(stripParts(log.steps[n - 1]!, names).map((p) => p.text).join("").slice(0, 12).replace(/'/g, "&#x27;"));
     expect(html).toContain("Open the full bout log");
+  });
+  it("review r2: earlier lines fill spare height in a box that adds none, hidden from the live region", () => {
+    const n = log.steps.length;
+    const html = renderToStaticMarkup(<LogStrip steps={log.steps} stepsShown={n} names={names} live onOpen={() => undefined} />);
+    expect(html).toMatch(/class="[^"]*_stripMoreBox_[^"]*" aria-hidden="true"/);
+    const more = html.slice(html.indexOf("_stripMoreBox_"));
+    expect((more.match(/<li/g) ?? []).length).toBe(Math.min(STRIP_MORE, Math.max(0, n - 2)));
+  });
+  it("review r2: the locked-3x note is a status line in the strip, and the status box is always present", () => {
+    const off = renderToStaticMarkup(<LogStrip steps={log.steps} stepsShown={3} names={names} live onOpen={() => undefined} />);
+    expect(off).toMatch(/<p class="rz-visually-hidden" role="status"><\/p>/);
+    const on = renderToStaticMarkup(<LogStrip steps={log.steps} stepsShown={3} names={names} live note="3x speed is a VIP perk" onOpen={() => undefined} />);
+    expect(on).toMatch(/<p class="[^"]*_stripNote_[^"]*" role="status">3x speed is a VIP perk<\/p>/);
   });
 });
 

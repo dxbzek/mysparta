@@ -96,7 +96,10 @@ describe("screens", () => {
     const { g, id, html } = await setup();
     await playUntilLevelUp(g, id);
     const out = html(<BoutsScreen />);
-    expect(out).toMatch(/aria-label="[^"]+, level \d+"/);
+    // the name is plain readable text and the level reaches screen readers as hidden words, not an
+    // aria-label on a generic span (review r2 checker)
+    expect(out).toMatch(/<span class="rz-visually-hidden">, level \d+<\/span>/);
+    expect(out).not.toMatch(/class="[^"]*_opp_[^"]*"[^>]*aria-label=/);
     expect(out).toMatch(/class="[^"]*_lv_[^"]*" aria-hidden="true">LV \d+</);
   });
 });

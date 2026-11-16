@@ -40,3 +40,17 @@ describe("level-up chip row (review r2: strip stayed frozen after Take it)", () 
     expect(previewSheet(api, api.snapshotOf(g.store.doc.fighters[0]!), { kind: "perk", perk: s.perks[0]! } as RouteCard)).toBeNull();
   });
 });
+
+describe("the Max HP chip stays readable while a card previews it (checker r2)", () => {
+  it("keeps its dark face and light text under the preview state", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { fileURLToPath } = await import("node:url");
+    const cssText = readFileSync(fileURLToPath(new URL("../../src/screens/LevelUp/LevelUp.module.css", import.meta.url)), "utf8");
+    const rule = /\.hpChip\.chipPreview\s*\{([^}]*)\}/.exec(cssText);
+    expect(rule).not.toBeNull();
+    expect(rule![1]).toMatch(/background:\s*var\(--c-dark\)/);
+    expect(rule![1]).toMatch(/color:\s*var\(--t-on-dark\)/);
+    // and it comes after the plain preview rule, which sets the light face
+    expect(cssText.indexOf(".hpChip.chipPreview")).toBeGreaterThan(cssText.indexOf("\n.chipPreview {"));
+  });
+});

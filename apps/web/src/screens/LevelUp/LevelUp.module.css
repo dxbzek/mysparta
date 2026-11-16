@@ -68,6 +68,13 @@
   background: var(--c-raised);
   box-shadow: inset 0 0 0 2px var(--c-hazard);
 }
+/* the Max HP chip keeps its dark face while previewed: its light text was unreadable on the
+   raised face (checker r2). The hazard ring still marks it. */
+.hpChip.chipPreview {
+  background: var(--c-dark);
+  color: var(--t-on-dark);
+  border-color: var(--c-hazard);
+}
 .chipTaken,
 .hpChip.chipTaken {
   background: var(--c-hazard);

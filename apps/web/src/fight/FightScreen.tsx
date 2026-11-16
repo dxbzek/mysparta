@@ -227,12 +227,11 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
             onSettings({ sound: on });
           }}
         />
-        {speedNote ? <p className={css.speedNote} role="status">{UI.bout.vipSpeed}</p> : null}
       </div>
       {mode === "replay" ? (
         <ReplayBar stepsShown={hud.stepsShown} total={log.steps.length} onSeekStep={(n) => seek(seekTimeFor(tl.stepEnd, n))} />
       ) : null}
-      <LogStrip steps={log.steps} stepsShown={hud.stepsShown} names={names} live={settings.liveLog && !logOpen} onOpen={openLog} />
+      <LogStrip steps={log.steps} stepsShown={hud.stepsShown} names={names} live={settings.liveLog && !logOpen} note={speedNote ? UI.bout.vipSpeed : null} onOpen={openLog} />
       <div className={css.lower}>
         <div className={css.cards}>
           {(["a", "b"] as const).map((side) => (

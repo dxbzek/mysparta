@@ -18,10 +18,11 @@
   /* The stage grows to at most 9:10 of the width (review r2: on a 390 x 844 phone a 1fr stage was
      390 x 425, the camera fits the fighters by width, and the spare height was empty back wall
      where the tags and numbers floated 80-120 px above the bodies). At 9:10 the fighters are as
-     large as before; the room left over sits under the cards. */
-  grid-template-rows: auto minmax(200px, var(--stage-max-h)) auto auto;
+     large as before. The log strip is the 1fr row: the room left over shows earlier log lines
+     instead of an empty band under the cards. When room runs short the strip gives up its extra
+     lines first, then the stage shrinks toward its floor. */
+  grid-template-rows: auto minmax(200px, var(--stage-max-h)) 1fr auto;
   grid-template-areas: "hud" "stage" "strip" "lower";
-  align-content: start;
   --stage-max-h: min(90vw, 504px);
   height: 100vh;
   height: 100dvh;
@@ -34,7 +35,7 @@
   color: var(--t-on-night);
 }
 .replayMode {
-  grid-template-rows: auto minmax(200px, var(--stage-max-h)) auto auto auto;
+  grid-template-rows: auto minmax(200px, var(--stage-max-h)) auto 1fr auto;
   grid-template-areas: "hud" "stage" "replay" "strip" "lower";
 }
 
@@ -240,22 +241,6 @@
   gap: 0;
 }
 .controlsLeft { left: 2px; }
-/* the locked-3x note sits on the stage under the speed buttons, never over the fighter cards'
-   skill tiles (review r2) */
-.speedNote {
-  position: absolute;
-  top: 50px;
-  left: 50px;
-  margin: 0;
-  padding: 5px 9px 4px;
-  border: var(--line-thin) solid var(--c-ink);
-  border-radius: var(--rough-radius-sm);
-  background: var(--c-card-deep);
-  color: var(--t-on-card-deep);
-  font: 700 13px / 1.2 var(--font-body);
-  box-shadow: var(--shadow-hard-sm);
-  pointer-events: none;
-}
 .controlsRight { right: 2px; }
 .ctl {
   display: grid;
@@ -339,13 +324,51 @@
 /* ------------------------------------------------------------------ 3. log strip */
 .strip {
   grid-area: strip;
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
   gap: 6px;
   padding: 2px 4px 2px 10px;
   background: var(--c-night);
   border-bottom: var(--line-thin) solid var(--c-ink);
+}
+.stripCol {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+/* earlier lines: a box that adds no height (its list is absolutely placed), so it only fills
+   room the strip already has, fading out toward the cards */
+.stripMoreBox {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+}
+.stripMore {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0 0 0 8px;
+  list-style: none;
+  border-left: 4px solid var(--c-sodium);
+  overflow: hidden;
+  opacity: 0.8;
+  /* a mask reads only the alpha, so any opaque token does */
+  -webkit-mask-image: linear-gradient(to bottom, var(--c-ink) 55%, transparent);
+  mask-image: linear-gradient(to bottom, var(--c-ink) 55%, transparent);
+}
+/* the locked-3x note, above the newest line, in the strip (never over the stage's numbers) */
+.stripNote {
+  align-self: start;
+  margin: 2px 0 3px;
+  padding: 4px 9px 3px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-card-deep);
+  color: var(--t-on-card-deep);
+  font: 700 13px / 1.2 var(--font-body);
+  box-shadow: var(--shadow-hard-sm);
 }
 .stripLines {
   margin: 0;
@@ -354,20 +377,25 @@
   border-left: 4px solid var(--c-sodium);
   min-width: 0;
 }
+/* an earlier line wraps to two lines, so its outcome ("...and lands 8") is not cut either */
 .stripLine {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--t-on-night-dim);
-  font: 400 13px / 1.35 var(--font-body);
-}
-/* The newest line wraps to two lines (review r2: the outcome and the skill name were cut off by
-   an ellipsis on a phone). Its box always holds two lines, so the strip never jumps in height. */
-.stripNew {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+  overflow: hidden;
+  color: var(--t-on-night-dim);
+  font: 400 13px / 1.35 var(--font-body);
+}
+/* The newest line wraps (review r2: the outcome and the skill name were cut off by an ellipsis on
+   a phone). Its box always holds two lines; a longer sentence (two targets, long names) takes up
+   to four, inside the strip's own spare room, so the stage never changes size. Short phones and
+   replay mode have no spare room and keep two lines (see the media rules below). */
+.stripNew {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
   white-space: normal;
   text-overflow: clip;
   min-height: calc(2 * 1.3em);
@@ -395,6 +423,9 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
+  /* level with the newest line when the strip grows tall */
+  align-self: start;
+  margin-top: 2px;
 }
 
 /* the full log, in a sheet */
@@ -853,11 +884,45 @@
 }
 
 /* ------------------------------------------------------------------ short phones and embedded frames */
-/* replay mode adds the scrub bar: the strip keeps only its newest line, so the stage keeps half
-   the phone screen even with three pets and a full skill list (finding 34) */
+/* Less spare height: the strip's own lines take less, so a long sentence never squeezes the
+   stage. (The extra lines under them sit in a box that adds no height.) */
+@media (max-height: 799px) {
+  .stripLines .stripLine:not(.stripNew) {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+  .stripNew {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+}
+/* replay mode adds the scrub bar */
 @media (max-width: 899px) {
-  .replayMode .stripLine:not(.stripNew) {
+  .replayMode .stripNew {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+}
+/* ...and on a phone that is not tall the strip keeps only its newest line, so the stage keeps half
+   the phone screen even with three pets and a full skill list (finding 34) */
+@media (max-width: 899px) and (max-height: 820px) {
+  .replayMode .stripLine:not(.stripNew),
+  .replayMode .stripMoreBox {
     display: none;
+  }
+  /* three lines, always reserved (the Log button already makes the strip nearly that tall), so a
+     long sentence shows its outcome and the stage never changes size */
+  .replayMode .stripNew {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    min-height: calc(3 * 1.3em);
+  }
+  /* no spare room here: the note lies over the strip's lines instead of pushing the stage */
+  .replayMode .stripNote {
+    position: absolute;
+    top: 2px;
+    left: 10px;
+    z-index: 1;
   }
 }
 
@@ -866,8 +931,20 @@
   .weaponLine {
     display: none;
   }
-  .stripLine:not(.stripNew) {
+  .stripLine:not(.stripNew),
+  .stripMoreBox {
     display: none;
+  }
+  .stripNew {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    min-height: calc(3 * 1.3em);
+  }
+  .stripNote {
+    position: absolute;
+    top: 2px;
+    left: 10px;
+    z-index: 1;
   }
 }
 
@@ -925,6 +1002,15 @@
   .strip {
     margin-top: 8px;
     border: var(--line-thin) solid var(--c-ink);
+  }
+  /* wide lines; the strip row is not the spare row here, so its height stays fixed */
+  .stripLines .stripLine:not(.stripNew) {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+  .stripNew {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
   .lower,
   .cards {

@@ -19,7 +19,9 @@ describe("unreadable save screen", () => {
   it("speaks in plain words, never the storage key", async () => {
     const out = await html(<Unreadable backupKey="rankzero.backup.0" />);
     expect(out).not.toContain("rankzero.backup");
-    expect(out).toContain("Settings");
+    expect(out).toContain("A copy of the damaged save is kept on this device.");
+    // Settings > Backups lists only readable saves, so the damaged copy is never promised there
+    expect(out).not.toContain("Settings");
   });
   it("the paste box has a visible label and a placeholder", async () => {
     const out = await html(<Unreadable backupKey="rankzero.backup.0" />);

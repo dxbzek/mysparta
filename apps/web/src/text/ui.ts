@@ -203,6 +203,7 @@ export const UI = {
     xp: (n: number) => `+${n} XP`,
     vs: (name: string, level: number) => `${name}, level ${level}`,
     lv: (level: number) => `LV ${level}`,
+    levelWords: (level: number) => `, level ${level}`,
     count: (n: number) => `Last ${n} bouts`,
   },
 
@@ -265,8 +266,9 @@ export const UI = {
     export: "Export save code",
     unreadableTitle: "Your save could not be read",
     unreadableLine: "Its bytes were copied to a backup and are kept. You can import a save code, or start a new save.",
-    // review r2: plain words, not the storage key (the copy is listed under Settings > Backups)
-    backupKey: (_k: string) => "A copy of the damaged save is kept under Settings, Backups.",
+    // review r2: plain words, not the storage key. Settings > Backups lists only saves this build
+    // can read, so the line does not send the player there for the damaged copy.
+    backupKey: (_k: string) => "A copy of the damaged save is kept on this device.",
     pasteLabel: "Paste a save code",
     pastePlaceholder: "RZ1...",
     newSaveConfirm: "This starts a new scrapper from scratch. The damaged save stays in the backups. Start over?",
