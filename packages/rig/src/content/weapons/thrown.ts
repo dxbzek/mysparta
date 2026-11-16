@@ -56,7 +56,7 @@ export const PLASTIC_BOTTLE: WeaponArt = weapon([
 /** Rubber Ball: a hard red rubber ball with a pale seam; thrown at the floor, bounces up into
  *  the target, the ball hits. */
 export const RUBBER_BALL: WeaponArt = weapon([
-  fillOf(ellipsePoly(1.8, 0, 4.4, 4.4, 22), "wood", 0),
+  fillOf(ellipsePoly(1.8, 0, 4.4, 4.4, 22), "sign", 0),
   fillOf(band([[0.2, -4.0], [2.6, -1.4], [2.6, 1.4], [0.2, 4.0]], 1.0), "white", 1),
   scuffs(302, 4, 0, 5, -3, 3, 2, 0.24),
 ], [6.2, 0]);
@@ -66,7 +66,7 @@ export const RUBBER_BALL: WeaponArt = weapon([
 export const PAINT_CAN: WeaponArt = weapon([
   fillOf(band([[3.6, -4.8], [0.8, -2.8], [0, 0], [0.8, 2.8], [3.6, 4.8]], 0.55), "metal", 0),
   fillOf(roundRect(3, -5.2, 9.8, 10.4, 0.6), "metal", 1),
-  fillOf(roundRect(5.4, -5.2, 5.6, 10.4, 0.2), "wood", 2),
+  fillOf(roundRect(5.4, -5.2, 5.6, 10.4, 0.2), "paint", 2),
   fillsOf([[[3, -5.2], [4.6, -5.2], [4.6, -3.2], [4.0, -2.0], [3.6, -3.4], [3, -3.0]], [[3, 1.8], [4.4, 2.4], [4.4, 5.2], [3, 5.2]]], "accent", 2.5),
   lines([[[3.9, -5.2], [3.9, 5.2]], [[12, -5.2], [12, 5.2]]], 0.24, 3, false),
   fillOf(ellipsePoly(8.2, 0, 1.8, 1.8, 12), "white", 3),
@@ -77,7 +77,7 @@ export const PAINT_CAN: WeaponArt = weapon([
 /** Traffic Cone: a scuffed road cone with two reflective bands and a rubber base; held by its
  *  narrow top, flung base first, the wide base hits. */
 export const TRAFFIC_CONE: WeaponArt = weapon([
-  fillOf([[-2.4, -0.7], [-1.8, -1.1], [15, -5.4], [15, 5.4], [-1.8, 1.1], [-2.4, 0.7]], "metal", 0),
+  fillOf([[-2.4, -0.7], [-1.8, -1.1], [15, -5.4], [15, 5.4], [-1.8, 1.1], [-2.4, 0.7]], "cone", 0),
   fillOf([[4, -2.6], [6.6, -3.3], [6.6, 3.3], [4, 2.6]], "white", 1),
   fillOf([[9.2, -3.9], [11.4, -4.5], [11.4, 4.5], [9.2, 3.9]], "white", 1),
   fillOf(roundRect(14.6, -7.4, 2.4, 14.8, 0.4), "hair", 2),

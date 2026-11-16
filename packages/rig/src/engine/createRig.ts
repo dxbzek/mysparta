@@ -20,7 +20,7 @@ import { BODY_CENTRE, HEAD_CENTRE, KNUCKLES } from "../gate/parts";
 import { hd } from "../gate/parts/kit";
 import { PLACEHOLDER_COMPANIONS, placeholderWeapon, shieldStandIn } from "../gate/placeholders";
 import type { CompanionArt } from "../gate/placeholders";
-import { ANATOMY, BONE, GRIP_ROT, SCRAPPER_RIG, SECONDARY } from "../gate/skeleton";
+import { ANATOMY, BONE, GRIP_ROT, SCRAPPER_RIG, SECONDARY, STOW, WORN_ITEMS, stowAmount } from "../gate/skeleton";
 import { COMPANION_COLOURS, FIXED, GROUND_SHADOW, HAIR_COLOUR, LINE, PALETTES, SKIN, shadeOf, slotColour } from "../gate/style";
 import type { SlotColours } from "../gate/style";
 import { parsePolys } from "../gate/vocab";
@@ -113,6 +113,45 @@ const HEAD_CLEAR = 13;
 /** Most the first joint turns while the hand is still, so a chain drapes over the fist. */
 export const MAX_BEND_HANG = 110;
 
+/** Where a put-away item goes (`STOW`). Hip: tucked in the belt at the near hip (pelvis frame),
+ *  hanging along the thigh, `angle` from the thigh's own line (positive tips it back). Back:
+ *  behind the shoulders (torso frame), hanging down the back at `angle` from the spine. Floor:
+ *  set down `gap` behind the back foot. */
+const STOW_HIP = { near: [2.2, -2.6] as const, far: [-2.4, -2.6] as const, angle: 86, z: 52, zFar: 9, maxLength: 36 } as const;
+const STOW_BACK = { at: [-4.6, -22] as const, angle: 97, z: 5, clear: 5, rise: 0 } as const;
+const STOW_FLOOR = { gap: 3, z: 9 } as const;
+/** An item on its way: let go over `settle` of the channel, a hand pointing further back than
+ *  `front` degrees from straight forward folded forward, then turned round to where it is kept. `dip`: how far below the straight line from the hand to
+ *  where it is kept the item passes, mid-way (figure units). */
+const STOW_SWING = { front: 75, settle: 0.35, dip: 14 } as const;
+/** How a set-down thing stands on the floor: the turn (degrees) that puts its own base down
+ *  (an anvil sits on its foot, a cone and a paint tin stand up); the rest lie as drawn. */
+const FLOOR_TURN: Readonly<Record<string, number>> = { anvil: 90, "traffic-cone": 90, "paint-can": 90 };
+/** Bulky things a fighter sets down rather than tucks away. */
+const SET_DOWN: ReadonlySet<string> = new Set(["anvil", "tyre", "traffic-cone", "paint-can", "bricks", "rubber-ball", "hubcap", "folding-chair"]);
+function stowPlace(held: HeldId, art: WeaponArt): "hip" | "back" | "floor" {
+  if (SET_DOWN.has(held)) return "floor";
+  return art.grip2 !== undefined || art.length > STOW_HIP.maxLength ? "back" : "hip";
+}
+/** An item's drawn extent in its own units: [x0, x1, y0, y1] (the links laid out straight). */
+const spans = new WeakMap<WeaponArt, [number, number, number, number]>();
+function itemSpan(art: WeaponArt): [number, number, number, number] {
+  let r = spans.get(art);
+  if (r !== undefined) return r;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  const eat = (shapes: readonly { d: string }[], dx: number): void => {
+    for (const sh of shapes) for (const poly of parsePolys(sh.d)) for (const [x, y] of poly) {
+      x0 = Math.min(x0, x + dx); x1 = Math.max(x1, x + dx); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+    }
+  };
+  eat(art.shapes, 0);
+  let dx = 0;
+  for (const sg of art.segments ?? []) { eat(sg.shapes, dx); dx += sg.length; }
+  r = Number.isFinite(x0) ? [x0, x1, y0, y1] : [0, art.length, -1, 1];
+  spans.set(art, r);
+  return r;
+}
+
 export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig => {
   const gateOnly = content === undefined;
   const looks: AppearanceSet = content?.looks ?? gate.looks;
@@ -189,6 +228,13 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     rot: number[]; held: HeldId; art: WeaponArt | null; backLeads: boolean; facing: 1 | -1;
     /** 1 while the back hand holds a two-hand item's grip2, 0 once it has let go. */
     hold2: number;
+    /** The held item out of the hand (`STOW`): on its way to, or at, the hip, the back or the
+     *  floor; `art` is then null. */
+    stowed: WeaponArt | null;
+    /** How far it has gone from the hand (0) to where it is put away (1), eased. */
+    away: number;
+    /** The same, not eased: the stow channel as a part of `STOW.away`. */
+    let: number;
   }
   const SWAP: readonly (readonly [number, number])[] = [[BONE.armBup, BONE.armFup], [BONE.armBlo, BONE.armFlo], [BONE.handB, BONE.handF]];
 
@@ -211,11 +257,24 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     let rot = [...pose.rot];
     while (rot.length < model.def.bones.length) rot.push(0);
     if (backLeads) for (const [b, f] of SWAP) { const t = rot[b]!; rot[b] = rot[f]!; rot[f] = t; }
-    const art = held === "fists" ? null : weaponArt(held);
+    const art0 = held === "fists" ? null : weaponArt(held);
+    // a Move reaction with the hands at the head puts the item away (worn knuckles stay on)
+    // The channel is a blended angle: the stage's crossfade into and out of such a clip turns it
+    // smoothly between 0 and STOW.on, and that is the put-away motion. The item leaves the hand
+    // as soon as the channel moves and is away by STOW.away of it (before the hands are up at
+    // the head); on the way back it reaches the hand as the channel reaches 0.
+    const su = art0 !== null && !WORN_ITEMS.includes(held) ? stowAmount(rot) / STOW.away : 0;
+    // (the channel itself starts and ends gently. A thing held in both hands, up at the chest,
+    // goes quickly at first, so it is clear of the hands before they have risen far.)
+    const away = su <= 1e-4 ? 0 : su >= 1 ? 1 : art0?.grip2 !== undefined ? 1 - (1 - su) ** 3 : su;
+    const stowed = away > 0 ? art0 : null;
+    const art = stowed !== null ? null : art0;
     const free = [...rot];
-    const hold = shaftHold(pose, dress);
+    // the back hand comes off a two-hand shaft as the item leaves (eased, so no arm jumps)
+    const hold = shaftHold(pose, dress) * (1 - away);
     let hold2 = 0;
-    if (art !== null && art.grip2 !== undefined && hold > 0) {
+    if (art0 !== null && art0.grip2 !== undefined && hold > 0) {
+      const art = art0;
       // the back hand on the shaft: pinned by two-bone IK to grip2, turned along the item. The
       // item is drawn at its own size (itemStageXf), not at the body's, so grip2's offset from the
       // grip is turned into figure units by dividing out the body scale; pinning it in item units
@@ -322,7 +381,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     const fr = frames(model, rot, pose.root.x, pose.root.y);
     const wa = worldAngles(model, rot);
     const map: Xf = { a: at.facing * s, b: 0, c: 0, d: s, e: at.x, f: at.y };
-    return { fr, wa, map, s, build, rot, held, art, backLeads, facing: at.facing, hold2 };
+    return { fr, wa, map, s, build, rot, held, art, backLeads, facing: at.facing, hold2, stowed, away, let: Math.min(1, Math.max(0, su)) };
   }
   /** Where the back wrist must be (figure space) for the back hand to hold `grip2`, and the
    *  hand's world angle (both hands close round the shaft the same way). */
@@ -674,6 +733,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
         parts.push(...tagged(itemPaints(f.art, xo, 21, colours, undefined, null, 0, 0, 0), `item:${other}`, xo));
       }
     }
+    if (f.stowed !== null) parts.push(...stowedPaints(f, f.stowed, colours, pose.trail));
     if (dress.shield !== null && dress.shield !== undefined) {
       const art = shieldArt(dress.shield);
       const wrist = f.fr[BONE.handB]!;
@@ -702,6 +762,136 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       }
     }
     return parts;
+  }
+  /** The held item put away for a Move reaction (`STOW`; review round 2, 16 Nov 2026: a blade
+   *  went through the face while the hands were at the ears). Where it goes is what a real
+   *  fighter does with that object (`stowPlace`): a short tool hangs from the belt at the near
+   *  hip along the thigh (a pair: the second at the far hip); a long or two-hand one is slung
+   *  across the back behind the body (as the stage slings a shield); a bulky thing (a tyre, an
+   *  anvil, a cone) is set down on the floor behind the back foot. Tagged "stowed:F" / "stowed:B". */
+  function stowedPaints(f: Fig, art: WeaponArt, colours: SlotColours, trail: readonly number[] | undefined): Paint[] {
+    const out: Paint[] = [];
+    const [x0, x1, y0, y1] = itemSpan(art);
+    const mid = (y0 + y1) / 2;
+    const linked = art.segments !== undefined && art.segments.length > 0;
+    const put = (px: number, py: number, angle: number, ax: number, ay: number, z: number, tag: string, bend?: readonly number[]): void => {
+      // a bending item hangs straight once it is put away (`bend`: what is left of its hang in
+      // the hand, link by link, while it is on its way)
+      const a2: WeaponArt = { ...art, grip: { x: ax, y: ay, rot: 0 } };
+      if (art.segments !== undefined && art.segments.length > 0) {
+        let x = px;
+        let y = py;
+        const r = (angle * Math.PI) / 180;
+        x -= ((ax * Math.cos(r)) - (ay * Math.sin(r))) / f.s;
+        y -= ((ax * Math.sin(r)) + (ay * Math.cos(r))) / f.s;
+        art.segments.forEach((sg, k) => {
+          const a = angle + (bend?.[k] ?? 0);
+          const ra = (a * Math.PI) / 180;
+          const m = itemStageXf(f, x, y, a, { ...art, grip: { x: 0, y: 0, rot: 0 } });
+          out.push(...tagged(itemPaints({ ...art, shapes: sg.shapes, segments: [] } as WeaponArt, m, z + 0.001 * k, colours, undefined, null, 0, 0, 0), tag, m));
+          x += (sg.length * Math.cos(ra)) / f.s;
+          y += (sg.length * Math.sin(ra)) / f.s;
+        });
+        return;
+      }
+      const m = itemStageXf(f, px, py, angle, a2);
+      out.push(...tagged(itemPaints(a2, m, z, colours, undefined, null, 0, 0, 0), tag, m));
+    };
+    // Where the item was in the hand, and where it goes (kept with its point `ax`, `ay` at
+    // `px`, `py`): it travels from one to the other by `f.away`, while the item turns. It always turns the same
+    // way round, its far end swinging forward and down (never up and back over the head), so
+    // the way is the same on every frame and the way back is the way in, reversed.
+    const lead: "F" | "B" = f.backLeads ? "B" : "F";
+    const move = (hand: "F" | "B", px: number, py: number, angle: number, ax: number, ay: number, z: number, zHand: number, tag: string): void => {
+      const t = f.away;
+      if (t >= 1) { put(px, py, angle, ax, ay, z, tag); return; }
+      const g = gripOf(f, hand, art);
+      // The point of the item that travels is its grip, where the hand held it (a linked item
+      // is drawn from the fist itself, its grip offset is not used): from the fist to where
+      // that point lies once the item is kept. The item turns about it.
+      const qx = linked ? 0 : art.grip.x;
+      const qy = linked ? 0 : art.grip.y;
+      const rk = (angle * Math.PI) / 180;
+      const kx = px + ((qx - ax) * Math.cos(rk) - (qy - ay) * Math.sin(rk)) / f.s;
+      const ky = py + ((qx - ax) * Math.sin(rk) + (qy - ay) * Math.cos(rk)) / f.s;
+      // The way it points. Hands going up to the head turn over backwards, and an item that
+      // followed them would sweep over the head. So once the hand lets go (the first
+      // STOW_SWING.settle of the channel) the item no longer follows a hand that points up and
+      // back: that part of the circle is folded forward (`front`: a hand within `front` degrees
+      // of straight forward stays, one pointing straight back counts as straight forward), and
+      // from there the item turns steadily round to where it is kept, its far end going forward
+      // and down. The folded angle never wraps, so nothing can flip from one frame to the next
+      // however the hand turns under the item.
+      const ha = ((((g.angle + 180) % 360) + 360) % 360) - 180;
+      const F = STOW_SWING.front;
+      const folded = Math.abs(ha) <= F ? ha : -F + (2 * F * ((((-F - ha) % 360) + 360) % 360)) / (360 - 2 * F);
+      const sa = Math.min(1, f.let / STOW_SWING.settle);
+      const from = ha + (folded - ha) * (sa * sa * (3 - 2 * sa));
+      // where it is kept, as an angle from -105 to 255: from the front, round by way of down
+      const kept = ((((angle + 105) % 360) + 360) % 360) - 105;
+      const way = from + (kept - from) * t;
+      const bend = linked && hand === lead ? linkAngles(art, g.angle, trail, headFrom(f, g.x, g.y)).map((a) => {
+        const d = ((((a - g.angle) % 360) + 540) % 360) - 180;
+        return d * (1 - t);
+      }) : undefined;
+      // it travels low, past the chest, not straight through the head and neck
+      const dip = 4 * t * (1 - t) * STOW_SWING.dip;
+      let ty = g.y + (ky - g.y) * t + dip;
+      // and never into the floor: a long item swung down is lifted clear of it
+      const rw = (way * Math.PI) / 180;
+      let low = -Infinity;
+      for (const [x, y] of [[x0, y0], [x0, y1], [x1, y0], [x1, y1]] as const) low = Math.max(low, ty + ((x - qx) * Math.sin(rw) + (y - qy) * Math.cos(rw)) / f.s);
+      if (low > 0) ty -= low;
+      put(g.x + (kx - g.x) * t, ty, way, qx, qy, t < 0.5 ? zHand : z, tag, bend);
+    };
+    const where = stowPlace(f.held, art);
+    if (where === "floor") {
+      // set down on the floor behind the back foot, on its own base (`FLOOR_TURN`)
+      const turn = FLOOR_TURN[f.held] ?? 0;
+      const r = (turn * Math.PI) / 180;
+      const cx = (x0 + x1) / 2;
+      let low = -Infinity, left = Infinity, right = -Infinity;
+      for (const [x, y] of [[x0, y0], [x0, y1], [x1, y0], [x1, y1]] as const) {
+        const rx = (x - cx) * Math.cos(r) - (y - mid) * Math.sin(r);
+        const ry = (x - cx) * Math.sin(r) + (y - mid) * Math.cos(r);
+        low = Math.max(low, ry); left = Math.min(left, rx); right = Math.max(right, rx);
+      }
+      const back = Math.min(f.fr[BONE.footB]!.e, f.fr[BONE.footF]!.e);
+      move(lead, back - STOW_FLOOR.gap - (right - left) / (2 * f.s), -low / f.s, turn, cx, mid, STOW_FLOOR.z, 61, "stowed:B");
+      return out;
+    }
+    if (where === "back") {
+      // slung on the back: the top end behind the shoulders, the item down along the spine. A
+      // long one (a pitchfork, a broom) is drawn up the back until its low end is clear of the
+      // floor, so nothing drags on or dips under the ground.
+      const angle = f.wa[BONE.torso]! + STOW_BACK.angle;
+      const r = (angle * Math.PI) / 180;
+      let [gx, gy] = apply(f.fr[BONE.torso]!, STOW_BACK.at[0], STOW_BACK.at[1]);
+      // the lowest point of the item when it hangs this way (its far end, with its width)
+      const reach = (ex: number, ey: number): number => gy + ((ex - x0) * Math.sin(r) + (ey - mid) * Math.cos(r)) / f.s;
+      const low = Math.max(reach(x1, y0), reach(x1, y1));
+      const over = low + STOW_BACK.clear;
+      let hang = angle;
+      if (over > 0 && Math.sin(r) > 0.2) {
+        // up the back a little (more would put its top end behind the head), then tipped out
+        const up = Math.min(over / Math.sin(r), STOW_BACK.rise);
+        gx -= up * Math.cos(r);
+        gy -= up * Math.sin(r);
+        const len = (x1 - x0) / f.s;
+        const drop = -STOW_BACK.clear - gy - (Math.abs(y1 - y0) / 2 / f.s) * Math.abs(Math.cos(r));
+        if (len * Math.sin(r) > drop && drop > 0) hang = 180 - (Math.asin(Math.min(1, drop / len)) * 180) / Math.PI;
+      }
+      move(lead, gx, gy, hang, x0, mid, STOW_BACK.z, 61, "stowed:B");
+      return out;
+    }
+    const pelvis = f.fr[BONE.pelvis]!;
+    const [nx, ny] = apply(pelvis, STOW_HIP.near[0], STOW_HIP.near[1]);
+    move(lead, nx, ny, f.wa[BONE.legFup]! + STOW_HIP.angle, x0, mid, STOW_HIP.z, 61, "stowed:F");
+    if (isPair(f.held) || art.offhand === true) {
+      const [fx, fy] = apply(pelvis, STOW_HIP.far[0], STOW_HIP.far[1]);
+      move(lead === "F" ? "B" : "F", fx, fy, f.wa[BONE.legBup]! + STOW_HIP.angle, x0, mid, STOW_HIP.zFar, 21, "stowed:B");
+    }
+    return out;
   }
   /** Tags an item's paints; `item` is the frame the item's own drawing (grip, grip2) is in. */
   function tagged(ps: Paint[], tag: string, item: Xf): Paint[] {

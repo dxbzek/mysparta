@@ -194,7 +194,11 @@ export function measureParts(ins: RigInspect, parts: readonly Paint[], pose: Pos
   const lead: "F" | "B" = dress.lead === "B" && dress.held !== null && WEAPON_META[dress.held as Exclude<HeldId, "fists">]?.pair === true ? "B" : "F";
   // the right hand: the item in the leading (front) hand, a second one only for a pair or an
   // off-hand item, the shield on the back forearm (checked by its strap below)
-  if (art !== null) {
+  // put away for a Move reaction (`STOW`): drawn at the hip, on the back or on the floor, no hand holds it
+  const stowed = [...byTag.keys()].some((t) => t.startsWith("stowed:"));
+  if (art !== null && stowed) {
+    if (byTag.has("item:F") || byTag.has("item:B")) note("hand", "item in a hand while put away", 1, 0);
+  } else if (art !== null) {
     const other: "F" | "B" = lead === "F" ? "B" : "F";
     const pairLike = WEAPON_META[dress.held as Exclude<HeldId, "fists">]?.pair === true || art.offhand === true;
     if (!byTag.has(`item:${lead}`)) note("hand", `item not in hand${lead}`, 1, 0);

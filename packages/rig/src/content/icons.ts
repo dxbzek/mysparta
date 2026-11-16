@@ -17,6 +17,7 @@ import { RARITY_OF } from "@rankzero/core";
 import type { ColourSlot, ContentUi, GateUi, IconArt, WeaponArt } from "../contracts";
 import type { Poly, Pt } from "../gate/vocab";
 import { dPoly, dPolys, ellipsePoly, hash01, inkLine, parsePolys, quad, rotPt, roundRect } from "../gate/vocab";
+import { LINE } from "../gate/style";
 
 type Slot = ColourSlot | "self";
 type IconShape = IconArt["shapes"][number];
@@ -165,24 +166,42 @@ const PICS: Record<SkillId, Pic> = {
   // Moves
   haymaker: pic(solid([tr(P.fist, 1.6, 0, 1.0)], "skin"), flat([band(arc(12, 12, 9.0, 120, 200, 8), 2.2)], "top"), knuckles(6.6, 10.6)),
   "energy-drink": pic(solid([roundRect(8, 4.6, 8, 15, 1.6)], "metal"), flat([roundRect(8, 9, 8, 6, 0.4)], "top"), inkOf([[[10.2, 5.8], [13.8, 5.8]]], 0.9)),
-  tarp: pic(solid([[[4.2, 6], [19.8, 6], [18.6, 17.4], [15.6, 15.6], [12, 18.6], [8.4, 15.6], [5.4, 17.4]]], "metal"), flat([circ(6.6, 8.2, 1.0, 8), circ(17.4, 8.2, 1.0, 8)], "ink")),
-  whistle: pic(solid([[[4.2, 8.6], [13.4, 8.6], [15.4, 10.6], ...arc(14.4, 14.4, 4.6, -40, 200, 10).slice(1), [7.6, 12.2], [4.2, 12.2]]], "metal"),
-    flat([circ(14.4, 14.4, 1.5, 10)], "ink"), flat([band(arc(14.4, 14.4, 7.6, -110, -60, 4), 1.2)], "white")),
+  tarp: pic(solid([[[3.6, 5.4], [20.4, 5.4], [19.6, 18.6], [16.4, 16.4], [12, 19.6], [7.6, 16.4], [4.4, 18.6]]], "paint"),
+    flat([[[7.2, 7.2], [8.6, 7.2], [9.4, 17.0], [7.8, 16.8]], [[15.4, 7.2], [16.8, 7.2], [16.2, 16.8], [14.6, 17.0]]], "ink"),
+    flat([band([[4.6, 6.6], [19.4, 6.6]], 1.0)], "white"), flat([circ(5.4, 7.8, 0.9, 8), circ(12, 7.8, 0.9, 8), circ(18.6, 7.8, 0.9, 8)], "metal")),
+  whistle: pic(solid([roundRect(2.6, 8.8, 10.4, 4.4, 1.0), circ(14.8, 13.4, 5.4, 22)], "metal"),
+    flat([roundRect(10.8, 7.6, 3.4, 1.8, 0.4)], "ink"), flat([circ(14.8, 13.4, 1.9, 12)], "wood"),
+    flat([band([[19.4, 5.8], [21.8, 3.6]], 1.3), band([[20.8, 8.8], [23.2, 8.2]], 1.3)], "white")),
   firecrackers: pic(solid([tr(roundRect(6.4, 8.6, 4.4, 11.6, 1.0), 0, 0, 1, -14), tr(roundRect(12.8, 8.6, 4.4, 11.6, 1.0), 0, 0, 1, 12)], "top"),
     flat([starPoly(7, 3.4, 1.4).map(([x, y]) => [x + 0.2, y - 6.4] as Pt)], "white")),
   snatch: pic(solid([[[5.6, 19.4], [6.2, 12], [4.4, 7.8], [6.4, 7.0], [8.4, 10.4], [8.4, 5.0], [10.6, 4.6], [11.4, 9.6], [12.4, 4.2], [14.6, 4.6], [14.4, 9.8], [16, 5.6], [18, 6.2], [16.8, 12.6], [16.2, 19.4]]], "skin")),
-  "air-horn": pic(solid([roundRect(4.4, 9.4, 6.4, 9.6, 1.2)], "top"), solid([[[10.6, 11.4], [14, 11.4], [19.8, 6.2], [19.8, 19.6], [14, 15.2], [10.6, 15.2]]], "metal"),
-    flat([roundRect(5.6, 6.4, 4, 3.2, 0.6)], "white")),
-  "body-slam": pic(solid([[[9, 3.8], [15, 3.8], [15, 10.8], [19.2, 10.8], [12, 17.4], [4.8, 10.8], [9, 10.8]]], "white"), flat([[[3.6, 19], [20.4, 19], [20.4, 20.8], [3.6, 20.8]]], "top"),
-    inkOf([[[3.8, 16.8], [6.4, 18.2]], [[20.2, 16.8], [17.6, 18.2]]], 1.0)),
-  "sand-in-the-eyes": pic(solid([[...quad([3.6, 10.4], [12, 17.8], [20.4, 10.4], 8), ...quad([20.4, 10.4], [12, 14.0], [3.6, 10.4], 8).slice(1, -1)]], "white"),
-    flat([circ(7.4, 5.4, 1.3, 8), circ(12, 4.2, 1.3, 8), circ(16.6, 5.4, 1.3, 8)], "metal"), inkOf([[[6.6, 14.2], [5.6, 16.2]], [[12, 15.6], [12, 17.8]], [[17.4, 14.2], [18.4, 16.2]]], 0.8)),
+  "air-horn": pic(solid([roundRect(3.4, 10.4, 6.2, 9.8, 1.4)], "sign"), solid([roundRect(4.2, 7.4, 4.6, 3.4, 0.8)], "metal"),
+    solid([[[8.6, 8.2], [11.4, 8.2], [18.6, 3.8], [20.2, 5.0], [20.2, 13.8], [18.6, 15.0], [11.4, 11.4], [8.6, 11.4]]], "white"),
+    flat([roundRect(18.2, 4.6, 1.2, 9.6, 0.4)], "ink")),
+  // body slam (review round 2, twice: a falling body drawn sideways, then one upside down, were
+  // a jumble at 28 px under the icon outline): ONE big shape, a heavy body seen from the front
+  // coming down flat, arms flung wide, on the floor it hits, dust kicked up at both ends.
+  "body-slam": pic(
+    solid([[[4.4, 7.8], [7.0, 6.2], [9.8, 9.6], [14.2, 9.6], [17.0, 6.2], [19.6, 7.8], [16.8, 12.4], [16.0, 16.6], [8.0, 16.6], [7.2, 12.4]]], "white"),
+    solid([circ(12, 6.4, 2.9, 16)], "skin", false),
+    flat([[[4.4, 18.2], [19.6, 18.2], [19.6, 19.8], [4.4, 19.8]], [[4.2, 17.6], [5.2, 14.4], [7.0, 17.6]], [[19.8, 17.6], [18.8, 14.4], [17.0, 17.6]]], "cone")),
+  // sand in the eyes (review round 2: a shut eye under dots read as a cookie): a wide-open eye
+  // with a spray of sand flying into it from the left, and a tear
+  "sand-in-the-eyes": pic(solid([[...quad([9.2, 12], [15.2, 5.0], [21.4, 12], 8), ...quad([21.4, 12], [15.2, 19.0], [9.2, 12], 8).slice(1, -1)]], "white"),
+    flat([circ(15.4, 12, 2.8, 16)], "ink"), flat([circ(16.4, 11.0, 0.8, 8)], "white"),
+    flat([[[2.0, 19.6], [10.6, 8.6], [12.0, 14.0]]], "wood"),
+    { ...flat([circ(4.6, 15.2, 1.0, 8), circ(7.0, 11.4, 1.0, 8), circ(8.6, 15.8, 0.9, 8), circ(10.4, 10.2, 0.8, 8), circ(5.8, 18.6, 0.8, 8)], "white"), w: 0.4 },
+    flat([[[14.6, 17.4], [15.8, 19.6], [14.6, 21.0], [13.4, 19.6]]], "paint")),
   taunt: pic(solid([[[4.2, 5.4], [19.8, 5.4], [19.8, 15.6], [11.4, 15.6], [6.6, 19.6], [7.6, 15.6], [4.2, 15.6]]], "white"),
     flat([roundRect(11, 7.0, 2.2, 5.0, 0.8), circ(12.1, 13.6, 1.2, 8)], "ink")),
-  "second-wind": pic(solid([band([[3, 9.4], [13.6, 9.4], ...arc(13.6, 6.6, 2.8, 90, -150, 6).slice(1)], 2.2), band([[3, 14.2], [17, 14.2], ...arc(17, 17.0, 2.8, -90, 150, 6).slice(1)], 2.2), band([[5, 19.0], [11, 19.0]], 2.0)], "white"),
-    solid([[[17.4, 2.6], [19.6, 2.6], [19.6, 5.2], [22.2, 5.2], [22.2, 7.4], [19.6, 7.4], [19.6, 10], [17.4, 10], [17.4, 7.4], [14.8, 7.4], [14.8, 5.2], [17.4, 5.2]]], "top")),
-  grapple: pic(solid([band([[12, 3.6], [12, 15.4]], 2.2), band([...arc(12, 13, 6.4, 20, 160, 10)], 2.2), [[17.2, 14.0], [19.4, 10.6], [20.2, 15.4]], [[6.8, 14.0], [4.6, 10.6], [3.8, 15.4]]], "metal"),
-    flat([circ(12, 4.4, 1.8, 10)], "white")),
+  "second-wind": pic(solid([[[11, 8.6], [8, 6.6], [5, 8.4], [3.4, 13.2], [3.8, 18.2], [6.8, 19.4], [10.4, 17.6], [11, 13]], [[13, 8.6], [16, 6.6], [19, 8.4], [20.6, 13.2], [20.2, 18.2], [17.2, 19.4], [13.6, 17.6], [13, 13]]], "pink"),
+    flat([band([[12, 2.0], [12, 9.6]], 2.0), band([[12, 9.4], [9.6, 11.6]], 1.2), band([[12, 9.4], [14.4, 11.6]], 1.2)], "white"),
+    solid([[[18.4, 1.4], [20.4, 1.4], [20.4, 3.6], [22.6, 3.6], [22.6, 5.6], [20.4, 5.6], [20.4, 7.8], [18.4, 7.8], [18.4, 5.6], [16.2, 5.6], [16.2, 3.6], [18.4, 3.6]]], "top")),
+  // grapple (review round 2: the hook read as a letter "i"): a body held from behind, two thick
+  // arms locked across its chest, the fists meeting in the middle
+  grapple: pic(solid([[[8.4, 9.2], [15.6, 9.2], [16.4, 19.6], [7.6, 19.6]]], "white", false), solid([circ(12, 6.4, 2.8, 16)], "white", false),
+    solid([[[4.4, 10.8], [19.6, 10.8], [19.6, 15.4], [4.4, 15.4]]], "skin"),
+    inkOf([[[12, 11.2], [12, 15.0]]], 1.1)),
 };
 
 function starPoly(points: number, r: number, ri: number): Pt[] {
@@ -207,6 +226,26 @@ function scaleShape(s: IconShape, k: number): IconShape {
   const grow = (d: string): string => dPolys(parsePolys(d).map((p) => p.map(([x, y]) => [12 + (x - 12) * k, 12 + (y - 12) * k] as Pt)));
   return s.shade === undefined ? { ...s, d: grow(s.d) } : { ...s, d: grow(s.d), shade: grow(s.shade) };
 }
+/** Mean thickness of a polygon: 2 x area / perimeter (a w-wide band gives about w). */
+function thickness(q: Poly): number {
+  let a = 0;
+  let per = 0;
+  for (let i = 0; i < q.length; i++) {
+    const p = q[i]!;
+    const r = q[(i + 1) % q.length]!;
+    a += p[0] * r[1] - r[0] * p[1];
+    per += Math.hypot(r[0] - p[0], r[1] - p[1]);
+  }
+  return per === 0 ? 0 : Math.abs(a) / per;
+}
+/** A coloured feature thinner than its own ink outline vanishes into it at 28 px (review round 2:
+ *  a goose bill, a dog ear, the light lines of a tarp): give such a shape a line that fits it. */
+function fitLine(s: IconShape): IconShape {
+  if (s.slot === "ink") return s;
+  const w = s.w ?? LINE.icon;
+  const t = Math.min(...parsePolys(s.d).map(thickness));
+  return t < w * 0.75 ? { ...s, w: Math.round(t * 0.6 * 100) / 100 } : s;
+}
 /** How many leading shapes of a framed icon are the frame (the art sheet's silhouette test
  *  looks at the pictogram alone). */
 export const FRAME_PARTS = 2;
@@ -218,7 +257,7 @@ function skillIcon(id: SkillId, seed: number): IconArt {
   const k = KIND[id] === "sticker" ? 1.2 : 1.24;
   const shapes = PICS[id].shapes.map((s) => {
     const big = scaleShape(s, k);
-    return big.slot === tone ? { ...big, slot: (tone === "white" ? "metal" : "white") as Slot } : big;
+    return fitLine(big.slot === tone ? { ...big, slot: (tone === "white" ? "metal" : "white") as Slot } : big);
   });
   return { shapes: [...frame, ...shapes] };
 }
@@ -409,3 +448,81 @@ import type { HeldId } from "@rankzero/core";
 export const WEAPON_ICONS = Object.fromEntries(
   Object.entries({ fists: FISTS, pipe: PIPE, "pocket-knife": POCKET_KNIFE, ...CONTENT_WEAPONS } as Record<HeldId, WeaponArt>).map(([id, art]) => [id, weaponIcon(art, 30, id === "fists" ? 0 : -35)]),
 ) as unknown as Record<HeldId, IconArt>;
+
+// ---------------------------------------------------------------------------- pet icons
+/**
+ * Pet icons (review round 2, 16 Nov 2026: the shrunk whole-body side portraits were smudges at
+ * 28 px, with no frame). Each is the animal's head, big in a round badge, by the one feature that
+ * names it: the raccoon's black mask, the cat's pointed ears and whiskers, the dog's floppy ears
+ * and nose, the boar's tusk and bristle ridge, the goose's long neck and orange bill, the crow's
+ * heavy beak. The badge rim is the pet's rarity tone, like every other perk.
+ */
+/** The dog drawn at full badge size, shrunk into the disc below (a tan head, not the rim's tone). */
+// small features take a thin outline: the default 1.6 icon line swallowed a 2-unit bill or ear
+const thin = (s: IconShape, w = 0.6): IconShape => ({ ...s, w });
+const DOG: IconShape[] = [
+  thin(solid([[[4.4, 20.6], [4.6, 15.4], [7.6, 15.6], [10.0, 19.0], [9.6, 21.0]]], "skin", false), 1.0),
+  thin(solid([[[6.2, 9.4], [6.8, 2.4], [12.0, 7.6]]], "skin", false), 0.9),
+  thin(flat([[[7.4, 8.2], [7.7, 4.6], [10.4, 7.6]]], "pink"), 0.4),
+  thin(solid([[[5.0, 16.6], [4.6, 11.4], [6.4, 7.8], [10.0, 6.4], [13.0, 7.4], [14.8, 10.0], [19.6, 11.0], [21.0, 12.8], [20.2, 14.8], [16.0, 15.8], [12.6, 18.0], [8.2, 18.8]]], "skin", true, 0.22), 1.1),
+  thin(flat([[[15.2, 15.4], [18.2, 15.2], [18.0, 19.0], [16.6, 19.8], [15.2, 18.4]]], "pink"), 0.6),
+  flat([circ(20.2, 12.4, 1.5, 10, 1.2), circ(12.0, 9.8, 1.0, 8)], "ink"),
+  flat([band([[21.0, 14.6], [16.6, 15.3], [14.2, 14.2]], 0.7), band([[10.6, 8.4], [13.4, 8.9]], 0.6)], "ink"),
+  thin(solid([band([[5.0, 15.8], [9.6, 19.2]], 2.0)], "sign", false), 0.6),
+];
+const PET_PICS: Record<CompanionId, IconShape[]> = {
+  raccoon: [
+    solid([[[4.6, 9.4], [6.0, 4.6], [9.6, 7.6]], [[19.4, 9.4], [18.0, 4.6], [14.4, 7.6]]], "bottom", false),
+    solid([[[4.2, 11.6], [7.4, 7.4], [12, 6.6], [16.6, 7.4], [19.8, 11.6], [18.6, 15.8], [12, 20.4], [5.4, 15.8]]], "white"),
+    flat([[[4.6, 11.8], [8.2, 9.8], [11.2, 11.4], [12, 12.6], [12.8, 11.4], [15.8, 9.8], [19.4, 11.8], [17.4, 14.4], [13.4, 13.6], [12, 14.6], [10.6, 13.6], [6.6, 14.4]]], "ink"),
+    { ...flat([circ(8.8, 11.8, 1.1, 8), circ(15.2, 11.8, 1.1, 8)], "white"), w: 0.4 },
+    flat([[[10.6, 17.0], [13.4, 17.0], [12, 18.8]]], "ink"),
+  ],
+  "alley-cat": [
+    solid([[[4.4, 12.4], [4.8, 3.4], [10.2, 8.0]], [[19.6, 12.4], [19.2, 3.4], [13.8, 8.0]]], "top", false),
+    solid([circ(12, 13.4, 7.4, 22, 6.8)], "top"),
+    flat([[[5.6, 6.2], [6.0, 4.8], [8.6, 8.2]], [[18.4, 6.2], [18.0, 4.8], [15.4, 8.2]]], "pink"),
+    solid([[[9.0, 16.0], [12, 14.4], [15.0, 16.0], [14.2, 18.8], [12, 19.6], [9.8, 18.8]]], "white", false),
+    { ...flat([[[7.0, 12.0], [9.8, 10.8], [10.6, 12.6], [8.2, 13.6]], [[17.0, 12.0], [14.2, 10.8], [13.4, 12.6], [15.8, 13.6]]], "metal"), w: 0.5 },
+    flat([[[8.6, 11.0], [9.2, 11.0], [9.0, 13.2]], [[15.4, 11.0], [14.8, 11.0], [15.0, 13.2]], [[11.0, 15.6], [13.0, 15.6], [12, 16.8]]], "ink"),
+    { ...flat([band([[9.2, 17.0], [3.0, 16.0]], 0.6), band([[9.2, 18.0], [3.2, 19.0]], 0.6), band([[14.8, 17.0], [21.0, 16.0]], 0.6), band([[14.8, 18.0], [20.8, 19.0]], 0.6)], "white"), w: 0.3 },
+  ],
+  // the dog in side profile (review round 2: a round front face with hanging ears read as a bear
+  // or a beaver): a long muzzle, a pricked ear, a black nose, the tongue out and a red collar
+  "stray-dog": DOG.map((s) => scaleShape(s, 0.86)),
+  boar: [
+    solid([[[3.4, 9.6], [7.6, 6.2], [13.4, 6.0], [17.4, 9.0], [20.6, 11.2], [20.8, 15.8], [17.0, 16.6], [12.6, 19.4], [6.4, 19.4], [3.4, 16.0]]], "wood"),
+    flat([[[4.0, 9.2], [4.8, 4.4], [6.2, 7.6], [7.4, 3.6], [8.8, 6.8], [10.4, 3.2], [11.6, 6.4], [13.4, 3.6], [14.2, 6.6], [12.4, 7.8], [6.4, 8.4]]], "shoes"),
+    solid([[[8.2, 6.8], [10.4, 2.8], [12.2, 7.0]]], "bottom", false),
+    solid([roundRect(18.0, 10.6, 3.6, 5.6, 1.2)], "pink", false),
+    flat([circ(19.0, 12.4, 0.5, 6), circ(20.6, 12.4, 0.5, 6), circ(12.6, 10.4, 1.1, 8)], "ink"),
+    { ...flat([band([[16.0, 16.8], [17.6, 14.0], [16.8, 11.4]], 1.4)], "white"), w: 0.6 },
+  ],
+  // a hissing farm goose (review round 2: the upright white neck with a dark face patch read as a
+  // penguin): the folded wing of the body, a long S-curved neck, the bill open in a hiss with the
+  // tongue showing, the orange knob, an angry brow
+  goose: [
+    solid([[[2.4, 16.4], [5.0, 16.0], [8.0, 15.6], [12.4, 16.2], [16.4, 18.4], [17.6, 20.6], [4.8, 20.8], [3.4, 18.6]]], "white", false),
+    { ...flat([band([[5.0, 19.4], [9.4, 18.0], [13.4, 19.6]], 0.6), band([[6.4, 20.8], [10.2, 19.8]], 0.6)], "metal"), w: 0.3 },
+    solid([[[6.0, 17.4], [7.0, 13.8], [6.6, 10.8], [7.6, 7.6], [10.0, 5.2], [11.6, 8.4], [10.2, 10.6], [10.6, 13.8], [9.8, 17.6]]], "white", false),
+    solid([circ(12.2, 7.0, 3.4, 18, 3.0)], "white", false),
+    thin(solid([[[14.2, 5.2], [20.6, 6.6], [21.2, 7.8], [19.6, 8.4], [21.0, 9.6], [20.0, 10.8], [14.4, 9.8]]], "cone", false), 0.7),
+    thin(flat([[[15.4, 7.9], [19.6, 8.4], [15.4, 8.9]]], "pink"), 0.3),
+    thin(flat([circ(14.4, 5.0, 1.4, 10)], "cone"), 0.5),
+    flat([circ(12.2, 6.4, 0.8, 8)], "ink"),
+    flat([band([[10.6, 4.9], [13.6, 5.9]], 0.6)], "ink"),
+  ],
+  crow: [
+    solid([[[3.6, 21.0], [5.0, 15.0], [6.4, 11.0], [8.4, 7.4], [12.0, 5.0], [15.4, 5.4], [17.0, 8.0], [16.4, 12.4], [13.6, 15.8], [11.6, 21.0]]], "shoes"),
+    // near-black with the lamp's blue rim on the crown and nape (a grey body read as a pigeon)
+    { ...flat([band([[4.4, 18.6], [6.0, 13.0], [8.0, 8.8], [11.6, 6.0], [15.0, 6.2]], 1.6)], "paint"), w: 0.4 },
+    solid([[[15.4, 6.4], [21.8, 9.4], [15.8, 11.6]]], "bottom", false),
+    { ...flat([circ(12.4, 8.2, 1.3, 10)], "white"), w: 0.4 },
+    flat([circ(12.6, 8.2, 0.6, 6)], "ink"),
+    { ...flat([band([[9.0, 9.6], [7.2, 13.6]], 0.8)], "metal"), w: 0.3 },
+  ],
+};
+export const PET_ICONS = Object.fromEntries((Object.keys(PET_PICS) as CompanionId[]).map((id, i) => {
+  const tone = RARITY_TONE[RARITY_OF[id]];
+  return [id, { shapes: [...roundBadge(1301 + i * 41, tone), ...PET_PICS[id].map(fitLine)] }];
+})) as unknown as Record<CompanionId, IconArt>;
