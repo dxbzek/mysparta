@@ -7,5 +7,9 @@
  *   2: the pet pass (15 November 2026): pet growth, weapon starts, perk rerolls, redraw, Air Horn.
  *   3: the start pass (15 November 2026): 25 weapon rows retuned so no starting weapon, Thrown
  *      or melee, decides level-1 bouts.
+ *   4: round 2 (16 November 2026): a starting skill, Moves after the opening (unarmed ones
+ *      excepted), big hits in the opening, the sure first draw, once-a-bout tags and booster tags,
+ *      the weapon cap and the falling weapon share, +1 stat on early perk cards, Snatch 10/1,
+ *      Anticipation 20, Firm Grip 80, Junk Collector's throws, Hockey Stick Dmg 7, the easy card.
  */
-export const SIM_VERSION = 3;
+export const SIM_VERSION = 4;

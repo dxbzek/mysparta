@@ -63,7 +63,7 @@ export const UI = {
     preview: (name: string) => (name ? `${name}, idling under the lights` : "Your scrapper, idling under the lights"),
     count: (n: number, max: number) => `${n} / ${max}`,
     revealHeading: (name: string) => `${name} steps in`,
-    startPerk: "Starting perk",
+    startPerk: "Starting perks",
     toLocker: "To the Locker",
     tapToSkip: "Tap to skip",
     cancel: "Back to the Locker",

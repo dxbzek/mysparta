@@ -34,7 +34,7 @@ Fight values, all whole percents. A held weapon adds its numbers to the base; sk
 - **The name is the seed.** `seed = FNV-1a(realmSalt + ":" + lowercased cleaned name)`. The same name gives the same scrapper on every device: stats, starting perk, look and Route.
 - **Look.** Shapes (build, head, hair, face, top, bottom, shoes, accessory) come from `(seed, lookSalt)`; colours (skin, hair colour, palette) from `(seed, colourSalt)`. The two reroll buttons each add 1 to one salt.
 - **Stats.** Every stat starts at 2. Then 6 points are dealt one at a time, each to a random stat that is still below 5. Total 14. Level-1 HP is 68 to 89.
-- **Starting perk.** One roll from the perk pool (section 3), rolled again until it is a weapon (any rarity, by the pool's weights). Every scrapper starts armed: a pet, a skill or a booster as the starting perk decided level-1 bouts by the name alone (8% to 98% wins), and left skill owners unarmed at level 3.
+- **Starting perks.** Two. First one roll from the perk pool (section 3), rolled again until it is a weapon (any rarity, by the pool's weights). Every scrapper starts armed: a pet, a skill or a booster as the starting perk decided level-1 bouts by the name alone (8% to 98% wins), and left skill owners unarmed at level 3. Then a skill, from a stream of its own (`(seed, "start2")`, so every name keeps its weapon), rolled again until it is a skill that fits a kit of that weapon (section 3) and is not a booster, Snatch or Knock Loose (as starts they won 78% and about 90% of level-1 bouts: a level-1 kit has one weapon, and a disarm leaves fists for the rest of the bout), Quick Swap or Firm Grip (with one weapon and the sure first draw Quick Swap never showed at level 1, and Firm Grip in 20% of its owner's bouts). With the weapon alone every level-1 bout had no skill at all (round 2, section 9).
 - **Random name.** A first part (120 of our own) and a second part (60 of our own), joined by a space. Every such name passes the name check.
 
 ## 3. Level-ups and the Route
@@ -43,9 +43,9 @@ Fight values, all whole percents. A held weapon adds its numbers to the base; sk
 
 **The two cards.** Each level-up offers a stat card and a perk card, in a random left-right order.
 - Stat card: +2 points in one random stat.
-- Perk card: one roll from the perk pool. If that perk is not allowed it is rolled again, up to 3 more times; only when all 4 rolls fail does the card become a split: +1 point in each of two different random stats. (With no reroll, 18% of perk cards were splits at level 10 and 38% at level 30; now under 12% at level 30.)
+- Perk card: one roll from the perk pool. The perk card of a level-up to level 2, 3 or 4 also gives +1 point in one random stat, shown on the card (round 2: a player who always took the perk card won 41% at level 10 and 28% at level 30; section 9). If that perk is not allowed it is rolled again, up to 5 more times; only when all 6 rolls fail does the card become a split: +1 point in each of two different random stats. (With no reroll, 18% of perk cards were splits at level 10 and 38% at level 30; under 12% at level 30 with 3 rerolls, and 5 rerolls keep it there under the weapon cap of round 2.) The weapon share of a perk card's category roll falls with the weapons the kit owns (round 2): 44 with 0 to 2 weapons, 30 with 3, 15 with 4, none with 5. The other shares stay, so the roll is out of 56 plus the weapon share.
 
-**The perk pool.** A category roll out of 100: weapon 0 to 43, skill 44 to 89, shield 90 to 95, companion 96 to 99 (content v2). Then one item inside the category, by weight:
+**The perk pool.** A category roll out of 100 (for a kit with 2 weapons or fewer; see the perk card above): weapon 0 to 43, skill 44 to 89, shield 90 to 95, companion 96 to 99 (content v2). Then one item inside the category, by weight:
 
 | Rarity | Weight |
 |---|---|
@@ -63,7 +63,9 @@ Companions use their own weights: Raccoon 90, Goose 5, Boar 5, Stray Dog 30, Cro
 - it is a shield and a shield is already owned (one at most);
 - it is a booster and boosters are already owned: with one owned it passes 10% of the time, with two 3%, with three or more never (one extra roll);
 - it is the Whistle or Pet Lover and no companion is owned;
-- it is a weapon passive and no owned weapon works with it: Sharpening Stone needs a Blade weapon, Heavy Lifter a Heavy one, Trick Shot a Thrown one, Junk Collector two weapons, one of them not Thrown, and Pitcher, Firm Grip and Quick Swap any weapon.
+- it is a weapon passive and no owned weapon works with it: Sharpening Stone needs a Blade weapon, Heavy Lifter a Heavy one, Trick Shot a Thrown one, Junk Collector two weapons, one of them not Thrown, and Pitcher, Firm Grip and Quick Swap any weapon;
+- it is a weapon and 5 weapons are owned (round 2; the category roll already leaves weapons out then);
+- it is Bare Knuckle and 3 or more weapons are owned (round 2: fists were 5% of swings at level 30).
 
 **The Route** is a pure function of the seed and the list of picks. The cards of level-up k are drawn from a stream seeded with `(seed, "route", k, picks so far)`, and checked against the kit those picks built. Nothing is stored but the picks. The same picks always give the same later cards. (A rules change that changes the cards, like the pet pass, changes the kit of an existing scrapper on its next walk.)
 
@@ -71,7 +73,7 @@ Companions use their own weights: Raccoon 90, Goose 5, Boar 5, Stray Dog 30, Cro
 
 - 6 bouts a day per scrapper, 8 on the day it was made. The day key (`YYYY-MM-DD`, local) is passed in by the app; the core never reads a clock. A stored day older than today means a full day. A clock that moves back resets nothing.
 - **Rivals.** `rivalSeed = hash(realmSalt, "rival", level, index)`. A rival is made from that seed by the same code as a player's scrapper, named from our lists, and levelled by walking its own Route: it takes the perk card (or the split that replaced it) 65% of the time. A level N rival has N - 1 picks. There are 240 rivals per level.
-- **Tonight's Card.** 6 different rivals at the scrapper's level, drawn from `hash(seed, dayKey, bouts used today)`, so it changes after every bout and at day rollover. At levels 1 to 3 the last 2 cards own no weapon: the same rival, its weapons left at home (name, look, stats and other perks unchanged, its own id). Every scrapper starts with a weapon since the pet pass, so the pool has none of its own. A random scrapper beats one of these about 96% of the time at levels 1 to 3; a rule that asked for Common weapons only (pet pass) picked rivals it beat 51 to 53% of the time, and about half the pool met it with no redraw.
+- **Tonight's Card.** 6 different rivals at the scrapper's level, drawn from `hash(seed, dayKey, bouts used today)`, so it changes after every bout and at day rollover. At levels 1 to 3 the last card is an easy rival: the same rival, armed, its own id, with 3 stat points fewer, each taken from its highest stat (the first in the order Health, Strength, Agility, Speed on a tie), never below 2. A random scrapper beats it about two times in three (round 2). It replaced 2 unarmed cards (the pet pass's rivals with their weapons left at home), which a random scrapper beat 96% of the time, in fist fights shown right after the rule that every scrapper starts with a weapon.
 - **Bout seed** = `hash(fighter id, opponent id, the fighter's lifetime bout count)`.
 
 ## 5. The fight
@@ -95,9 +97,9 @@ Each part of the rules draws from its own stream, seeded from the bout seed and 
 ### A scrapper's turn
 
 1. **Snared?** It skips the turn. The skip costs one normal turn of time and writes nothing, so turn numbers jump. The last skip ends the snare and writes `free` with cause "timeout": a Tarp holds for 3 skips, a Grapple for 1. A Taunt counts down here: it is still on in the free action that follows it and ends at the start of the owner's turn after that.
-2. **Move roll.** Skipped in the turn right after a weapon left the hand by a throw while a weapon waits in the bag: that turn is the sure redraw (step 3). Otherwise the owned Moves with uses left whose condition holds are listed; W is the sum of their weights. One roll from 0 to W + 11: below W picks a Move by weight, otherwise none fires. A Move is the whole turn and sets its own time cost.
-3. **Draw or swap.** Empty hands and weapons in the bag: draw with chance `S / (S + 6)` (Quick Swap: `S / (S + 2)`), S the sum of the bag's Draw weights, picked by weight. Right after a weapon left the hand by a throw, the draw is certain (throw and replace, content v2). Holding a weapon that has already attacked, with weapons in the bag: 30% to swap (Firm Grip 15%); the old weapon falls and is gone for the bout. Drawing does not end the turn.
-4. **Throw or melee.** A Thrown weapon is always thrown and never used up. Any other held weapon that has already swung once is thrown 20% of the time while another weapon waits in the bag, 5% when it is the last one (Pitcher 35% either way), and is then gone (Pitcher: back into the bag; Junk Collector: back into the bag 60% of the time). A weapon just drawn always gets its swing first.
+2. **Move roll.** Skipped in the turn right after a weapon left the hand by a throw while a weapon waits in the bag: that turn is the sure redraw (step 3). Otherwise the owned Moves with uses left whose condition holds are listed; W is the sum of their weights. One roll from 0 to W + 5: below W picks a Move by weight, otherwise none fires. A Move is the whole turn and sets its own time cost. In the opening (turns 1 to 5) only the unarmed Moves (Body Slam, Grapple, Snatch) can be listed, and a scrapper whose last own turn was a Move rolls no Move this turn (round 2).
+3. **Draw or swap.** Empty hands and weapons in the bag: draw with chance `S / (S + 6)` (Quick Swap: `S / (S + 2)`), S the sum of the bag's Draw weights, picked by weight. The first draw of a bout is certain (round 2), and so is the draw right after a weapon left the hand by a throw (throw and replace, content v2). Unlike the redraw after a throw, the first draw does not skip the Move roll. Holding a weapon that has already attacked, with weapons in the bag: 30% to swap (Firm Grip 15%); the old weapon falls and is gone for the bout. Drawing does not end the turn.
+4. **Throw or melee.** A Thrown weapon is always thrown and never used up. Any other held weapon that has already swung once is thrown 20% of the time while another weapon waits in the bag, 5% when it is the last one (Pitcher 35% either way; Junk Collector 35% while another weapon waits, round 2), and is then gone (Pitcher: back into the bag; Junk Collector: back into the bag 90% of the time). A weapon just drawn always gets its swing first.
 5. **Target.** One random standing enemy, scrapper or companion. The enemy scrapper counts twice in the pick, each companion once (with one pet: the scrapper 2 in 3, the pet 1 in 3). Companions, Body Slam and a Trick Shot bounce pick the same way.
 6. **Resolve** the attack.
 7. **Pay the time.** The weapon whose Tempo counts is the one the turn was made with.
@@ -105,7 +107,7 @@ Each part of the rules draws from its own stream, seeded from the bout seed and 
 
 ### The opening
 
-Turns 1 to 5 are the opening. In each of those turns a scrapper loses at most 10% of its max HP and a companion at most 50% of its own (rounded down, at least 1). A hit or a Move hit that would take more is cut to what is left; once nothing is left for that turn, the attacker's swings stop (no further combo, Stubborn, scratch or bounce at it, and no intercept or riposte against it). So no bout can end before turn 6, and a pet always lives through the first turn it is hit in. From turn 6 every hit lands in full.
+Turns 1 to 5 are the opening. In each of those turns a scrapper loses at most 10% of its max HP and a companion at most 50% of its own (rounded down, at least 1). A crit, a Haymaker swing, a Body Slam or a Grapple (a "big" hit) may take up to 25% of a scrapper's max HP in its turn instead (round 2). The opening never takes a scrapper below 40% of its max HP (rounded up). Moves other than the unarmed ones are not ready in the opening, so their hits are never cut. A hit or a Move hit that would take more is cut to what is left; once nothing is left for that turn (counted at the 10% allowance), the attacker's swings stop (no further combo, Stubborn, scratch or bounce at it, and no intercept or riposte against it). So no bout can end before turn 6, and a pet always lives through the first turn it is hit in. From turn 6 every hit lands in full.
 
 ### A melee attack
 
@@ -123,7 +125,7 @@ c. **Damage.**
    - Armor: `damage - floor(damage x Armor / 100)`. Never below 1.
    - At Strength 3 with the first table: fists 7, Pocket Knife 8, Pipe 13, Hand Axe 19, Sledgehammer 36 (raw values).
 
-d. **Disarm.** On a landed hit against a held weapon: chance = attacker Disarm. The weapon falls and is gone. Firm Grip resists 60% of the time and the disarm is written as resisted. A defender with a shield also loses it on a separate roll, on every swing that is not evaded: chance `floor(min(attacker Disarm, 80) x knock / 100)`, with the shield's own `knock` (the Car Door's 33 is the old one third). The shield lands on the floor and every number it gave ends. Neither roll is made when the hit already knocked the defender out.
+d. **Disarm.** On a landed hit against a held weapon: chance = attacker Disarm. The weapon falls and is gone. Firm Grip resists 80% of the time (60% before round 2) and the disarm is written as resisted. A defender with a shield also loses it on a separate roll, on every swing that is not evaded: chance `floor(min(attacker Disarm, 80) x knock / 100)`, with the shield's own `knock` (the Car Door's 33 is the old one third). The shield lands on the floor and every number it gave ends. Neither roll is made when the hit already knocked the defender out.
 
 e. **Combo.** Chance `Combo + Agility`, capped at 80 first, then halved after each success (80, 40, 20). At most 3 extra swings. Stubborn rolls before the combo roll: after a swing that was evaded or blocked, 50% to swing again at once, once per turn, and that extra swing can start a combo. The swings stop when the target falls.
 
@@ -192,10 +194,10 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Sledgehammer | Uncommon | Heavy | smash | 160 | 34 | 1 | 5 | -20 | 30 | -20 | -20 | -20 | -40 | 10 | 10 |
 | Darts | Uncommon | Thrown, Light | throw | 45 | 3 | - | 5 | 0 | 0 | -5 | 12 | 0 | 30 | 0 | 5 |
 | Bike Chain | Rare | Pole | swing | 140 | 10 | 4 | 5 | 30 | -10 | -15 | 20 | -5 | 30 | 25 | 0 |
-| Monkey Wrench | Rare | Heavy | swing | 140 | 10 | 1 | 4 | 0 | 10 | 10 | 0 | 0 | 0 | 60 | 5 |
+| Monkey Wrench | Rare | Heavy | swing | 140 | 10 | 1 | 2 | 0 | 10 | 10 | 0 | 0 | 0 | 60 | 5 |
 | Pickaxe | Rare | Heavy | smash | 150 | 19 | 2 | 4 | 0 | 100 | -10 | -10 | 0 | -10 | 10 | 10 |
 | Rebar | Rare | Heavy | swing | 160 | 23 | 2 | 5 | 20 | -10 | 5 | -15 | 0 | 0 | 10 | 10 |
-| Screwdrivers | Rare | Light | flick | 70 | 5 | 0 | 5 | 10 | 0 | 5 | 5 | 0 | 10 | 45 | 5 |
+| Screwdrivers | Rare | Light | flick | 70 | 5 | 0 | 3 | 10 | 0 | 5 | 5 | 0 | 10 | 45 | 5 |
 | Garden Shears | Rare | Light, Blade | flick | 75 | 8 | 1 | 4 | 15 | 0 | 5 | 0 | 5 | 20 | 10 | 15 |
 | Stop Sign | Rare | Pole, Heavy, Blade | smash | 175 | 23 | 3 | 3 | -15 | 0 | 10 | 0 | 0 | 5 | 10 | 5 |
 | Boomerang | Rare | Thrown | throw | 70 | 6 | - | 4 | -5 | 0 | -5 | 10 | 0 | 15 | 10 | 10 |
@@ -209,7 +211,7 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Frying Pan | Common | - | swing | 105 | 11 | 1 | 5 | 0 | 0 | 22 | 0 | 28 | -5 | 5 | 5 |
 | Tyre Iron | Common | - | swing | 100 | 11 | 1 | 5 | 5 | 15 | 5 | 0 | 0 | 5 | 10 | 15 |
 | Golf Club | Uncommon | - | swing | 125 | 15 | 2 | 4 | 5 | 0 | 0 | 0 | 5 | 0 | 5 | 30 |
-| Hockey Stick | Uncommon | Pole | swing | 125 | 9 | 2 | 4 | 5 | 0 | 10 | 5 | 10 | 10 | 30 | 5 |
+| Hockey Stick | Uncommon | Pole | swing | 125 | 7 | 2 | 3 | 5 | 0 | 10 | 5 | 10 | 10 | 30 | 5 |
 | Folding Chair | Uncommon | Heavy | smash | 160 | 20 | 1 | 4 | -15 | 15 | 20 | -10 | 0 | -15 | 15 | 5 |
 | Cricket Bat | Rare | Heavy | swing | 150 | 17 | 2 | 4 | 5 | 10 | 15 | 0 | 20 | 0 | 10 | 15 |
 | Wok | Rare | Heavy | swing | 135 | 16 | 1 | 4 | 0 | 10 | 30 | 0 | 20 | -10 | 10 | 10 |
@@ -249,12 +251,12 @@ A shield is carried on the back arm while the front hand keeps its weapon. At mo
 | Glass Cannon | booster | Epic | Strength multiplier +100, Health multiplier -30 |
 | Mountain | booster | Mythic | Health multiplier +150, Agility and Speed multipliers -20 each, start clock +150 |
 | Padding | passive | Common | Armor +10 |
-| Anticipation | passive | Common | Intercept +12 |
+| Anticipation | passive | Common | Intercept +20 |
 | Sharpening Stone | passive | Uncommon | melee damage with a Blade weapon +40%; offered only with a Blade weapon |
 | Bare Knuckle | passive | Uncommon | damage with fists +100%, Combo +10 while unarmed |
 | Payback | passive | Uncommon | Riposte +25 |
 | Flurry | passive | Uncommon | Combo +20 |
-| Firm Grip | passive | Uncommon | 60% to resist a disarm or a Snatch; swap chance 15% instead of 30% |
+| Firm Grip | passive | Uncommon | 80% to resist a disarm or a Snatch; swap chance 15% instead of 30% |
 | Head Start | passive | Uncommon | start clock -150 |
 | Sharp Eye | passive | Uncommon | Aim +16, Pierce +16 |
 | Parry | passive | Uncommon | Block +10; after a block, Riposte chance 80 for that attack |
@@ -267,7 +269,7 @@ A shield is carried on the back arm while the front hand keeps its weapon. At mo
 | Slippery | passive | Epic | Evade +25 |
 | Quick Swap | passive | Common | the empty-hand draw is `S / (S + 2)` instead of `S / (S + 6)` |
 | Pet Lover | passive | Uncommon | own companions: HP +30%, damage +50%; offered only with a companion |
-| Junk Collector | passive | Uncommon | a weapon it throws away goes back into the bag 90% of the time (Pitcher: always); offered only with two weapons, one not Thrown |
+| Junk Collector | passive | Uncommon | throws a used weapon 35% of the time while another waits in the bag (20% without it); a weapon it throws away goes back into the bag 90% of the time (Pitcher: always); offered only with two weapons, one not Thrown |
 | Trick Shot | passive | Rare | a Thrown weapon that lands bounces on to a random standing enemy 35% of the time, once a turn; offered only with a Thrown weapon |
 
 | Move | Rarity | Weight | Uses | Only when | Time | Effect |
@@ -277,7 +279,7 @@ A shield is carried on the back arm while the front hand keeps its weapon. At mo
 | Tarp | Uncommon | 5 | 1 | an enemy that is not snared | 20% of a turn | snares a random free enemy companion if there is one, otherwise the scrapper |
 | Whistle | Uncommon | 20 | 2 | an own companion standing and below 90% HP | 20 | heals it by 50% of its max HP and it acts next |
 | Firecrackers | Rare | 3 | 2 | always | 50% of a turn | `roll(12..20)` to the enemy scrapper, 40% of max HP to each enemy companion; no evade, block or Armor |
-| Snatch | Rare | 28 | 2 | own hands empty, the enemy scrapper holds a weapon | 0 | takes that weapon into the hand |
+| Snatch | Rare | 10 | 1 | own hands empty, the enemy scrapper holds a weapon | 0 | takes that weapon into the hand |
 | Air Horn | Rare | 8 | 1 | an enemy stands | 20 | each enemy companion has 50% to run off; the enemy scrapper's clock +40, or +60 when it has no standing companion |
 | Body Slam | Epic | 12 | 1 | own hands empty | one turn + 100 | `floor((18 + 3 x Strength) x roll(85..115) / 100)` to a random enemy, Armor applies; no evade, block or intercept; knocks off its weapon (Firm Grip can hold on) and its shield |
 | Sand in the Eyes | Uncommon | 4 | 1 | the enemy scrapper stands and has no sand yet | 30% of a turn | the enemy scrapper's Aim -25 for the rest of the bout |
@@ -291,9 +293,13 @@ A shield is carried on the back arm while the front hand keeps its weapon. At mo
 
 A step can name the skill that mattered on it (`procs`). Rule skills always write their tag: Last Stand on the hit it survives, Parry on the riposte it made possible, Stubborn on its extra swing, Firm Grip on the disarm or Snatch it resisted, a shield (its own id) on a block made while it is carried, Trick Shot on its bounce throw, Junk Collector on a throw whose weapon it brings back, Head Start on its owner's first action. Chance skills write their tag only when the roll passed because of their bonus (the same roll compared with the chance with and without it, no extra random number): Anticipation on an intercept, Payback on a riposte, Flurry on a combo swing, Slippery on an evade, Knock Loose on a disarm, Sharp Eye on a hit that would have been evaded or blocked without it (its Aim or its Pierce), Taunt on a riposte while its bonus is on, Sand in the Eyes on a swing that was evaded only because of the Aim the sand took (the tag is the thrower's), Quick Swap on the first swing or throw after an empty-hand draw it made (not the sure draw after a throw).
 
-Number skills write their tag on the step where their number changed the result (the same hit counted again without the skill's number, after the opening's cut; no extra random number): Padding and Plate Vest on a hit, Body Slam or Grapple that their Armor made smaller; Sharpening Stone on a Blade hit, Bare Knuckle on a fists hit and Pitcher on a throw that they made bigger; Pitcher also on a throw whose weapon it sends back to the bag; Pet Lover on a companion's hit that it made bigger (the tag is the owner's); Heavy Lifter on the first swing or throw of a turn made with a Heavy weapon (that turn costs 30% less time). Boosters have no fight moment: they show on the stat screen.
+Number skills write their tag on the step where their number changed the result (the same hit counted again without the skill's number, after the opening's cut; no extra random number): Padding and Plate Vest on a hit, Body Slam or Grapple that their Armor made smaller; Sharpening Stone on a Blade hit, Bare Knuckle on a fists hit and Pitcher on a throw that they made bigger; Pitcher also on a throw whose weapon it sends back to the bag; Pet Lover on a companion's hit that it made bigger (the tag is the owner's); Heavy Lifter on the first swing or throw of a turn made with a Heavy weapon (that turn costs 30% less time).
 
-**At most one tag per step.** When several skills mattered on one step the sim keeps one: Last Stand first; then rule skills (Firm Grip, Parry, Stubborn, Trick Shot, Junk Collector, Head Start, a shield); then chance skills (Anticipation, Payback, Flurry, Slippery, Knock Loose, Sharp Eye, Taunt, Sand in the Eyes, Quick Swap); then number skills (Padding, Plate Vest, Sharpening Stone, Bare Knuckle, Pitcher, Pet Lover, Heavy Lifter). Inside a group the rarest wins, then the order of the perk list.
+Boosters (round 2) write their tag once a bout, on the first step their stat is felt: Heavy Hands and Glass Cannon on their owner's first hit, Big Heart and Mountain on the first hit their owner takes, Light Feet on its owner's first evade or combo swing, Fast Twitch on its owner's first action. They used to have no fight moment at all, and Light Feet was the strongest Common perk.
+
+**Once a bout** (round 2). The number skills, the chance passives (Anticipation, Payback, Flurry, Slippery, Knock Loose, Sharp Eye), a shield, Quick Swap, Head Start and the boosters write their tag at most once a bout per owner. Every tag of the rule skills (Last Stand, Parry, Stubborn, Firm Grip, Trick Shot, Junk Collector) and of the Moves' own effects (Taunt's riposte, Sand in the Eyes' miss) still shows. A once-a-bout tag other than a booster's also waits until 2 turns have passed since the last tag or Move: it is not lost, it shows on a later step where it matters again. A block made with a shield whose tag has shown reads BLOCK on stage.
+
+**At most one tag per step.** When several skills mattered on one step the sim keeps one: Last Stand first; then rule skills (Firm Grip, Parry, Stubborn, Trick Shot, Junk Collector, Head Start, a shield); then chance skills (Anticipation, Payback, Flurry, Slippery, Knock Loose, Sharp Eye, Taunt, Sand in the Eyes, Quick Swap); then number skills (Padding, Plate Vest, Sharpening Stone, Bare Knuckle, Pitcher, Pet Lover, Heavy Lifter) and the boosters. Inside a group the rarest wins, then the order of the perk list.
 
 ## 8. Choices the sim makes where the brief was silent
 
@@ -310,10 +316,11 @@ Number skills write their tag on the step where their number changed the result 
 
 ## 9. Balance pass
 
-The first values came from the design brief. `pnpm balance` (`tools/balance-report.ts`) runs the two balance tests at levels 3, 5, 10 and 30 (3 and 5 added by the pet pass; the first pass ran 10 and 30 only):
+The first values came from the design brief. `pnpm balance` (`tools/balance-report.ts`) runs the two balance tests at levels 2, 3, 5, 10 and 30 (3 and 5 added by the pet pass, 2 by round 2; the first pass ran 10 and 30 only), and since round 2 a third test, the level-up policy:
 
 - **Ownership:** 40,000 random pairs of same-level rivals per level. For each perk, the bouts where exactly one side owns it, and how often that side wins. Counted for perks with 1,000 or more such bouts: no Common or Uncommon perk and no Raccoon above 62%, no perk below 40%.
-- **With and without:** 4,000 bouts per perk per level of a random rival against a copy of itself that also owns the perk, sides swapped every bout. No perk below 47%, and none above the upper limit of its rarity: Common and Uncommon 80%, Rare 82%, Epic 85%, Mythic 88%, and every companion 65% (pet pass; before it the test had no upper limit and pets at 85 to 93% passed). A perk is only added to a kit the Route could offer it to (section 3): Whistle and Pet Lover need a companion, a weapon passive a weapon it works with.
+- **With and without:** 4,000 bouts per perk per level of a random rival against a copy of itself that also owns the perk, sides swapped every bout. No perk below 47%, and none above the upper limit of its rarity: Common and Uncommon 80%, Rare 82%, Epic 85%, Mythic 88%, and every companion 65% (pet pass; before it the test had no upper limit and pets at 85 to 93% passed). A perk is only added to a kit the Route could offer it to (section 3): Whistle and Pet Lover need a companion, a weapon passive a weapon it works with. The two weapon-count rules of round 2 (5 weapons at most, Bare Knuckle under 3 weapons) are left out here, or no weapon could be measured on a level-30 kit.
+- **Level-up policy** (round 2): at levels 10 and 30, 2,000 player seeds that always take the perk card (or the split that replaced it), each against 3 rivals of the level pool. They must win 45 to 55%. Always-stat and the rivals' own 65% policy are reported beside it, not limited.
 
 The brief's numbers already passed both tests in this sim (report `balance-full-1`). Six weapons sat within 1.3 to 2.9 points of the 47% line at level 30 (Pipe 48.3, Sledgehammer 48.6, Bin Lid 48.8, Anvil 49.2, Machete 49.5, Pickaxe 49.9), about 2 standard deviations, so a small code change could tip one over; Sharp Eye's ownership share at level 30 was 60.9%, 1.1 points under its 62% cap. The brief also asks this pass to move the weapon rows further, by our own results and the roles only. The pass below did both. Every change is 30% or less of the number it changes.
 
@@ -526,3 +533,64 @@ Results:
 
 Open for the owner (not decided here): every start is still a weapon (the pet pass's design change); saved scrappers get a new start and kit on their next walk with no migration and no notice, and `rulesVersion` stays 1; a replay with no stored log is still re-simulated by result equality only, as no bout carries its sim version.
 
+### Round 2 (16 November 2026)
+
+The owner said the skills were "not even identifiable" and "the effects aren't there". The round-2 review ran `pnpm balance` and about 120,000 seeded bouts of its own and found the sim itself hid them: no skill at all at level 1, the opening cutting every big hit to a jab, Moves used up in the first seconds, a tag every second at level 30, boosters that never showed, and a level-up where the new item was the losing card. Each rule is written above where it applies. Numbers are from 4,000 pool bouts per level unless a sample is named.
+
+**The starting-weapon rule of 15 November: kept, and a skill added** (section 2). This was the owner's open question. Without the rule (the old "any perk that fits" start, on today's tables) the level-1 result is a lottery of the name: start-perk win rates spread 63 points (Padding 12%, Traffic Cone 75%), fists make 70% of swings, comebacks fall to 8%. With it level 1 is fair (an 18-point spread) but every level-1 bout was two weapons and no skill. So the weapon stays and a second starting perk is added: a skill from a stream of its own, so every name keeps its weapon. Not a booster, Snatch or Knock Loose (78% and about 90% wins as a start), Quick Swap or Firm Grip (they could not show with a level-1 kit).
+
+**What changed, and why:**
+
+- **The opening** (section 5): a crit, a Haymaker swing, a Body Slam or a Grapple may take 25% of max HP in its turn (10% for a plain hit), never below 40% of max HP in the opening. A level-1 crit of 20 used to land as 7, the size of a plain hit.
+- **Moves wait for the end of the opening** (section 5, step 2), but for the unarmed ones (Body Slam, Grapple, Snatch: empty hands are a thing of the first turn). Slack 12 to 6, and no Move on the own turn right after a Move. Moves fired on the owner's turn 1 to 3, where their damage was cut, and then nothing happened for the rest of the bout.
+- **The first draw of a bout is certain** (section 5, step 3). A third of level-1 swings were fists although every scrapper starts with a weapon.
+- **Tags** (section 7): the number skills, the chance passives, shields, Quick Swap, Head Start and boosters show once a bout per owner, and a once-a-bout tag waits 2 turns after the last tag or Move. Boosters now have a tag at all: Light Feet was the strongest Common perk (71.5% with-and-without at level 10) and never showed. Head Start keeps its tag, once, on the first action: it is the only sign of a skill a level-1 scrapper can start with.
+- **Weapons in a kit** (section 3): 5 at most, and the weapon share of a perk card falls from 44 to 30 and 15 with the 4th and 5th. Level-30 kits owned 9.7 weapons and drew 2.4 a bout; 46% of late perk cards were weapons that changed nothing on screen. Bare Knuckle is not offered to a kit with 3 or more weapons.
+- **The perk card** of the first three level-ups carries +1 point in a random stat (section 3). The stat card stays +2.
+- **Tonight's Card** (section 4): the 2 unarmed cards of levels 1 to 3 are gone; the last card is an easy rival, armed, 3 stat points fewer.
+- **The gate** also runs level 2 and a level-up policy test (above).
+- **Sim version 4.** The golden digests changed.
+
+| Row | Number | Was | Now | Why |
+|---|---|---|---|---|
+| Snatch | weight, uses | 28, 2 | 10, 1 | owners won 75.5% at level 2 and with-and-without was 82.9% (limit 82): every rival holds a weapon to take. Weight 9 gave 74.3% at level 2 but fired in 59.5% of the bouts it could (test floor 60%) |
+| Anticipation | Intercept | 12 | 20 | its tag showed in 28% of its owner's bouts at level 30 |
+| Firm Grip | resist | 60% | 80% | showed in 22% of its owner's bouts at level 30, 13% at level 3 |
+| Junk Collector | throw chance while a weapon waits | 20% | 35% | its tag needs a melee throw: 24% of its owner's bouts at level 30 |
+| Hockey Stick | Dmg, Draw | 9, 4 | 7, 3 | a 63.7% start at level 1 on 982 bouts with Dmg 9 once every scrapper draws on turn 1 (58.8% now); then weak as a late weapon, see Draw below |
+| Monkey Wrench | Draw | 4 | 2 | a disarm is worth little against a bag of 5: 45.4% with-and-without at level 30 as a kit's 5th weapon (line 47%), 47.5% now. A Dmg rise would lift its level-1 start (67.8% on 329 bouts) |
+| Screwdrivers | Draw | 5 | 3 | the same: 46.6% at level 30, 47.5% now |
+| Move slack | | 12 | 6 | Moves are ready for fewer turns now |
+| Perk rerolls | | 3 | 5 | the weapon cap turns more rolls away; splits stay under 3% of offers at levels 21 to 30 |
+
+**Results** (before / after):
+
+| | Before | After |
+|---|---|---|
+| Level-1 bouts with no skill moment | 100% | 15.9% |
+| Level-3 bouts with no skill moment | 53.4% | 6.6% |
+| A crit in turns 1 to 5, mean damage, level 1 / level 10 (a plain hit there: 7.1 / 8.8) | 7.3 / about 9 | 16.8 / 20.2 |
+| Moves of the damage and control kind fired in turns 1 to 5 | 46 to 88% | 0% (the unarmed ones: 74 to 94%) |
+| Fists, share of scrapper swings, level 1 / level 3 | 33.5% / 25.6% | 24.0% / 16.8% |
+| Tags per bout at level 30 (Moves per bout) | 10.7 (2.7) | 7.8 (3.3) |
+| Skill moments per minute at level 30, median; gap between two, median | 32.8; 1.00 s | 26.2; 1.71 s |
+| Boosters: owner bouts with their tag | 0% | 64 to 100% (Light Feet 64 to 76%, the others 95% or more) |
+| Owner bouts with the tag at level 30: Firm Grip, Junk Collector, Anticipation | 22%, 24%, 28% | 27%, 30%, 25% (at level 3: Firm Grip 13% to 27%, Anticipation 40%; Junk Collector 40% at level 10) |
+| Weapons owned at level 30 (drawn per bout) | 9.7 (2.4) | 5.0 (2.1) |
+| Always the perk card, win % against the pool, level 10 / level 30 | 41.3 / 27.5 | 51.3 / 47.7 |
+| Always the stat card, the same | 43.0 / 41.6 | 36.3 / 23.6 |
+| A random scrapper against the easy card, levels 1 to 3 | 96% (2 cards) | about 60% (1 card) |
+| Snatch at level 2: owner wins / with-and-without | 75.5% / 82.9% | 67.5% / 75.2% (level 3: 63.7% / 71.5%) |
+| Median turns, levels 1, 3, 10, 30; shortest bout | 13, 13, 13, 17; 6 | 13, 12, 14, 19; 6 |
+
+Gate (`pnpm balance`, full sample, levels 2, 3, 5, 10 and 30): PASS, no limit broken. Median turns 13, 13, 13, 14 and 19; overtime 0.0%. Level-up policy: always-perk 51.3% at level 10 and 47.7% at level 30 (band 45 to 55). Nearest to a limit: at level 30 Anvil 47.4%, Screwdrivers 47.5%, Hockey Stick 47.6% and Monkey Wrench 47.6% with-and-without (line 47%); at level 2 Ball and Chain 47.0% and Whistle 47.1%, and at the top Plunger 81.2% (Mythic, limit 88) and Knock Loose 80.2% (Rare, limit 82). The report's sample streams are seeded, so the same code gives the same numbers; a later change to these rows needs the gate run again. On a kit with 5 weapons the report measures a weapon as the 5th, with the kit's last weapon left at home.
+
+Open, not decided here:
+- A player who always takes the stat card now loses badly at level 30 (23.6%): such a kit holds its two starting perks against 20. The cards are a choice between two things that need each other; a mix wins.
+- Knock Loose is the strongest early Rare (with-and-without 80.2% at level 2, limit 82%): a level-2 kit has one or two weapons, and a disarm leaves fists.
+- Level-30 bouts are a little longer (median 19 turns, 17 before; about 25 s at 1x).
+- Head Start and Fast Twitch tag the first action; the review asked to drop Head Start's tag.
+- Firm Grip, Junk Collector, Anticipation and Sharpening Stone still show in under a third of their owner's level-30 bouts (the table above): a once-a-bout tag shares 19 turns with 20 other perks. Bare Knuckle is no longer offered to a kit with 3 weapons, but a kit that already holds it shows it in 1% of level-30 bouts.
+- Level-1 win rate by starting weapon, starts with 300 or more bouts: 41.9% (Sledgehammer) to 67.8% (Monkey Wrench), a 26-point spread; it was 18 points before this round. The Common and Uncommon starts run from 41.9% to 59.7%; six Rare starts sit at 62 to 68% (Bike Chain, Screwdrivers, Cricket Bat, Hubcap, Boomerang, Monkey Wrench). Every scrapper now draws on turn 1, so the weapon counts from the first swing, and a disarm of a level-1 scrapper's only weapon leaves fists for the bout. By starting skill the spread is 12 points (Stubborn 43.8% to Pitcher 56.0%). A rule that returns a scrapper's last weapon to its bag after a disarm would narrow this; it changes the log contract and was not done here.
+- For the stage: boosters have a tag and no lasting body effect; a Body Slam at a pet behind its owner runs the attacker past the owner (find-bout level 30 n 2), and a pet's dodge hop leaves the bout frame in find-bout level 10 n 36.
+- Saved scrappers get their starting skill and new cards on their next walk, with no migration (as after the pet pass).

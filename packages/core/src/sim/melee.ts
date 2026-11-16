@@ -8,8 +8,8 @@ import { hasTag, reachOf, weaponNumbers } from "../content/weapons";
 import type { Actor } from "./combatant";
 import { CAP, clampPct, valuesOf } from "./combatant";
 import type { Bout } from "./bout";
-import { allowance, armored, emit, firstAction, knockOut, land, opening, proc, scrapperOfSide, sortProcs, spent, tryDisarm, tryFree,
-  tryShield } from "./bout";
+import { allowance, armored, boosterProcs, emit, firstAction, knockOut, land, opening, pickProc, proc, scrapperOfSide, spent, tryDisarm,
+  tryFree, tryShield } from "./bout";
 import { shieldNumbers } from "../content/shields";
 import { roll } from "./rng";
 
@@ -100,6 +100,7 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
     if (att.sand > 0 && r >= evadeChance(att, def, -att.sand, 0, thrown)) {
       procs.push(proc(scrapperOfSide(b, def.side), "sand-in-the-eyes"));
     }
+    boosterProcs(b, att, def, "evade", procs);
     return { outcome: "evade", damage: 0, crit: false, hpAfter: def.hp, procs, blocked: false };
   }
   if (seBonus > 0 && !def.snared && r < evadeChance(att, def, seBonus, 0, thrown)) wouldMiss = true;
@@ -122,14 +123,16 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   const armor = thrown ? null : valuesOf(def).armor;
   const full = damageOf(raw, variance, mult, crit, armor);
   // Number skills show where they changed the damage (no random number: the same hit, re-counted).
-  const left = allowance(b, def);
+  const big = crit || boosted;
+  const left = allowance(b, def, big);
   const cut = (d: number): number => (left === Infinity ? d : Math.max(1, Math.min(d, left)));
   const skill = damageSkill(att, thrown);
   if (skill !== null && cut(damageOf(raw, variance, damageMult(att, thrown, boosted, true), crit, armor)) !== cut(full)) {
     procs.push(proc(skill === "pet-lover" ? scrapperOfSide(b, att.side) : att, skill));
   }
   if (armor !== null) armorProcs(def, armor, (a) => cut(damageOf(raw, variance, mult, crit, a)), cut(full), procs);
-  const damage = opening(b, def, full);
+  boosterProcs(b, att, def, "hit", procs);
+  const damage = opening(b, def, full, big);
   const hpAfter = land(def, damage, procs);
   return { outcome: "hit", damage, crit, hpAfter, procs, blocked: false };
 }
@@ -154,7 +157,7 @@ export function consequences(b: Bout, att: Actor, def: Actor, c: SwingCalc): voi
 function swingStep(t: "attack" | "intercept" | "riposte", b: Bout, att: Actor, def: Actor, c: SwingCalc): Step {
   const step = { t, turn: b.turn, actor: att.id, target: def.id, weapon: att.scrapper ? att.held : null,
     outcome: c.outcome, damage: c.damage, crit: c.crit, hpAfter: c.hpAfter } as Step & { procs?: Proc[] };
-  const p = sortProcs(c.procs);
+  const p = pickProc(b, c.procs);
   if (p !== undefined) step.procs = p;
   return step;
 }
@@ -210,6 +213,8 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
     const procs: Proc[] = [];
     if (whyProc !== null) procs.push(whyProc);
     if (n === 0) firstAction(att, procs);
+    // Light Feet's Agility also drives the combo chance: it may name itself on a combo swing.
+    if (why === "combo" && att.scrapper && att.skills.has("light-feet")) procs.push(proc(att, "light-feet"));
     const boosted = n === 0 && att.scrapper && att.haymaker;
     if (boosted) att.haymaker = false;
     const c = resolve(b, att, def, false, boosted, procs);

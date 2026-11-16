@@ -16,7 +16,7 @@ import { SKILLS } from "../src/content/skills";
 import { allowed, perkChance, rollPerk } from "../src/progress/perks";
 import { startPerk } from "../src/progress/create";
 import { startStats, effectiveOf, maxHpOf } from "../src/progress/stats";
-import { walk } from "../src/progress/route";
+import { PERK_PLUS_MAX_LEVEL, walk } from "../src/progress/route";
 import { cardIndices } from "../src/progress/rivals";
 
 const DAY = "2026-11-14";
@@ -164,14 +164,19 @@ describe("the Route", () => {
       const r = rec(api.randomName(i + 9000), randomPicks(rng, 15));
       const sheet = api.sheetOf(r);
       let points = 14;
-      const perks: PerkId[] = [sheet.startPerk];
+      const perks: PerkId[] = [sheet.startPerk, sheet.startSkill];
       for (const n of api.route(r)) {
         const kinds = [n.left.kind, n.right.kind].sort();
         expect(kinds[1]).toBe("stat");
         const card = n.taken === "L" ? n.left : n.right;
         if (card.kind === "stat") { expect(card.amount).toBe(2); points += 2; }
         else if (card.kind === "split") { expect(card.stats[0]).not.toBe(card.stats[1]); points += 2; }
-        else perks.push(card.perk);
+        else {
+          perks.push(card.perk);
+          // Round 2: a perk card of the first three level-ups carries +1 point in a stat.
+          expect(card.plus !== undefined, `level ${n.level}`).toBe(n.level <= PERK_PLUS_MAX_LEVEL);
+          if (card.plus !== undefined) points += 1;
+        }
       }
       expect(sheet.perks).toEqual(perks);
       const boosterPoints = perks.reduce((a, p) => a + (skillOf(p) === undefined ? 0
@@ -184,7 +189,7 @@ describe("the Route", () => {
     for (let i = 0; i < 400; i++) {
       const r = rec(api.randomName(i + 20000), randomPicks(rng, 30));
       const kit = walk(r.seed, r.picks);
-      const owned: PerkId[] = [kit.startPerk];
+      const owned: PerkId[] = [kit.startPerk, kit.startSkill];
       for (const n of kit.nodes) {
         for (const c of [n.left, n.right]) {
           if (c.kind !== "perk") continue;
@@ -271,11 +276,15 @@ describe("rivals", () => {
         expect(s.level).toBe(level);
         const pts = Object.values(s.stats.points).reduce((a, b) => a + b, 0);
         expect(pts).toBeGreaterThanOrEqual(14);
-        // Every level-up adds 2 points or one perk.
-        const perks = s.perks.length - 1;
+        // Every level-up adds 2 points or one perk. A scrapper starts with two perks. A perk card
+        // of the first three level-ups also carries 1 point (round 2), so up to 3 points more.
+        const perks = s.perks.length - 2;
         const boosterPoints = s.perks.reduce((a, p) => a + (skillOf(p) === undefined ? 0
           : ["health", "strength", "agility", "speed"].reduce((b, k) => b + (skillOf(p)!.tiers[0][k] ?? 0), 0)), 0);
-        expect((pts - 14 - boosterPoints) / 2 + perks).toBe(level - 1);
+        const early = Math.min(level - 1, PERK_PLUS_MAX_LEVEL - 1);
+        const cards = (pts - 14 - boosterPoints) / 2 + perks;
+        expect(cards).toBeGreaterThanOrEqual(level - 1);
+        expect(cards).toBeLessThanOrEqual(level - 1 + early / 2);
       }
     }
   });
@@ -293,14 +302,14 @@ describe("rivals", () => {
     r = api.afterBout(r, 1, DAY);
     expect(cardIndices(r, REALM_SALT, DAY)).not.toEqual(cardIndices(rec("Marla"), REALM_SALT, DAY));
   });
-  it("at levels 1 to 3 always holds at least 2 rivals with no weapon", () => {
+  it("at levels 1 to 3 holds one easy rival, armed, in the last place; every rival owns a weapon", () => {
     for (let i = 0; i < 400; i++) {
       for (const lvl of [1, 2, 3]) {
         const r = rec(api.randomName(i), Array.from({ length: lvl - 1 }, () => "L" as Side2));
         for (const day of ["2026-11-14", "2026-11-15"]) {
           const card = api.tonightsCard(r, REALM_SALT, day);
-          const unarmed = card.filter((s) => !s.perks.some((p) => perkKind(p) === "weapon")).length;
-          expect(unarmed).toBeGreaterThanOrEqual(2);
+          expect(card.every((s) => s.perks.some((p) => perkKind(p) === "weapon"))).toBe(true);
+          expect(card.map((s) => s.id.includes(":easy:"))).toEqual([false, false, false, false, false, true]);
           for (const s of card) expect(Number(s.id.split(":").pop())).toBeLessThan(RIVALS_PER_LEVEL);
         }
       }

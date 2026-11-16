@@ -42,7 +42,7 @@ function profile(s: FighterSnapshot): Record<string, number> {
   const a = side.actors[0]!;
   const out: Record<string, number> = {};
   // A bout whose throw rolls all pass, for the rule of what a thrown weapon does next.
-  const bout: Bout = { r: scripted({ throw: fn(() => 0) }), actors: side.actors, bag: { a: side.bag, b: [] }, steps: [], turn: 1, ended: false };
+  const bout: Bout = { r: scripted({ throw: fn(() => 0) }), actors: side.actors, bag: { a: side.bag, b: [] }, steps: [], turn: 1, ended: false, shown: new Set(), lastTag: -99 };
   for (const k of STATS) { out[`points.${k}`] = s.stats.points[k]; out[`mult.${k}`] = s.stats.mult[k]; }
   for (const h of HELD) {
     const v = combatValues(a.skills, h, null);
@@ -127,7 +127,7 @@ const EXPECTED: Readonly<Record<SkillId, () => Record<string, number>>> = {
     return { "pet.hp": Math.floor((plain * (100 + sk("pet-lover", "petHp"))) / 100) - plain,
       "pet.dmult": sk("pet-lover", "petDamage") };
   },
-  "junk-collector": () => ({ afterThrowPipe: AFTER.bag - AFTER.gone }),
+  "junk-collector": () => ({ afterThrowPipe: AFTER.bag - AFTER.gone, throwChance: sk("junk-collector", "throwChance") - 20 }),
   "trick-shot": () => ({}),
   "haymaker": () => moveDiff("haymaker"),
   "energy-drink": () => moveDiff("energy-drink"),

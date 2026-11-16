@@ -29,8 +29,10 @@ import { optsFor } from "./lib/setup";
 
 const rig = createRig(gatePack, contentPack);
 
-/** Level-30 find-bout candidates that, together, use all twelve Moves (tools/find-bout.ts). */
-const BOUTS = [0, 1, 2, 6, 8, 9, 10];
+/** Level-30 find-bout candidates that, together, use all twelve Moves (tools/find-bout.ts). The
+ *  list changed with sim version 4 (round 2: Moves wait for the end of the opening, so they moved
+ *  to other bouts); it was 0, 1, 2, 6, 8, 9, 10. */
+const BOUTS = [0, 1, 2, 5, 9, 30, 34];
 const bouts: { n: number; log: BoutLog; a: FighterSnapshot; b: FighterSnapshot; p: StagePlayer }[] = BOUTS.map((n) => {
   const a = rivalSnapshot(REALM_SALT, 30, 2 * n);
   const b = rivalSnapshot(REALM_SALT, 30, 2 * n + 1);

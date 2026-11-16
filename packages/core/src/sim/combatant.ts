@@ -69,6 +69,10 @@ export interface Actor {
   taunt: number;
   /** A weapon left the hand by a throw: the next turn draws from the bag for sure. */
   reload: boolean;
+  /** The first draw of the bout is sure (round-2 review: a third of level-1 swings were fists
+   *  although every scrapper starts with a weapon, because the first draw was a 33-54% roll). Unlike
+   *  `reload` it does not skip the Move roll, so an unarmed Move can still come first. */
+  startDraw: boolean;
   /** A companion's extra damage percent (Pet Lover of its owner). */
   dmgPct: number;
   clock: number; priority: boolean;
@@ -80,6 +84,8 @@ export interface Actor {
   loss: number; lossTurn: number;
   /** Quick Swap made this turn's draw: its tag goes on the turn's first swing or throw. */
   quickSwapPending: boolean;
+  /** The actor's last own turn was a Move: this turn rolls no Move (turn.ts). */
+  movedLast: boolean;
 }
 
 const warned = new Set<string>();
@@ -112,10 +118,10 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
   const actors: Actor[] = [{
     id: `${side}0` as ActorId, side, kind: "scrapper", scrapper: true, maxHp, hp: maxHp, status: "up",
     str: eff.strength, agi: eff.agility, spd: eff.speed, held: "fists", heldAttacked: false, shield,
-    snared: false, snareSkips: 0, snareLimit: 0, sand: 0, taunt: 0, reload: false, dmgPct: 0,
+    snared: false, snareSkips: 0, snareLimit: 0, sand: 0, taunt: 0, reload: false, startDraw: true, dmgPct: 0,
     clock: 0, priority: false, skills, comp: null, dmg: 0,
     haymaker: false, lastStandUsed: false, headStartPending: skills.has("head-start"), level: s.level,
-    loss: 0, lossTurn: 0, quickSwapPending: false,
+    loss: 0, lossTurn: 0, quickSwapPending: false, movedLast: false,
   }];
   let n = 1;
   for (const p of perks) {
@@ -127,9 +133,9 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
       id: `${side}${n}` as ActorId, side, kind: p, scrapper: false, maxHp: hp, hp, status: "up",
       str: companionScale(def.strength, s.level, COMPANION_STR_GROWTH), agi: def.agility, spd: def.speed,
       held: "fists", heldAttacked: false, shield: null, snared: false, snareSkips: 0, snareLimit: 0, sand: 0,
-      taunt: 0, reload: false, dmgPct: petDmg, clock: 0, priority: false,
+      taunt: 0, reload: false, startDraw: false, dmgPct: petDmg, clock: 0, priority: false,
       skills: new Set(), comp: def, dmg: def.dmg, haymaker: false, lastStandUsed: false, headStartPending: false,
-      level: s.level, loss: 0, lossTurn: 0, quickSwapPending: false,
+      level: s.level, loss: 0, lossTurn: 0, quickSwapPending: false, movedLast: false,
     });
     n += 1;
   }

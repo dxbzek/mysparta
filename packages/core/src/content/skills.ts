@@ -24,12 +24,12 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
 
   // Passives: always on in a bout.
   "padding": def("padding", "passive", { armor: 10 }),
-  "anticipation": def("anticipation", "passive", { intercept: 12 }),
+  "anticipation": def("anticipation", "passive", { intercept: 20 }),
   "sharpening-stone": def("sharpening-stone", "passive", { bladeDamage: 40 }),
   "bare-knuckle": def("bare-knuckle", "passive", { fistDamage: 100, unarmedCombo: 10 }),
   "payback": def("payback", "passive", { riposte: 25 }),
   "flurry": def("flurry", "passive", { combo: 20 }),
-  "firm-grip": def("firm-grip", "passive", { resist: 60, swapChance: 15 }),
+  "firm-grip": def("firm-grip", "passive", { resist: 80, swapChance: 15 }),
   "head-start": def("head-start", "passive", { startClock: -150 }),
   "sharp-eye": def("sharp-eye", "passive", { aim: 16, pierce: 16 }),
   "parry": def("parry", "passive", { block: 10, riposteAfterBlock: 80 }),
@@ -43,7 +43,7 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   // content v2 passives
   "quick-swap": def("quick-swap", "passive", { drawSlack: 2 }),
   "pet-lover": def("pet-lover", "passive", { petHp: 30, petDamage: 50 }),
-  "junk-collector": def("junk-collector", "passive", { returnChance: 90 }),
+  "junk-collector": def("junk-collector", "passive", { returnChance: 90, throwChance: 35 }),
   "trick-shot": def("trick-shot", "passive", { ricochet: 35 }),
 
   // Moves: fire by weighted chance at the start of a turn, limited uses per bout.
@@ -53,7 +53,7 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "tarp": def("tarp", "move", { skips: 3, costPct: 20 }, { weight: 5, uses: 1 }),
   "whistle": def("whistle", "move", { healPct: 50, belowHpPct: 90, cost: 20 }, { weight: 20, uses: 2 }),
   "firecrackers": def("firecrackers", "move", { damageMin: 12, damageMax: 20, companionPct: 40, costPct: 50 }, { weight: 3, uses: 2 }),
-  "snatch": def("snatch", "move", { cost: 0 }, { weight: 28, uses: 2 }),
+  "snatch": def("snatch", "move", { cost: 0 }, { weight: 10, uses: 1 }),
   "air-horn": def("air-horn", "move", { fleeChance: 50, clockPush: 40, clockPushNoPet: 60, cost: 20 }, { weight: 8, uses: 1 }),
   "body-slam": def("body-slam", "move", { base: 18, perStrength: 3, extraCost: 100 }, { weight: 12, uses: 1 }),
   // content v2 Moves

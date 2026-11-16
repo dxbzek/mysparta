@@ -14,7 +14,7 @@ import { hasTag, weaponNumbers } from "../src/content/weapons";
 import { fighterSeed, randomName, startPerk } from "../src/progress/create";
 import { fits } from "../src/progress/perks";
 import { walkWith } from "../src/progress/route";
-import { cardIndices, rivalSnapshot } from "../src/progress/rivals";
+import { EASY_POINTS, cardIndices, rivalSnapshot } from "../src/progress/rivals";
 import { simulateFight } from "../src/sim/simulate";
 import { combineSeed, makeRng } from "../src/prng";
 import { api } from "../src/api";
@@ -206,32 +206,35 @@ describe("the starting weapon does not decide level-1 bouts (findings 12 and 48)
   });
 });
 
-describe("the easy cards of levels 1 to 3 (fair-card rule)", () => {
-  it("are the last 2 cards, own no weapon, keep their rival's stats, and a random scrapper beats them 85% or more", () => {
+describe("the easy card of levels 1 to 3 (fair-card rule, round 2)", () => {
+  it("is the last card, armed, its rival's perks with 3 fewer stat points, and a random scrapper beats it 55-75%", () => {
     const rng = makeRng(combineSeed("review-fixes", "easy-cards"));
     let w = 0;
     let n = 0;
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 300; i++) {
       for (const lvl of [1, 2, 3]) {
         const r = rec(randomName(i), Array.from({ length: lvl - 1 }, () => "L" as Side2));
         const card = api.tonightsCard(r, REALM_SALT, "2026-11-15");
         const idx = cardIndices(r, REALM_SALT, "2026-11-15");
         for (const [slot, s] of card.entries()) {
           const full = rivalSnapshot(REALM_SALT, lvl, idx[slot]!);
-          if (slot < 4) { expect(s).toEqual(full); continue; }
-          expect(s.perks.some((p) => perkKind(p) === "weapon")).toBe(false);
-          expect(s.stats).toEqual(full.stats);
+          if (slot < 5) { expect(s).toEqual(full); continue; }
+          expect(s.perks).toEqual(full.perks);
+          expect(s.perks.some((p) => perkKind(p) === "weapon")).toBe(true);
+          const sum = (x: typeof s): number => Object.values(x.stats.points).reduce((a, b) => a + b, 0);
+          expect(sum(full) - sum(s)).toBe(EASY_POINTS);
           const me = rivalSnapshot(REALM_SALT, lvl, 10_000 + rng.int(1_000_000));
           if (simulateFight(rng.int(2 ** 31), me, s, 1).result.winner === "a") w += 1;
           n += 1;
         }
       }
     }
-    expect((100 * w) / n).toBeGreaterThanOrEqual(85);
+    expect((100 * w) / n).toBeGreaterThanOrEqual(55);
+    expect((100 * w) / n).toBeLessThanOrEqual(75);
   });
   it("level 4 and up has no easy card", () => {
     const r = rec("Marla", ["L", "L", "L"]);
     const card = api.tonightsCard(r, REALM_SALT, "2026-11-15");
-    expect(card.every((s) => !s.id.includes(":unarmed:"))).toBe(true);
+    expect(card.every((s) => !s.id.includes(":easy:"))).toBe(true);
   });
 });

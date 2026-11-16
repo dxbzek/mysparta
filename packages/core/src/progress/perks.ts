@@ -16,6 +16,10 @@ import { hasTag } from "../content/weapons";
 export const CATEGORY_PCT: Readonly<Record<PerkKind, number>> = { weapon: 44, skill: 46, shield: 6, companion: 4 };
 /** Order of the categories on the roll. */
 const CATEGORY_ORDER: readonly PerkKind[] = ["weapon", "skill", "shield", "companion"];
+/** A kit owns this many weapons at most (round-2 review). */
+export const MAX_WEAPONS = 5;
+/** Bare Knuckle is not offered to a kit with this many weapons or more. */
+export const BARE_KNUCKLE_MAX_WEAPONS = 3;
 /** A scrapper has three companion places at most (actor ids 1 to 3). */
 export const MAX_COMPANIONS = 3;
 
@@ -41,13 +45,16 @@ function pickWeighted(p: Pool, r: number): PerkId {
   return p.ids[p.ids.length - 1]!;
 }
 
-/** One roll from the pool: the category first, then the item by weight. Two random numbers. */
-export function rollPerk(rng: Rng): PerkId {
-  let c = rng.int(100);
+/** One roll from the pool: the category first, then the item by weight. Two random numbers.
+ *  `weaponPct` is the weapon share of the category roll (the other shares stay, so the roll is out
+ *  of 56 plus it): the Route lowers it as a kit's weapons grow (`weaponShare`). */
+export function rollPerk(rng: Rng, weaponPct: number = CATEGORY_PCT.weapon): PerkId {
+  const share = (k: PerkKind): number => (k === "weapon" ? weaponPct : CATEGORY_PCT[k]);
+  let c = rng.int(100 - CATEGORY_PCT.weapon + weaponPct);
   let kind: PerkKind = "companion";
   for (const k of CATEGORY_ORDER) {
-    if (c < CATEGORY_PCT[k]) { kind = k; break; }
-    c -= CATEGORY_PCT[k];
+    if (c < share(k)) { kind = k; break; }
+    c -= share(k);
   }
   const p = POOLS[kind];
   return pickWeighted(p, rng.int(p.total));
@@ -88,7 +95,7 @@ const NEEDS_COMPANION: readonly SkillId[] = ["whistle", "pet-lover"];
  * to two), companion limits and three companions at most, one shield at most, the Whistle and Pet
  * Lover need a companion, and a weapon passive needs a weapon it works with.
  */
-export function fits(id: PerkId, owned: readonly PerkId[]): boolean {
+export function fits(id: PerkId, owned: readonly PerkId[], counts = true): boolean {
   if (isCompanionId(id)) {
     const def = COMPANIONS[id];
     const have = owned.filter((p) => p === id).length;
@@ -98,6 +105,13 @@ export function fits(id: PerkId, owned: readonly PerkId[]): boolean {
     return true;
   }
   if (owned.includes(id)) return false;
+  // At most MAX_WEAPONS weapons (round-2 review: level-30 kits owned 9.7 weapons and drew 2.4 a
+  // bout, so most late "new weapon" cards changed nothing on screen). The roll goes to the reroll.
+  // `counts` false leaves these two weapon-count rules out: the balance report's with-and-without
+  // test still measures Bare Knuckle on a kit with many weapons.
+  if (counts && perkKind(id) === "weapon" && weaponsOf(owned).length >= MAX_WEAPONS) return false;
+  // Bare Knuckle needs fists to be used: with 3 or more weapons they were 5% of swings.
+  if (counts && id === "bare-knuckle" && weaponsOf(owned).length >= BARE_KNUCKLE_MAX_WEAPONS) return false;
   if (isShieldId(id) && owned.some((p) => isShieldId(p))) return false;      // one shield at most
   if ((NEEDS_COMPANION as readonly string[]).includes(id) && !owned.some((p) => isCompanionId(p))) return false;
   const test = (NEEDS_WEAPON as Record<string, ((w: WeaponId) => boolean) | undefined>)[id];
@@ -131,6 +145,26 @@ export function allowed(id: PerkId, owned: readonly PerkId[], rng: Rng): boolean
  *  floor at level 3 because they had no weapon (15 November review, findings 12 and 16). */
 export function startable(id: PerkId): boolean {
   return perkKind(id) === "weapon";
+}
+
+/** Whether a perk may be a scrapper's second starting perk, given to a kit that owns `owned` (its
+ *  starting weapon): a skill that fits that kit, not a booster, not Snatch (round-2 review: with a
+ *  weapon only, every level-1 bout had no skill at all; Snatch won 78% of level-1 bouts as a start,
+ *  and Knock Loose about 90%: a level-1 kit has one weapon, so a disarm leaves fists for the rest of
+ *  the bout). Not Quick Swap or Firm Grip either: with one weapon and the sure first draw Quick Swap
+ *  never showed at level 1 (0% of its owner's bouts), and Firm Grip in 20% (few level-1 disarms). */
+export function startSkillable(id: PerkId, owned: readonly PerkId[]): boolean {
+  return perkKind(id) === "skill" && !isBooster(id) && !NOT_AT_START.has(id) && fits(id, owned);
+}
+const NOT_AT_START: ReadonlySet<string> = new Set<string>(["snatch", "knock-loose", "quick-swap", "firm-grip"]);
+
+/** The weapon share of a perk card's category roll, by the weapons the kit owns (round-2 review):
+ *  the full share up to 2 weapons, then less with each one, none at MAX_WEAPONS. A bout draws about
+ *  2.4 weapons, so a 4th and a 5th change little on screen; their rolls go to skills, shields and
+ *  pets instead. */
+export const WEAPON_SHARE: readonly number[] = [44, 44, 44, 30, 15];
+export function weaponShare(owned: readonly PerkId[]): number {
+  return WEAPON_SHARE[weaponsOf(owned).length] ?? 0;
 }
 
 /** Weapons of a perk list, in list order. */

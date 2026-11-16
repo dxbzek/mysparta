@@ -56,6 +56,13 @@
  *     stops that turn). `draw` and `swap` carry none. The sim writes at most one proc per step:
  *     Last Stand first, then rule skills, then chance skills, then number skills, the rarest first
  *     inside each group (docs/RULES.md 7, "Skill tags on stage").
+ *     Boosters (round 2) write a proc once a bout: Heavy Hands and Glass Cannon on their owner's
+ *     first hit, Big Heart and Mountain on the first hit their owner takes, Light Feet on its
+ *     owner's first evade or combo swing, Fast Twitch on its owner's first action.
+ *     Once a bout (round 2): the number skills, the chance passives (Anticipation, Payback, Flurry,
+ *     Slippery, Knock Loose, Sharp Eye), a shield, Quick Swap, Head Start and the boosters write
+ *     their proc at most once a bout per owner, and, but for a booster, not within 2 turns of the
+ *     last proc or Move; a step where such a proc is held back may carry another proc or none.
  * 10. Reading an `intercept`: its `target` is the actor whose turn it is and who was dashing in;
  *     its `actor` is the defender who hit first. That target makes no `attack` and no `throw` in
  *     that turn.

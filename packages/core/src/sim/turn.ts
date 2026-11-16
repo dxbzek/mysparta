@@ -55,8 +55,9 @@ function takeFromBag(b: Bout, a: Actor, id: WeaponId): void {
 /** Step 3: draw with empty hands (for sure right after a throw), or swap a weapon that has
  *  already attacked. */
 function drawOrSwap(b: Bout, a: Actor): void {
-  const reload = a.reload;
+  const reload = a.reload || a.startDraw;
   a.reload = false;
+  a.startDraw = false;
   const hasWeapons = b.bag[a.side].some((it) => it.k === "weapon");
   if (!hasWeapons) return;
   if (a.held === "fists") {
@@ -86,8 +87,12 @@ function scrapperTurn(b: Bout, a: Actor): number {
   if (a.taunt > 0) a.taunt -= 1;                           // Taunt ends at the start of its second own turn
   // Right after a throw the turn is the sure redraw: no Move roll while a weapon waits in the bag.
   const reloading = a.reload && b.bag[a.side].some((it) => it.k === "weapon");
-  const move = reloading ? null : rollMove(b, a);
-  if (move !== null) return playMove(b, a, move);
+  // No Move on the own turn right after a Move (round 2): a level-30 kit with many Moves chained
+  // them turn after turn, each one buried under the next, and bouts ran past 20 turns.
+  const rested = !a.movedLast;
+  a.movedLast = false;
+  const move = reloading || !rested ? null : rollMove(b, a);
+  if (move !== null) { a.movedLast = true; return playMove(b, a, move); }
   drawOrSwap(b, a);
   const target = pickEnemy(b, a);
   if (target === null) return turnCost(a, a.held, b.r.clock);

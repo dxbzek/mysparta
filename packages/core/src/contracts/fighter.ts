@@ -43,6 +43,7 @@ export interface ScrapperSheet {
   level: number; xp: number; xpToNext: number; levelUpWaiting: boolean;
   look: Look; stats: StatBlock; effective: Record<StatKey, number>;
   startPerk: PerkId;                                      // for the creation reveal and the Route's "Start" row
+  startSkill: PerkId;                                     // the second starting perk: a skill (round-2 review)
   perks: PerkId[]; maxHp: number; companionCostPct: number;
   derived: DerivedValues;                                 // bare-handed values, for the Stats tab
 }
@@ -61,6 +62,8 @@ export interface FighterSnapshot { id: string; name: string; look: Look; level: 
 export type RouteCard =
   | { kind: "stat"; stat: StatKey; amount: 2 }
   | { kind: "split"; stats: [StatKey, StatKey] }
-  | { kind: "perk"; perk: PerkId };
+  /** `plus`: the perk card also gives +1 point in this stat (perk cards of the early levels, round-2
+   *  review; docs/RULES.md section 3). */
+  | { kind: "perk"; perk: PerkId; plus?: StatKey };
 /** One level-up that was taken. `level` is the level reached. */
 export interface RouteNode { level: number; left: RouteCard; right: RouteCard; taken: Pick }
