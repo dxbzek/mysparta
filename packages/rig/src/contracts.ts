@@ -81,7 +81,10 @@ export type GateUi = "pause" | "play" | "speed1" | "speed2" | "skip" | "sound" |
 export type ContentUi = "gear" | "back" | "dice" | "plus" | "locker" | "kit" | "bouts" | "close";
 
 export type FaceId = "neutral" | "grit" | "shout" | "dazed" | "grin";
-export type ColourSlot = "ink" | "skin" | "hair" | "top" | "bottom" | "shoes" | "accent" | "metal" | "wood" | "white";
+/** The fixed item colours ("sign" red, "cone" orange, "pink", "paint" blue) are real objects' own
+ *  paint (`FIXED` in gate/style.ts). */
+export type ColourSlot = "ink" | "skin" | "hair" | "top" | "bottom" | "shoes" | "accent" | "metal" | "wood" | "white"
+  | "sign" | "cone" | "pink" | "paint";
 export type Ease = "linear" | "in" | "out" | "inOut" | "back" | "snap";
 
 /** One bone. `limit` is the range its own rotation may take, in degrees, lowest first: the way a

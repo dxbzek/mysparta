@@ -42,8 +42,22 @@ export const PROPORTION = {
 
 export const BONE = {
   root: 0, pelvis: 1, torso: 2, head: 3, armBup: 4, armBlo: 5, handB: 6, armFup: 7, armFlo: 8, handF: 9,
-  legBup: 10, legBlo: 11, footB: 12, legFup: 13, legFlo: 14, footF: 15, held: 16, hair: 17,
+  legBup: 10, legBlo: 11, footB: 12, legFup: 13, legFlo: 14, footF: 15, held: 16, hair: 17, stow: 18,
 } as const;
+
+/**
+ * The stow channel (review round 2, 16 Nov 2026): bone `stow` draws nothing; a clip whose hands
+ * go to the head (the Move reactions: ears, rub-eyes, angry, snared) keys it to `STOW.on`, and
+ * while it is over `STOW.on / 2` the rig draws the held item put away (a short one-hand item at
+ * the front hip, a long or two-hand one slung on the back) and both hands empty, so no blade,
+ * tine or sign goes through the face. It is a bone angle, not a flag, so it lives in the pose
+ * data and survives every crossfade and offset the stage applies to a pose.
+ */
+export const STOW = { on: 12 } as const;
+/** Items worn on the hands, never put away (they sit on the fists at the ears). */
+export const WORN_ITEMS: readonly string[] = ["knuckle-dusters"];
+/** Is this pose's held item put away? */
+export const isStowed = (rot: readonly number[]): boolean => (rot[BONE.stow] ?? 0) > STOW.on / 2;
 
 /** Where the hair hinges on the head (the back of the crown), in the head bone's frame. */
 export const HAIR_PIVOT = [-1.4, -12.6] as const;
@@ -68,6 +82,7 @@ const bones: BoneDef[] = [
   { id: "footF", parent: 14, x: 0, y: P.shin, limit: [-60, 70] },
   { id: "held", parent: 9, x: 0, y: P.grip },
   { id: "hair", parent: 3, x: -1.4, y: -12.6, limit: [-40, 40] },
+  { id: "stow", parent: 1, x: 0, y: 0 },
 ];
 
 /**

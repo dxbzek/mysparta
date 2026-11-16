@@ -11,14 +11,15 @@
  *               aerial light, a parapet with the crowd, a work floodlight on the left
  *   backyard    a fenced backyard under a porch lamp: the house wall and back door, a
  *               clothesline, neighbours over the fence, a patio and night grass
- *   gym         a school gym under hall lights: caged lamps, a hoop, bleachers with the crowd,
- *               a scoreboard, varnished boards with painted court lines
+ *   gym         a condemned school gym after hours: two of four caged sodium lamps alight,
+ *               a bent rim and torn net, a dead scoreboard, taped windows, a spray tag,
+ *               warped and stained boards with the court paint worn through
  *
  * Every colour is a style.ts colour (the arena palette test); all static paths are made once
  * from a seed.
  */
 import type { DrawEnv, StageDraw } from "../contracts";
-import { ALLEY, COMPANION_COLOURS, FIXED, FX, GLOW, GLOW_HOT, HAIR_COLOUR, INK, LAMP, LINE, PALETTES, TEAL, TEAL_DEEP } from "../gate/style";
+import { ALLEY, COMPANION_COLOURS, FIXED, FX, GLOW, GLOW_HOT, HAIR_COLOUR, INK, LAMP, LINE, PALETTES, PALETTES_MORE, TEAL, TEAL_DEEP } from "../gate/style";
 import type { Pt } from "../gate/vocab";
 import { dPoly, dPolys, ellipsePoly, halftone, hash01, inkLine, quad, roundRect } from "../gate/vocab";
 
@@ -509,7 +510,7 @@ export const drawBackyard: StageDraw = run((env, layer, bounce) => {
     fill(env, P.porchBulb, LAMP);
     outline(env, P.house, 1.2);
   } else {
-    fill(env, P.floor, ALLEY.trash);
+    fill(env, P.floor, ARENA_FLOOR.backyard);
     fill(env, P.patches, ALLEY.floor, 0.5);
     fill(env, P.patio, ALLEY.floorLit);
     fill(env, P.patioJoints, ALLEY.crack);
@@ -525,6 +526,14 @@ export const drawBackyard: StageDraw = run((env, layer, bounce) => {
 });
 
 // ----------------------------------------------------------------------------------- gym
+/**
+ * The gym after hours, condemned (review round 2, 16 Nov 2026: the clean, bright school court
+ * broke the sodium-night style next to the four alleys). Two of the four caged lamps still burn
+ * sodium; the others are dead, so the corners are dark. Warped, stained boards with the court
+ * paint worn through; a bent rim with a torn net on a grimy backboard; a dead scoreboard; high
+ * windows taped over and boarded; a spray tag on the block wall. The floor is as dark as the
+ * other arenas' (`ARENA_FLOOR`), so the fighters' trousers keep their contrast.
+ */
 const GY = (() => {
   const r = new Rnd(5404);
   const blocks = bricks(0, W, 0, 70, 18, 7, r);
@@ -540,47 +549,81 @@ const GY = (() => {
       x += l;
     }
   }
+  // warped boards: a few lifted planks, their raised edge lit, the gap under it dark
+  const warp: Pt[][] = [];
+  const warpLit: Pt[][] = [];
+  for (const [x, y, l] of [[22, WALL + 18.6, 46], [250, WALL + 43.4, 52], [120, WALL + 99.2, 40]] as const) {
+    warp.push([[x, y + 6.2], [x + l * 0.5, y + 4.4], [x + l, y + 6.2], [x + l, y + 7.2], [x, y + 7.2]]);
+    warpLit.push(inkLine([[x, y], [x + l * 0.5, y - 1.6], [x + l, y]], 0.7, false));
+  }
   const benches: Pt[][] = [];
   for (let i = 0; i < 3; i++) benches.push(rect(0, 76 + i * 11, W, 3.2));
   const lamp = (x: number): Pt[][] => [rect(x - 0.6, 0, 1.2, 10), [[x - 7, 10], [x + 7, 10], [x + 5, 16], [x - 5, 16]]];
   const lampXs = [50, 140, 230, 320];
-  const pennants: Pt[][] = [];
-  for (let i = 0; i < 8; i++) { const x = 8 + i * 13; pennants.push([[x, 26], [x + 11, 26], [x + 5.5, 36]]); }
-  const zeros = (cx: number): Pt[][] => [[...Array.from({ length: 13 }, (_, k) => { const a = (k / 12) * Math.PI * 2; return [cx + Math.cos(a) * 3.2, 46 + Math.sin(a) * 4.4] as Pt; })]];
+  const lit = [140, 320];
+  const cage = (x: number): Pt[][] => [inkLine([[x - 5, 16], [x - 3, 20], [x + 3, 20], [x + 5, 16]], 0.5, false), inkLine([[x, 16], [x, 20]], 0.4, false)];
+  // high windows: dark panes, one boarded, the rest taped in crosses
+  const winXs = [16, 70, 270, 316];
+  const panes = winXs.map((x) => rect(x, 8, 30, 14));
+  const tape: Pt[][] = [];
+  for (const x of winXs.slice(1)) tape.push(inkLine([[x + 1, 9], [x + 29, 21]], 1.5, false), inkLine([[x + 29, 9], [x + 1, 21]], 1.5, false));
+  const planks = [rect(15, 9, 32, 3.4), rect(15, 13.6, 32, 3.4), rect(15, 18.2, 32, 3.4)];
+  // a spray tag on the blocks (a loose throw-up, two letters and a drip)
+  const tag = [
+    inkLine([[84, 40], [86, 30], [92, 30], [93, 35], [87, 36], [94, 44]], 1.6, false),
+    inkLine([[98, 44], [99, 31], [106, 36], [100, 39], [107, 44]], 1.6, false),
+    inkLine([[90, 44], [90.4, 50]], 0.7, false), inkLine([[104, 44], [104.3, 48]], 0.6, false),
+  ];
   return {
     wall: dPoly(rect(0, 0, W, WALL)),
     blocks,
+    grime: blotches(r, 26, 0, 0, W, 70, 4, 12),
+    streaks: streaks(r, 18, 0, W, 22, 70),
+    wallDots: halftone(0, 0, 360, 70, 2.3, 0.55, 30),
     band: dPoly(rect(0, 56, W, 8)),
     bandLine: dPoly(rect(0, 64, W, 1.6)),
-    pennants: dPolys(pennants),
-    pennantLine: dPoly(inkLine([[4, 26], [116, 26]], 0.6, false)),
+    panes: dPolys(panes),
+    tape: dPolys(tape),
+    planks: dPolys(planks),
+    tag: dPolys(tag),
     lamps: dPolys(lampXs.flatMap(lamp)),
-    bulbs: dPolys(lampXs.map((x) => ellipsePoly(x, 16.4, 4.6, 1.8, 12))),
-    lampGlows: lampXs.flatMap((x) => glow(x, 22, 46, 26, 3)),
-    cones: dPolys(lampXs.map((x) => [[x - 5, 16], [x + 5, 16], [x + 34, WALL], [x - 34, WALL]] as Pt[])),
+    cages: dPolys(lampXs.flatMap(cage)),
+    bulbs: dPolys(lit.map((x) => ellipsePoly(x, 16.4, 4.6, 1.8, 12))),
+    deadBulbs: dPolys(lampXs.filter((x) => !lit.includes(x)).map((x) => ellipsePoly(x, 16.4, 4.6, 1.8, 12))),
+    lampGlows: lit.flatMap((x) => glow(x, 22, 46, 26, 3)),
+    cones: dPolys(lit.map((x) => [[x - 5, 16], [x + 5, 16], [x + 40, WALL], [x - 40, WALL]] as Pt[])),
     board: dPoly(rect(150, 14, 60, 36)),
+    boardGrime: blotches(r, 7, 152, 16, 208, 48, 1.6, 4, 1.4),
     boardSquare: dPoly(rect(170, 28, 20, 14)),
-    rimHoop: dPoly(inkLine([[166, 47], [194, 47]], 2.2, false)),
-    net: dPolys([inkLine([[167, 48], [172, 60], [176, 48], [180, 60], [184, 48], [188, 60], [193, 48]], 0.7, false), inkLine([[171, 56], [189, 56]], 0.6, false)]),
+    // the rim bent down on its right side, the net torn: two strands left and one hanging long
+    rimHoop: dPoly(inkLine([[166, 47], [178, 47.6], [194, 52]], 2.2, false)),
+    net: dPolys([inkLine([[167, 48], [170, 58], [174, 48.4]], 0.7, false), inkLine([[186, 50.4], [184, 64]], 0.7, false)]),
     scoreboard: dPoly(roundRect(256, 30, 52, 26, 2)),
-    scoreZeros: dPolys([...zeros(268), ...zeros(296)].map((p) => inkLine(p, 1.4, false))),
-    scoreDots: dPolys([ellipsePoly(282, 42, 0.9, 0.9, 6), ellipsePoly(282, 49, 0.9, 0.9, 6)]),
+    scoreCrack: dPoly(inkLine([[262, 33], [274, 44], [270, 52]], 0.6, false)),
+    scoreDead: dPolys([268, 296].map((cx) => inkLine([[cx - 2.6, 42], [cx + 2.6, 42]], 1.2, false))),
     bleachers: dPolys([rect(0, 70, W, WALL - 70)]),
     benches: dPolys(benches),
+    benchGap: dPoly(rect(196, 87, 26, 3.2)),
     rails: dPolys([rect(0, 69, W, 1.6), rect(118, 69, 2, 41.4), rect(242, 69, 2, 41.4)]),
     floor: dPoly(rect(0, WALL, W, H - WALL)),
     boards: dPolys(boards),
     boardTone: dPolys(boardTone),
+    warp: dPolys(warp),
+    warpLit: dPolys(warpLit),
     centre: dPolys([
       [...Array.from({ length: 49 }, (_, k) => { const a = (k / 48) * Math.PI * 2; return [180 + Math.cos(a) * 46, 196 + Math.sin(a) * 14] as Pt; }),
         ...Array.from({ length: 49 }, (_, k) => { const a = (1 - k / 48) * Math.PI * 2; return [180 + Math.cos(a) * 43.6, 196 + Math.sin(a) * 12.8] as Pt; })],
     ]),
     lines: dPolys([rect(178.8, WALL, 2.4, H - WALL), rect(0, 128, W, 1.8)]),
     keyPaint: dPoly([[0, 146], [60, 146], [76, H], [0, H]]),
-    shine: dPolys(lampXs.map((x) => ellipsePoly(x + 8, 160, 18, 3.4, 20))),
-    shine2: dPolys(lampXs.map((x) => ellipsePoly(x + 12, 205, 26, 4.2, 20))),
+    // the lamp pools on the floor, under the two lamps that still work
+    pools: lit.flatMap((x) => glow(x + 6, 172, 64, 22, 4)),
+    stains: blotches(r, 16, 0, WALL + 8, W, H, 4, 11, 2.2),
     scuffs: blotches(r, 26, 0, WALL + 6, W, H, 1.5, 4, 2.6),
-    floorDots: halftone(0, 220, 360, 240, 2.4, 0.55, 30),
+    floorCracks: cracks(r, 14, WALL + 6, H - 2),
+    floorDots: halftone(0, 206, 360, 240, 2.4, 0.6, 30),
+    cornerL: dPoly([[0, WALL], [70, WALL], [30, H], [0, H]]),
+    cornerR: dPoly([[290, WALL], [W, WALL], [W, H], [330, H]]),
     shade: dPoly(rect(0, WALL, W, 10)),
   };
 })();
@@ -591,49 +634,69 @@ const GY_FANS: Fan[] = [
 export const drawGym: StageDraw = run((env, layer, bounce) => {
   const P = GY;
   if (layer === "back") {
-    fill(env, P.wall, ALLEY.shutter);
-    fill(env, P.blocks, ALLEY.shutterLine, 0.7);
-    for (const g of P.lampGlows) fill(env, g, LAMP, 0.05);
-    fill(env, P.band, PALETTES[0]!.top, 0.85);
-    fill(env, P.bandLine, ALLEY.paint, 0.8);
-    fill(env, P.pennantLine, ALLEY.pole);
-    fill(env, P.pennants, PALETTES[3]!.top);
-    outline(env, P.pennants, 0.7);
-    // hoop and scoreboard
-    fill(env, P.board, FIXED.white);
+    fill(env, P.wall, ALLEY.brick);
+    fill(env, P.blocks, ALLEY.mortar, 0.8);
+    for (const g of P.lampGlows) fill(env, g, LAMP, 0.06);
+    fill(env, P.grime, ALLEY.grime, 0.3);
+    fill(env, P.streaks, ALLEY.grime, 0.35);
+    fill(env, P.wallDots, TEAL_DEEP, 0.5);
+    fill(env, P.band, PALETTES[0]!.top, 0.4);
+    fill(env, P.bandLine, ALLEY.paint, 0.35);
+    // the high windows: dark, taped, one boarded
+    fill(env, P.panes, ALLEY.mortar);
+    outline(env, P.panes, 1.1);
+    fill(env, P.tape, ALLEY.paint, 0.8);
+    fill(env, P.planks, FIXED.wood, 0.75);
+    outline(env, P.planks, 0.7);
+    fill(env, P.tag, PALETTES[3]!.top, 0.7);
+    // the grimy backboard, the bent rim and the torn net; the dead scoreboard
+    fill(env, P.board, ALLEY.paint);
+    fill(env, P.boardGrime, ALLEY.grime, 0.45);
     outline(env, P.board);
-    fill(env, P.boardSquare, FIXED.white);
     outline(env, P.boardSquare, 1.1);
-    fill(env, P.net, FIXED.white, 0.85);
+    fill(env, P.net, FIXED.white, 0.6);
     fill(env, P.rimHoop, ALLEY.sign);
     fill(env, P.scoreboard, ALLEY.pole);
     outline(env, P.scoreboard, 1.2);
-    fill(env, P.scoreZeros, GLOW_HOT);
-    fill(env, P.scoreDots, GLOW_HOT);
+    fill(env, P.scoreDead, ALLEY.shutter);
+    fill(env, P.scoreCrack, ALLEY.shutter);
     // bleachers and the crowd on them
-    fill(env, P.bleachers, ALLEY.brick);
-    fill(env, P.benches, FIXED.wood, 0.8);
+    fill(env, P.bleachers, ALLEY.mortar);
+    fill(env, P.benches, FIXED.wood, 0.55);
+    fill(env, P.benchGap, ALLEY.mortar);
     drawCrowd(env, GY_FANS.slice(0, 5), 92, bounce, ALLEY.crowd, LAMP, 0.6);
     drawCrowd(env, GY_FANS.slice(5), 103, bounce, ALLEY.crowd, LAMP, 0.6);
     fill(env, P.rails, ALLEY.pole);
-    // hall lights
-    fill(env, P.cones, LAMP, 0.045);
+    // the caged lamps: two burning sodium, two dead
+    fill(env, P.cones, LAMP, 0.05);
     fill(env, P.lamps, ALLEY.pole);
+    fill(env, P.cages, ALLEY.pole);
     fill(env, P.bulbs, LAMP);
+    fill(env, P.deadBulbs, ALLEY.shutter);
   } else {
-    fill(env, P.floor, PALETTES[1]!.bottom);
-    fill(env, P.boardTone, PALETTES[1]!.accent, 0.55);
-    fill(env, P.boards, ALLEY.shutterLine, 0.5);
-    fill(env, P.keyPaint, PALETTES[0]!.top, 0.35);
-    fill(env, P.lines, FIXED.white, 0.85);
-    fill(env, P.centre, FIXED.white, 0.85);
-    fill(env, P.shine, LAMP, 0.18);
-    fill(env, P.shine2, LAMP, 0.12);
-    fill(env, P.scuffs, ALLEY.shutterLine, 0.3);
-    fill(env, P.floorDots, TEAL, 0.5);
+    fill(env, P.floor, ARENA_FLOOR.gym);
+    fill(env, P.boardTone, PALETTES_MORE[4]!.bottom, 0.35);
+    for (const g of P.pools) fill(env, g, LAMP, 0.06);
+    fill(env, P.boards, ALLEY.grime, 0.6);
+    fill(env, P.keyPaint, PALETTES[0]!.top, 0.18);
+    fill(env, P.lines, FIXED.white, 0.3);
+    fill(env, P.centre, FIXED.white, 0.3);
+    fill(env, P.stains, ALLEY.grime, 0.35);
+    fill(env, P.scuffs, ALLEY.grime, 0.3);
+    fill(env, P.warp, ALLEY.grime, 0.8);
+    fill(env, P.warpLit, LAMP, 0.35);
+    fill(env, P.floorCracks, ALLEY.crack, 0.8);
+    fill(env, P.cornerL, TEAL_DEEP, 0.45);
+    fill(env, P.cornerR, TEAL_DEEP, 0.45);
+    fill(env, P.floorDots, TEAL_DEEP, 0.55);
     fill(env, P.shade, TEAL_DEEP, 0.45);
     floorLine(env);
   }
 });
+
+/** The base fill of each arena's floor (the gate's yard included): what a fighter, a pet and
+ *  every effect stand on, for the contrast checks (the Tarp 3:1 on every floor; the gym as dark
+ *  as the alleys). */
+export const ARENA_FLOOR = { yard: ALLEY.floor, "yard-night": ALLEY.floor, rooftop: ALLEY.floor, backyard: ALLEY.trash, gym: PALETTES_MORE[0]!.bottom } as const;
 
 export const CONTENT_STAGES = { "yard-night": drawYardNight, rooftop: drawRooftop, backyard: drawBackyard, gym: drawGym };

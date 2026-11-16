@@ -70,12 +70,18 @@ export const PALETTES_MORE: readonly Palette[] = [
   { top: "#1E3438", bottom: "#6E5632", shoes: "#8C5E30", accent: "#E8923E" },
   { top: "#8C6A4A", bottom: "#2E2A26", shoes: "#C88A50", accent: "#3A2A20" },
 ];
-/** Fixed colours of the other slots. */
-export const FIXED: Readonly<Record<"metal" | "wood" | "white" | "ink", string>> = {
+/** Fixed colours of the other slots. The item colours (review round 2, 16 Nov 2026: "the stop
+ *  sign is brown and the cone is cream") are the real objects' own paint under the sodium lamp:
+ *  a road sign's red, a cone's safety orange, a lawn flamingo's pink, a paint tin's blue label. */
+export const FIXED: Readonly<Record<"metal" | "wood" | "white" | "ink" | "sign" | "cone" | "pink" | "paint", string>> = {
   metal: "#E8B07A",       // steel under a sodium lamp
   wood: "#9A5A2A",
   white: "#F2D4A8",       // cream, never pure white on a figure
   ink: INK,
+  sign: "#B8352A",        // road-sign red (ALLEY.sign)
+  cone: "#E8662A",        // safety orange
+  pink: "#E2789A",        // plastic flamingo pink
+  paint: "#4A8FD0",       // a paint tin's label
 };
 
 /** The flash: the target's parts redrawn in this for 60 ms. */
@@ -110,6 +116,9 @@ export const ALLEY = {
   crack: "#041416", shutter: "#123F48", shutterLine: "#06191D", windowLit: "#E8923E",
   pole: "#06191D", fence: "#041416", crowd: "#020C0E", paint: "#B9A27A", puddle: "#164A52",
   grime: "#020A0C", trash: "#2A3A30", sign: "#B8352A",
+  // the Tarp Move's sheet: a blue poly tarp (review round 2: the old wall teal was 1.2-1.4:1
+  // on the floor and the brick); 3:1 or more on every arena floor (content test)
+  tarp: "#5EA4E4", tarpFold: "#2E6AA6", tarpHem: "#1C4A7A",
 } as const;
 
 /** Every colour this file defines, for the "every fill is a palette slot" test. */

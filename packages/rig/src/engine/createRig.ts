@@ -20,7 +20,7 @@ import { BODY_CENTRE, HEAD_CENTRE, KNUCKLES } from "../gate/parts";
 import { hd } from "../gate/parts/kit";
 import { PLACEHOLDER_COMPANIONS, placeholderWeapon, shieldStandIn } from "../gate/placeholders";
 import type { CompanionArt } from "../gate/placeholders";
-import { ANATOMY, BONE, GRIP_ROT, SCRAPPER_RIG, SECONDARY } from "../gate/skeleton";
+import { ANATOMY, BONE, GRIP_ROT, SCRAPPER_RIG, SECONDARY, WORN_ITEMS, isStowed } from "../gate/skeleton";
 import { COMPANION_COLOURS, FIXED, GROUND_SHADOW, HAIR_COLOUR, LINE, PALETTES, SKIN, shadeOf, slotColour } from "../gate/style";
 import type { SlotColours } from "../gate/style";
 import { parsePolys } from "../gate/vocab";
@@ -113,6 +113,38 @@ const HEAD_CLEAR = 13;
 /** Most the first joint turns while the hand is still, so a chain drapes over the fist. */
 export const MAX_BEND_HANG = 110;
 
+/** Where a put-away item goes (`STOW`). Hip: tucked in the belt at the near hip (pelvis frame),
+ *  hanging along the thigh, `angle` from the thigh's own line (positive tips it back). Back:
+ *  behind the shoulders (torso frame), hanging down the back at `angle` from the spine. Floor:
+ *  set down `gap` behind the back foot. */
+const STOW_HIP = { near: [2.2, -2.6] as const, far: [-2.4, -2.6] as const, angle: 86, z: 52, zFar: 9, maxLength: 36 } as const;
+const STOW_BACK = { at: [-4.6, -22] as const, angle: 97, z: 5 } as const;
+const STOW_FLOOR = { gap: 3, z: 9 } as const;
+/** Bulky things a fighter sets down rather than tucks away. */
+const SET_DOWN: ReadonlySet<string> = new Set(["anvil", "tyre", "traffic-cone", "paint-can", "bricks", "rubber-ball", "hubcap", "folding-chair"]);
+function stowPlace(held: HeldId, art: WeaponArt): "hip" | "back" | "floor" {
+  if (SET_DOWN.has(held)) return "floor";
+  return art.grip2 !== undefined || art.length > STOW_HIP.maxLength ? "back" : "hip";
+}
+/** An item's drawn extent in its own units: [x0, x1, y0, y1] (the links laid out straight). */
+const spans = new WeakMap<WeaponArt, [number, number, number, number]>();
+function itemSpan(art: WeaponArt): [number, number, number, number] {
+  let r = spans.get(art);
+  if (r !== undefined) return r;
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  const eat = (shapes: readonly { d: string }[], dx: number): void => {
+    for (const sh of shapes) for (const poly of parsePolys(sh.d)) for (const [x, y] of poly) {
+      x0 = Math.min(x0, x + dx); x1 = Math.max(x1, x + dx); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+    }
+  };
+  eat(art.shapes, 0);
+  let dx = 0;
+  for (const sg of art.segments ?? []) { eat(sg.shapes, dx); dx += sg.length; }
+  r = Number.isFinite(x0) ? [x0, x1, y0, y1] : [0, art.length, -1, 1];
+  spans.set(art, r);
+  return r;
+}
+
 export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig => {
   const gateOnly = content === undefined;
   const looks: AppearanceSet = content?.looks ?? gate.looks;
@@ -189,6 +221,8 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     rot: number[]; held: HeldId; art: WeaponArt | null; backLeads: boolean; facing: 1 | -1;
     /** 1 while the back hand holds a two-hand item's grip2, 0 once it has let go. */
     hold2: number;
+    /** The held item put away (`STOW`): drawn at the hip or on the back, `art` is then null. */
+    stowed: WeaponArt | null;
   }
   const SWAP: readonly (readonly [number, number])[] = [[BONE.armBup, BONE.armFup], [BONE.armBlo, BONE.armFlo], [BONE.handB, BONE.handF]];
 
@@ -211,7 +245,10 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     let rot = [...pose.rot];
     while (rot.length < model.def.bones.length) rot.push(0);
     if (backLeads) for (const [b, f] of SWAP) { const t = rot[b]!; rot[b] = rot[f]!; rot[f] = t; }
-    const art = held === "fists" ? null : weaponArt(held);
+    const art0 = held === "fists" ? null : weaponArt(held);
+    // a Move reaction with the hands at the head puts the item away (worn knuckles stay on)
+    const stowed = art0 !== null && isStowed(rot) && !WORN_ITEMS.includes(held) ? art0 : null;
+    const art = stowed !== null ? null : art0;
     const free = [...rot];
     const hold = shaftHold(pose, dress);
     let hold2 = 0;
@@ -322,7 +359,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     const fr = frames(model, rot, pose.root.x, pose.root.y);
     const wa = worldAngles(model, rot);
     const map: Xf = { a: at.facing * s, b: 0, c: 0, d: s, e: at.x, f: at.y };
-    return { fr, wa, map, s, build, rot, held, art, backLeads, facing: at.facing, hold2 };
+    return { fr, wa, map, s, build, rot, held, art, backLeads, facing: at.facing, hold2, stowed };
   }
   /** Where the back wrist must be (figure space) for the back hand to hold `grip2`, and the
    *  hand's world angle (both hands close round the shaft the same way). */
@@ -674,6 +711,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
         parts.push(...tagged(itemPaints(f.art, xo, 21, colours, undefined, null, 0, 0, 0), `item:${other}`, xo));
       }
     }
+    if (f.stowed !== null) parts.push(...stowedPaints(f, f.stowed, colours));
     if (dress.shield !== null && dress.shield !== undefined) {
       const art = shieldArt(dress.shield);
       const wrist = f.fr[BONE.handB]!;
@@ -702,6 +740,58 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       }
     }
     return parts;
+  }
+  /** The held item put away for a Move reaction (`STOW`; review round 2, 16 Nov 2026: a blade
+   *  went through the face while the hands were at the ears). Where it goes is what a real
+   *  fighter does with that object (`stowPlace`): a short tool hangs from the belt at the near
+   *  hip along the thigh (a pair: the second at the far hip); a long or two-hand one is slung
+   *  across the back behind the body (as the stage slings a shield); a bulky thing (a tyre, an
+   *  anvil, a cone) is set down on the floor behind the back foot. Tagged "stowed:F" / "stowed:B". */
+  function stowedPaints(f: Fig, art: WeaponArt, colours: SlotColours): Paint[] {
+    const out: Paint[] = [];
+    const [x0, x1, y0, y1] = itemSpan(art);
+    const mid = (y0 + y1) / 2;
+    const put = (px: number, py: number, angle: number, ax: number, ay: number, z: number, tag: string): void => {
+      // a bending item hangs straight while it is put away
+      const a2: WeaponArt = { ...art, grip: { x: ax, y: ay, rot: 0 } };
+      if (art.segments !== undefined && art.segments.length > 0) {
+        let x = px;
+        let y = py;
+        const r = (angle * Math.PI) / 180;
+        x -= ((ax * Math.cos(r)) - (ay * Math.sin(r))) / f.s;
+        y -= ((ax * Math.sin(r)) + (ay * Math.cos(r))) / f.s;
+        art.segments.forEach((sg, k) => {
+          const m = itemStageXf(f, x, y, angle, { ...art, grip: { x: 0, y: 0, rot: 0 } });
+          out.push(...tagged(itemPaints({ ...art, shapes: sg.shapes, segments: [] } as WeaponArt, m, z + 0.001 * k, colours, undefined, null, 0, 0, 0), tag, m));
+          x += (sg.length * Math.cos(r)) / f.s;
+          y += (sg.length * Math.sin(r)) / f.s;
+        });
+        return;
+      }
+      const m = itemStageXf(f, px, py, angle, a2);
+      out.push(...tagged(itemPaints(a2, m, z, colours, undefined, null, 0, 0, 0), tag, m));
+    };
+    const where = stowPlace(f.held, art);
+    if (where === "floor") {
+      // set down on the floor behind the back foot, lying as it fell
+      const back = Math.min(f.fr[BONE.footB]!.e, f.fr[BONE.footF]!.e);
+      put(back - STOW_FLOOR.gap - (x1 - x0) / (2 * f.s), 0, 0, (x0 + x1) / 2, y1, STOW_FLOOR.z, "stowed:B");
+      return out;
+    }
+    if (where === "back") {
+      // slung across the back: the top end behind the shoulders, the item down the back
+      const [gx, gy] = apply(f.fr[BONE.torso]!, STOW_BACK.at[0], STOW_BACK.at[1]);
+      put(gx, gy, f.wa[BONE.torso]! + STOW_BACK.angle, x0, mid, STOW_BACK.z, "stowed:B");
+      return out;
+    }
+    const pelvis = f.fr[BONE.pelvis]!;
+    const [nx, ny] = apply(pelvis, STOW_HIP.near[0], STOW_HIP.near[1]);
+    put(nx, ny, f.wa[BONE.legFup]! + STOW_HIP.angle, x0, mid, STOW_HIP.z, "stowed:F");
+    if (isPair(f.held) || art.offhand === true) {
+      const [fx, fy] = apply(pelvis, STOW_HIP.far[0], STOW_HIP.far[1]);
+      put(fx, fy, f.wa[BONE.legBup]! + STOW_HIP.angle, x0, mid, STOW_HIP.zFar, "stowed:B");
+    }
+    return out;
   }
   /** Tags an item's paints; `item` is the frame the item's own drawing (grip, grip2) is in. */
   function tagged(ps: Paint[], tag: string, item: Xf): Paint[] {

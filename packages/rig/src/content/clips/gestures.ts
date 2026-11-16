@@ -12,11 +12,15 @@
  *             (a 480 ms loop).
  *
  * The stage asks for them by name (the content pack's `variants`, like the footwork clips).
+ *
+ * Free hands (review round 2, 16 Nov 2026): ears, rub-eyes and angry (and `snared`) key the
+ * stow channel (`STOW`), so the rig puts the held item away while they play: a blade, a tine or
+ * a stop sign never goes through the face, and both hands are really at the ears or the eyes.
  */
 import { clip, BOTH_FEET, STANCE } from "../../gate/clips/kit";
 import type { Spec } from "../../gate/clips/kit";
 
-const EARS_A: Spec = { root: [-1.5, 6], pelvis: -2, torso: 16, head: 14, held: 0, legF: { at: 10 }, legB: { at: -12 },
+const EARS_A: Spec = { stow: true, root: [-1.5, 6], pelvis: -2, torso: 16, head: 14, held: 0, legF: { at: 10 }, legB: { at: -12 },
   F: { at: [0.5, -68.5], hand: -63 }, B: { at: [-1.5, -70.5], hand: -67 }, face: "grit" };
 export const EARS = clip(600, true, [], [
   [0, EARS_A],
@@ -26,7 +30,7 @@ export const EARS = clip(600, true, [], [
   [600, { ...EARS_A, ease: "inOut" }],
 ], { plant: BOTH_FEET, lag: { head: 30 } });
 
-const RUB_A: Spec = { root: [-0.5, 7], pelvis: -2, torso: 26, head: 18, held: 0, legF: { at: 11 }, legB: { at: -13 },
+const RUB_A: Spec = { stow: true, root: [-0.5, 7], pelvis: -2, torso: 26, head: 18, held: 0, legF: { at: 11 }, legB: { at: -13 },
   F: { at: [12, -63], hand: -60 }, B: { at: [24, -46], hand: 6 }, face: "grit" };
 export const RUB_EYES = clip(560, true, [], [
   [0, RUB_A],
@@ -49,7 +53,7 @@ export const TAUNT = clip(1300, false, [], [
   [1300, { ...STANCE, ease: "inOut" }],
 ], { plant: BOTH_FEET, lag: { head: 50, "armB.up": 40, "armB.lo": 40, handB: 60 } });
 
-const ANGRY_A: Spec = { root: [2, 5.5], pelvis: 3, torso: 20, head: 2, legF: { at: 14 }, legB: { at: -13 },
+const ANGRY_A: Spec = { stow: true, root: [2, 5.5], pelvis: 3, torso: 20, head: 2, legF: { at: 14 }, legB: { at: -13 },
   F: { at: [20, -50], hand: -40 }, B: { at: [14, -53], hand: -30 }, face: "grit" };
 export const ANGRY = clip(480, true, [], [
   [0, ANGRY_A],
@@ -61,3 +65,5 @@ export const ANGRY = clip(480, true, [], [
 
 export const GESTURES = { ears: EARS, "rub-eyes": RUB_EYES, taunt: TAUNT, angry: ANGRY } as const;
 export type Gesture = keyof typeof GESTURES;
+/** The clips that put the held item away (they key `stow`). */
+export const FREE_HAND_CLIPS = ["ears", "rub-eyes", "angry", "snared"] as const;
