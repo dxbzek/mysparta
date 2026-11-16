@@ -36,6 +36,9 @@ export interface Landing {
   /** Where the burst goes instead of the target's hit point (a rolled Tyre: at the shins). */
   burstAt?: { x: number; y: number };
   procs?: readonly Proc[];
+  /** A Move's hit (Firecrackers, Grapple, Body Slam): its impact cue carries the Move, so it
+   *  sounds like the pops, the squeeze or the slam, never a bare fist (contract rev 4). */
+  move?: MoveId;
 }
 
 const clampNum = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
@@ -184,7 +187,9 @@ export function land(b: Builder, L: Landing, ci?: number): number {
       b.crowds.push({ from: s("crowd"), ms: CONTACT.crowdMs, contact: c });
       b.cue(s("crowd"), L.i, "crowd");
     }
-    b.cue(s("sound"), L.i, impactFamily(L.weapon), 0, hitItem(b, L), "body");
+    b.cue(s("sound"), L.i, impactFamily(L.weapon), 0, hitItem(b, L), "body", L.move !== undefined ? { move: L.move, beat: "effect" } : undefined);
+    // a crit or the knockout blow lands heavier: a deep layer under the impact (contract rev 4)
+    if (L.crit || kill) b.cue(s("sound"), L.i, "landing", 1, null, undefined, { accent: true });
     b.lastHitAt.set(L.target, L.at);
   } else if (L.outcome === "block") {
     // A shield on the back arm comes up and takes the blow (content v2); otherwise the arms do.

@@ -220,6 +220,12 @@ export const MOVE = {
   angryMs: 900,
   /** The Taunt's own gesture (rig content clips/gestures.ts: two fist pumps and a beckon). */
   tauntMs: 1300,
+  /** Sound moments (contract rev 4). The Taunt's shout goes with its rings (120 ms in); the
+   *  enemy's snort with the ANGRY clip's first "shout" face (120 ms into it). The gulp sounds when
+   *  the drink clip's head goes back (320 of its 700 ms). */
+  tauntShoutMs: 120,
+  angrySnortMs: 120,
+  gulpShare: 0.45,
 } as const;
 
 /** The end of the bout. */

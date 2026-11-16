@@ -16,7 +16,12 @@
  * Mobile Safari: the context is created and resumed inside the gesture itself, a silent buffer
  * is played once to unlock output, and every later gesture, and the page becoming visible again,
  * resumes a context that is not "running" ("suspended", or the "interrupted" state iOS uses
- * after a call).
+ * after a call). While the context is not running nothing is started (a sound started on a
+ * suspended context would wait and fire with every other one at the next tap).
+ *
+ * Phone networks drop requests: a failed load (or a response that is not ok) is tried again on a
+ * later gesture, at least `RETRY_MS` after the last try and at most `MAX_TRIES` times; a content
+ * file that failed is fetched again the same way, while the core sounds keep playing.
  */
 import type { SfxFamily } from "@rankzero/stage";
 
@@ -30,12 +35,18 @@ export interface SpriteMap { version: 2; files: string[]; sets: Record<string, S
 
 /** At most this many sounds play at once; a new one stops the oldest. */
 export const MAX_VOICES = 10;
+/** A failed file is tried again on a gesture at least this long after its last try (doubling). */
+export const RETRY_MS = 2000;
+/** Tries per file before the engine gives up for the session. */
+export const MAX_TRIES = 5;
 
 /** The parts of Web Audio the engine calls. A test passes a fake. */
 export interface AudioHost {
   createContext(): AudioContextLike;
   fetchBytes(url: string): Promise<ArrayBuffer>;
   fetchJson(url: string): Promise<unknown>;
+  /** ms clock for the retry backoff (default Date.now). */
+  now?(): number;
 }
 export interface AudioParamLike { value: number }
 export interface AudioNodeLike { connect(dest: unknown): unknown }
@@ -82,6 +93,15 @@ export interface AudioEngine {
   content(): Promise<void>;
 }
 
+/** A fetch that throws on a response that is not ok, so a 404 page is never decoded as sound. */
+const fetchOk = async (url: string): Promise<Response> => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`audio: ${url} answered ${res.status}`);
+  return res;
+};
+export const browserFetchBytes = async (url: string): Promise<ArrayBuffer> => (await fetchOk(url)).arrayBuffer();
+export const browserFetchJson = async (url: string): Promise<unknown> => (await fetchOk(url)).json();
+
 const browserHost = (): AudioHost => ({
   createContext: () => {
     const Ctor = (globalThis as { AudioContext?: new () => AudioContextLike; webkitAudioContext?: new () => AudioContextLike }).AudioContext
@@ -89,8 +109,8 @@ const browserHost = (): AudioHost => ({
     if (!Ctor) throw new Error("no Web Audio");
     return new Ctor();
   },
-  fetchBytes: async (url) => (await fetch(url)).arrayBuffer(),
-  fetchJson: async (url) => (await fetch(url)).json(),
+  fetchBytes: browserFetchBytes,
+  fetchJson: browserFetchJson,
 });
 
 export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost()): AudioEngine {
@@ -106,6 +126,17 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
   const active: SourceLike[] = [];
   const warned = new Set<string>();
   const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  const now = (): number => (host.now ? host.now() : Date.now());
+  /** Tries and the earliest next try, for the core (sfx.json + file 0) and each content file. */
+  const tries = new Map<number | "core", { n: number; next: number }>();
+  const mayTry = (key: number | "core"): boolean => {
+    const t = tries.get(key);
+    return t === undefined || (t.n < MAX_TRIES && now() >= t.next);
+  };
+  const tried = (key: number | "core"): void => {
+    const n = (tries.get(key)?.n ?? 0) + 1;
+    tries.set(key, { n, next: now() + RETRY_MS * 2 ** (n - 1) });
+  };
 
   const fetchFile = async (i: number): Promise<void> => {
     if (ctx === null || map === null) return;
@@ -150,24 +181,35 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
     return ctx.resume().catch(() => undefined);
   };
 
+  /** The content files not in yet, each when its backoff allows; never holds up `unlock`. A
+   *  failure leaves the core sounds playing and is tried again on a later gesture. */
+  const loadContent = (): void => {
+    const due: number[] = [];
+    for (let i = 1; i < (map?.files.length ?? 0); i++) if (buffers[i] === undefined && mayTry(i)) due.push(i);
+    if (due.length === 0) return;
+    contentLoad = contentLoad.then(async () => {
+      for (const i of due) {
+        tried(i);
+        await fetchFile(i).catch((error: unknown) => console.warn(`audio: ${map?.files[i]} did not load`, error));
+      }
+    });
+  };
+
   const load = async (): Promise<void> => {
     state = "loading";
+    tried("core");
     try {
       map = (await host.fetchJson(`${base}audio/sfx.json`)) as SpriteMap;
       await fetchFile(0);
       state = "ready";
     } catch (error) {
       state = "failed";
+      map = null;
+      loading = null;            // a later gesture tries again (see `unlock`)
       console.warn("audio: the sound sprite did not load", error);
       return;
     }
-    // the content sprite, after the core and without holding up `unlock`; a failure here
-    // leaves the core sounds playing
-    contentLoad = (async () => {
-      for (let i = 1; i < (map?.files.length ?? 0); i++) {
-        await fetchFile(i).catch((error: unknown) => console.warn(`audio: ${map?.files[i]} did not load`, error));
-      }
-    })();
+    loadContent();
   };
 
   const stop = (s: SourceLike): void => {
@@ -196,18 +238,22 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
       // create and resume inside the gesture itself (iOS needs both in the same task)
       if (ctx === null && (state !== "idle" || !open())) return Promise.resolve();
       const resumed = wake();
-      if (loading === null) loading = load();
+      if (loading === null && mayTry("core")) loading = load();
+      else if (state === "ready") loadContent();
       // the core is in after this; the content keeps loading (see `content`)
-      return Promise.all([loading, resumed]).then(() => wake());
+      return Promise.all([loading ?? Promise.resolve(), resumed]).then(() => wake());
     },
     resume() { return wake(); },
-    content() { return loading === null ? Promise.resolve() : loading.then(() => contentLoad); },
+    content() { return (loading ?? Promise.resolve()).then(() => contentLoad); },
     size(name) {
       const list = listOf(name);
       return list !== undefined && list.length > 0 && ready(list[0]!) ? list.length : 0;
     },
     play(name, variant) {
       if (!enabled || state !== "ready" || ctx === null || map === null) return false;
+      // a suspended or interrupted context would hold the sound and release it with the rest at
+      // the next tap: skip it, and ask to resume so the next frame can play
+      if (ctx.state !== "running") { void wake(); return false; }
       const entry = listOf(name)?.[variant];
       if (!entry) {
         const key = `${name}:${variant}`;
