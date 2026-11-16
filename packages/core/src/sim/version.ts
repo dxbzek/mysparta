@@ -11,5 +11,9 @@
  *      excepted), big hits in the opening, the sure first draw, once-a-bout tags and booster tags,
  *      the weapon cap and the falling weapon share, +1 stat on early perk cards, Snatch 10/1,
  *      Anticipation 20, Firm Grip 80, Junk Collector's throws, Hockey Stick Dmg 7, the easy card.
+ *   5: round 2, second pass (16 November 2026): rare tags never wait and an owed tag shows later,
+ *      Quick Swap's faster draw and swap turns, Bare Knuckle opens with fists, the last weapon is
+ *      held harder, stat cards that grow, +1 stat on the 17th to 22nd perk card, 20 weapon, skill
+ *      and pet rows (docs/RULES.md section 9).
  */
-export const SIM_VERSION = 4;
+export const SIM_VERSION = 5;

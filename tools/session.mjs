@@ -237,7 +237,8 @@ async function main() {
       check((doc?.history ?? []).every((b) => b.watched), "every bout is marked watched");
       check(keys.every((k) => k.startsWith("rankzero.")), "every storage key has the rankzero. prefix", keys.join(", "));
       check(await page.getByText(/Done for tonight/).count() > 0, "after a reload the Locker still shows done for tonight");
-      // the Level path shows every level; the Kit holds the start perk plus every perk card taken
+      // the Level path shows every level; the Kit holds the two starting perks (a weapon and a skill,
+      // round 2) plus every perk card taken
       await page.evaluate(() => { location.hash = "#/kit/route"; });
       await page.waitForTimeout(400);
       const routeRows = await page.locator("ol > li").count();
@@ -249,7 +250,7 @@ async function main() {
       await page.waitForTimeout(400);
       const kitCount = await page.evaluate(() => [...document.querySelectorAll("main section h2 span")].reduce((s, e) => s + Number(e.textContent || 0), 0));
       const kitRows = await page.locator("main section button[aria-label]").count();
-      check(kitCount === 1 + takenPerks && kitRows === kitCount, "the Kit is the start perk plus every perk card taken on the Route", `${kitCount} perks, ${takenPerks} perk cards taken`);
+      check(kitCount === 2 + takenPerks && kitRows === kitCount, "the Kit is the two starting perks plus every perk card taken on the Route", `${kitCount} perks, ${takenPerks} perk cards taken`);
 
       // ---------------------------------------------------------------- 5. next day, reload mid-bout
       await page.goto(`${app.url}${ENTRY}?shift=1#/locker`);

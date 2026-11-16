@@ -71,7 +71,8 @@ export interface Actor {
   reload: boolean;
   /** The first draw of the bout is sure (round-2 review: a third of level-1 swings were fists
    *  although every scrapper starts with a weapon, because the first draw was a 33-54% roll). Unlike
-   *  `reload` it does not skip the Move roll, so an unarmed Move can still come first. */
+   *  `reload` it does not skip the Move roll, so an unarmed Move can still come first. False for a
+   *  Bare Knuckle owner, who opens with fists. */
   startDraw: boolean;
   /** A companion's extra damage percent (Pet Lover of its owner). */
   dmgPct: number;
@@ -82,7 +83,8 @@ export interface Actor {
   level: number;
   /** HP lost in turn `lossTurn` of the opening (see OPENING_PCT). */
   loss: number; lossTurn: number;
-  /** Quick Swap made this turn's draw: its tag goes on the turn's first swing or throw. */
+  /** A Quick Swap owner drew or swapped a weapon this turn: the turn costs less time and its first
+   *  swing or throw can carry the tag. */
   quickSwapPending: boolean;
   /** The actor's last own turn was a Move: this turn rolls no Move (turn.ts). */
   movedLast: boolean;
@@ -118,7 +120,9 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
   const actors: Actor[] = [{
     id: `${side}0` as ActorId, side, kind: "scrapper", scrapper: true, maxHp, hp: maxHp, status: "up",
     str: eff.strength, agi: eff.agility, spd: eff.speed, held: "fists", heldAttacked: false, shield,
-    snared: false, snareSkips: 0, snareLimit: 0, sand: 0, taunt: 0, reload: false, startDraw: true, dmgPct: 0,
+    snared: false, snareSkips: 0, snareLimit: 0, sand: 0, taunt: 0, reload: false,
+    // Bare Knuckle opens with fists: no sure first draw.
+    startDraw: !skills.has("bare-knuckle"), dmgPct: 0,
     clock: 0, priority: false, skills, comp: null, dmg: 0,
     haymaker: false, lastStandUsed: false, headStartPending: skills.has("head-start"), level: s.level,
     loss: 0, lossTurn: 0, quickSwapPending: false, movedLast: false,

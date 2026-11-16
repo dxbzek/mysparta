@@ -15,9 +15,9 @@ function def(id: SkillId, kind: Kind, nums: Record<string, number>, move?: { wei
 
 export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   // Boosters: change the stats for good when picked. Points are added, multipliers are whole percent.
-  "big-heart": def("big-heart", "booster", { health: 3, healthMult: 30 }),
-  "heavy-hands": def("heavy-hands", "booster", { strength: 3, strengthMult: 40 }),
-  "light-feet": def("light-feet", "booster", { agility: 3, agilityMult: 35 }),
+  "big-heart": def("big-heart", "booster", { health: 2, healthMult: 35 }),
+  "heavy-hands": def("heavy-hands", "booster", { strength: 2, strengthMult: 50 }),
+  "light-feet": def("light-feet", "booster", { agility: 2, agilityMult: 45 }),
   "fast-twitch": def("fast-twitch", "booster", { speed: 3, speedMult: 40 }),
   "glass-cannon": def("glass-cannon", "booster", { strengthMult: 100, healthMult: -30 }),
   "mountain": def("mountain", "booster", { healthMult: 150, agilityMult: -20, speedMult: -20, startClock: 150 }),
@@ -26,7 +26,7 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "padding": def("padding", "passive", { armor: 10 }),
   "anticipation": def("anticipation", "passive", { intercept: 20 }),
   "sharpening-stone": def("sharpening-stone", "passive", { bladeDamage: 40 }),
-  "bare-knuckle": def("bare-knuckle", "passive", { fistDamage: 100, unarmedCombo: 10 }),
+  "bare-knuckle": def("bare-knuckle", "passive", { fistDamage: 150, unarmedCombo: 10, drawSlack: 12 }),
   "payback": def("payback", "passive", { riposte: 25 }),
   "flurry": def("flurry", "passive", { combo: 20 }),
   "firm-grip": def("firm-grip", "passive", { resist: 80, swapChance: 15 }),
@@ -41,7 +41,7 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "stubborn": def("stubborn", "passive", { chance: 50 }),
   "slippery": def("slippery", "passive", { evade: 25 }),
   // content v2 passives
-  "quick-swap": def("quick-swap", "passive", { drawSlack: 2 }),
+  "quick-swap": def("quick-swap", "passive", { drawSlack: 2, swapChance: 50, swapTime: -30 }),
   "pet-lover": def("pet-lover", "passive", { petHp: 30, petDamage: 50 }),
   "junk-collector": def("junk-collector", "passive", { returnChance: 90, throwChance: 35 }),
   "trick-shot": def("trick-shot", "passive", { ricochet: 35 }),
@@ -51,11 +51,11 @@ export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
   "haymaker": def("haymaker", "move", { damageMult: 200, crit: 15, usesPerStrength: 25, cost: 0 }, { weight: 5, uses: 1 }),
   "energy-drink": def("energy-drink", "move", { healMin: 25, healMax: 40, belowHpPct: 50, cost: 30 }, { weight: 16, uses: 1 }),
   "tarp": def("tarp", "move", { skips: 3, costPct: 20 }, { weight: 5, uses: 1 }),
-  "whistle": def("whistle", "move", { healPct: 50, belowHpPct: 90, cost: 20 }, { weight: 20, uses: 2 }),
-  "firecrackers": def("firecrackers", "move", { damageMin: 12, damageMax: 20, companionPct: 40, costPct: 50 }, { weight: 3, uses: 2 }),
-  "snatch": def("snatch", "move", { cost: 0 }, { weight: 10, uses: 1 }),
+  "whistle": def("whistle", "move", { healPct: 60, belowHpPct: 90, cost: 10 }, { weight: 20, uses: 2 }),
+  "firecrackers": def("firecrackers", "move", { damageMin: 12, damageMax: 20, companionPct: 40, costPct: 50 }, { weight: 4, uses: 2 }),
+  "snatch": def("snatch", "move", { cost: 0 }, { weight: 13, uses: 1 }),
   "air-horn": def("air-horn", "move", { fleeChance: 50, clockPush: 40, clockPushNoPet: 60, cost: 20 }, { weight: 8, uses: 1 }),
-  "body-slam": def("body-slam", "move", { base: 18, perStrength: 3, extraCost: 100 }, { weight: 12, uses: 1 }),
+  "body-slam": def("body-slam", "move", { base: 14, perStrength: 4, extraCost: 100 }, { weight: 12, uses: 1 }),
   // content v2 Moves
   "sand-in-the-eyes": def("sand-in-the-eyes", "move", { aimLoss: 25, costPct: 30 }, { weight: 4, uses: 1 }),
   "taunt": def("taunt", "move", { riposte: 40, cost: 0 }, { weight: 4, uses: 1 }),

@@ -42,7 +42,7 @@ function profile(s: FighterSnapshot): Record<string, number> {
   const a = side.actors[0]!;
   const out: Record<string, number> = {};
   // A bout whose throw rolls all pass, for the rule of what a thrown weapon does next.
-  const bout: Bout = { r: scripted({ throw: fn(() => 0) }), actors: side.actors, bag: { a: side.bag, b: [] }, steps: [], turn: 1, ended: false, shown: new Set(), lastTag: -99 };
+  const bout: Bout = { r: scripted({ throw: fn(() => 0) }), actors: side.actors, bag: { a: side.bag, b: [] }, steps: [], turn: 1, ended: false, shown: new Set(), lastOften: -99, owed: new Set() };
   for (const k of STATS) { out[`points.${k}`] = s.stats.points[k]; out[`mult.${k}`] = s.stats.mult[k]; }
   for (const h of HELD) {
     const v = combatValues(a.skills, h, null);
@@ -104,7 +104,7 @@ const EXPECTED: Readonly<Record<SkillId, () => Record<string, number>>> = {
   "padding": () => every("armor", sk("padding", "armor")),
   "anticipation": () => every("intercept", sk("anticipation", "intercept")),
   "sharpening-stone": () => ({ "dmult.machete": sk("sharpening-stone", "bladeDamage") }),
-  "bare-knuckle": () => ({ "dmult.fists": sk("bare-knuckle", "fistDamage"),
+  "bare-knuckle": () => ({ "dmult.fists": sk("bare-knuckle", "fistDamage"), drawSlack: sk("bare-knuckle", "drawSlack") - 6,
     ...every("combo", sk("bare-knuckle", "unarmedCombo"), ["fists", "fists+shield"]) }),
   "payback": () => every("riposte", sk("payback", "riposte")),
   "flurry": () => every("combo", sk("flurry", "combo")),
@@ -121,7 +121,7 @@ const EXPECTED: Readonly<Record<SkillId, () => Record<string, number>>> = {
   "last-stand": () => ({ lastStand: sk("last-stand", "saves") }),
   "stubborn": () => ({}),
   "slippery": () => every("evade", sk("slippery", "evade")),
-  "quick-swap": () => ({ drawSlack: sk("quick-swap", "drawSlack") - 6 }),
+  "quick-swap": () => ({ drawSlack: sk("quick-swap", "drawSlack") - 6, swapChance: sk("quick-swap", "swapChance") - 30 }),
   "pet-lover": () => {
     const plain = buildSide("a", snap(["raccoon"])).actors[1]!.maxHp;
     return { "pet.hp": Math.floor((plain * (100 + sk("pet-lover", "petHp"))) / 100) - plain,

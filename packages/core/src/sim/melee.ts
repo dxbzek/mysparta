@@ -8,7 +8,7 @@ import { hasTag, reachOf, weaponNumbers } from "../content/weapons";
 import type { Actor } from "./combatant";
 import { CAP, clampPct, valuesOf } from "./combatant";
 import type { Bout } from "./bout";
-import { allowance, armored, boosterProcs, emit, firstAction, knockOut, land, opening, pickProc, proc, scrapperOfSide, spent, tryDisarm,
+import { allowance, armored, boosterProcs, due, emit, firstAction, knockOut, land, opening, pickProc, proc, scrapperOfSide, spent, tryDisarm,
   tryFree, tryShield } from "./bout";
 import { shieldNumbers } from "../content/shields";
 import { roll } from "./rng";
@@ -93,7 +93,7 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   const r = b.r.hit.int(100);
   const evaded = !def.snared && r < ev;
   if (evaded) {
-    if (def.skills.has("slippery") && r >= evadeChance(att, def, 0, sk("slippery", "evade"), thrown)) {
+    if (def.skills.has("slippery") && due(b, def, "slippery", r >= evadeChance(att, def, 0, sk("slippery", "evade"), thrown))) {
       procs.push(proc(def, "slippery"));
     }
     // Sand in the Eyes: the swing missed only because the sand took the attacker's Aim.
@@ -113,7 +113,7 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
     return { outcome: "block", damage: 0, crit: false, hpAfter: def.hp, procs, blocked: true };
   }
   if (sePierce > 0 && !def.snared && rb < blockChance(att, def, sePierce, thrown)) wouldMiss = true;
-  if (wouldMiss) procs.push(proc(att, "sharp-eye"));
+  if (seBonus > 0 && due(b, att, "sharp-eye", wouldMiss)) procs.push(proc(att, "sharp-eye"));
 
   const variance = thrown ? roll(b.r.damage, 95, 125) : roll(b.r.damage, 85, 115);
   const critChance = Math.min(valuesOf(att).crit + (boosted ? sk("haymaker", "crit") : 0), CAP.crit);
@@ -186,10 +186,10 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
     const r = b.r.hit.int(100);
     if (r < chance) {
       const procs: Proc[] = [];
-      if (def.skills.has("anticipation") && r >= interceptChance(att, def, sk("anticipation", "intercept"))) {
+      if (def.skills.has("anticipation") && due(b, def, "anticipation", r >= interceptChance(att, def, sk("anticipation", "intercept")))) {
         procs.push(proc(def, "anticipation"));
       }
-      firstAction(att, procs);
+      firstAction(b, att, procs);
       const c = resolve(b, def, att, false, false, procs);
       emit(b, swingStep("intercept", b, def, att, c));
       consequences(b, def, att, c);
@@ -212,7 +212,7 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
   for (let n = 0; ; n++) {
     const procs: Proc[] = [];
     if (whyProc !== null) procs.push(whyProc);
-    if (n === 0) firstAction(att, procs);
+    if (n === 0) firstAction(b, att, procs);
     // Light Feet's Agility also drives the combo chance: it may name itself on a combo swing.
     if (why === "combo" && att.scrapper && att.skills.has("light-feet")) procs.push(proc(att, "light-feet"));
     const boosted = n === 0 && att.scrapper && att.haymaker;
@@ -247,7 +247,7 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
     if (combos < MAX_COMBO) {
       const r = b.r.hit.int(100);
       if (r < combo) {
-        if (flurry > 0 && r >= comboNoFlurry) whyProc = proc(att, "flurry");
+        if (flurry > 0 && due(b, att, "flurry", r >= comboNoFlurry)) whyProc = proc(att, "flurry");
         combos += 1;
         combo = Math.floor(combo / 2);
         comboNoFlurry = Math.floor(comboNoFlurry / 2);
@@ -270,7 +270,7 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
       const taunt = def.taunt > 0 ? sk("taunt", "riposte") : 0;
       if (parried && r >= base) procs.push(proc(def, "parry"));
       else if (taunt > 0 && r >= clampPct(dv.riposte - taunt, CAP.riposte)) procs.push(proc(def, "taunt"));
-      else if (def.skills.has("payback") && r >= clampPct(dv.riposte - sk("payback", "riposte"), CAP.riposte)) {
+      else if (def.skills.has("payback") && due(b, def, "payback", r >= clampPct(dv.riposte - sk("payback", "riposte"), CAP.riposte))) {
         procs.push(proc(def, "payback"));
       }
       const c = resolve(b, def, att, false, false, procs);

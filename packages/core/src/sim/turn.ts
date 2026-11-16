@@ -19,14 +19,18 @@ export const DRAW_SLACK = 6;
 export const OVERTIME_FROM = 50;
 export const OVERTIME_PCT = 8;
 
-/** Swap chance while holding a weapon that has attacked: 30%, Firm Grip 15%. */
+/** Swap chance while holding a weapon that has attacked: 30%, Quick Swap 50%, Firm Grip 15%
+ *  (Quick Swap counts when both are owned). */
 export function swapChance(a: Actor): number {
+  if (a.skills.has("quick-swap")) return sk("quick-swap", "swapChance");
   return a.skills.has("firm-grip") ? sk("firm-grip", "swapChance") : SWAP_PCT;
 }
 
-/** The slack of the empty-hand draw: 6, Quick Swap 2. */
+/** The slack of the empty-hand draw: 6, Quick Swap 2, Bare Knuckle 12 (Quick Swap counts when both
+ *  are owned). */
 export function drawSlack(a: Actor): number {
-  return a.skills.has("quick-swap") ? sk("quick-swap", "drawSlack") : DRAW_SLACK;
+  if (a.skills.has("quick-swap")) return sk("quick-swap", "drawSlack");
+  return a.skills.has("bare-knuckle") ? sk("bare-knuckle", "drawSlack") : DRAW_SLACK;
 }
 
 /** Picks a weapon out of the bag by Draw weight with chance S / (S + slack). One random number. */
@@ -53,7 +57,8 @@ function takeFromBag(b: Bout, a: Actor, id: WeaponId): void {
 }
 
 /** Step 3: draw with empty hands (for sure right after a throw), or swap a weapon that has
- *  already attacked. */
+ *  already attacked. Quick Swap marks every draw and swap of its owner: that turn costs less time
+ *  (`quickTurn`) and its first swing or throw can carry the tag. */
 function drawOrSwap(b: Bout, a: Actor): void {
   const reload = a.reload || a.startDraw;
   a.reload = false;
@@ -66,8 +71,7 @@ function drawOrSwap(b: Bout, a: Actor): void {
     takeFromBag(b, a, id);
     a.held = id;
     a.heldAttacked = false;
-    // Quick Swap shows on the draws it speeds up (not the sure draw right after a throw).
-    if (!reload && a.skills.has("quick-swap")) a.quickSwapPending = true;
+    if (a.skills.has("quick-swap")) a.quickSwapPending = true;
     emit(b, { t: "draw", turn: b.turn, actor: a.id, weapon: id, bagAfter: bagCopy(b.bag[a.side]) });
     return;
   }
@@ -79,7 +83,13 @@ function drawOrSwap(b: Bout, a: Actor): void {
   takeFromBag(b, a, id);
   a.held = id;
   a.heldAttacked = false;
+  if (a.skills.has("quick-swap")) a.quickSwapPending = true;
   emit(b, { t: "swap", turn: b.turn, actor: a.id, dropped, weapon: id, bagAfter: bagCopy(b.bag[a.side]) });
+}
+
+/** Quick Swap: a turn in which its owner drew or swapped a weapon costs 30% less time. */
+function quickTurn(a: Actor, cost: number): number {
+  return a.quickSwapPending ? Math.floor((cost * (100 + sk("quick-swap", "swapTime"))) / 100) : cost;
 }
 
 /** A scrapper's turn. Returns its time cost. */
@@ -95,19 +105,19 @@ function scrapperTurn(b: Bout, a: Actor): number {
   if (move !== null) { a.movedLast = true; return playMove(b, a, move); }
   drawOrSwap(b, a);
   const target = pickEnemy(b, a);
-  if (target === null) return turnCost(a, a.held, b.r.clock);
+  if (target === null) return quickTurn(a, turnCost(a, a.held, b.r.clock));
   let used: HeldId = a.held;
   if (a.held !== "fists") {
     const thrownTag = hasTag(a.held, "thrown");
     // A melee weapon is thrown only after it has swung once, so a fresh draw always gets its swing.
     if (thrownTag || (a.heldAttacked && b.r.throw.int(100) < throwChance(a, b.bag[a.side].some((it) => it.k === "weapon")))) {
       used = throwAttack(b, a, target);
-      return turnCost(a, used, b.r.clock);
+      return quickTurn(a, turnCost(a, used, b.r.clock));
     }
   }
   meleeAttack(b, a, target);
   if (used !== "fists") a.heldAttacked = a.held === used ? true : a.heldAttacked;
-  return turnCost(a, used, b.r.clock);
+  return quickTurn(a, turnCost(a, used, b.r.clock));
 }
 
 /** Overtime: from turn 50 a scrapper loses 8% of max HP after each of its own turns. */

@@ -29,7 +29,7 @@ export function simulateWith(seed: number, sa: FighterSnapshot, sb: FighterSnaps
   const A = buildSide("a", sa);
   const B = buildSide("b", sb);
   const actors = [...A.actors, ...B.actors];
-  const b: Bout = { r, actors, bag: { a: A.bag, b: B.bag }, steps: [], turn: 0, ended: false, shown: new Set(), lastTag: -99 };
+  const b: Bout = { r, actors, bag: { a: A.bag, b: B.bag }, steps: [], turn: 0, ended: false, shown: new Set(), lastOften: -99, owed: new Set() };
   const init = {
     actors: actors.map((x): ActorInit => ({ id: x.id, kind: x.kind, maxHp: x.maxHp })),
     bag: { a: A.bag.map((it) => ({ ...it })), b: B.bag.map((it) => ({ ...it })) },

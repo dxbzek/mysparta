@@ -10,7 +10,7 @@ import { SKILLS, sk } from "../src/content/skills";
 import { combineSeed, makeRng } from "../src/prng";
 import { fighterSeed, randomName, startPerk, startSkill } from "../src/progress/create";
 import { BARE_KNUCKLE_MAX_WEAPONS, MAX_WEAPONS, WEAPON_SHARE, fits, isBooster, rollPerk, weaponShare, weaponsOf } from "../src/progress/perks";
-import { PERK_PLUS_MAX_LEVEL, walk, walkWith } from "../src/progress/route";
+import { PERK_PLUS_MAX_LEVEL, perkCardPlus, walk, walkWith } from "../src/progress/route";
 import { THROW_LAST_PCT, throwChance } from "../src/sim/thrown";
 import { rivalSnapshot } from "../src/progress/rivals";
 import { OPENING_BIG_PCT, OPENING_FLOOR_PCT, OPENING_PCT, OPENING_TURNS, onceOnly } from "../src/sim/bout";
@@ -161,10 +161,10 @@ describe("tags that repeat show once a bout", () => {
     expect(once).toBeGreaterThan(1000);
   });
 
-  it("a level-30 bout shows 8 tags or fewer on median (was 10.7 on average, most of them repeats)", () => {
+  it("a level-30 bout shows 9 tags or fewer on median (was 10.7 on average, most of them repeats)", () => {
     const tags = randomBouts(800, "tag-count", [30]).map(({ log }) => log.steps.filter((s) => procsOf(s).length > 0).length);
     tags.sort((x, y) => x - y);
-    expect(tags[tags.length >> 1]).toBeLessThanOrEqual(8);
+    expect(tags[tags.length >> 1]).toBeLessThanOrEqual(9);
   });
 });
 
@@ -239,8 +239,8 @@ describe("the weapon cap and the dead passives", () => {
     expect(fits("bare-knuckle", ["pipe", "bat", "broom"])).toBe(false);
   });
 
-  it("Snatch has weight 10 and one use (it won 75% of level-2 bouts)", () => {
-    expect(SKILLS["snatch"].move).toEqual({ weight: 10, uses: 1 });
+  it("Snatch has weight 13 and one use (at 28 and 2 uses it won 75% of level-2 bouts)", () => {
+    expect(SKILLS["snatch"].move).toEqual({ weight: 13, uses: 1 });
   });
 
   it("Junk Collector throws a used weapon as often as Pitcher while a weapon waits in the bag", () => {
@@ -256,19 +256,24 @@ describe("the weapon cap and the dead passives", () => {
 });
 
 describe("the perk card is not the losing card", () => {
-  it("a perk card of the first three level-ups carries +1 point in a stat, and the kit gets it", () => {
-    expect(PERK_PLUS_MAX_LEVEL).toBe(4);
+  it("a perk card of the first two level-ups, and the 17th to the 22nd one taken, carries +1 point in a stat", () => {
+    expect(PERK_PLUS_MAX_LEVEL).toBe(3);
+    expect([perkCardPlus(2, 0), perkCardPlus(3, 1), perkCardPlus(4, 2), perkCardPlus(20, 15), perkCardPlus(20, 16),
+      perkCardPlus(30, 21), perkCardPlus(30, 22)]).toEqual([true, true, false, false, true, true, false]);
     for (let i = 0; i < 200; i++) {
       const seed = fighterSeed(REALM_SALT, `plus-${i}`);
-      const picks = walkWith(seed, 6, (c) => (c.left.kind === "stat" ? "R" : "L"));
+      const picks = walkWith(seed, 29, (c) => (c.left.kind === "stat" ? "R" : "L"));
       const kit = walk(seed, picks);
       let plus = 0;
+      let taken = 0;
       for (const n of kit.nodes) {
         const card = n.taken === "L" ? n.left : n.right;
         if (card.kind !== "perk") continue;
-        expect(card.plus !== undefined, `level ${n.level}`).toBe(n.level <= PERK_PLUS_MAX_LEVEL);
+        expect(card.plus !== undefined, `level ${n.level}`).toBe(perkCardPlus(n.level, taken));
+        taken += 1;
         if (card.plus !== undefined) plus += 1;
       }
+      expect(kit.perkCards).toBe(taken);
       const boosters = kit.perks.reduce((a, p) => a + (isBooster(p)
         ? (["health", "strength", "agility", "speed"] as const).reduce((b, k) => b + sk(p as SkillId, k), 0) : 0), 0);
       const splits = kit.nodes.filter((n) => (n.taken === "L" ? n.left : n.right).kind === "split").length;
@@ -276,14 +281,14 @@ describe("the perk card is not the losing card", () => {
     }
   });
 
-  it("a player who always takes the perk card wins 43 to 57% against the level-10 and level-30 pools", () => {
+  it.each(["perk", "stat"] as const)("a player who always takes the %s card wins 43 to 57% against the level-10 and level-30 pools", (policy) => {
     for (const level of [10, 30]) {
       let w = 0;
       let n = 0;
       for (let i = 0; i < 300; i++) {
         const seed = combineSeed("round2", "policy", i);
         const rng = makeRng(combineSeed(seed, level));
-        const picks = walkWith(seed, level - 1, (c) => (c.left.kind === "stat" ? "R" : "L"));
+        const picks = walkWith(seed, level - 1, (c) => ((c.left.kind === "stat") === (policy === "stat") ? "L" : "R"));
         const kit = walk(seed, picks);
         const me = { ...rivalSnapshot(REALM_SALT, 1, 0), id: `policy:${i}`, level, stats: kit.stats, perks: kit.perks };
         for (let j = 0; j < 4; j++) {

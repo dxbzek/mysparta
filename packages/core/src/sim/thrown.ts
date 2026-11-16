@@ -13,7 +13,7 @@ import { sk } from "../content/skills";
 import { hasTag } from "../content/weapons";
 import type { Actor } from "./combatant";
 import type { Bout } from "./bout";
-import { bagCopy, emit, firstAction, pickEnemy, pickProc, proc, spent } from "./bout";
+import { bagCopy, due, emit, firstAction, pickEnemy, pickProc, proc, spent } from "./bout";
 import { MAX_COMBO, comboChance, consequences, resolve } from "./melee";
 
 /** A held melee weapon is thrown this often while another weapon waits in the bag. */
@@ -57,7 +57,7 @@ export function throwAttack(b: Bout, att: Actor, first: Actor): WeaponId {
   for (let n = 0; ; n++) {
     const procs: Proc[] = [];
     if (whyProc !== null) procs.push(whyProc);
-    if (n === 0) firstAction(att, procs);
+    if (n === 0) firstAction(b, att, procs);
     const c = resolve(b, att, def, true, false, procs);
     const after = afterThrow(b, att, weapon, procs);
     const bag = b.bag[att.side];
@@ -87,7 +87,7 @@ export function throwAttack(b: Bout, att: Actor, first: Actor): WeaponId {
     if (combos >= MAX_COMBO) break;
     const r = b.r.hit.int(100);
     if (!(r < combo)) break;
-    if (flurry > 0 && r >= comboNoFlurry) whyProc = proc(att, "flurry");
+    if (flurry > 0 && due(b, att, "flurry", r >= comboNoFlurry)) whyProc = proc(att, "flurry");
     combos += 1;
     combo = Math.floor(combo / 2);
     comboNoFlurry = Math.floor(comboNoFlurry / 2);

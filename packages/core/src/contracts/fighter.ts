@@ -60,7 +60,7 @@ export interface FighterSnapshot { id: string; name: string; look: Look; level: 
   stats: StatBlock; perks: PerkId[]; rulesVersion: 1 }
 
 export type RouteCard =
-  | { kind: "stat"; stat: StatKey; amount: 2 }
+  | { kind: "stat"; stat: StatKey; amount: number }
   | { kind: "split"; stats: [StatKey, StatKey] }
   /** `plus`: the perk card also gives +1 point in this stat (perk cards of the early levels, round-2
    *  review; docs/RULES.md section 3). */

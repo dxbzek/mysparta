@@ -23,8 +23,11 @@ export interface Bout {
   ended: boolean;
   /** Once-a-bout tags already shown, as "actor|skill" (see `pickProc`). */
   shown: Set<string>;
-  /** The turn of the last tag or Move (see `pickProc`); far in the past at the start. */
-  lastTag: number;
+  /** The turn of the last Move or tag of the OFTEN group (see `pickProc`); far in the past at the
+   *  start. */
+  lastOften: number;
+  /** Tags of the RARE group that lost their step to another tag, as "actor|skill" (see `due`). */
+  owed: Set<string>;
 }
 
 export function emit(b: Bout, step: Step): void {
@@ -85,39 +88,55 @@ export function sortProcs(list: Proc[]): Proc[] | undefined {
 }
 
 /** Skills whose tag shows at most once per bout per owner (round-2 review: at level 30 they made a
- *  tag every 1.0 s and buried the Moves). Number skills, shields (by the shield id, see `onceOnly`),
- *  the chance passives, Quick Swap, Head Start and the boosters. Every tag of the rule skills (Last
- *  Stand, Parry, Stubborn, Firm Grip, Trick Shot, Junk Collector) and of the Moves' own effects
- *  (Taunt's riposte, Sand in the Eyes' miss) still shows. */
-const ONCE: ReadonlySet<string> = new Set<string>(["padding", "plate-vest", "sharpening-stone", "bare-knuckle", "pitcher",
-  "pet-lover", "heavy-lifter", "quick-swap", "head-start",
-  "anticipation", "payback", "flurry", "slippery", "knock-loose", "sharp-eye",
-  "big-heart", "heavy-hands", "light-feet", "fast-twitch", "glass-cannon", "mountain"]);
-const BOOSTER_TAGS: ReadonlySet<string> = new Set<string>(["big-heart", "heavy-hands", "light-feet", "fast-twitch",
-  "glass-cannon", "mountain"]);
+ *  tag every 1.0 s and buried the Moves). Two groups.
+ *  RARE: the chance passives, Head Start and Quick Swap. Their moment comes seldom, so their tag
+ *  never waits; one that loses its step to another tag is owed (`due`).
+ *  OFTEN: the number skills, the boosters and shields (by the shield id, see `onceOnly`). Their
+ *  moment comes again on most hits, so their tag waits for a quiet turn (TAG_GAP_TURNS).
+ *  Every tag of the rule skills (Last Stand, Parry, Stubborn, Firm Grip, Trick Shot, Junk
+ *  Collector) and of the Moves' own effects (Taunt's riposte, Sand in the Eyes' miss) still shows. */
+const RARE: ReadonlySet<string> = new Set<string>(["anticipation", "payback", "flurry", "slippery", "knock-loose",
+  "sharp-eye", "head-start", "bare-knuckle", "light-feet"]);
+const OFTEN: ReadonlySet<string> = new Set<string>(["padding", "plate-vest", "sharpening-stone", "quick-swap", "pitcher",
+  "pet-lover", "heavy-lifter", "big-heart", "heavy-hands", "fast-twitch", "glass-cannon", "mountain"]);
 /** Whether a proc's tag shows only once per bout per owner. */
 export function onceOnly(id: ProcId): boolean {
-  return ONCE.has(id) || isShieldId(id);
+  return RARE.has(id) || OFTEN.has(id) || isShieldId(id);
+}
+/** Whether a once-a-bout tag waits for a quiet turn (the OFTEN group and shields). */
+function waits(id: ProcId): boolean {
+  return OFTEN.has(id) || isShieldId(id);
 }
 
-/** A once-a-bout tag waits until TAG_GAP_TURNS turns have passed since the last tag or Move, so
- *  the tags of a skill-heavy kit come one at a time instead of every second; a tag that waits is
- *  not lost, it can show on a later step. */
+/** A tag of the OFTEN group waits until TAG_GAP_TURNS turns have passed since the last Move or tag
+ *  of that group, so the tags of a skill-heavy kit come one at a time instead of every second. Its
+ *  moment comes again on a later hit. (The first version of round 2 made every once-a-bout tag wait
+ *  after any tag: at level 30 nearly every turn was inside the wait, and Flurry, Payback and Knock
+ *  Loose showed in 6 to 8% of their owner's bouts.) */
 export const TAG_GAP_TURNS = 2;
 
-/** The proc a step keeps (sortProcs), after dropping the once-a-bout tags its owner has already
- *  shown in this bout, and every once-a-bout tag but a booster's while the last tag or Move is
- *  under TAG_GAP_TURNS turns old. The kept one is booked as shown. */
+const key = (p: Proc): string => `${p.by}|${p.skill}`;
+
+/** Whether a RARE skill writes its tag on this step: its bonus decided the roll (`decided`), or it
+ *  decided an earlier roll of the same kind and that step went to another tag (owed). A site calls
+ *  this on the step kind the skill belongs to (a combo swing for Flurry, a riposte for Payback),
+ *  so an owed tag still names what the skill does. */
+export function due(b: Bout, who: Actor, id: ProcId, decided: boolean): boolean {
+  return decided || b.owed.has(`${who.id}|${id}`);
+}
+
+/** The proc a step keeps (sortProcs), after dropping the once-a-bout tags their owner has already
+ *  shown in this bout, and the tags that wait (`waits`) while the last Move or waiting tag is under
+ *  TAG_GAP_TURNS turns old. The kept one is booked as shown; a RARE one left out is booked as owed. */
 export function pickProc(b: Bout, list: Proc[]): Proc[] | undefined {
-  const quiet = b.turn - b.lastTag < TAG_GAP_TURNS;
-  // Boosters skip the wait: they have one moment a bout to be seen at all (a kit holds 3 at most).
-  const open = list.filter((p) => !(onceOnly(p.skill)
-    && ((quiet && !BOOSTER_TAGS.has(p.skill)) || b.shown.has(`${p.by}|${p.skill}`))));
+  const quiet = b.turn - b.lastOften < TAG_GAP_TURNS;
+  const open = list.filter((p) => !(onceOnly(p.skill) && (b.shown.has(key(p)) || (quiet && waits(p.skill)))));
   const best = sortProcs(open);
   if (best !== undefined) {
-    if (onceOnly(best[0]!.skill)) b.shown.add(`${best[0]!.by}|${best[0]!.skill}`);
-    b.lastTag = b.turn;
+    if (onceOnly(best[0]!.skill)) { b.shown.add(key(best[0]!)); b.owed.delete(key(best[0]!)); }
+    if (waits(best[0]!.skill)) b.lastOften = b.turn;
   }
+  for (const p of open) if (RARE.has(p.skill) && (best === undefined || key(p) !== key(best[0]!))) b.owed.add(key(p));
   return best;
 }
 
@@ -126,8 +145,8 @@ export function proc(by: Actor, skill: ProcId): Proc {
 }
 
 /** Head Start: a proc on the first step of its owner's first turn that can carry one. */
-export function headStart(owner: Actor, procs: Proc[]): void {
-  if (owner.headStartPending) {
+export function headStart(b: Bout, owner: Actor, procs: Proc[]): void {
+  if (due(b, owner, "head-start", owner.headStartPending)) {
     owner.headStartPending = false;
     procs.push(proc(owner, "head-start"));
   }
@@ -152,14 +171,11 @@ export function boosterProcs(b: Bout, att: Actor, def: Actor, outcome: "hit" | "
 /** The first step of a turn that can carry procs: Head Start (its owner's first action of the
  *  bout), Quick Swap (the draw it made this turn), Heavy Lifter (a turn made with a Heavy weapon,
  *  which costs 30% less time). */
-export function firstAction(a: Actor, procs: Proc[]): void {
-  headStart(a, procs);
+export function firstAction(b: Bout, a: Actor, procs: Proc[]): void {
+  headStart(b, a, procs);
   // Fast Twitch: offered on every first action until its tag has shown once (pickProc).
   if (a.scrapper && a.skills.has("fast-twitch")) procs.push(proc(a, "fast-twitch"));
-  if (a.quickSwapPending) {
-    a.quickSwapPending = false;
-    procs.push(proc(a, "quick-swap"));
-  }
+  if (a.quickSwapPending) procs.push(proc(a, "quick-swap"));
   if (a.scrapper && a.held !== "fists" && hasTag(a.held, "heavy") && a.skills.has("heavy-lifter")) {
     procs.push(proc(a, "heavy-lifter"));
   }
@@ -242,6 +258,12 @@ export function knockOut(b: Bout, who: Actor, by: Actor | null): void {
   }
 }
 
+/** A hit's disarm chance against a scrapper with no weapon left in its bag is this percent of the
+ *  usual one (round 2, second pass). A disarm of the only weapon leaves fists for the rest of the
+ *  bout, so at level 1 the disarm weapons decided the bout by the name: Monkey Wrench won 67.8% as a
+ *  starting weapon and Screwdrivers 62.7%, while both sat at the 47% floor of the gate at level 30. */
+export const LAST_WEAPON_DISARM_PCT = 40;
+
 /**
  * The disarm roll on a landed hit or a slam. Firm Grip resists 60% of the time and writes the
  * disarm with `resisted`. Knock Loose writes a proc when the roll passed only because of it.
@@ -251,12 +273,15 @@ export function tryDisarm(b: Bout, att: Actor, def: Actor, cause: "hit" | "slam"
   if (def.held === "fists" || !def.scrapper) return;
   const procs: Proc[] = [];
   if (cause === "hit") {
-    const chance = Math.min(valuesOf(att).disarm, CAP.disarm);
+    // The last weapon is held harder: with no weapon left in the bag the chance is cut.
+    const last = !b.bag[def.side].some((it) => it.k === "weapon");
+    const cut = (c: number): number => (last ? Math.floor((c * LAST_WEAPON_DISARM_PCT) / 100) : c);
+    const chance = cut(Math.min(valuesOf(att).disarm, CAP.disarm));
     const r = b.r.disarm.int(100);
     if (!(r < chance)) return;
     if (att.skills.has("knock-loose")) {
-      const without = Math.min(valuesOf(att).disarm - sk("knock-loose", "disarm"), CAP.disarm);
-      if (r >= (without < 0 ? 0 : without)) procs.push(proc(att, "knock-loose"));
+      const without = cut(Math.min(valuesOf(att).disarm - sk("knock-loose", "disarm"), CAP.disarm));
+      if (due(b, att, "knock-loose", r >= (without < 0 ? 0 : without))) procs.push(proc(att, "knock-loose"));
     }
   }
   const weapon = def.held as Exclude<typeof def.held, "fists">;

@@ -97,7 +97,7 @@ function moveStep(b: Bout, a: Actor, id: MoveId, procs: Proc[], extra: Partial<E
   const step = { t: "move", turn: b.turn, actor: a.id, move: id, bagAfter: bagCopy(b.bag[a.side]), ...extra } as Step & { procs?: Proc[] };
   const p = pickProc(b, procs);
   if (p !== undefined) step.procs = p;
-  b.lastTag = b.turn;
+  b.lastOften = b.turn;
   return step;
 }
 
@@ -106,7 +106,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
   const bag = b.bag[a.side];
   useUp(bag, id);
   const procs: Proc[] = [];
-  headStart(a, procs);
+  headStart(b, a, procs);
   const now = a.clock;
 
   switch (id) {

@@ -13,10 +13,11 @@
  *                      A perk is added only where the Route could offer it (`fits`): Whistle and
  *                      Pet Lover need a companion, a weapon passive a weapon it works with. A kit
  *                      with 5 weapons gets a weapon as its 5th (its last one is left at home).
- *   Level-up policy   At levels 10 and 30, a player who always takes the perk card (or the split
- *                      that replaced it) against the level pool, 2,000 seeds x 3 rivals: within
- *                      50 +/- 5% (round 2: it won 27.5% at level 30). Always-stat and the rivals'
- *                      own 65% policy are reported beside it, not limited.
+ *   Level-up policy   At levels 5, 10, 20 and 30, a player who always takes the perk card (or the
+ *                      split that replaced it), and one who always takes the stat card, against
+ *                      the level pool, 2,000 seeds x 3 rivals: each within 50 +/- 5% (round 2:
+ *                      always-perk won 27.5% at level 30; after its fix always-stat won 23.7%).
+ *                      The rivals' own 65% policy is reported beside them, not limited.
  * Also reported, not limited: win rate by starting weapon and by starting skill at level 1, and
  * bout length.
  *
@@ -46,7 +47,7 @@ const div = quick ? 10 : 1;
 const PAIRS = Math.floor(Number(opt("--pairs") ?? 40000) / div);
 const PER_PERK = Math.floor(Number(opt("--per-perk") ?? 4000) / div);
 const LEVELS = (opt("--levels") ?? "2,3,5,10,30").split(",").map(Number);
-const POLICY_LEVELS = (opt("--policy-levels") ?? "10,30").split(",").filter((x) => x !== "").map(Number);
+const POLICY_LEVELS = (opt("--policy-levels") ?? "5,10,20,30").split(",").filter((x) => x !== "").map(Number);
 const POLICY_SEEDS = Math.floor(Number(opt("--policy-seeds") ?? 2000) / div);
 const POLICY_BAND = 5;
 const ONLY = opt("--perks")?.split(",") as PerkId[] | undefined;
@@ -139,11 +140,11 @@ say();
   say();
 }
 
-// ---- Level-up policy (limited for always-perk).
+// ---- Level-up policy (limited for always-perk and always-stat).
 if (POLICY_LEVELS.length > 0) {
   say(`## Level-up policy`);
   say();
-  say(`${POLICY_SEEDS} player seeds x 3 pool rivals per level. Always-perk must win ${50 - POLICY_BAND} to ${50 + POLICY_BAND}%.`);
+  say(`${POLICY_SEEDS} player seeds x 3 pool rivals per level. Always-perk and always-stat must each win ${50 - POLICY_BAND} to ${50 + POLICY_BAND}%.`);
   say();
   say(`| Level | Always perk % | Always stat % | 65% perk % | Verdict |`);
   say(`|---|---|---|---|---|`);
@@ -176,7 +177,9 @@ if (POLICY_LEVELS.length > 0) {
       rate[pol] = (100 * w) / n;
     }
     const notes: string[] = [];
-    if (Math.abs(rate.perk! - 50) > POLICY_BAND) notes.push(`always-perk ${rate.perk!.toFixed(1)}% outside 50 +/- ${POLICY_BAND}`);
+    for (const pol of ["perk", "stat"] as const) {
+      if (Math.abs(rate[pol]! - 50) > POLICY_BAND) notes.push(`always-${pol} ${rate[pol]!.toFixed(1)}% outside 50 +/- ${POLICY_BAND}`);
+    }
     for (const note of notes) failures.push(`level ${level} policy: ${note}`);
     say(`| ${level} | ${rate.perk!.toFixed(1)} | ${rate.stat!.toFixed(1)} | ${rate.mix!.toFixed(1)} | ${notes.length === 0 ? "ok" : notes.join("; ")} |`);
   }

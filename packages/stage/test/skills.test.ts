@@ -31,8 +31,10 @@ const rig = createRig(gatePack, contentPack);
 
 /** Level-30 find-bout candidates that, together, use all twelve Moves (tools/find-bout.ts). The
  *  list changed with sim version 4 (round 2: Moves wait for the end of the opening, so they moved
- *  to other bouts); it was 0, 1, 2, 6, 8, 9, 10. */
-const BOUTS = [0, 1, 2, 5, 9, 30, 34];
+ *  to other bouts; it was 0, 1, 2, 6, 8, 9, 10) and again with sim version 5 (round 2, second
+ *  pass; it was 0, 1, 2, 5, 9, 30, 34). Its Snatch is one that lands: in n 18 Firm Grip resists the
+ *  Snatch, which then draws the flick and the FIRM GRIP tag but no snatch streak (open, stage). */
+const BOUTS = [0, 3, 4, 9, 16, 28];
 const bouts: { n: number; log: BoutLog; a: FighterSnapshot; b: FighterSnapshot; p: StagePlayer }[] = BOUTS.map((n) => {
   const a = rivalSnapshot(REALM_SALT, 30, 2 * n);
   const b = rivalSnapshot(REALM_SALT, 30, 2 * n + 1);

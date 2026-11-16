@@ -50,7 +50,7 @@ export function setup(a: FighterSnapshot, b: FighterSnapshot, r: Streams = scrip
   const sb = buildSide("b", b);
   const actors = [...sa.actors, ...sb.actors];
   const bout: Bout = { r, actors, bag: { a: sa.bag, b: sb.bag }, steps: [], turn: OPENING_TURNS + 1, ended: false,
-    shown: new Set(), lastTag: -99 };
+    shown: new Set(), lastOften: -99, owed: new Set() };
   // Mid-bout: the sure first draw of a bout (combatant.ts) is over.
   for (const x of actors) x.startDraw = false;
   return { bout, A: sa.actors[0]!, B: sb.actors[0]! };
