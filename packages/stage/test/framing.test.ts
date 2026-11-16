@@ -11,20 +11,29 @@
  *  - a Body Slam never lands its target on a pet;
  *  - a pet's tag never lands on a fighter's body;
  *  - at 2x and 3x the clock plays every Move at 1x.
+ * And from the check of that pass (the same day):
+ *  - the winner walks to its outro place only once the falling body is out of its way, and the two
+ *    are never drawn into one shape after the knockout;
+ *  - the winner's outro place is not on a pet;
+ *  - a pet scared by the Air Horn jumps clear of every fighter;
+ *  - after a Body Slam the slammer steps back to fighting distance, and no pet runs through a
+ *    fighter on its way out or home;
+ *  - the Taunt's anger mark sits on the head as the pose draws it.
  */
 import { describe, expect, it } from "vitest";
 import type { BoutLog, FighterSnapshot } from "@rankzero/core";
 import { REALM_SALT, combineSeed, rivalSnapshot, simulateFight } from "@rankzero/core";
 import { contentPack, createRig, gatePack } from "@rankzero/rig";
 import { poseAt } from "../src/blend";
-import { drawnBox } from "../src/bounds";
+import { drawnBox, topPoint } from "../src/bounds";
 import { CAMERA, cameraAt, frameSpan } from "../src/camera";
 import { advance, createFightClock, realAt } from "../src/clock";
 import { buildPlayer } from "../src/createFightPlayer";
 import type { StagePlayer } from "../src/createFightPlayer";
 import type { FrameActor } from "../src/frame";
 import { AVOID, avoidOf, birthsFor, layoutLabels, screenOf } from "../src/labels";
-import { BLEND, MOVE } from "../src/tuning";
+import { BODY_GAP } from "../src/layout";
+import { BLEND, MOVE, OUTRO } from "../src/tuning";
 import { optsFor } from "./lib/setup";
 
 const rig = createRig(gatePack, contentPack);
@@ -68,7 +77,9 @@ describe("review round 2: framing and skill effects on the phone", () => {
     expect(wb.x0, "winner's left edge").toBeGreaterThanOrEqual(v.x0 - 4);
     expect(wb.x1, "winner's right edge").toBeLessThanOrEqual(v.x1 + 4);
     const ko = p.tracks.koFocus!;
-    expect(Math.abs(winner.place.x - ko.x), "stands over the body, not at its home mark").toBeLessThan(80);
+    // (by the body: 80 units from its mark on clear floor; a knocked-out pet lying before the body
+    // moves him off it, level 30 n 0 and n 25, never further than OUTRO.standSearch)
+    expect(Math.abs(winner.place.x - ko.x), "stands over the body, not at its home mark").toBeLessThan(80 + OUTRO.standSearch / 3);
   });
 
   it.each(WIDE)("level %i n %i: a fighter's body stays in the frame before the knockout", (level, n) => {
@@ -265,5 +276,124 @@ describe("review round 2: framing and skill effects on the phone", () => {
     const one = createFightClock(p.timeline.durationMs, holds);
     one.tick(100);
     expect(one.t).toBe(100);
+  });
+
+  // ------------------------------------------------------------------ the check of the pass
+
+  /** A fighter's body without what it holds: the silhouette two bodies must not share. */
+  const bare = (p: StagePlayer, a: FrameActor, t: number) => drawnBox(rig, poseAt(rig, p.tracks.byId.get(a.id)!, t), { ...a.dress, held: null, shield: null }, a.place);
+  /** Bouts whose knockout the checker rendered (level 30 n 1 and n 10: a thrown kill, the winner
+   *  walked into the falling loser), and more with pets lying about the stage. */
+  const KOS: readonly [number, number][] = [[30, 1], [30, 10], [30, 25], [30, 0], [3, 1], [10, 0], [10, 4], [10, 5], [20, 12], [20, 14]];
+
+  it.each(KOS)("level %i n %i: after the knockout the winner never walks into the falling body", (level, n) => {
+    const { log, p } = bout(level, n);
+    const ko = p.tracks.koFocus!;
+    const wid = log.result.winner === "a" ? "a0" : "b0";
+    const at0 = p.frame(ko.at).actors.find((a) => a.id === wid)!.place.x;
+    const bad: string[] = [];
+    let walked = false;
+    for (let t = ko.at; t <= p.timeline.durationMs; t += 25) {
+      const f = p.frame(t);
+      const w = f.actors.find((a) => a.id === wid)!;
+      const l = f.actors.find((a) => a.rig === "scrapper" && a.id !== wid)!;
+      if (Math.abs(w.place.x - at0) > 0.5) walked = true;
+      if (!walked) continue;
+      const wb = bare(p, w, t);
+      const lb = bare(p, l, t);
+      const over = Math.min(wb.x1, lb.x1) - Math.max(wb.x0, lb.x0);
+      if (over > 2) bad.push(`+${Math.round(t - ko.at)} ms: ${w.clip}/${l.clip} share ${over.toFixed(1)}`);
+    }
+    expect(bad.slice(0, 5)).toEqual([]);
+    // the last shot: clear floor between the winner and the body's near end
+    const end = p.timeline.durationMs;
+    const f = p.frame(end);
+    const w = f.actors.find((a) => a.id === wid)!;
+    const l = f.actors.find((a) => a.rig === "scrapper" && a.id !== wid)!;
+    const wb = bare(p, w, end);
+    const lb = bare(p, l, end);
+    expect(Math.min(wb.x1, lb.x1) - Math.max(wb.x0, lb.x0), "floor between them in the last shot").toBeLessThan(0);
+  });
+
+  it.each(KOS)("level %i n %i: the winner's outro place is not on a pet", (level, n) => {
+    const { log, p } = bout(level, n);
+    const end = p.timeline.durationMs;
+    const f = p.frame(end);
+    const w = f.actors.find((a) => a.id === (log.result.winner === "a" ? "a0" : "b0"))!;
+    for (const pet of f.actors.filter((a) => a.rig !== "scrapper")) {
+      const pb = box(p, pet, end);
+      // (the checker's measure: its place inside the pet's drawn box, 6 units of slack)
+      const on = w.place.x > pb.x0 - 6 && w.place.x < pb.x1 + 6;
+      expect(on, `the winner at ${w.place.x.toFixed(0)} stands on ${pet.id} (${pet.rig}, ${pet.clip}, ${pb.x0.toFixed(0)} to ${pb.x1.toFixed(0)})`).toBe(false);
+    }
+    expect(OUTRO.standFeet).toBeGreaterThan(6);
+  });
+
+  it("a pet scared by the Air Horn jumps clear of every fighter before it runs off", () => {
+    const { log, p } = bout(30, 10);
+    let seen = 0;
+    log.steps.forEach((s, i) => {
+      if (s.t !== "flee") return;
+      const at = p.timeline.stepAt[i]!;
+      for (let t = at; t <= at + MOVE.startleMs + 200; t += 20) {
+        const f = p.frame(t);
+        const pet = f.actors.find((a) => a.id === s.actor);
+        if (pet === undefined) continue;
+        const pb = box(p, pet, t);
+        for (const fi of f.actors.filter((a) => a.rig === "scrapper")) {
+          const fb = box(p, fi, t);
+          seen++;
+          expect(Math.min(pb.x1, fb.x1) - Math.max(pb.x0, fb.x0), `${s.actor} in ${fi.id} at ${t}`).toBeLessThanOrEqual(0);
+        }
+      }
+    });
+    expect(seen).toBeGreaterThan(5);
+  });
+
+  it("after a Body Slam the slammer is back at fighting distance when its target is up, and no pet runs through a fighter", () => {
+    const { log, p } = bout(30, 25);
+    const i = log.steps.findIndex((s) => s.t === "move" && s.move === "body-slam");
+    const step = log.steps[i]! as { actor: string; target: string };
+    const from = p.timeline.stepAt[i]!;
+    const sig = p.tracks.sigs.find((g) => g.kind === "body-slam" && g.from >= from)!;
+    // the target is on its feet again when its slammed clip is over
+    const up = p.tracks.actors.find((a) => a.id === step.target)!.segs.find((g) => g.clip === "slammed" && g.from >= from)!.to;
+    const f = p.frame(up);
+    const me = f.actors.find((a) => a.id === step.actor)!;
+    const them = f.actors.find((a) => a.id === step.target)!;
+    expect(Math.abs(me.place.x - them.place.x), "apart when the target is up").toBeGreaterThanOrEqual(BODY_GAP.body - 1);
+    // from the pets' run clear to well after the get-up: no pet that ran clear passes a fighter's place
+    const ran = new Set(p.tracks.actors.filter((a) => a.rig !== "scrapper" && a.moves.some((m) => m.from >= from && m.from < sig.at!)).map((a) => a.id as string));
+    expect(ran.size).toBeGreaterThan(0);
+    const side = new Map<string, number>();
+    const crossed: string[] = [];
+    for (let t = from; t <= up + 1500; t += 20) {
+      const g = p.frame(t);
+      for (const pet of g.actors.filter((a) => ran.has(a.id))) {
+        for (const fi of g.actors.filter((a) => a.rig === "scrapper")) {
+          const key = `${pet.id}/${fi.id}`;
+          const now = Math.sign(pet.place.x - fi.place.x);
+          const was = side.get(key);
+          if (was !== undefined && now !== 0 && was !== 0 && now !== was) crossed.push(`${t}: ${pet.id} passes ${fi.id}`);
+          if (now !== 0) side.set(key, now);
+        }
+      }
+    }
+    expect(crossed.slice(0, 4)).toEqual([]);
+  });
+
+  it("the Taunt's anger mark is drawn on the head the pose has, not on the standing head", () => {
+    const { p } = bout(30, 10);
+    const sig = p.tracks.sigs.find((g) => g.kind === "angry")!;
+    expect(sig).toBeDefined();
+    const t = (sig.from + sig.to) / 2;
+    const a = p.frame(t).actors.find((x) => x.id === sig.actor)!;
+    expect(a.clip).toBe("angry");
+    const pose = poseAt(rig, p.tracks.byId.get(a.id)!, t);
+    const top = topPoint(rig, pose, a.dress, a.place);
+    const b = drawnBox(rig, pose, { ...a.dress, held: null, shield: null }, a.place);
+    // the top of the figure, in its front half: the head leans toward the taunter
+    expect(top.y).toBeCloseTo(b.y0, 6);
+    expect(a.place.facing * (top.x - (b.x0 + b.x1) / 2), "the head is in the front half of the squared-up figure").toBeGreaterThan(0);
   });
 });

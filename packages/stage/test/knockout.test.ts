@@ -12,7 +12,8 @@ import { BOUT_FIXTURES, l10Boar, l10Raccoon, l1Knife, l1Pipe } from "@rankzero/c
 import { contentPack, createRig, gatePack } from "@rankzero/rig";
 import { drawnBox } from "../src/bounds";
 import { CAMERA, cameraAt } from "../src/camera";
-import { STAGE_W } from "../src/layout";
+import { SCRAPPER_REACH, STAGE_W } from "../src/layout";
+import { OUTRO } from "../src/tuning";
 import { playerFor } from "./lib/setup";
 
 const FULL = createRig(gatePack, contentPack);
@@ -76,9 +77,13 @@ describe("the knockout fall (real art)", () => {
         expect(wb.x0, `${tag} winner`).toBeGreaterThanOrEqual(cam.x0 - 0.5);
         expect(wb.x1, `${tag} winner`).toBeLessThanOrEqual(x1 + 0.5);
         const far = f.back === 1 ? Math.min(STAGE_W, body.x1) : Math.max(0, body.x0);
-        // (the camera keeps CAMERA.winnerBack of room behind the winner)
-        const both = (f.back === 1 ? far - (f.stand! - CAMERA.winnerBack) : f.stand! + CAMERA.winnerBack - far) <= view.w / cam.k;
-        const slack = both ? 0.5 : (body.x1 - body.x0) / 6;
+        // (the camera keeps the win pose as drawn, `standBox`, behind the winner)
+        const both = (f.back === 1 ? far - (f.stand! - f.standBox!.l) : f.stand! + f.standBox!.r - far) <= view.w / cam.k;
+        // (and what a pet lying before the body moved the winner off its place by the body: he never
+        // stands on a pet, choreo/fall.ts)
+        const near = f.back === 1 ? Math.min(f.x, body.x0) : Math.max(f.x, body.x1);
+        const moved = Math.max(0, Math.abs(f.stand! - near) - (SCRAPPER_REACH.front * (winner.dress.scale > 0 ? winner.dress.scale : 1) + OUTRO.standGap + 1));
+        const slack = both ? 0.5 : (body.x1 - body.x0) / 6 + moved;
         if (f.back === 1) expect(x1, `${tag} body`).toBeGreaterThanOrEqual(far - slack);
         else expect(cam.x0, `${tag} body`).toBeLessThanOrEqual(far + slack);
       }

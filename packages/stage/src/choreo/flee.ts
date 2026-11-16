@@ -4,7 +4,8 @@
 import type { StepOf } from "@rankzero/core";
 import { resultTag } from "../effects";
 import { homeSpan } from "../camera";
-import { STAGE_W } from "../layout";
+import { drawnBox } from "../bounds";
+import { BODY_GAP, STAGE_W } from "../layout";
 import { CORAL } from "../palette";
 import type { Builder } from "../timeline";
 import { MOVE } from "../tuning";
@@ -30,6 +31,19 @@ export function flee(b: Builder, step: StepOf<"flee">, i: number): Placed {
     const r = Math.max(tr.reach.back, tr.reach.front);
     const inside = Math.min(m.x1 - r, Math.max(m.x0 + r, p.x));
     x0 = p.x + Math.sign(inside - p.x) * Math.min(MOVE.startleIn, Math.abs(inside - p.x));
+    // never into a fighter: it lands clear of every standing fighter's drawn body, its owner's
+    // first (the checker, level 30 n 10: the stray dog jumped into its owner's silhouette and ran
+    // off from behind his legs and his pallet). A shield slung on the back counts (`slungRoom`).
+    const [pl, pr] = p.facing === 1 ? [tr.reach.back, tr.reach.front] : [tr.reach.front, tr.reach.back];
+    for (const o of b.actors) {
+      if (o.rig !== "scrapper" || b.status.get(o.id) !== "up") continue;
+      const q = b.place(o.id, at + jump);
+      const ob = drawnBox(b.rig, b.poseAt(o.id, at + jump), b.dress(o.id), q);
+      const lo = ob.x0 - MOVE.slungRoom - BODY_GAP.petClear;
+      const hi = ob.x1 + MOVE.slungRoom + BODY_GAP.petClear;
+      if (x0 > p.x && q.x > p.x) x0 = Math.max(p.x, Math.min(x0, lo - pr));
+      if (x0 < p.x && q.x < p.x) x0 = Math.min(p.x, Math.max(x0, hi + pl));
+    }
     b.play(step.actor, "hit", at, { until: at + jump });
     if (Math.abs(x0 - p.x) > 0.5) b.move(step.actor, at, jump, x0, p.y, 9, "inOut");
     else b.nudge({ actor: step.actor, key: "hop", from: at, outMs: jump / 2, holdMs: 0, backMs: jump / 2, dx: 0, arc: 9, contact: null });

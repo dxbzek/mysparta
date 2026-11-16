@@ -159,8 +159,9 @@ export function outroSpan(tr: Tracks): Span {
       must: { x0: Math.min(must.x0, far), x1: Math.max(must.x1, far) } };
   }
   // the winner faces the body: its back is on the side away from it
-  const w0 = f.stand - (f.back === 1 ? CAMERA.winnerBack : CAMERA.winnerFront);
-  const w1 = f.stand + (f.back === 1 ? CAMERA.winnerFront : CAMERA.winnerBack);
+  // (as wide as the win pose is drawn there, when the timeline measured it)
+  const w0 = f.stand - (f.standBox?.l ?? (f.back === 1 ? CAMERA.winnerBack : CAMERA.winnerFront));
+  const w1 = f.stand + (f.standBox?.r ?? (f.back === 1 ? CAMERA.winnerFront : CAMERA.winnerBack));
   const must = { x0: Math.min(w0, f.x, far), x1: Math.max(w1, f.x, far) };
   return { x0: Math.min(s.x0, must.x0), x1: Math.max(s.x1, must.x1), bottom: s.bottom, banner: true, must,
     // the winner stands on the fight side of the body: that end is kept

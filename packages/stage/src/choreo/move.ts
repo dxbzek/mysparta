@@ -448,6 +448,20 @@ function bodySlam(b: Builder, step: MoveStep, i: number, s: number, c: number): 
   resultTag(b, "body-slam", target, at + 80, CORAL);
   skillTag(b, step.procs, at);
   b.cause = { step: i, at, actor: step.actor, hitStop };
-  b.cursor = Math.max(seg.to, tseg.to) + BEAT.recoverMs;
+  // the slammer steps back to fighting distance while its target gets up (the checker, level 30
+  // n 25: the two stood stacked through the get-up and the next blow)
+  let set = seg.to;
+  if (ttr.rig === "scrapper" && b.track(step.actor).rig === "scrapper" && b.internal.easedDash !== true) {
+    const me = b.place(step.actor, seg.to);
+    const tp = b.place(target, seg.to);
+    const away: 1 | -1 = me.x <= tp.x ? -1 : 1;
+    const bounds = b.frameBounds(step.actor);
+    const x = Math.min(bounds.x1, Math.max(bounds.x0, tp.x + away * BODY_GAP.body * Math.max(drawnScale(b, step.actor), drawnScale(b, target))));
+    if (away * (x - me.x) > 0.5) {
+      const way = planWay(b, step.actor, x - me.x, 0, false, seg.to);
+      if (way.kind !== "still") set = layWay(b, step.actor, seg.to, x, me.y, way);
+    }
+  }
+  b.cursor = Math.max(set, tseg.to) + BEAT.recoverMs;
   return { at: s, apply: at };
 }

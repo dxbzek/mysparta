@@ -238,6 +238,8 @@ export const MOVE = {
   scaredSpeed: 190,
   /** A scared pet at the frame's edge jumps in toward the middle by at most this (choreo/flee.ts). */
   startleIn: 40,
+  /** A shield slung on a fighter's back reaches this far past its drawn body (the startle keeps clear of it). */
+  slungRoom: 8,
   /** A Taunt's target squares up, fists shaking, this long. */
   angryMs: 900,
   /** The Taunt's own gesture (rig content clips/gestures.ts: two fist pumps and a beckon). */
@@ -267,6 +269,17 @@ export const OUTRO = {
    *  body on the floor, and its back at least this far inside the stage. */
   standGap: 8,
   standEdge: 4,
+  /** Half the floor the winner's feet take there (times its drawn size): no pet's drawn span may
+   *  reach into it, and the place moves at most `standSearch` from the body to find such floor. */
+  standFeet: 16,
+  standSearch: 90,
+  standNearer: 4,
+  standTouch: 3,
+  /** Air kept round the win pose as drawn, in the outro frame. */
+  standRoom: 3,
+  /** The falling body's legs count as out of the winner's way once they are within this of where
+   *  they will lie. */
+  legsSlack: 3,
 } as const;
 
 /** Floor props. */

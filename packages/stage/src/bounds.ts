@@ -27,8 +27,17 @@ export function propBox(rig: Rig, item: PropId, at: { x: number; y: number; faci
   return paintedBox((env) => rig.drawProp(env, item, at));
 }
 
+/** The highest point `drawActor` paints for this pose with empty hands: the top of the head of a
+ *  figure on its feet, wherever the pose leans it (the rig has no head call; `hitPoint` is the
+ *  standing head, and a crouch or a lean carries the real one a head's width off it). */
+export function topPoint(rig: Rig, pose: Pose, dress: Dress, at: { x: number; y: number; facing: 1 | -1 }): { x: number; y: number } {
+  const top = { x: at.x, y: Infinity };
+  paintedBox((env) => rig.drawActor(env, pose, { ...dress, held: null, shield: null }, at), top);
+  return top;
+}
+
 /** The box of everything `paint` draws on the probe. */
-function paintedBox(draw: (env: DrawEnv) => void): Box {
+function paintedBox(draw: (env: DrawEnv) => void, top?: { x: number; y: number }): Box {
   let m = [1, 0, 0, 1, 0, 0];
   let alpha = 1;
   const stack: [number[], number][] = [];
@@ -42,6 +51,7 @@ function paintedBox(draw: (env: DrawEnv) => void): Box {
   const add = (pts: readonly P[]): void => {
     if (alpha <= 0.05) return;
     for (const [x, y] of pts) {
+      if (top !== undefined && y < top.y) { top.x = x; top.y = y; }
       box.x0 = Math.min(box.x0, x); box.x1 = Math.max(box.x1, x);
       box.y0 = Math.min(box.y0, y); box.y1 = Math.max(box.y1, y);
     }

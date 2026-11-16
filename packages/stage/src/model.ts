@@ -164,7 +164,9 @@ export interface Tracks {
     /** Where the winner stands for the outro (its place's x), over the body on the fight side: the
      *  outro frame is built round it, not round the winner's home mark (review round 2: the winner
      *  was cut at the edge of the phone while "X WINS" showed). */
-    stand?: number } | null;
+    stand?: number;
+    /** How far the winner's win pose is drawn to the left and to the right of that place. */
+    standBox?: { l: number; r: number } } | null;
   /** Ticket tape: from, to (null with reduced motion). */
   tape: { from: number; to: number } | null;
   /** Steps applied at a time: `stepEnd`, kept separately so `state` is a lookup. */

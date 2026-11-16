@@ -30,6 +30,7 @@
 import type { SkillId } from "@rankzero/core";
 import type { DrawEnv, Pose, Rig } from "@rankzero/rig";
 import type { FrameActor, FrameSig } from "./frame";
+import { topPoint } from "./bounds";
 import { CORAL, GREEN, INK, SIG_COLOUR, TEAL, VOLT, WHITE } from "./palette";
 
 type Pt = { x: number; y: number };
@@ -41,6 +42,9 @@ const hash = (a: number, b: number): number => {
   h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 };
+
+/** Half the height of a scrapper's head, in figure units. */
+const HEAD_HALF = 8;
 
 /** Where to draw on an actor in this frame. */
 export interface Body { a: FrameActor; f: 1 | -1; head: Pt; mouth: Pt; chest: Pt; hand: Pt; feet: Pt; s: number }
@@ -439,20 +443,15 @@ function steam(c: C, b: Body, e: number, alpha: number, big = 1): void {
   c.globalAlpha = alpha;
 }
 /** The Taunt's target loses its temper, big enough to read on a phone (review round 2: a few
- *  small coral strokes at the temple did not read): its face flushes red, a large anger mark
- *  pulses over its brow, steam blows off its head in big puffs. */
+ *  small coral strokes at the temple did not read): a large anger mark pulses over its brow and
+ *  steam blows off its head in big puffs. Both sit on the head as the pose draws it (`drawSig`
+ *  finds it: the squared-up pose leans the head a head's width off the standing one, and the mark
+ *  hung in the air behind it). No red disc for a flushed face: a shape painted over the figure
+ *  cannot be cut to the face, and it showed as a red blob on the neck and the wall behind. */
 const angry: Painter = (c, s, me) => {
   if (me === null) return;
-  const flush = clamp01(s.e / 220) * (0.42 + 0.08 * Math.sin(s.e / 80));
-  const a0 = c.globalAlpha;
-  c.globalAlpha = a0 * flush;
-  c.beginPath();
-  c.ellipse(me.head.x + me.f * 1.5, me.head.y + 1, 8.5, 9.5, 0, 0, Math.PI * 2);
-  c.fillStyle = "#E8322B";
-  c.fill();
-  c.globalAlpha = a0;
-  angerMark(c, { ...me, head: { x: me.head.x - me.f * 3, y: me.head.y - 6 } }, s.e, 7.5);
-  steam(c, me, s.e, s.alpha, 1.6);
+  angerMark(c, { ...me, head: { x: me.head.x + me.f * 1, y: me.head.y - 9 } }, s.e, 7.5);
+  steam(c, { ...me, head: { x: me.head.x, y: me.head.y - 4 } }, s.e, s.alpha, 1.6);
 };
 
 const secondWind: Painter = (c, s, me) => {
@@ -666,7 +665,12 @@ export const PAINTERS: Readonly<Partial<Record<FrameSig["kind"], Painter>>> = {
 export function drawSig(env: DrawEnv, s: FrameSig, rig: Rig, pose: (a: FrameActor) => Pose): void {
   const paint = PAINTERS[s.kind];
   if (paint === undefined || s.alpha <= 0) return;
-  const me = s.actor !== null ? bodyOf(rig, s.actor, pose(s.actor)) : null;
+  let me = s.actor !== null ? bodyOf(rig, s.actor, pose(s.actor)) : null;
+  if (me !== null && s.actor !== null && s.kind === "angry" && me.a.rig === "scrapper") {
+    // the head where this pose has it: the middle of the head is half a head under its top
+    const top = topPoint(rig, pose(s.actor), s.actor.dress, s.actor.place);
+    if (Number.isFinite(top.y)) me = { ...me, head: { x: top.x, y: top.y + HEAD_HALF * me.s } };
+  }
   const them = s.target !== null ? bodyOf(rig, s.target, pose(s.target)) : null;
   const c = env.ctx;
   c.save();

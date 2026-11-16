@@ -6,8 +6,8 @@
  *  - every pet standing where the body will lie runs out of the way, toward the fight, before the
  *    body lands, and stays there (it does not run home under him);
  *  - the winner's outro place (`stand`): over the body on the fight side, its front a small gap
- *    from the near end of the drawn body. At the next way home it shuffles there instead of to its
- *    home mark, so the outro frame holds the winner and the body together (review round 2, on a
+ *    from the near end of the drawn body, and not on a pet. Once the falling body's legs are out
+ *    of the way it shuffles there instead of to its home mark, so the outro frame holds the winner and the body together (review round 2, on a
  *    390 x 467 phone canvas: the winner's home mark and the body did not fit in one frame, and the
  *    camera kept the body and cut the winner while "X WINS" showed).
  */
@@ -20,41 +20,115 @@ import type { Builder } from "../timeline";
 import { basePos, facingAt } from "../track";
 import { MOVE, OUTCOME, OUTRO } from "../tuning";
 
-/** The knockout focus of `id` falling from time `k` (its clip `clip` played from there), with the
- *  reach of the body on the floor; clears the fall zone of pets. Returns the focus. */
-export function fallFocus(b: Builder, id: ActorId, k: number, clip: string): { at: number; x: number; y: number; back: 1 | -1; reach: number; stand?: number } {
+type Focus = NonNullable<Builder["koFocus"]>;
+
+/** The knockout focus of `id` falling from time `k` (its clip `clip` played from there; `real`
+ *  gives the fight time of a clip time, for the knockout's slow motion), with the reach of the body
+ *  on the floor; clears the fall zone of pets and sends the winner to its outro place. */
+export function fallFocus(b: Builder, id: ActorId, k: number, clip: string, real: (clipMs: number) => number = (c) => k + c): Focus {
   const tr = b.track(id);
   const at = basePos(tr, k);
   const facing = facingAt(tr, k);
   const back: 1 | -1 = facing === 1 ? -1 : 1;
   const info = b.info(tr.rig, clip);
-  const box = drawnBox(b.rig, b.rig.samplePose(tr.rig, clip, info.durationMs), b.dress(id), { x: at.x, y: at.floorY, facing });
+  const here = { x: at.x, y: at.floorY, facing };
+  const box = drawnBox(b.rig, b.rig.samplePose(tr.rig, clip, info.durationMs), b.dress(id), here);
   const reach = Math.max(0, back === 1 ? box.x1 - at.x : at.x - box.x0);
-  // the zone the body falls into: from its mark back to the far end of the drawn body
-  clearFallZone(b, id, k, back === 1 ? { x0: at.x, x1: box.x1 } : { x0: box.x0, x1: at.x }, box);
-  const focus: { at: number; x: number; y: number; back: 1 | -1; reach: number; stand?: number } = { at: k, x: at.x, y: at.floorY, back, reach };
+  const focus: Focus = { at: k, x: at.x, y: at.floorY, back, reach };
+  const zone = back === 1 ? { x0: at.x, x1: box.x1 } : { x0: box.x0, x1: at.x };
   // the winner stands over the body, on the fight side, facing it
   const winner: ActorId = sideOf(id) === "a" ? "b0" : "a0";
+  let strip: { x0: number; x1: number } | null = null;
   if (b.has(winner) && b.status.get(winner) === "up") {
+    const wtr = b.track(winner);
     // the near end of the drawn body (its feet), toward the fight
     const near = back === 1 ? Math.min(at.x, box.x0) : Math.max(at.x, box.x1);
     const s = drawnScale(b, winner);
     const lo = SCRAPPER_REACH.back * s + OUTRO.standEdge;
-    const x = Math.min(STAGE_W - lo, Math.max(lo, near - back * (SCRAPPER_REACH.front * s + OUTRO.standGap)));
+    const ideal = near - back * (SCRAPPER_REACH.front * s + OUTRO.standGap);
+    // not on a pet: a knocked-out pet lies where it fell, a live one rests on its mark; the winner
+    // stands on the first clear floor from the body toward the fight (review round 2, the checker:
+    // in 44 of 90 bouts with pets the winner's outro place was inside a pet's drawn box)
+    const pets = restingPets(b, k);
+    const half = OUTRO.standFeet * s;
+    const over = (x: number): number => pets.reduce((w, q) => w + Math.max(0, Math.min(q.x1, x + half) - Math.max(q.x0, x - half)), 0);
+    // (a touch of `standTouch` is clear floor; it may also stand a little nearer the body)
+    const cost = (d: number, c: number): number => { const w = over(c); return w <= OUTRO.standTouch ? Math.abs(d) : 1000 + w; };
+    let x = Math.min(STAGE_W - lo, Math.max(lo, ideal));
+    let least = cost(0, x);
+    for (let d = -OUTRO.standNearer; d <= OUTRO.standSearch && least > 0; d += 2) {
+      const c = Math.min(STAGE_W - lo, Math.max(lo, ideal - back * d));
+      const w = cost(d, c);
+      if (w < least) { least = w; x = c; }
+    }
     focus.stand = x;
+    strip = { x0: x - half, x1: x + half };
+    // the win pose as the rig draws it (a raised broom reaches past the body's own width): the
+    // outro frame keeps all of it
+    const wb = { l: 0, r: 0 };
+    const win = b.info(wtr.rig, "win").durationMs;
+    for (let n = 0; n < 8; n++) {
+      const q = drawnBox(b.rig, b.rig.samplePose(wtr.rig, "win", (n * win) / 8), b.dress(winner), { x: 0, y: 0, facing: wtr.homeFacing });
+      wb.l = Math.max(wb.l, -q.x0); wb.r = Math.max(wb.r, q.x1);
+    }
+    focus.standBox = { l: wb.l + OUTRO.standRoom, r: wb.r + OUTRO.standRoom };
     b.standAt.set(winner, x);
-    walkOver(b, winner, k, x);
+    // it walks over only once the falling body's legs are out of its way (the checker: it walked in
+    // at once, and the two bodies were drawn as one shape while the loser was still upright)
+    walkOver(b, winner, Math.max(k, real(legsClear(b, id, clip, here, back, near))), x);
   }
+  // the zone the body falls into: from its mark back to the far end of the drawn body
+  clearFallZone(b, id, k, zone, box, strip);
   return focus;
 }
 
-/** The winner shuffles over to its outro place as soon as its own blow is done, while the body
- *  falls, so the reframe ends on it already standing there. */
-function walkOver(b: Builder, id: ActorId, k: number, x: number): void {
+/** The clip time from which the falling body (without what it holds) stays behind `near`, the
+ *  near end of the body as it lies: before it the legs still stand, or kick out toward the fight. */
+function legsClear(b: Builder, id: ActorId, clip: string, here: { x: number; y: number; facing: 1 | -1 }, back: 1 | -1, near: number): number {
+  const tr = b.track(id);
+  const d = b.info(tr.rig, clip).durationMs;
+  const bare = { ...b.dress(id), held: null, shield: null };
+  let last = 0;
+  for (let t = 0; t <= d; t += 20) {
+    const q = drawnBox(b.rig, b.rig.samplePose(tr.rig, clip, t), bare, here);
+    const fore = back === 1 ? near - q.x0 : q.x1 - near;
+    if (fore > OUTRO.legsSlack) last = t + 20;
+  }
+  return Math.min(d, last);
+}
+
+/** The drawn spans of the pets as they will be in the last shot: a knocked-out one where it lies,
+ *  one on its way home on its mark. A live pet standing about is left out: it runs clear of the
+ *  body and of the winner (`clearFallZone`). */
+function restingPets(b: Builder, k: number): { x0: number; x1: number }[] {
+  const out: { x0: number; x1: number }[] = [];
+  for (const tr of b.actors) {
+    if (tr.rig === "scrapper" || k < tr.showFrom || k >= tr.goneAt) continue;
+    const st = b.status.get(tr.id);
+    if (st === "fled") continue;
+    const q = b.place(tr.id, k);
+    if (st === "ko") {
+      const d = b.info(tr.rig, "ko").durationMs;
+      const bx = drawnBox(b.rig, b.rig.samplePose(tr.rig, "ko", d), b.dress(tr.id), q);
+      out.push({ x0: bx.x0, x1: bx.x1 });
+      continue;
+    }
+    // a live pet standing there steps aside for him (`clearFallZone`); one on its way home rests on its mark
+    const busy = tr.attacks.some((w) => k >= w.from && k < w.to);
+    if (!b.out.has(tr.id) && !busy) continue;
+    const [l, r] = tr.homeFacing === 1 ? [tr.reach.back, tr.reach.front] : [tr.reach.front, tr.reach.back];
+    out.push({ x0: tr.home.x - l, x1: tr.home.x + r });
+  }
+  return out;
+}
+
+/** The winner shuffles over to its outro place from `from` on (once its own blow is done), so the
+ *  reframe ends on it already standing there. */
+function walkOver(b: Builder, id: ActorId, from: number, x: number): void {
   const tr = b.track(id);
   if (tr.rig !== "scrapper" || b.internal.easedDash === true) { b.out.add(id); return; }
-  let start = Math.max(k, readyAt(b, id));
-  for (const g of tr.segs) if (g.busy && g.from <= k && g.to !== Infinity && g.to > start) start = g.to;
+  let start = Math.max(from, readyAt(b, id));
+  for (const g of tr.segs) if (g.busy && g.from <= start && g.to !== Infinity && g.to > start) start = g.to;
   const p = basePos(tr, start);
   const way = planWay(b, id, x - p.x, tr.home.y - p.floorY, false, start);
   b.out.delete(id);
@@ -65,7 +139,8 @@ function walkOver(b: Builder, id: ActorId, k: number, x: number): void {
 
 /** Pets that would lie under the falling body run out of its zone, toward the fight. A pet in its
  *  own attack (the one that felled him) is left to finish it. */
-function clearFallZone(b: Builder, fallen: ActorId, k: number, body: { x0: number; x1: number }, whole: { x0: number; x1: number }): void {
+function clearFallZone(b: Builder, fallen: ActorId, k: number, body: { x0: number; x1: number }, whole: { x0: number; x1: number },
+  winner: { x0: number; x1: number } | null): void {
   const back: 1 | -1 = facingAt(b.track(fallen), k) === 1 ? -1 : 1;
   // the next free edge toward the fight (past his feet too), moved on by each pet that takes a place there
   let edge = back === 1 ? whole.x0 - OUTCOME.fallClear : whole.x1 + OUTCOME.fallClear;
@@ -76,8 +151,15 @@ function clearFallZone(b: Builder, fallen: ActorId, k: number, body: { x0: numbe
   for (const tr of pets) {
     const q = b.place(tr.id, k);
     const [l, r] = q.facing === 1 ? [tr.reach.back, tr.reach.front] : [tr.reach.front, tr.reach.back];
-    if (q.x + r <= body.x0 || q.x - l >= body.x1) continue;
-    const x = back === 1 ? edge - r : edge + l;
+    const inBody = !(q.x + r <= body.x0 || q.x - l >= body.x1);
+    const inWinner = winner !== null && !(q.x + r <= winner.x0 || q.x - l >= winner.x1);
+    if (!inBody && !inWinner) continue;
+    let x = back === 1 ? edge - r : edge + l;
+    // not where the winner comes to stand over the body: past him
+    if (winner !== null && x + r > winner.x0 - OUTCOME.fallClear && x - l < winner.x1 + OUTCOME.fallClear) {
+      x = back === 1 ? winner.x0 - OUTCOME.fallClear - r : winner.x1 + OUTCOME.fallClear + l;
+    }
+    x = Math.min(STAGE_W - r - 4, Math.max(l + 4, x));
     edge = back === 1 ? x - l - OUTCOME.fallClear : x + r + OUTCOME.fallClear;
     const ms = Math.max(120, Math.round((Math.abs(x - q.x) / MOVE.fleeSpeed) * 1000));
     b.face(tr.id, k, x < q.x ? -1 : 1);
@@ -108,8 +190,17 @@ export function clearLanding(b: Builder, by: number, body: { x0: number; x1: num
     const edge = 4 + Math.max(l, r);
     const left = lo - r;
     const right = hi + l;
-    const toLeft = left >= edge && (right > STAGE_W - edge || Math.abs(left - q.x) <= Math.abs(right - q.x));
-    const x = toLeft ? left : Math.min(STAGE_W - edge, right);
+    // to the side its mark is on, when the stage has the floor there: from the other side its way
+    // home ran through both fighters' legs (the checker, level 30 n 25, the boar)
+    const mid = (body.x0 + body.x1) / 2;
+    const homeLeft = tr.home.x < mid;
+    // (on its own side it may wait just off the stage's end, out of sight, for the body to get up:
+    // level 30 n 25, the slammed body lay over the boar's mark to 30 units from the stage's end)
+    const off = Math.min(l, r);
+    const canL = homeLeft ? left >= -off : left >= edge;
+    const canR = homeLeft ? right <= STAGE_W - edge : right <= STAGE_W + off;
+    const toLeft = canL && canR ? homeLeft : canL || (!canR && Math.abs(left - q.x) <= Math.abs(right - q.x));
+    const x = toLeft ? Math.max(-off, left) : Math.min(STAGE_W + off, right);
     if (toLeft) lo = x - l - OUTCOME.fallClear; else hi = x + r + OUTCOME.fallClear;
     const ms = Math.min(by - from, Math.max(120, Math.round((Math.abs(x - q.x) / MOVE.fleeSpeed) * 1000)));
     b.face(tr.id, from, x < q.x ? -1 : 1);
