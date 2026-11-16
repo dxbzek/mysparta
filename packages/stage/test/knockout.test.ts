@@ -61,13 +61,26 @@ describe("the knockout fall (real art)", () => {
         const w = Math.min(pb.x1, zone.x1) - Math.max(pb.x0, zone.x0);
         expect(w, `${a.id} (${a.rig}) under the fallen body`).toBeLessThanOrEqual(1);
       }
-      // in view after the reframe (as far as the stage goes)
+      // in view after the reframe: the winner whole, standing over the body (review round 2: the
+      // winner was cut at the phone's edge while "X WINS" showed), and the body as far as the stage
+      // goes; on a tall phone that cannot hold both, the body's far end gives way (at most a sixth
+      // of it), never the winner
+      const winner = frame.actors.find((a) => a.rig === "scrapper" && a.id !== loser.id)!;
+      expect(winner).toBeDefined();
+      expect(f.stand).toBeCloseTo(winner.place.x, 6);
+      const wb = drawnBox(FULL, FULL.samplePose(winner.rig, winner.clip, winner.clipT, winner.aim), winner.dress, winner.place);
       for (const view of [{ w: 390, h: 470 }, { w: 760, h: 520 }, { w: 720, h: 480 }]) {
         const cam = cameraAt(p.tracks, end, view, false);
         const x1 = cam.x0 + view.w / cam.k;
+        const tag = `${view.w}x${view.h}`;
+        expect(wb.x0, `${tag} winner`).toBeGreaterThanOrEqual(cam.x0 - 0.5);
+        expect(wb.x1, `${tag} winner`).toBeLessThanOrEqual(x1 + 0.5);
         const far = f.back === 1 ? Math.min(STAGE_W, body.x1) : Math.max(0, body.x0);
-        if (f.back === 1) expect(x1, `${view.w}x${view.h}`).toBeGreaterThanOrEqual(far - 0.5);
-        else expect(cam.x0, `${view.w}x${view.h}`).toBeLessThanOrEqual(far + 0.5);
+        // (the camera keeps CAMERA.winnerBack of room behind the winner)
+        const both = (f.back === 1 ? far - (f.stand! - CAMERA.winnerBack) : f.stand! + CAMERA.winnerBack - far) <= view.w / cam.k;
+        const slack = both ? 0.5 : (body.x1 - body.x0) / 6;
+        if (f.back === 1) expect(x1, `${tag} body`).toBeGreaterThanOrEqual(far - slack);
+        else expect(cam.x0, `${tag} body`).toBeLessThanOrEqual(far + slack);
       }
       expect(f.reach).toBeGreaterThan(0);
       expect(CAMERA.bodyMargin).toBeGreaterThan(0);

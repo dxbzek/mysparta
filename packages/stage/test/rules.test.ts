@@ -279,7 +279,10 @@ describe("choreography", () => {
           break;
         case "taunt":
           expect(mine.map((g) => g.clip), why).toContain("taunt");
-          expect(kinds, why).toContain("rings");
+          // the shout is a balloon out of his mouth (sigs.ts), not the Whistle's and the Air Horn's
+          // sound rings (review round 2: the expectation of rings here was the confusable picture)
+          expect(kinds, `${why}: no sound rings`).not.toContain("rings");
+          expect(tr.sigs.some((g) => g.kind === "taunt" && g.actor === s.actor && g.from === at), `${why}: the shout balloon`).toBe(true);
           {
             const enemy = s.actor.startsWith("a") ? "b0" : "a0";
             expect(segsOf(enemy).some((g) => g.clip === "angry" && g.from > at), `${why}: the enemy is angered`).toBe(true);
@@ -295,9 +298,16 @@ describe("choreography", () => {
           expect(mine.map((g) => g.clip), why).toContain("slam");
           // he comes in on his feet: the run (push-off, dash, brake) from far, the shuffle from near (footwork.ts)
           expect(mine.some((g) => g.clip === "dash-push" || g.clip === "dash" || g.clip === "shuffle"), `${why}: comes in`).toBe(true);
-          expect(mine.some((g) => g.clip === "slam" && g.rate === 0), `${why}: the squeeze holds`).toBe(true);
-          // the hold snares with no tarp: the target plays its snared clip and no tarp lands on it
-          expect(segsOf(s.target!).some((g) => g.clip === "snared" && g.from >= at), why).toBe(true);
+          // the squeeze: the bear hug on a fighter (rig "hug", the target "hugged": review round 2,
+          // the frozen grab pose and the tarp's snared pose read as two people back to back; this
+          // expectation named those two clips); on a pet the grab pose still holds
+          if (s.target!.endsWith("0")) {
+            expect(mine.some((g) => g.clip === "hug"), `${why}: the squeeze holds`).toBe(true);
+            expect(segsOf(s.target!).some((g) => g.clip === "hugged" && g.from >= at), why).toBe(true);
+          } else {
+            expect(mine.some((g) => g.clip === "slam" && g.rate === 0), `${why}: the squeeze holds`).toBe(true);
+            expect(segsOf(s.target!).some((g) => g.clip === "snared" && g.from >= at), why).toBe(true);
+          }
           expect(tr.fx.some((f) => f.fx === "tarp" && f.from >= at && f.from <= end && f.follow === s.target), why).toBe(false);
           expect(resultOver(s.target!, s.move, at), why).toBe(true);
           break;

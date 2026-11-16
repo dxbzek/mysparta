@@ -12,13 +12,13 @@ import { MOVE_IDS, SKILL_IDS, WEAPON_META, content, impactFamily } from "@rankze
 import { toStage } from "@rankzero/rig";
 import type { EffectKey, SfxItem } from "./contracts";
 import { noise } from "./cues";
-import { frameSpan } from "./camera";
+import { homeSpan } from "./camera";
 import { drawnScale } from "./footwork";
 import { segAt } from "./track";
 import { CORAL, GREEN, INK, PAPER, SKY, VOLT, WHITE } from "./palette";
 import type { TagItem, TagRole } from "./model";
 import type { Builder } from "./timeline";
-import { CONTACT, MOVE, OUTCOME, TEXT } from "./tuning";
+import { CONTACT, FRAMING, MOVE, OUTCOME, TEXT } from "./tuning";
 import type { Zone } from "./layout";
 import { STAGE_W, aimZone, hitOffset } from "./layout";
 
@@ -272,15 +272,20 @@ export function evadeEarly(b: Builder, target: ActorId, attacker: ActorId, at: n
   const tr = b.track(target);
   if (tr.rig === "scrapper" && b.internal.easedDash !== true) {
     guardUp(b, target, from);
+    // a hop back stops at the camera's frame (review round 2: a dodge carried a fighter half off
+    // the phone's screen, and it blocked the next blow there); with no room it is a hop on the spot
+    const p0 = b.place(target, from + OUTCOME.evadeUp);
+    const fb = b.frameBounds(target, FRAMING.hopInset);
+    const clamped = Math.min(fb.x1, Math.max(fb.x0, p0.x + dir * OUTCOME.evadeHop * drawnScale(b, target)));
+    // (never toward the attacker: one already past the edge hops on the spot)
+    const hopTo = dir * (clamped - p0.x) > 0 ? clamped : p0.x;
     if (dodgeOf(b, i, attacker, swung) === "slip") {
       const info = b.info(tr.rig, "slip");
       b.play(target, "slip", from, { until: from + (info.loop ? OUTCOME.evadeMs : info.durationMs) });
       return;
     }
     b.play(target, "evade", from);
-    const p = b.place(target, from + OUTCOME.evadeUp);
-    b.move(target, from + OUTCOME.evadeUp, OUTCOME.evadeDown - OUTCOME.evadeUp, p.x + dir * OUTCOME.evadeHop * drawnScale(b, target), p.y,
-      OUTCOME.evadeArc, "linear");
+    b.move(target, from + OUTCOME.evadeUp, OUTCOME.evadeDown - OUTCOME.evadeUp, hopTo, p0.y, OUTCOME.evadeArc, "linear");
     b.out.add(target);
     return;
   }
@@ -290,7 +295,7 @@ export function evadeEarly(b: Builder, target: ActorId, attacker: ActorId, at: n
     const hold = OUTCOME.petEvadeHoldMs;
     // the hop stays inside the camera's bout frame (verifier: a crow at the stage's edge hopped out
     // of view); with no room behind it, it leaps up on the spot, never toward the attacker
-    const span = frameSpan(b);
+    const span = homeSpan(b);
     const q = b.place(target, from);
     const m = Math.max(tr.reach.back, tr.reach.front);
     const to = Math.min(span.x1 - m, Math.max(span.x0 + m, q.x + dir * OUTCOME.evadeHop));

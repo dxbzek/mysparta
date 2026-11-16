@@ -15,6 +15,7 @@ export function free(b: Builder, step: StepOf<"free">, i: number): Placed {
   if (snared !== undefined) {
     snared.seg.to = at;
     snared.cover.to = at;
+    if (snared.sling !== undefined) snared.sling.to = at;
     b.snared.delete(step.actor);
   }
   // the tarp flies up and away

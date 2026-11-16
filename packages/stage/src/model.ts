@@ -160,7 +160,11 @@ export interface Tracks {
    *  one reframe starts here (null: nobody falls). */
   koFocus: { at: number; x: number; y: number; back: 1 | -1;
     /** How far the body, lying on the floor, is drawn behind its mark (measured on the rig). */
-    reach?: number } | null;
+    reach?: number;
+    /** Where the winner stands for the outro (its place's x), over the body on the fight side: the
+     *  outro frame is built round it, not round the winner's home mark (review round 2: the winner
+     *  was cut at the edge of the phone while "X WINS" showed). */
+    stand?: number } | null;
   /** Ticket tape: from, to (null with reduced motion). */
   tape: { from: number; to: number } | null;
   /** Steps applied at a time: `stepEnd`, kept separately so `state` is a lookup. */

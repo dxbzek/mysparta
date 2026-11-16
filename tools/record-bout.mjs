@@ -13,7 +13,8 @@
  * every frame calls __rz.seek(i x 1000 / fps) and takes Page.captureScreenshot of the 390 x 844
  * page at clip.scale 2 (780 x 1688 pixels; the page itself runs at device scale 2, so the canvas is sharp), and pipes the frames to ffmpeg. A seek plays no
  * sound, so the audio track (--audio) is mixed in Node from sfx.mp3, sfx.json and the cue list:
- * each cue at its `at` (scaled by --speed). The mix is checked: every impact cue at or after its
+ * each cue at its `at` (scaled by --speed; at 2x and 3x a Move's hold, `Timeline.holds` via
+ * `window.__rz.holds`, plays at 1x as the fight clock plays it). The mix is checked: every impact cue at or after its
  * contact, no two impact cues within 60 ms, the peak below clipping, and the longest silence.
  * An agent cannot hear: a person must still listen (brief 3.13).
  *
@@ -138,6 +139,34 @@ async function overflowReport(page) {
   });
 }
 
+// ------------------------------------------------------------------ the clock's speed with holds
+
+/** The fight clock's map at 2x and 3x (packages/stage/src/clock.ts, kept in step by hand: this
+ *  file also runs under plain node): a Move's hold plays at 1x, the rest at the speed. `realOf`
+ *  is real ms from 0 to presentation time `t`; `presentOf` is its inverse. With no holds (a host
+ *  that does not expose them) both are a plain division by the speed. */
+function realOf(t, speed, holds) {
+  let real = 0;
+  let at = 0;
+  const edges = [...new Set(holds.flatMap((h) => [h[0], h[1]]))].filter((e) => e > 0).sort((p, q) => p - q);
+  for (const e of [...edges, Infinity]) {
+    const to = Math.min(e, t);
+    if (to > at) {
+      const held = holds.some((h) => at >= h[0] && at < h[1]);
+      real += (to - at) / (held ? Math.min(speed, 1) : speed);
+      at = to;
+    }
+    if (at >= t) break;
+  }
+  return real;
+}
+function presentOf(real, speed, holds, end) {
+  let lo = 0;
+  let hi = end;
+  for (let k = 0; k < 40; k++) { const mid = (lo + hi) / 2; if (realOf(mid, speed, holds) < real) lo = mid; else hi = mid; }
+  return Math.min(end, hi);
+}
+
 // ------------------------------------------------------------------ audio mix (Node)
 
 function decodeMp3(file, rate) {
@@ -145,7 +174,7 @@ function decodeMp3(file, rate) {
   return new Float32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4).slice();
 }
 
-async function mixCues({ cues, contacts, durationMs, speed }) {
+async function mixCues({ cues, contacts, durationMs, speed, holds = [] }) {
   const RATE = 44100;
   const map = JSON.parse(readFileSync(join(WEB, "public/audio/sfx.json"), "utf8"));
   const sprites = map.files.map((f) => decodeMp3(join(WEB, "public/audio", f), RATE));
@@ -153,7 +182,7 @@ async function mixCues({ cues, contacts, durationMs, speed }) {
   const { soundFor } = await import("../apps/web/src/audio/cues.ts");
   const listOf = (name) => map.sets[name] ?? map.sets[map.families[name]];
   const size = (name) => listOf(name)?.length ?? 0;
-  const out = new Float32Array(Math.ceil(((durationMs / speed) / 1000 + 2) * RATE));
+  const out = new Float32Array(Math.ceil((realOf(durationMs, speed, holds) / 1000 + 2) * RATE));
   const IMPACT = new Set(["fist", "blunt", "blade", "block"]);
   const problems = [];
   let lastImpact = -Infinity;
@@ -170,7 +199,7 @@ async function mixCues({ cues, contacts, durationMs, speed }) {
       if (c.at - lastImpact < 60) problems.push(`impact cues ${lastImpact} and ${c.at} ms are closer than 60 ms`);
       lastImpact = c.at;
     }
-    const at = Math.round(((c.at / speed) / 1000) * RATE);
+    const at = Math.round((realOf(c.at, speed, holds) / 1000) * RATE);
     const from = Math.round((e.start / 1000) * RATE);
     const len = Math.round((e.dur / 1000) * RATE);
     for (let i = 0; i < len && at + i < out.length; i++) out[at + i] += sprite[from + i] ?? 0;
@@ -209,8 +238,10 @@ async function recordVideo(browser, base) {
   const page = await openPage(browser, PHONE, { reducedMotion: flag("reduced") });
   await page.goto(debugUrl(base, { paused: 1, t: 0, sound: 0 }));
   await waitReady(page);
-  const info = await page.evaluate(() => ({ durationMs: window.__rz.durationMs, cues: window.__rz.cues, contacts: window.__rz.contacts }));
-  const frames = Math.ceil((info.durationMs / speed / 1000) * fps) + 1;
+  // the Moves the clock plays at 1x at 2x and 3x (Timeline.holds), when the debug page exposes them
+  const info = await page.evaluate(() => ({ durationMs: window.__rz.durationMs, cues: window.__rz.cues, contacts: window.__rz.contacts,
+    holds: window.__rz.holds ?? [] }));
+  const frames = Math.ceil((realOf(info.durationMs, speed, info.holds) / 1000) * fps) + 1;
   const cdp = await page.context().newCDPSession(page);
   const work = join(tmpdir(), "rankzero-record");
   rmSync(work, { recursive: true, force: true });
@@ -221,7 +252,8 @@ async function recordVideo(browser, base) {
   const done = new Promise((ok, fail) => ff.on("close", (code) => (code === 0 ? ok() : fail(new Error(`ffmpeg exit ${code}`)))));
   const started = Date.now();
   for (let i = 0; i < frames; i++) {
-    const t = Math.min(info.durationMs, (i * 1000 * speed) / fps);
+    const t = speed === 1 || info.holds.length === 0 ? Math.min(info.durationMs, (i * 1000 * speed) / fps)
+      : presentOf((i * 1000) / fps, speed, info.holds, info.durationMs);
     await page.evaluate((tt) => window.__rz.seek(tt), t);
     const shot = await cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 90, clip: { x: 0, y: 0, width: PHONE.width, height: PHONE.height, scale: 2 } });
     if (!ff.stdin.write(Buffer.from(shot.data, "base64"))) await new Promise((r) => ff.stdin.once("drain", r));

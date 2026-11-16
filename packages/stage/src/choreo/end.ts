@@ -31,6 +31,8 @@ export function end(b: Builder, step: StepOf<"end">, i: number): Placed {
     b.status.set(loser, "ko");
     b.koFocus = fallFocus(b, loser, f + OUTRO.capFlinchMs, "ko-fall");
     outro = f + OUTRO.capFlinchMs + fall.durationMs;
+    // the winner shuffles over to stand over the body as it falls (choreo/fall.ts)
+    if (b.has(winner)) for (const m of b.track(winner).moves) if (m.to !== Infinity && m.to > outro) outro = m.to;
   }
   if (b.has(winner) && b.status.get(winner) === "up") {
     const tr = b.track(winner);

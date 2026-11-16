@@ -23,8 +23,9 @@ import type { ActorTrack, BagEvent, Crowd, Flash, FlightItem, FloorItem, FxItem,
   Seg, Shake, Aura, Sig, Sling, TagItem, Tracks } from "./model";
 import type { MotionRules } from "./motion";
 import { motionRules } from "./motion";
+import { homeSpan } from "./camera";
 import { basePos, clipTime, drawPlace, facingAt, nudgeAt, segAt } from "./track";
-import { BEAT, CONTACT, FLOOR, HIT_STOP, IDLE, INTRO, KNOCKOUT } from "./tuning";
+import { BEAT, CONTACT, FLOOR, FRAMING, HIT_STOP, IDLE, INTRO, KNOCKOUT } from "./tuning";
 import type { Plan } from "./footwork";
 import { drawnScale, layWay, planWay, readyAt } from "./footwork";
 import { dispatch } from "./choreo/index";
@@ -57,6 +58,9 @@ export interface SwingPlan {
   hitStop: number;
   /** Slow motion after the hit-stop (the knockout blow). */
   slow: boolean;
+  /** The least room between the two places at the stop, in units (a Snatch flicks the weapon out
+   *  of the hand at arm's length, it does not run into the body). */
+  minRoom?: number;
 }
 export interface SwingDone { contactAt: number; end: number; stopX: number; aimY: number; segs: Seg[]; facing: 1 | -1 }
 
@@ -86,11 +90,16 @@ export class Builder {
   readonly sigs: Sig[] = [];
   readonly slings: Sling[] = [];
   readonly extraBusy: [number, number][] = [];
+  /** The Moves' spans that the clock plays at 1x at any speed (`Timeline.holds`). */
+  readonly holds: [number, number][] = [];
   tape: { from: number; to: number } | null = null;
   koFocus: Tracks["koFocus"] = null;
 
   /** Actors away from home that walk back at the next flush. */
   readonly out = new Set<ActorId>();
+  /** Where an actor walks to at a flush instead of its home mark: the winner's outro place over the
+   *  knocked-out body (choreo/fall.ts). */
+  readonly standAt = new Map<ActorId, number>();
   readonly hpNow = new Map<ActorId, number>();
   readonly status = new Map<ActorId, "up" | "ko" | "fled">();
   readonly heldNow = new Map<ActorId, HeldId>();
@@ -99,7 +108,7 @@ export class Builder {
   /** What the last swing or Move hit, for the steps that follow from it (disarm, shieldOff, free, ko). */
   cause: { step: number; at: number; actor: ActorId; hitStop: number } | null = null;
   readonly lastHitAt = new Map<ActorId, number>();
-  readonly snared = new Map<ActorId, { seg: Seg; cover: FxItem }>();
+  readonly snared = new Map<ActorId, { seg: Seg; cover: FxItem; sling?: Sling }>();
   /** The tarp of the last Tarp Move: where and when it lands. */
   tarpLanding: { target: ActorId; at: number } | null = null;
   readonly boosted = new Set<ActorId>();
@@ -213,6 +222,19 @@ export class Builder {
   }
   homeOf(id: ActorId): { x: number; y: number } { return this.track(id).home; }
 
+  private bounds: { x0: number; x1: number } | null = null;
+  /** The floor x a scrapper's place keeps inside so its body stays in the camera's fixed frame
+   *  (camera.homeSpan: the part of the stage every canvas shows), `FRAMING.inset` in from it. */
+  frameBounds(id: ActorId, inset: number = FRAMING.inset): { x0: number; x1: number } {
+    if (this.bounds === null) {
+      const s = homeSpan(this);
+      const m = s.must ?? { x0: s.x0, x1: s.x1 };
+      this.bounds = { x0: m.x0, x1: m.x1 };
+    }
+    const k = inset * drawnScale(this, id);
+    return { x0: Math.max(0, this.bounds.x0 + k), x1: Math.min(STAGE_W, this.bounds.x1 - k) };
+  }
+
   /** The pose an actor has at `t`, from what is scheduled so far. */
   poseAt(id: ActorId, t: number): Pose {
     const tr = this.track(id);
@@ -306,16 +328,17 @@ export class Builder {
       if (this.status.get(id) !== "up") continue;
       const tr = this.track(id);
       const p = basePos(tr, from);
-      const dist = Math.hypot(tr.home.x - p.x, tr.home.y - p.floorY);
+      const hx = this.standAt.get(id) ?? tr.home.x;
+      const dist = Math.hypot(hx - p.x, tr.home.y - p.floorY);
       if (dist < 0.5) continue;
       let ms = Math.max(BEAT.dashBackMinMs, Math.round((dist / BEAT.dashBackSpeed) * 1000));
       if (tr.rig === "scrapper" && this.internal.easedDash !== true) {
         // home by shuffles, facing the fight (footwork.ts): the body moves only in the air
         this.face(id, from, tr.homeFacing);
-        ms = layWay(this, id, from, tr.home.x, tr.home.y, planWay(this, id, tr.home.x - p.x, tr.home.y - p.floorY, false, from)) - from;
+        ms = layWay(this, id, from, hx, tr.home.y, planWay(this, id, hx - p.x, tr.home.y - p.floorY, false, from)) - from;
         if (id === next) own = ms;
       } else if (tr.rig === "scrapper") {
-        this.move(id, from, ms, tr.home.x, tr.home.y, 0, "inOut");
+        this.move(id, from, ms, hx, tr.home.y, 0, "inOut");
         this.face(id, from, tr.homeFacing);
         this.play(id, "backpedal", from, { until: from + ms });
       } else {
@@ -402,6 +425,18 @@ export class Builder {
     if (met !== null && contactAt < met + BEAT.restMs) {
       p.start += met + BEAT.restMs - contactAt;
       plan(p.start);
+    }
+    // a long weapon that would have to back out of the frame to reach (review round 2: a broom's
+    // riposte thrust from off the screen): the stop is held in the frame and the target gives the
+    // ground instead, a shuffle back before the blow
+    const room = this.lastShort > FRAMING.giveMin && feet ? this.targetGives(p, facing, this.lastShort) : null;
+    if (room !== null) {
+      // the stop is found again from where the target now stands
+      plan(p.start);
+      if (contactAt < room + BEAT.restMs) {
+        p.start += room + BEAT.restMs - contactAt;
+        plan(p.start);
+      }
     }
     // a pet that cannot come out (snared, or held at the stage edge): its owner steps back past it
     const gave = p.mode === "dash" ? this.ownerGives(p, from.x, stop.x, facing) : null;
@@ -501,15 +536,118 @@ export class Builder {
       { rig: ttr.rig, dress: tDress, x: tp.x, facing: tp.facing }, z);
     let s = at(zone0);
     let zone = zone0;
-    if (atr.rig !== "scrapper" || ttr.rig !== "scrapper") return { ...s, zone };
-    const gap = BODY_GAP.body * Math.max(drawnScale(this, p.actor), drawnScale(this, p.target));
+    this.lastShort = 0;
+    if (atr.rig !== "scrapper") return { ...s, zone };
+    if (ttr.rig !== "scrapper") return { ...this.inFrame(p.actor, s, facing), zone };
+    // the gap is kept from the body as the clip draws it: its lunge carries the root forward
+    // (review round 2: the stop alone kept the gap, and the lunge walked the bodies into one shape)
+    const gap = BODY_GAP.body * Math.max(drawnScale(this, p.actor), drawnScale(this, p.target)) + this.lungeOf(p.actor, p.clip);
     const room = (x: number): number => facing * (tp.x - x);
     if (zone === "head" && room(s.x) < gap) {
       const b = at("body");
       if (room(b.x) > room(s.x)) { s = b; zone = "body"; }
     }
     if (room(s.x) < gap) s = { ...s, x: tp.x - facing * gap };
-    return { ...s, zone };
+    if (p.minRoom !== undefined && room(s.x) < p.minRoom) s = { ...s, x: tp.x - facing * p.minRoom };
+    return { ...this.inFrame(p.actor, s, facing), zone };
+  }
+
+  private lunges = new Map<string, number>();
+  /** How far a clip carries a scrapper's root forward at most up to its strike (after it the
+   *  target flinches back), in stage units (its drawn size). */
+  lungeOf(id: ActorId, clip: string): number {
+    const tr = this.track(id);
+    const key = `${tr.rig}|${clip}`;
+    let r = this.lunges.get(key);
+    if (r === undefined) {
+      const info = this.info(tr.rig, clip);
+      r = 0;
+      const strike = this.strikeOf(info);
+      for (let t = 0; t <= strike; t += 10) r = Math.max(r, this.rig.samplePose(tr.rig, clip, t).root.x);
+      this.lunges.set(key, r);
+    }
+    return r * drawnScale(this, id);
+  }
+
+  /** How far behind the frame (`frameBounds`) the last `stopClear` put its stop: a long weapon
+   *  that would back out of the camera's frame to reach. 0 when the stop is inside. */
+  lastShort = 0;
+  /** Records how far a scrapper's stop lies behind the frame (away from its target). The stop
+   *  itself is not moved: the striking end must still meet the hit point (test/accuracy), so the
+   *  swing makes the target give that ground instead (`targetGives`). */
+  private inFrame<T extends { x: number }>(id: ActorId, s: T, facing: 1 | -1): T {
+    const b = this.frameBounds(id);
+    const x = Math.min(b.x1, Math.max(b.x0, s.x));
+    if (facing * (x - s.x) > 0) this.lastShort = Math.abs(x - s.x);
+    return s;
+  }
+
+  /**
+   * The target of a swing whose stop lies behind the frame gives that much ground, away from the
+   * attacker, kept in the frame itself, once it has finished what it is doing: a scrapper with a
+   * shuffle back; a pet runs back, and when its owner stands right behind it he shuffles back too.
+   * Nobody held (snared) moves. Returns when they are set, or null when nobody moved.
+   */
+  targetGives(p: SwingPlan, facing: 1 | -1, short: number): number | null {
+    const ttr = this.track(p.target);
+    const free = (id: ActorId): boolean => this.has(id) && this.status.get(id) === "up" && !this.snared.has(id);
+    if (!free(p.target) || this.internal.easedDash === true) return null;
+    const startOf = (id: ActorId): number => {
+      const tr = this.track(id);
+      let st = Math.max(p.start, tr.rig === "scrapper" ? readyAt(this, id) : -Infinity);
+      // (every move laid so far: a pet's run out in front of its owner, `petMeets`, starts at the
+      // swing's start, and the ground is given from where that run ends)
+      for (const m of tr.moves) if (m.to !== Infinity && m.to > st) st = m.to;
+      for (const g of tr.segs) if (g.busy && g.from <= p.start && g.to !== Infinity && g.to > st) st = g.to;
+      return st;
+    };
+    /** A scrapper shuffles back by `d` (inside the frame); returns how far it went and when it is set. */
+    const shuffle = (id: ActorId, d: number): { went: number; set: number } => {
+      const start = startOf(id);
+      const q = this.place(id, start);
+      const b = this.frameBounds(id);
+      const x = Math.min(b.x1, Math.max(b.x0, q.x + facing * d));
+      const way = planWay(this, id, x - q.x, 0, false, start);
+      if (way.kind === "still") return { went: 0, set: start };
+      this.face(id, start, facing === 1 ? -1 : 1);
+      const set = layWay(this, id, start, x, q.y, way);
+      this.out.add(id);
+      return { went: Math.abs(x - q.x), set };
+    };
+    if (ttr.rig === "scrapper") {
+      const r = shuffle(p.target, short);
+      return r.went > 0 ? r.set : null;
+    }
+    // a pet: its owner behind it gives what the gap between them cannot
+    const start = startOf(p.target);
+    const q = this.place(p.target, start);
+    let d = short;
+    let set = start;
+    const owner = scrapperOf(ttr.side);
+    if (free(owner)) {
+      const o = this.place(owner, start);
+      const ahead = facing * (o.x - q.x);
+      if (ahead > 0) {
+        const need = SCRAPPER_REACH.front * drawnScale(this, owner) + BODY_GAP.petClear + (q.facing === facing ? ttr.reach.front : ttr.reach.back);
+        const slack = Math.max(0, ahead - need);
+        if (slack < d) {
+          const r = shuffle(owner, d - slack);
+          d = slack + r.went;
+          set = Math.max(set, r.set);
+        }
+      }
+    }
+    const lo = PET_MARKS.edge + Math.max(ttr.reach.back, ttr.reach.front);
+    const x = Math.min(STAGE_W - lo, Math.max(lo, q.x + facing * d));
+    if (Math.abs(x - q.x) < 0.5) return set > start ? set : null;
+    const ms = Math.max(BEAT.dashMinMs, Math.round((Math.abs(x - q.x) / BEAT.dashSpeed) * 1000));
+    // it turns, runs back and turns to face the attacker again
+    this.face(p.target, start, facing);
+    this.move(p.target, start, ms, x, q.y, 0, "inOut");
+    this.play(p.target, "run", start, { until: start + ms });
+    this.face(p.target, start + ms, facing === 1 ? -1 : 1);
+    this.out.add(p.target);
+    return Math.max(set, start + ms);
   }
 
   /**
@@ -603,6 +741,17 @@ export class Builder {
   }
 }
 
+/** Spans sorted and merged where they touch or overlap. */
+function mergeSpans(list: readonly [number, number][]): [number, number][] {
+  const out: [number, number][] = [];
+  for (const [f, t] of [...list].filter((s) => s[1] > s[0]).sort((p, q) => p[0] - q[0])) {
+    const last = out[out.length - 1];
+    if (last !== undefined && f <= last[1]) last[1] = Math.max(last[1], t);
+    else out.push([f, t]);
+  }
+  return out;
+}
+
 function insertSorted<T extends { from: number }>(list: T[], item: T): void {
   let i = list.length;
   while (i > 0 && list[i - 1]!.from > item.from) i -= 1;
@@ -667,6 +816,7 @@ export function buildTimeline(log: BoutLog, a: FighterSnapshot, b: FighterSnapsh
     killStep: B.killStep,
     firstActionAt: firstAction < 0 ? INTRO.firstActionAt : B.stepAt[firstAction]!,
     resultAt: B.resultAt,
+    holds: mergeSpans(B.holds),
   };
   return {
     timeline,

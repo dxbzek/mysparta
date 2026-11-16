@@ -49,7 +49,7 @@ const ACTION: Record<MoveId, string> = {
  *  targets flinch (any flinch clip); a Whistle's pet runs to its owner. */
 const REACTION: Record<MoveId, string | null> = {
   haymaker: null, "energy-drink": null, "second-wind": null, tarp: "snared", whistle: "run", firecrackers: "flinch", snatch: "hit-light",
-  "air-horn": "ears", "body-slam": "slammed", "sand-in-the-eyes": "rub-eyes", taunt: "angry", grapple: "snared",
+  "air-horn": "ears", "body-slam": "slammed", "sand-in-the-eyes": "rub-eyes", taunt: "angry", grapple: "hugged",
 };
 
 /** Opaque pixels a draw call leaves on a blank 360 x 240 canvas (at 2 px per unit). */

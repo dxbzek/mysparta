@@ -74,7 +74,11 @@ export interface Cue { at: number; step: number; family: SfxFamily; variant: num
  *  card may slide up. */
 export interface Timeline { durationMs: number; stepAt: number[]; stepEnd: number[];
   contacts: ContactMark[]; busy: (readonly [from: number, to: number])[]; cues: Cue[];
-  killStep: number; firstActionAt: number; resultAt: number }
+  killStep: number; firstActionAt: number; resultAt: number;
+  /** The Moves, from the start of the action to the end of its signature and tags, sorted: the
+   *  clock plays these at 1x at any speed, so a Move can be told apart at 2x and 3x (review round 2:
+   *  at 3x a Taunt lasted 430 ms of real time). Pass them to `createFightClock`. */
+  holds?: (readonly [from: number, to: number])[] }
 /** What the DOM around the canvas shows at one time. */
 export interface HudFrame { hp: Partial<Record<ActorId, { now: number; trail: number; max: number }>>;
   bag: Record<Side, BagItem[]>; stepsShown: number /* the text log shows steps below this index */;
@@ -96,4 +100,4 @@ export interface FightClock { readonly t: number; speed: 1 | 2 | 3; paused: bool
   tick(realDtMs: number): number; seek(tMs: number): void }
 /** Makes the clock for one bout: it starts at t = 0, at speed 1, not paused. The fight screen
  *  gets its clock from here and never writes a second one. */
-export type CreateFightClock = (durationMs: number) => FightClock;
+export type CreateFightClock = (durationMs: number, holds?: readonly (readonly [from: number, to: number])[]) => FightClock;
