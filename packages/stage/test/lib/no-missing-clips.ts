@@ -14,8 +14,9 @@ import { afterEach } from "vitest";
 /** The footwork clips a test double may lack: the stage plays idle there with the same timing
  *  (footwork.ts). Allowed for the capsule test rig only. */
 export const FOOTWORK: ReadonlySet<string> = new Set(["dash-push", "brake", "shuffle", "slip"]);
-/** The Moves' gestures the stage asks for by name (rig content clips/gestures.ts). */
-export const GESTURES: ReadonlySet<string> = new Set(["ears", "rub-eyes", "taunt", "angry"]);
+/** The Moves' gestures the stage asks for by name (rig content clips/gestures.ts, and the
+ *  Grapple's bear hug, clips/hug.ts). */
+export const GESTURES: ReadonlySet<string> = new Set(["ears", "rub-eyes", "taunt", "angry", "hug", "hugged"]);
 const MISSING =/no clip "([^"]+)" for (?:rig "([^"]+)"|the (scrapper))/;
 let allowed = new Set<string>();
 let seen: string[] = [];

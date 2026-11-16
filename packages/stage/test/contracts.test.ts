@@ -54,7 +54,8 @@ describe("player options", () => {
 describe("the two factories the stage lane must export (compile-time)", () => {
   it("make a player from a log, two snapshots, a rig and options, and a clock from a length", () => {
     const clockOut: ReturnType<CreateFightClock> extends FightClock ? true : false = true;
-    const clockIn: Parameters<CreateFightClock> extends [durationMs: number] ? true : false = true;
+    // (callable from a length alone; the optional second argument is the Moves' holds, review round 2)
+    const clockIn: CreateFightClock extends (durationMs: number) => FightClock ? true : false = true;
     const playerIn: Parameters<CreateFightPlayer>["length"] extends 5 ? true : false = true;
     const playerOpts: Parameters<CreateFightPlayer>[4] extends PlayerOpts ? true : false = true;
     expect([clockOut, clockIn, playerIn, playerOpts]).toEqual([true, true, true, true]);

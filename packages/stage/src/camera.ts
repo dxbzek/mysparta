@@ -10,21 +10,30 @@
  *
  * The one exception is the knockout. A knocked-out scrapper falls on its back, away from the
  * fight, and lies about a body length behind its mark: outside the bout's frame. From the
- * knockout on the camera makes ONE slow reframe (2.6 s, eased, never turning back) to the frame
- * that holds the bout's frame and the body on the floor, and stays there for the outro.
+ * knockout on the camera makes ONE eased reframe (never turning back) to the outro frame and
+ * stays there. The outro frame is built round what the last shot is about: the winner where it
+ * stands for the outro (over the body, `koFocus.stand`, choreo/fall.ts) and the body on the
+ * floor. When a tall phone cannot hold both, the winner stays whole and the far end of the body
+ * is cut (review round 2: on the 390 x 467 phone canvas the old frame, built from both home marks
+ * and the body, kept the body and cut the winner while "X WINS" showed). The reframe takes
+ * `koMoveMs` (was 2.6 s: the fall outran it and the body left the frame on the way down).
  *
  * Like everything in the stage it is a pure function of `t` and the built tracks.
  * Reduced motion: the bout's frame from start to end; the camera never moves (a fallen body may
  * lie partly outside it).
  */
 import type { Tracks } from "./model";
-import { FLOOR_Y, STAGE_H, STAGE_W } from "./layout";
+import { FLOOR_Y, SCRAPPER_REACH, STAGE_H, STAGE_W } from "./layout";
 
 /** Every number of the camera, in stage units and ms at 1x. */
 export const CAMERA = {
   /** Half the width kept around a scrapper's home mark: its body, a knockback, a heavy lean back.
    *  A thing that goes further (a pet running off) leaves the frame; the frame does not chase it. */
   scrapperExtent: 40,
+  /** Round a place a scrapper stands at away from its mark the frame keeps this much (its body
+   *  without the back arm's shield), and it follows a place at most `excursionMax` from the mark. */
+  excursion: 18,
+  excursionMax: 70,
   /** Room kept round a pet's drawn box at its mark (layout.PET_MARKS: pets stand beside their
    *  owner, on his back side), for its idle breathing. */
   companionMargin: 3,
@@ -39,9 +48,13 @@ export const CAMERA = {
   bodyLength: 92,
   /** Room kept past the far end of the measured body. */
   bodyMargin: 6,
-  /** The knockout reframe: eased over this long. Its fastest zoom is 1.5 x ln(k0 / k1) / 2.6 s,
-   *  about 22% per second for the widest case (a body lying at the stage's edge), once per bout. */
-  koMoveMs: 2600,
+  /** The knockout reframe: eased over this long, from the start of the fall. Its fastest zoom is
+   *  1.5 x ln(k0 / k1) / 1.6 s, inside the calm limits (test/lib/calm.ts), once per bout. */
+  koMoveMs: 1600,
+  /** The width kept behind the winner's outro place (away from the body: its back, layout
+   *  SCRAPPER_REACH.back, and a little air) and in front of it (toward the body). */
+  winnerBack: 34,
+  winnerFront: 30,
   /** The outro frame keeps this much of the canvas (CSS px) clear above the standing heads, for
    *  the winner's banner in the top band (draw.ts: the 52 px band, a margin, a sticker of a 24 px
    *  text and a gap). Review finding 52: on the app's 390 x 260 phone canvas the reframe held the
@@ -62,8 +75,47 @@ interface Span { x0: number; x1: number; bottom: number; must?: { x0: number; x1
   /** The outro: keep `CAMERA.bannerRoomPx` clear above the heads. */
   banner?: boolean }
 
-/** The fixed frame of a bout: the stage span to keep in view and the lowest floor line. */
-export function frameSpan(tr: Pick<Tracks, "actors">): Span {
+/**
+ * The fixed frame of a bout: the stage span to keep in view and the lowest floor line. `must`
+ * holds the scrappers' marks and room, and every place a scrapper stands at before the knockout
+ * with `CAMERA.excursion` round it (review round 2: with a long weapon on a pet a fighter stood
+ * 38 units behind its mark, cut in half by the phone's edge, to swing). The choreography keeps
+ * those places near the marks (timeline.ts `targetGives`, FRAMING); what is left over, the frame
+ * holds. It is still one fixed frame for the whole bout.
+ */
+export function frameSpan(tr: Pick<Tracks, "actors"> & { koFocus?: Tracks["koFocus"] }): Span {
+  const hit = spans.get(tr.actors);
+  if (hit !== undefined) return hit;
+  const s = homeSpan(tr);
+  if (s.must !== undefined) {
+    const until = tr.koFocus?.at ?? Infinity;
+    let { x0, x1 } = s.must;
+    for (const a of tr.actors) {
+      if (a.rig !== "scrapper") continue;
+      const r = CAMERA.excursion * (a.reach.back / SCRAPPER_REACH.back);
+      // (a way back toward the mark only comes nearer: the ends of the moves are the extremes)
+      for (const m of a.moves) {
+        if (m.from >= until || m.from < a.showFrom) continue;
+        const lim = CAMERA.excursionMax;
+        const x = Math.min(a.home.x + lim, Math.max(a.home.x - lim, m.x1));
+        x0 = Math.min(x0, x - r);
+        x1 = Math.max(x1, x + r);
+      }
+    }
+    x0 = Math.max(0, x0);
+    x1 = Math.min(STAGE_W, x1);
+    s.must = { x0, x1 };
+    s.x0 = Math.min(s.x0, x0);
+    s.x1 = Math.max(s.x1, x1);
+  }
+  spans.set(tr.actors, s);
+  return s;
+}
+const spans = new WeakMap<object, Span>();
+
+/** The frame from the home marks alone: the part of the stage every canvas shows whatever the
+ *  bout does. The choreography keeps the fighters inside it while it is being built. */
+export function homeSpan(tr: Pick<Tracks, "actors">): Span {
   let x0 = Infinity;
   let x1 = -Infinity;
   let c0 = Infinity;
@@ -91,16 +143,29 @@ export function frameSpan(tr: Pick<Tracks, "actors">): Span {
   return s;
 }
 
-/** The outro frame: the bout's frame and the knocked-out body on the floor. */
+/** The outro frame: the winner where it stands for the outro and the knocked-out body on the
+ *  floor must be in it (the rest of the bout's frame, the pets, where it fits); when even those two
+ *  do not fit, the winner stays whole. */
 export function outroSpan(tr: Tracks): Span {
-  const s = frameSpan(tr);
+  const s = { ...frameSpan(tr) };
   const f = tr.koFocus;
   if (f === null) return s;
   // the body as the rig draws it lying there (choreo/fall.ts), and a little room past the hand
   const far = Math.max(0, Math.min(STAGE_W, f.x + f.back * ((f.reach ?? CAMERA.bodyLength) + CAMERA.bodyMargin)));
-  const must = s.must ?? { x0: s.x0, x1: s.x1 };
-  return { x0: Math.min(s.x0, far), x1: Math.max(s.x1, far), bottom: s.bottom, keep: f.back === 1 ? "x1" : "x0", keepAt: far, banner: true,
-    must: { x0: Math.min(must.x0, far), x1: Math.max(must.x1, far) } };
+  if (f.stand === undefined) {
+    // nobody left standing to win over the body: the bout's frame and the body
+    const must = s.must ?? { x0: s.x0, x1: s.x1 };
+    return { x0: Math.min(s.x0, far), x1: Math.max(s.x1, far), bottom: s.bottom, keep: f.back === 1 ? "x1" : "x0", keepAt: far, banner: true,
+      must: { x0: Math.min(must.x0, far), x1: Math.max(must.x1, far) } };
+  }
+  // the winner faces the body: its back is on the side away from it
+  // (as wide as the win pose is drawn there, when the timeline measured it)
+  const w0 = f.stand - (f.standBox?.l ?? (f.back === 1 ? CAMERA.winnerBack : CAMERA.winnerFront));
+  const w1 = f.stand + (f.standBox?.r ?? (f.back === 1 ? CAMERA.winnerFront : CAMERA.winnerBack));
+  const must = { x0: Math.min(w0, f.x, far), x1: Math.max(w1, f.x, far) };
+  return { x0: Math.min(s.x0, must.x0), x1: Math.max(s.x1, must.x1), bottom: s.bottom, banner: true, must,
+    // the winner stands on the fight side of the body: that end is kept
+    keep: f.back === 1 ? "x0" : "x1", keepAt: f.back === 1 ? w0 : w1 };
 }
 
 /** How far the knockout reframe has gone at `t`, 0 to 1 (eased; 0 until the knockout). */

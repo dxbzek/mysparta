@@ -63,6 +63,15 @@ export const FOOTWORK = {
   fallback: { push: 52, join: 12, cycle: 240, land: 48, stop: 98, brake: 158, paw: 8, hop: 180, up: 50, down: 120 },
 } as const;
 
+/** Keeping the fighters in the camera's fixed frame (review round 2: with a long weapon a fighter
+ *  backed off the phone's screen to swing). A scrapper's swing stop stays `inset` units (times its
+ *  drawn size: its body's half width) inside the frame every canvas shows (camera.frameSpan); a
+ *  stop pulled in by more than `giveMin` makes the target give that ground instead. */
+export const FRAMING = { inset: 22, giveMin: 2,
+  /** A dodge's hop back may land nearer the frame's edge (its back foot at the edge, not its body
+   *  half width in): only a hop that would carry the place itself past this is a slip instead. */
+  hopInset: 2 } as const;
+
 /** Hit-stop at the moment of contact, by kind of hit. */
 export const HIT_STOP = { plain: 60, crit: 110, knockout: 220 } as const;
 
@@ -186,8 +195,17 @@ export const MOVE = {
   /** A Grapple squeezes for this long; the squeeze hurts this far into it. */
   squeezeMs: 700,
   squeezeHitMs: 260,
-  /** How close a Grapple stands to its target (stage units between the two places). */
+  /** How close a Body Slam stands to its target to grab it (stage units between the two places). */
   grappleGap: 27,
+  /** How close a Grapple's bear hug stands (review round 2: at 27 the bodies stacked into one
+   *  shape), and how high the hug lifts the target off its feet, eased up and down over this long. */
+  hugGap: 33,
+  /** The target's pets clear a Body Slam's landing strip: set this long before the floor hit, on a
+   *  run of at most `slamClearMs` (choreo/fall.ts clearLanding). */
+  slamClearLead: 80,
+  slamClearMs: 420,
+  hugLift: 7,
+  hugLiftMs: 140,
   tarpFlightMs: 240,
   tarpDropMs: 140,
   /** The pops of the Firecrackers round each target after they land. */
@@ -195,6 +213,8 @@ export const MOVE = {
   /** Where the lit-bundle part of the content crackers effect ends (content/fx.ts CRACKERS_LIT). */
   crackersLit: 0.2,
   snatchJumpMs: 250,
+  /** A Snatch stops this much further off than the body gap: the reach to the weapon hand. */
+  snatchReach: 12,
   ringsMs: 800,
   /** Sand: the handful flies as a few puffs, this far apart; the target rubs its eyes this long. */
   sandGapMs: 45,
@@ -216,10 +236,18 @@ export const MOVE = {
   /** Scared by an Air Horn, a pet first jumps on the spot this long, then runs off at this speed. */
   startleMs: 260,
   scaredSpeed: 190,
+  /** A scared pet at the frame's edge jumps in toward the middle by at most this (choreo/flee.ts). */
+  startleIn: 40,
+  /** A shield slung on a fighter's back reaches this far past its drawn body (the startle keeps clear of it). */
+  slungRoom: 8,
   /** A Taunt's target squares up, fists shaking, this long. */
   angryMs: 900,
   /** The Taunt's own gesture (rig content clips/gestures.ts: two fist pumps and a beckon). */
   tauntMs: 1300,
+  /** A snare this soon after a sling ended (a Grapple's hold, then "pinned") carries that sling on. */
+  reslingMs: 700,
+  /** The longest stretch of one Move the clock holds at 1x at a higher speed (clock.ts). */
+  holdMaxMs: 2200,
 } as const;
 
 /** The end of the bout. */
@@ -237,6 +265,21 @@ export const OUTRO = {
   /** Its text size (was 24: at the top of a 720 x 480 view it reached the winner's head while
    *  the knockout reframe was still opening the view). */
   bannerSize: 20,
+  /** The winner's outro place (choreo/fall.ts): its drawn front this far from the near end of the
+   *  body on the floor, and its back at least this far inside the stage. */
+  standGap: 8,
+  standEdge: 4,
+  /** Half the floor the winner's feet take there (times its drawn size): no pet's drawn span may
+   *  reach into it, and the place moves at most `standSearch` from the body to find such floor. */
+  standFeet: 16,
+  standSearch: 90,
+  standNearer: 4,
+  standTouch: 3,
+  /** Air kept round the win pose as drawn, in the outro frame. */
+  standRoom: 3,
+  /** The falling body's legs count as out of the winner's way once they are within this of where
+   *  they will lie. */
+  legsSlack: 3,
 } as const;
 
 /** Floor props. */

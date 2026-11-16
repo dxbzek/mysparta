@@ -44,9 +44,12 @@ import { toStage } from "@rankzero/rig";
 import { land, moveNameTag, overHead, resultTag, skillTag } from "../effects";
 import { flightMs, makePath } from "../flight";
 import { CORAL, GREEN, SKY, VOLT } from "../palette";
-import { layWay, planWay } from "../footwork";
+import { drawnScale, layWay, planWay } from "../footwork";
+import { BODY_GAP, SCRAPPER_REACH } from "../layout";
 import type { Sig, SigKind } from "../model";
 import type { Builder } from "../timeline";
+import { drawnBox } from "../bounds";
+import { clearLanding } from "./fall";
 import { BEAT, MOVE } from "../tuning";
 import type { Placed } from "./index";
 
@@ -60,9 +63,15 @@ export function move(b: Builder, step: MoveStep, i: number): Placed {
   b.bag(b.track(step.actor).side, s, step.bagAfter);
   moveNameTag(b, step.move, step.actor, s);
   const placed = action(b, step, i, s, s);
-  // the user's own clips of this Move end where its last one does
-  const end = Math.max(b.cursor, ...b.track(step.actor).segs.filter((g) => g.from >= s).map((g) => g.to));
+  // the user's own clips of this Move end where its last one does (the open idle that footwork
+  // lays after a walk is not one of them: with it the sling never ended, and after a Grapple or a
+  // Body Slam the user's shield stayed on its back for the rest of the bout)
+  const end = Math.max(b.cursor, ...b.track(step.actor).segs.filter((g) => g.from >= s && g.busy && g.to !== Infinity).map((g) => g.to));
   sling(b, step.actor, s, end, step.move !== "snatch");
+  // at 2x and 3x the clock plays the Move at 1x: from the action to the end of its signature (and
+  // at least the name tag), so it can be told apart (clock.ts)
+  const sigEnd = b.sigs.filter((g) => g.from >= s && g.actor === step.actor && g.to !== Infinity).reduce((m, g) => Math.max(m, g.to), s);
+  b.holds.push([s, Math.min(Math.max(end, sigEnd, s + MOVE.nameTagMs), s + MOVE.holdMaxMs)]);
   return placed;
 }
 
@@ -262,8 +271,11 @@ function firecrackers(b: Builder, step: MoveStep, i: number, s: number, c: numbe
 function snatch(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
   const target = step.target;
   if (target === undefined || !b.has(target)) { b.cursor = c; return { at: s, apply: c }; }
+  // it stops at arm's length and flicks the weapon out of the hand (review round 2: the dash ran
+  // into the body and the two fighters stacked into one shape)
   const sw = b.swing({ i, actor: step.actor, target, clip: "flick", dress: b.dress(step.actor), zone: "body", start: c,
-    mode: "dash", combo: false, hitStop: 0, slow: false });
+    mode: "dash", combo: false, hitStop: 0, slow: false,
+    minRoom: (BODY_GAP.body + MOVE.snatchReach) * Math.max(drawnScale(b, step.actor), drawnScale(b, target)) + b.lungeOf(step.actor, "flick") });
   const at = sw.contactAt;
   let apply = at;
   // the robbed hand shows: the target's shield goes on its back for the moment of the snatch
@@ -318,11 +330,8 @@ function sand(b: Builder, step: MoveStep, i: number, s: number, c: number): Plac
 function taunt(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
   // two fist pumps and a beckon, shouting (rig "taunt"; it was the win celebration, which read as
   // standing there with a raised fist)
+  // (no sound rings: those are the Whistle's and the Air Horn's picture; the shout is a balloon)
   const seg = b.play(step.actor, "taunt", c, { until: c + MOVE.tauntMs });
-  const head = overHead(b, step.actor, c);
-  const p = b.place(step.actor, c);
-  b.fx.push({ fx: "rings", from: c + 120, to: c + 120 + MOVE.ringsMs, x: 0, y: 0, facing: p.facing, seed: b.opts.cosmeticSeed + i,
-    contact: null, follow: step.actor, dy: head.y + 80 - p.y });   // the rings draw 66 above `at`: centred on the mouth
   sig(b, step, c, c + MOVE.tauntMs - 80);
   // it works: the enemy squares up, fists shaking, anger marks and steam
   const enemy = enemyOf(b, step.actor);
@@ -339,11 +348,11 @@ function taunt(b: Builder, step: MoveStep, i: number, s: number, c: number): Pla
 }
 
 /** Body Slam and Grapple close in the same way: a dash to stand right against the target. */
-function closeIn(b: Builder, i: number, actor: ActorId, target: ActorId, c: number): { at: number; facing: 1 | -1 } {
+function closeIn(b: Builder, i: number, actor: ActorId, target: ActorId, c: number, gap: number): { at: number; facing: 1 | -1 } {
   const me = b.place(actor, c);
   const tp = b.place(target, c);
   const facing: 1 | -1 = tp.x >= me.x ? 1 : -1;
-  const stopX = tp.x - facing * MOVE.grappleGap;
+  const stopX = tp.x - facing * gap;
   const feet = b.track(actor).rig === "scrapper" && b.internal.easedDash !== true;
   // real footwork (footwork.ts): the run or the shuffle, set at the target when it ends
   const way = feet ? planWay(b, actor, stopX - me.x, tp.y - me.y, true) : null;
@@ -370,12 +379,22 @@ function grapple(b: Builder, step: MoveStep, i: number, s: number, c: number): P
   const target = step.target;
   const hit = step.hits?.[0];
   if (target === undefined || !b.has(target)) { b.cursor = c; return { at: s, apply: c }; }
-  const g = closeIn(b, i, step.actor, target, c).at;
-  // the grab, then the squeeze: the grab pose held while the target struggles in the hold
+  const g = closeIn(b, i, step.actor, target, c, MOVE.hugGap).at;
+  // the grab (the slam clip's reach in), then the squeeze: the bear hug (rig "hug": arms locked
+  // round its ribs, heaving), the target in the hold (rig "hugged": bent back, arms flung up, legs
+  // kicking). A pet has no such clip: it holds its snared pose.
   const grab = grabTime(b, step.actor);
+  const pair = b.track(step.actor).rig === "scrapper" && b.track(target).rig === "scrapper";
   b.play(step.actor, "slam", g, { until: g + grab });
-  b.play(step.actor, "slam", g + grab, { c0: grab, rate: 0, until: g + grab + MOVE.squeezeMs });
-  b.play(target, "snared", g + grab, { until: g + grab + MOVE.squeezeMs, busy: false });
+  if (pair) b.play(step.actor, "hug", g + grab, { until: g + grab + MOVE.squeezeMs });
+  else b.play(step.actor, "slam", g + grab, { c0: grab, rate: 0, until: g + grab + MOVE.squeezeMs });
+  b.play(target, pair ? "hugged" : "snared", g + grab, { until: g + grab + MOVE.squeezeMs, busy: false });
+  // the hug lifts it off its feet for the squeeze, and it drops back (review round 2: two bodies
+  // standing flat, stacked, read as two people back to back)
+  if (b.track(target).rig === "scrapper") {
+    b.nudge({ actor: target, key: "lift", from: g + grab, outMs: MOVE.hugLiftMs, holdMs: Math.max(0, MOVE.squeezeMs - 2 * MOVE.hugLiftMs),
+      backMs: MOVE.hugLiftMs, dx: 0, arc: MOVE.hugLift, contact: null });
+  }
   sling(b, target, g, g + grab + MOVE.squeezeMs);
   sig(b, step, g + grab - 60, g + grab + MOVE.squeezeMs, { target });
   const at = g + grab + MOVE.squeezeHitMs;
@@ -394,7 +413,7 @@ function bodySlam(b: Builder, step: MoveStep, i: number, s: number, c: number): 
   const target = step.target;
   const hit = step.hits?.[0];
   if (target === undefined || !b.has(target)) { b.cursor = c; return { at: s, apply: c }; }
-  const g = closeIn(b, i, step.actor, target, c).at;
+  const g = closeIn(b, i, step.actor, target, c, MOVE.grappleGap).at;
   const seg = b.play(step.actor, "slam", g);
   const at = g + b.strikeOf(b.info(b.track(step.actor).rig, "slam"));
   // the target's slammed clip runs with the slam, so it hits the floor at the contact
@@ -403,6 +422,17 @@ function bodySlam(b: Builder, step: MoveStep, i: number, s: number, c: number): 
   const info = b.info(ttr.rig, slammed);
   const landAt = info.events.find((e) => e.name === "land")?.t ?? b.strikeOf(info);
   const tseg = b.play(target, slammed, Math.max(g, at - landAt));
+  // nothing lies under it where it lands: its pets run clear first (choreo/fall.ts)
+  if (ttr.rig === "scrapper") {
+    const tp = b.place(target, at);
+    const box = drawnBox(b.rig, b.rig.samplePose(ttr.rig, slammed, landAt), b.dress(target), { x: tp.x, y: tp.y, facing: tp.facing });
+    // (and not under the slammer either: the strip runs from his back to the far end of the body,
+    // or the boar ran out from under the body and stood in the slammer's legs)
+    const me = b.place(step.actor, at);
+    const s0 = drawnScale(b, step.actor);
+    const [l, r] = me.facing === 1 ? [SCRAPPER_REACH.back * s0, SCRAPPER_REACH.front * s0] : [SCRAPPER_REACH.front * s0, SCRAPPER_REACH.back * s0];
+    clearLanding(b, at - MOVE.slamClearLead, { x0: Math.min(box.x0, me.x - l), x1: Math.max(box.x1, me.x + r) }, step.actor);
+  }
   const hitStop = b.hitStopFor(i, false);
   if (hit !== undefined) {
     const ci = land(b, { i, at, attacker: step.actor, target, outcome: "hit", damage: hit.damage, crit: false,
@@ -418,6 +448,20 @@ function bodySlam(b: Builder, step: MoveStep, i: number, s: number, c: number): 
   resultTag(b, "body-slam", target, at + 80, CORAL);
   skillTag(b, step.procs, at);
   b.cause = { step: i, at, actor: step.actor, hitStop };
-  b.cursor = Math.max(seg.to, tseg.to) + BEAT.recoverMs;
+  // the slammer steps back to fighting distance while its target gets up (the checker, level 30
+  // n 25: the two stood stacked through the get-up and the next blow)
+  let set = seg.to;
+  if (ttr.rig === "scrapper" && b.track(step.actor).rig === "scrapper" && b.internal.easedDash !== true) {
+    const me = b.place(step.actor, seg.to);
+    const tp = b.place(target, seg.to);
+    const away: 1 | -1 = me.x <= tp.x ? -1 : 1;
+    const bounds = b.frameBounds(step.actor);
+    const x = Math.min(bounds.x1, Math.max(bounds.x0, tp.x + away * BODY_GAP.body * Math.max(drawnScale(b, step.actor), drawnScale(b, target))));
+    if (away * (x - me.x) > 0.5) {
+      const way = planWay(b, step.actor, x - me.x, 0, false, seg.to);
+      if (way.kind !== "still") set = layWay(b, step.actor, seg.to, x, me.y, way);
+    }
+  }
+  b.cursor = Math.max(set, tseg.to) + BEAT.recoverMs;
   return { at: s, apply: at };
 }

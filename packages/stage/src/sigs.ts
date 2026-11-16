@@ -18,8 +18,8 @@
  *   body-slam        motion arcs as he hauls the enemy over his head, then cracks in the floor and
  *                    a ring of dust where it lands.
  *   sand-in-the-eyes a tan cloud and falling grains round the enemy's face.
- *   taunt            a jagged shout burst at his mouth with shout lines, pumping with his fist.
- *   angry            (the Taunt's target) red anger marks at the temple and steam off the head.
+ *   taunt            a round shout balloon out of his mouth holding a big "!!", shout lines.
+ *   angry            (the Taunt's target) its face flushes red, a big anger mark, big steam puffs.
  *   second-wind      air streams pulled into his mouth, green sparkles rising round him.
  *   grapple          strain marks squeezing in round the hug, sweat flying off the enemy.
  *   proc             a passive's small mark (`PROC_MARK`): the armour plate's flash on the chest,
@@ -30,6 +30,7 @@
 import type { SkillId } from "@rankzero/core";
 import type { DrawEnv, Pose, Rig } from "@rankzero/rig";
 import type { FrameActor, FrameSig } from "./frame";
+import { topPoint } from "./bounds";
 import { CORAL, GREEN, INK, SIG_COLOUR, TEAL, VOLT, WHITE } from "./palette";
 
 type Pt = { x: number; y: number };
@@ -41,6 +42,9 @@ const hash = (a: number, b: number): number => {
   h = Math.imul(h ^ (h >>> 13), 1274126177) >>> 0;
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 };
+
+/** Half the height of a scrapper's head, in figure units. */
+const HEAD_HALF = 8;
 
 /** Where to draw on an actor in this frame. */
 export interface Body { a: FrameActor; f: 1 | -1; head: Pt; mouth: Pt; chest: Pt; hand: Pt; feet: Pt; s: number }
@@ -231,8 +235,23 @@ const energyDrink: Painter = (c, s, me) => {
   }
 };
 
+/** A pea whistle held in the lips: a small chrome body (a third of a head wide), its mouthpiece
+ *  between the lips, the pea hole on top, a lanyard down to the neck. */
+function peaWhistle(c: C, b: Body): void {
+  const m = { x: b.mouth.x - b.f * 0.5, y: b.mouth.y + 0.5 };
+  const body = { x: m.x + b.f * 4.6, y: m.y + 0.6 };
+  // the lanyard: from the ring at the back of the body down round the neck
+  inkLine(c, [{ x: body.x - b.f * 1.5, y: body.y + 1.8 }, { x: m.x - b.f * 2.5, y: m.y + 7 }, { x: b.chest.x - b.f * 1, y: b.chest.y - 13 }], CORAL, 0.9);
+  // the mouthpiece, then the round body
+  shape(c, [{ x: m.x - b.f * 0.6, y: m.y - 0.9 }, { x: m.x + b.f * 3.4, y: m.y - 0.9 }, { x: m.x + b.f * 3.4, y: m.y + 0.9 }, { x: m.x - b.f * 0.6, y: m.y + 0.9 }], "#C9CED6", 0.7);
+  disc(c, body, 2.5, "#DDE2E8", 0.75);
+  disc(c, { x: body.x - b.f * 0.6, y: body.y - 0.7 }, 0.75, INK, 0);
+}
+
 const whistle: Painter = (c, s, me) => {
   if (me === null) return;
+  // the whistle itself, in his mouth while he blows
+  if (s.progress < 1) peaWhistle(c, me);
   const dir = me.f === 1 ? 0 : Math.PI;
   for (let k = 0; k < 3; k++) {
     const u = (s.e / 300 + k / 3) % 1;
@@ -363,25 +382,46 @@ const sand: Painter = (c, s, _me, them) => {
   }
 };
 
-/** The shout's jagged balloon, pumping with the fist. */
+/** An exclamation mark drawn as shapes (no font): a tapered bar and a dot, `h` tall from `top`. */
+function bang(c: C, top: Pt, h: number, fill: string, tilt: number): void {
+  const w = h * 0.2;
+  const dx = Math.sin(tilt) * h;
+  const bar: Pt[] = [{ x: top.x - w, y: top.y }, { x: top.x + w, y: top.y }, { x: top.x + w * 0.35 + dx * 0.68, y: top.y + h * 0.68 },
+    { x: top.x - w * 0.35 + dx * 0.68, y: top.y + h * 0.68 }];
+  shape(c, bar, fill, 0.9);
+  disc(c, { x: top.x + dx * 0.9, y: top.y + h * 0.9 }, w * 0.85, fill, 0.9);
+}
+
+/**
+ * The Taunt: a shout balloon out of his MOUTH (review round 2: the old jagged star at fist height
+ * was the same picture as a hit spark, so the Taunt read as a punch landing). A round white
+ * balloon over and in front of his head, its tail to his mouth, holding a big "!!", bobbing with
+ * each fist pump, and shout lines from the mouth toward the enemy.
+ */
 const taunt: Painter = (c, s, me) => {
-  if (me === null || s.e < 100) return;
-  const beat = Math.abs(Math.sin(((s.e - 100) / 320) * Math.PI));
-  const p = { x: me.mouth.x + me.f * 13, y: me.mouth.y - 5 };
-  const r = 8 + 3 * beat;
+  if (me === null || s.e < 80) return;
+  const beat = Math.abs(Math.sin(((s.e - 80) / 320) * Math.PI));
+  const grow = clamp01((s.e - 80) / 140);
+  const rx = (14 + 1.5 * beat) * grow;
+  const ry = (10.5 + 1.2 * beat) * grow;
+  if (rx < 1) return;
+  const p = { x: me.head.x + me.f * 27, y: me.head.y - 17 - beat * 1.5 };
   const pts: Pt[] = [];
-  for (let k = 0; k < 18; k++) {
-    const a = (k * Math.PI) / 9;
-    const rr = k % 2 === 0 ? r * (1.25 + 0.2 * hash(Math.floor(s.e / 110), k)) : r * 0.78;
-    pts.push({ x: p.x + Math.cos(a) * rr * 1.2, y: p.y + Math.sin(a) * rr });
+  // the balloon with its tail: the tail leaves the rim on the mouth side and points at the mouth
+  const tailA = Math.atan2(me.mouth.y - p.y, me.mouth.x - p.x);
+  for (let k = 0; k <= 28; k++) {
+    const a = tailA + 0.32 + (k / 28) * (Math.PI * 2 - 0.64);
+    pts.push({ x: p.x + Math.cos(a) * rx, y: p.y + Math.sin(a) * ry });
   }
-  shape(c, pts, SIG_COLOUR.taunt, 1.2);
-  star(c, p, r * 0.55, 5, WHITE, 0.1, 0.45, 0);
-  // shout lines toward the enemy
+  pts.push({ x: me.mouth.x + me.f * 3, y: me.mouth.y - 2 });
+  shape(c, pts, WHITE, 1.3);
+  bang(c, { x: p.x - 4, y: p.y - ry * 0.62 }, ry * 1.3, SIG_COLOUR.taunt, 0.08);
+  bang(c, { x: p.x + 4, y: p.y - ry * 0.62 }, ry * 1.3, SIG_COLOUR.taunt, 0.08);
+  // shout lines from the mouth, toward the enemy
   for (const k of [-1, 0, 1]) {
-    const a = (me.f === 1 ? 0 : Math.PI) + k * 0.45;
-    const r0 = r * 1.7 + beat * 3;
-    inkLine(c, [{ x: p.x + Math.cos(a) * r0, y: p.y + Math.sin(a) * r0 }, { x: p.x + Math.cos(a) * (r0 + 8), y: p.y + Math.sin(a) * (r0 + 8) }], WHITE, 1.5);
+    const a = (me.f === 1 ? 0 : Math.PI) + k * 0.42 + 0.25 * me.f;
+    const r0 = 6 + beat * 2;
+    inkLine(c, [{ x: me.mouth.x + Math.cos(a) * r0, y: me.mouth.y + Math.sin(a) * r0 }, { x: me.mouth.x + Math.cos(a) * (r0 + 7), y: me.mouth.y + Math.sin(a) * (r0 + 7) }], WHITE, 1.4);
   }
 };
 
@@ -391,21 +431,27 @@ function angerMark(c: C, b: Body, e: number, size: number): void {
   const k = size * (1 + 0.18 * Math.abs(Math.sin(e / 90)));
   for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]] as const) {
     const q = { x: p.x + sx * k, y: p.y + sy * k };
-    inkLine(c, [{ x: q.x - sx * k * 0.1, y: q.y + sy * k * 0.9 }, { x: q.x + sx * k * 0.05, y: q.y + sy * k * 0.15 }, { x: q.x + sx * k * 0.9, y: q.y - sy * k * 0.1 }], CORAL, 1.5);
+    inkLine(c, [{ x: q.x - sx * k * 0.1, y: q.y + sy * k * 0.9 }, { x: q.x + sx * k * 0.05, y: q.y + sy * k * 0.15 }, { x: q.x + sx * k * 0.9, y: q.y - sy * k * 0.1 }], CORAL, size > 6 ? 2.4 : 1.5);
   }
 }
-function steam(c: C, b: Body, e: number, alpha: number): void {
+function steam(c: C, b: Body, e: number, alpha: number, big = 1): void {
   for (let k = 0; k < 2; k++) {
     const u = (e / 560 + k / 2) % 1;
     c.globalAlpha = alpha * (1 - u);
-    puff(c, { x: b.head.x + (k === 0 ? -5 : 5) + Math.sin(u * 6) * 2, y: b.head.y - 12 - u * 16 }, 2.4 + u * 3, WHITE);
+    puff(c, { x: b.head.x + (k === 0 ? -5 : 5) * big + Math.sin(u * 6) * 2, y: b.head.y - 12 - u * 16 * big }, (2.4 + u * 3) * big, WHITE);
   }
   c.globalAlpha = alpha;
 }
+/** The Taunt's target loses its temper, big enough to read on a phone (review round 2: a few
+ *  small coral strokes at the temple did not read): a large anger mark pulses over its brow and
+ *  steam blows off its head in big puffs. Both sit on the head as the pose draws it (`drawSig`
+ *  finds it: the squared-up pose leans the head a head's width off the standing one, and the mark
+ *  hung in the air behind it). No red disc for a flushed face: a shape painted over the figure
+ *  cannot be cut to the face, and it showed as a red blob on the neck and the wall behind. */
 const angry: Painter = (c, s, me) => {
   if (me === null) return;
-  angerMark(c, me, s.e, 4.5);
-  steam(c, me, s.e, s.alpha);
+  angerMark(c, { ...me, head: { x: me.head.x + me.f * 1, y: me.head.y - 9 } }, s.e, 7.5);
+  steam(c, { ...me, head: { x: me.head.x, y: me.head.y - 4 } }, s.e, s.alpha, 1.6);
 };
 
 const secondWind: Painter = (c, s, me) => {
@@ -432,14 +478,21 @@ const secondWind: Painter = (c, s, me) => {
 
 const grapple: Painter = (c, s, me, them) => {
   if (me === null || them === null) return;
-  const mid = { x: (me.chest.x + them.chest.x) / 2, y: (me.chest.y + them.chest.y) / 2 };
+  // the strain marks squeeze in on the HELD body's sides (they sat over the hugger's back)
+  const mid = { x: them.chest.x, y: them.chest.y };
   const squeeze = Math.abs(Math.sin(s.e / 110));
   for (const sd of [-1, 1]) {
     for (let k = 0; k < 3; k++) {
       const y = mid.y - 12 + k * 10;
-      const x = mid.x + sd * (24 - squeeze * 4);
+      const x = mid.x + sd * (17 - squeeze * 4);
       inkLine(c, [{ x, y: y - 3 }, { x: x - sd * 4, y }, { x, y: y + 3 }], WHITE, 1.4);
     }
+  }
+  // its feet kick under it
+  for (const sd of [-1, 1]) {
+    const k0 = Math.sin(s.e / 70 + (sd > 0 ? 1.7 : 0));
+    const x = them.feet.x + sd * 7;
+    inkLine(c, [{ x: x - 3, y: them.feet.y - 4 + k0 }, { x: x + 3, y: them.feet.y - 6 - k0 }], WHITE, 1.1);
   }
   // sweat flies off the held one
   for (let k = 0; k < 3; k++) {
@@ -612,7 +665,12 @@ export const PAINTERS: Readonly<Partial<Record<FrameSig["kind"], Painter>>> = {
 export function drawSig(env: DrawEnv, s: FrameSig, rig: Rig, pose: (a: FrameActor) => Pose): void {
   const paint = PAINTERS[s.kind];
   if (paint === undefined || s.alpha <= 0) return;
-  const me = s.actor !== null ? bodyOf(rig, s.actor, pose(s.actor)) : null;
+  let me = s.actor !== null ? bodyOf(rig, s.actor, pose(s.actor)) : null;
+  if (me !== null && s.actor !== null && s.kind === "angry" && me.a.rig === "scrapper") {
+    // the head where this pose has it: the middle of the head is half a head under its top
+    const top = topPoint(rig, pose(s.actor), s.actor.dress, s.actor.place);
+    if (Number.isFinite(top.y)) me = { ...me, head: { x: top.x, y: top.y + HEAD_HALF * me.s } };
+  }
   const them = s.target !== null ? bodyOf(rig, s.target, pose(s.target)) : null;
   const c = env.ctx;
   c.save();

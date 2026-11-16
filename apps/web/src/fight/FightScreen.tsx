@@ -41,7 +41,9 @@ import css from "./fight.module.css";
 /** What the debug route may drive. Every call is a seek: it never sounds. */
 export interface FightHandle { durationMs: number; seek(tMs: number): void; readonly t: number; readonly played: number;
   /** The timeline's sound cues and contact marks, for the recording tool's audio check. */
-  readonly cues: readonly Cue[]; readonly contacts: readonly { step: number; at: number }[] }
+  readonly cues: readonly Cue[]; readonly contacts: readonly { step: number; at: number }[];
+  /** The Moves the clock plays at 1x at 2x and 3x (the stage's `Timeline.holds`), for the recording tool. */
+  readonly holds: readonly (readonly [from: number, to: number])[] }
 
 export interface FightScreenExtraProps {
   rig?: Rig;
@@ -74,7 +76,7 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
     [log, a, b, rig, reduced],
   );
   const tl = player.timeline;
-  const clock: FightClock = useMemo(() => createFightClock(tl.durationMs), [tl]);
+  const clock: FightClock = useMemo(() => createFightClock(tl.durationMs, tl.holds), [tl]);
   const cues = useMemo(() => createCueDriver(tl.cues, engineSink(audio)), [tl, audio]);
   const [t, setT] = useState(0);
   const [paused, setPaused] = useState(props.startPaused ?? false);
@@ -129,6 +131,7 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
       get played() { return audio.played; },
       cues: tl.cues,
       contacts: tl.contacts.map((c) => ({ step: c.step, at: c.at })),
+      holds: tl.holds ?? [],
     });
     return () => onHandle(null);
   }, [onHandle, tl, seek, clock, audio]);

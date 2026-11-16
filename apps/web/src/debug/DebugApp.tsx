@@ -80,6 +80,7 @@ function DebugBout({ route }: { route: Extract<DebugRoute, { page: "bout" }> }) 
       get played() { return handle.played; },
       cues: handle.cues,
       contacts: handle.contacts,
+      holds: handle.holds,
     };
     window.__rz = h;
   }, [handle, fontsReady]);
