@@ -248,6 +248,12 @@ export const MOVE = {
   reslingMs: 700,
   /** The longest stretch of one Move the clock holds at 1x at a higher speed (clock.ts). */
   holdMaxMs: 2200,
+  /** Sound moments (contract rev 4). The Taunt's shout goes with its rings (120 ms in); the
+   *  enemy's snort with the ANGRY clip's first "shout" face (120 ms into it). The gulp sounds when
+   *  the drink clip's head goes back (320 of its 700 ms). */
+  tauntShoutMs: 120,
+  angrySnortMs: 120,
+  gulpShare: 0.45,
 } as const;
 
 /** The end of the bout. */

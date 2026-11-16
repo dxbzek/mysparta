@@ -11,11 +11,11 @@
  *  - The moment of contact is one value; every contact effect is scheduled from it (effects.ts).
  *  - One actor at a time: the next actor starts when the last one's dash back is 60% done.
  */
-import type { ActorId, ActorInit, BagItem, BoutLog, FighterSnapshot, HeldId, ShieldId, Side, Step } from "@rankzero/core";
+import type { ActorId, ActorInit, BagItem, BoutLog, FighterSnapshot, HeldId, MoveId, ShieldId, Side, Step } from "@rankzero/core";
 import { WEAPON_META, isScrapper, killStep as findKillStep, scrapperOf, sideOf } from "@rankzero/core";
 import type { Aim, ClipInfo, Dress, Pose, Rig, RigId } from "@rankzero/rig";
 import { strikeTime } from "@rankzero/rig";
-import type { ContactMark, Cue, EffectKey, PlayerOpts, SfxFamily, SfxItem, SfxOn } from "./contracts";
+import type { ContactMark, Cue, EffectKey, MoveBeat, PlayerOpts, SfxFamily, SfxItem, SfxOn } from "./contracts";
 import { finishCues, pickVariant } from "./cues";
 import type { Zone } from "./layout";
 import { BODY_GAP, FLOOR_Y, HOME, PET_MARKS, PET_SCALE, SCRAPPER_REACH, STAGE_W, homeFacing, homeMarks, reachFor, stopFor } from "./layout";
@@ -274,11 +274,19 @@ export class Builder {
   }
 
   /** A sound at `at`. `item` is what made it and `on` what an impact struck (contract rev 3). */
-  cue(at: number, step: number, family: SfxFamily, n = 0, item?: SfxItem | null, on?: SfxOn): void {
+  cue(at: number, step: number, family: SfxFamily, n = 0, item?: SfxItem | null, on?: SfxOn,
+    extra?: Pick<Cue, "move" | "beat" | "accent">): void {
     const c: Cue = { at, step, family, variant: pickVariant(this.opts.cosmeticSeed, step, family, n) };
     if (item !== undefined && item !== null) c.item = item;
     if (on !== undefined) c.on = on;
+    if (extra?.move !== undefined) c.move = extra.move;
+    if (extra?.beat !== undefined) c.beat = extra.beat;
+    if (extra?.accent === true) c.accent = true;
     this.cues.push(c);
+  }
+  /** A Move's own sound at one of its moments (contract rev 4). */
+  moveCue(at: number, step: number, move: MoveId, beat: MoveBeat): void {
+    this.cue(at, step, "move", beat === "act" ? 0 : 1, null, undefined, { move, beat });
   }
   /** What an actor swings with for sound: its held item, or the companion itself. */
   soundItem(id: ActorId, held?: HeldId | null): SfxItem {

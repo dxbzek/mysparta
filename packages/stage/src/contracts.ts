@@ -41,6 +41,12 @@ export const SFX_VARIANTS: Readonly<Record<SfxFamily, number>> = {
 export type SfxItem = HeldId | ShieldId | CompanionId;
 /** What an impact landed on: the target's body, its shield, or the weapon it parried with. */
 export type SfxOn = "body" | "shield" | "weapon";
+/** A Move's two sound moments (contract rev 4; review: "skills sound the same", all 12 shared one
+ *  music stinger). `act`: the action itself, when it shows (the horn blast, the whistle, the shout,
+ *  the can cracked open, the breath in, the fuse lit, the grab). `effect`: where it takes hold (the
+ *  gulp, the pops round the feet, the sand on the face, the tarp wrapping the target, the slam,
+ *  the squeeze, the target's angry snort, a boosted Haymaker blow landing). */
+export type MoveBeat = "act" | "effect";
 /** Every word the stage paints. The stage holds no player text of its own. */
 export interface StageText { fight: string; wins(name: string): string; block: string; miss: string;
   crit: string; overtime: string; moveName(id: MoveId): string; skillName(id: ProcId): string;   // a skill, or a shield (content v2)
@@ -67,7 +73,16 @@ export interface Cue { at: number; step: number; family: SfxFamily; variant: num
    *  and companion cues; absent on crowd, dash, landing, Move, win and loss cues. */
   item?: SfxItem;
   /** Impact cues (fist, blunt, blade, block) only: what was struck. */
-  on?: SfxOn }
+  on?: SfxOn;
+  /** Contract rev 4: the Move this sound belongs to, and which of its moments. Every Move has one
+   *  "move" cue with `beat` "act"; a Move whose result lands later adds an `effect` cue (family
+   *  "move", or the impact cue of its hit carrying the Move, which then plays the Move's sound in
+   *  place of the bare fist). The host plays the Move's own set, else the family's. */
+  move?: MoveId;
+  beat?: MoveBeat;
+  /** Contract rev 4: a "landing" cue at the same moment as a crit or knockout blow, the heavy layer
+   *  under its impact sound. */
+  accent?: true }
 /** `stepAt[i]` and `stepEnd[i]` are the start and end time of step i. `busy` lists the spans in
  *  which an actor is doing more than idling, sorted by start. `killStep` is a step index, or -1.
  *  `firstActionAt` is the start of the first step after the intro. `resultAt` is when the result
