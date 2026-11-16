@@ -59,8 +59,8 @@ export function LockerScreen() {
       const won = b.result.winner === "a";
       return { id: b.id, won, opponent: b.snapshotB.name, line: resultLine(b.lineId, won, b.snapshotA.name, b.snapshotB.name), xp: b.xp };
     });
-    const { strength, agility, speed } = sheet.effective;
-    return { sheet, primary, held, companions, bouts, stats: { strength, agility, speed }, statScale: Math.max(10, strength, agility, speed) };
+    const { health, strength, agility, speed } = sheet.effective;
+    return { sheet, primary, held, companions, bouts, stats: { health, strength, agility, speed }, statScale: Math.max(10, health, strength, agility, speed) };
   }, [doc, rec, core, clock, now]);
   if (!rec || !view) return null;
   const pending = unwatchedOf(doc);

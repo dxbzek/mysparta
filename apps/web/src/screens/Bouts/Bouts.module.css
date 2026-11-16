@@ -59,6 +59,17 @@
   text-transform: uppercase;
   overflow-wrap: anywhere;
 }
+.lv {
+  display: inline-block;
+  padding: 1px 4px 0;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 3px;
+  background: var(--c-hazard);
+  color: var(--t-on-hazard);
+  font-size: 13px;
+  white-space: nowrap;
+  vertical-align: 2px;
+}
 .line {
   font-size: var(--fs-small);
   line-height: 1.3;

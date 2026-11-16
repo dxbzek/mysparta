@@ -52,6 +52,14 @@ describe("Hud", () => {
     expect(html).toContain("width:50.00%");   // the trail, 30 of 60
   });
 
+  it("labels the two HP numbers in their side colours with an HP divider, so they never read as a score (review r2)", () => {
+    const html = renderToStaticMarkup(<Hud frame={player.hud(0)} sides={sides} actors={log.init.actors} />);
+    expect(html).toMatch(/class="[^"]*hpNumA[^"]*"[^>]*data-hp=/);
+    expect(html).toMatch(/class="[^"]*hpNumB[^"]*"[^>]*data-hp=/);
+    expect(html).toMatch(/data-hp="\d+">\d+<\/span><span class="[^"]*hpSep[^"]*" aria-hidden="true">HP<\/span>/);
+    expect(html).toContain(`aria-label="${a.name} ${Math.round(player.hud(0).hp.a0!.now)} HP, ${b.name} ${Math.round(player.hud(0).hp.b0!.now)} HP"`);
+  });
+
   it("slaps the name stickers on with namesIn, not a timer", () => {
     const at = (namesIn: number) => renderToStaticMarkup(<Hud frame={{ ...player.hud(0), namesIn }} sides={sides} actors={log.init.actors} />);
     expect(at(0)).toContain("opacity:0");

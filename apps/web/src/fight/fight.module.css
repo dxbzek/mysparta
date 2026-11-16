@@ -15,8 +15,14 @@
 .screen {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(200px, 1fr) auto auto;
+  /* The stage grows to at most 9:10 of the width (review r2: on a 390 x 844 phone a 1fr stage was
+     390 x 425, the camera fits the fighters by width, and the spare height was empty back wall
+     where the tags and numbers floated 80-120 px above the bodies). At 9:10 the fighters are as
+     large as before; the room left over sits under the cards. */
+  grid-template-rows: auto minmax(200px, var(--stage-max-h)) auto auto;
   grid-template-areas: "hud" "stage" "strip" "lower";
+  align-content: start;
+  --stage-max-h: min(90vw, 504px);
   height: 100vh;
   height: 100dvh;
   max-width: 560px;
@@ -28,7 +34,7 @@
   color: var(--t-on-night);
 }
 .replayMode {
-  grid-template-rows: auto minmax(200px, 1fr) auto auto auto;
+  grid-template-rows: auto minmax(200px, var(--stage-max-h)) auto auto auto;
   grid-template-areas: "hud" "stage" "replay" "strip" "lower";
 }
 
@@ -140,7 +146,7 @@
 }
 .hpNums {
   display: flex;
-  gap: 10px;
+  gap: 6px;
   align-items: baseline;
 }
 .hpNum {
@@ -151,8 +157,21 @@
   text-align: right;
   text-shadow: var(--ink-text);
 }
+.hpNumA {
+  color: var(--t-on-night-sodium);
+}
 .hpNumB {
   text-align: left;
+  color: var(--t-on-night-teal);
+}
+.hpSep {
+  align-self: center;
+  padding: 2px 3px 1px;
+  border-left: 2px solid var(--t-on-night-dim);
+  border-right: 2px solid var(--t-on-night-dim);
+  color: var(--t-on-night-dim);
+  font: 900 11px / 1 var(--font-display);
+  letter-spacing: 0.06em;
 }
 .hpZero {
   color: var(--t-on-night-dim);
@@ -221,6 +240,22 @@
   gap: 0;
 }
 .controlsLeft { left: 2px; }
+/* the locked-3x note sits on the stage under the speed buttons, never over the fighter cards'
+   skill tiles (review r2) */
+.speedNote {
+  position: absolute;
+  top: 50px;
+  left: 50px;
+  margin: 0;
+  padding: 5px 9px 4px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-card-deep);
+  color: var(--t-on-card-deep);
+  font: 700 13px / 1.2 var(--font-body);
+  box-shadow: var(--shadow-hard-sm);
+  pointer-events: none;
+}
 .controlsRight { right: 2px; }
 .ctl {
   display: grid;
@@ -326,10 +361,20 @@
   color: var(--t-on-night-dim);
   font: 400 13px / 1.35 var(--font-body);
 }
+/* The newest line wraps to two lines (review r2: the outcome and the skill name were cut off by
+   an ellipsis on a phone). Its box always holds two lines, so the strip never jumps in height. */
 .stripNew {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  text-overflow: clip;
+  min-height: calc(2 * 1.3em);
   color: var(--t-on-night);
   font-weight: 700;
   font-size: 14px;
+  line-height: 1.3;
 }
 .skillA { color: var(--t-on-night-sodium); font-weight: 700; }
 .skillB { color: var(--t-on-night-teal); font-weight: 700; }

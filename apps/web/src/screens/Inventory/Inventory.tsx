@@ -68,6 +68,14 @@ export function inventoryItems(unlocked: ReadonlySet<PerkId>, filter: InventoryF
     .map((x) => x.id);
 }
 
+/** The grid's sections: under "All", one per kind with a heading (review r2: 92 tiles in one
+ *  run with no way to tell where the weapons end), each in the order `items` gives; a kind
+ *  filter is one section with no heading. Pure. */
+export function inventorySections(items: readonly PerkId[], filter: InventoryFilter): { kind: PerkKind | null; ids: PerkId[] }[] {
+  if (filter !== "all") return [{ kind: null, ids: [...items] }];
+  return KINDS.map((kind) => ({ kind, ids: items.filter((id) => perkKind(id) === kind) })).filter((x) => x.ids.length > 0);
+}
+
 /** One path of a silhouette: the body, its outline, or an ink detail line. No colour is kept. */
 export interface SilhouettePart { d: string; transform?: string; strokeWidth?: number; role: "body" | "outlined" | "ink" }
 
@@ -78,13 +86,36 @@ const luma = (fill: string): number => {
   return (0.2126 * ((v >> 16) & 255) + 0.7152 * ((v >> 8) & 255) + 0.0722 * (v & 255)) / 255;
 };
 
+/** How much of the view box an untransformed path's points span, as the smaller of its width and
+ *  height shares (0 for a transformed path: it is part of the drawing, never a backdrop). */
+function coverOf(d: string, transform: string | undefined, viewBox: string): number {
+  if (transform) return 0;
+  const [, , vw = 0, vh = 0] = viewBox.split(/\s+/).map(Number);
+  const n = (d.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+  if (n.length < 4 || !(vw > 0) || !(vh > 0)) return 0;
+  const xs = n.filter((_, i) => i % 2 === 0);
+  const ys = n.filter((_, i) => i % 2 === 1);
+  return Math.min((Math.max(...xs) - Math.min(...xs)) / vw, (Math.max(...ys) - Math.min(...ys)) / vh);
+}
+
 /** The same icon as a dark silhouette: every shape is one flat dark, its ink outlines and the
  *  ink detail lines turn into a faint rim, so the shape reads but no colour art is left (the two
- *  tones come from tokens via CSS classes, never from the art). */
-export function silhouetteArt(art: SvgArt): { viewBox: string; parts: SilhouettePart[] } {
+ *  tones come from tokens via CSS classes, never from the art).
+ *  Review r2: what is not the item is left out. A pet's icon is a portrait on a backdrop square
+ *  (Stray Dog showed as an opaque black square), and every skill icon sits on the same badge (a
+ *  rough square and its shadow, the first two shapes), so Whistle, Taunt, Tarp and Air Horn were
+ *  one identical square. A backdrop (an untransformed shape spanning 90% of the box) is dropped,
+ *  and for a skill the badge and its shadow, so the silhouette is the item's own shape. */
+export function silhouetteArt(art: SvgArt, kind?: PerkKind): { viewBox: string; parts: SilhouettePart[] } {
+  const drop = new Set<number>();
+  if (kind !== "skill") art.parts.forEach((p, i) => { if (coverOf(p.d, p.transform, art.viewBox) >= 0.9) drop.add(i); });
+  // every skill icon is drawn on a badge (a round one for a passive, a rough square for a Move):
+  // its first two shapes, the badge and its shadow
+  if (kind === "skill" && art.parts.length > 2) { drop.add(0); drop.add(1); }
+  const kept = drop.size < art.parts.length ? art.parts.filter((_, i) => !drop.has(i)) : art.parts;
   return {
     viewBox: art.viewBox,
-    parts: art.parts.map((p) => {
+    parts: kept.map((p) => {
       const stroked = !!p.stroke && p.stroke !== "none";
       const filled = !!p.fill && p.fill !== "none";
       const role: SilhouettePart["role"] = stroked ? "outlined" : filled && luma(p.fill!) < 0.12 ? "ink" : "body";
@@ -93,8 +124,8 @@ export function silhouetteArt(art: SvgArt): { viewBox: string; parts: Silhouette
   };
 }
 
-function Silhouette({ art, size }: { art: SvgArt; size: number }) {
-  const s = silhouetteArt(art);
+function Silhouette({ art, size, kind }: { art: SvgArt; size: number; kind?: PerkKind }) {
+  const s = silhouetteArt(art, kind);
   return (
     <svg className={css.silhouette} viewBox={s.viewBox} width={size} height={size} aria-hidden="true" focusable="false">
       {s.parts.map((p, i) => (
@@ -167,15 +198,22 @@ export function InventoryScreen() {
           </Button>
         </div>
 
-        {items.length === 0 ? <p className={css.empty}>{UI.inventory.noneShown}</p> : (
-          <ul className={css.grid} aria-label={UI.inventory.count(items.length)}>
-            {items.map((id, i) => (
-              <li key={id} className={css.cell}>
-                <Tile id={id} unlocked={unlocked.has(id)} owned={ownedNow.has(id)} index={i} owner={rec.name} onOpen={setOpen} />
-              </li>
-            ))}
-          </ul>
-        )}
+        {items.length === 0 ? <p className={css.empty}>{UI.inventory.noneShown}</p> : inventorySections(items, filter).map((sec) => (
+          <section key={sec.kind ?? "list"} className={css.section} aria-label={sec.kind ? UI.inventory.filters[sec.kind] : undefined}>
+            {sec.kind ? (
+              <h2 className={css.sectionHead}>
+                {UI.inventory.filters[sec.kind]} <b>{sec.ids.filter((id) => unlocked.has(id)).length}/{sec.ids.length}</b>
+              </h2>
+            ) : null}
+            <ul className={css.grid} aria-label={UI.inventory.count(sec.ids.length)}>
+              {sec.ids.map((id, i) => (
+                <li key={id} className={css.cell}>
+                  <Tile id={id} unlocked={unlocked.has(id)} owned={ownedNow.has(id)} index={i} owner={rec.name} onOpen={setOpen} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </main>
       <div className={common.tabs}>
         <TabBar tabs={MAIN_TABS.map((k) => ({ key: k, label: LOCKER_WORDS.tabs[k] }))} active="inventory" onSelect={(k) => go(tabRoute(k))} />
@@ -206,7 +244,7 @@ function Tile({ id, unlocked, owned, index, owner, onOpen }: { id: PerkId; unloc
       onClick={() => onOpen(id)} aria-label={UI.inventory.tileLabel(t.name, t.rarityWord, t.kind, line, state)}>
       <span className={css.art} aria-hidden="true">
         {unlocked ? <PerkIcon id={id} size={64} /> : (
-          <Silhouette art={rig.icon(id)} size={52} />
+          <Silhouette art={rig.icon(id)} kind={perkKind(id)} size={52} />
         )}
         {unlocked ? null : <span className={css.lock}><LockGlyph /></span>}
         {owned && unlocked ? <span className={css.badge}>{UI.inventory.ownedNow}</span> : null}
@@ -266,7 +304,7 @@ function Picture({ id, unlocked, look }: { id: PerkId; unlocked: boolean; look: 
   if (!unlocked) {
     return (
       <div className={`${css.picture} ${css.pictureLocked}`} data-state="locked">
-        <Silhouette art={rig.icon(id)} size={120} />
+        <Silhouette art={rig.icon(id)} kind={k} size={120} />
       </div>
     );
   }

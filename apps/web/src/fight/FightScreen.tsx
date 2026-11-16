@@ -7,7 +7,7 @@
  * Sound: each frame, the cues the clock crossed by PLAYING are sounded; a seek (skip, scrub,
  * replay, the debug handle) sounds nothing.
  */
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { stageFor } from "@rankzero/core";
 import type { Side } from "@rankzero/core";
@@ -15,7 +15,6 @@ import type { Rig } from "@rankzero/rig";
 import { createFightClock, createFightPlayer } from "@rankzero/stage";
 import type { Cue, FightClock, FightPlayer } from "@rankzero/stage";
 import type { FightScreenProps, Settings } from "../contracts";
-import { GameContext } from "../app/context";
 import { playSpeed } from "../state/schema";
 import { UI } from "../text/ui";
 import { createCueDriver, engineSink } from "../audio/cues";
@@ -27,6 +26,7 @@ import { STAGE_TEXT } from "../text/stage";
 import { STAGE_FONTS } from "../ui/fonts";
 import { Sheet } from "../ui/Sheet";
 import { beatsOf, litAt } from "./beats";
+import { SPEED_NOTE_MS, holdForSheet, releaseSheet } from "./hold";
 import { FighterCard, cardInfo } from "./FighterCard";
 import { LogStrip } from "./LogStrip";
 import { StageOverlay } from "./StageOverlay";
@@ -66,8 +66,6 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
   const rig = props.rig ?? seamRig;
   const audio = props.audio ?? sharedAudio();
   const reduced = reducedFrom(settings.reducedMotion);
-  // The toast strip, when the app is around it (the debug routes have none).
-  const game = useContext(GameContext);
 
   const player: FightPlayer = useMemo(
     () => createFightPlayer(log, a, b, rig, { reducedMotion: reduced, cosmeticSeed: log.seed, stage: stageFor(log.seed), text: STAGE_TEXT, fonts: STAGE_FONTS }),
@@ -79,6 +77,9 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
   const [t, setT] = useState(0);
   const [paused, setPaused] = useState(props.startPaused ?? false);
   const finished = useRef(false);
+  // The "3x is a VIP perk" note under the speed buttons: shown until this real time (0 = hidden).
+  const [speedNote, setSpeedNote] = useState(false);
+  const noteUntil = useRef(0);
 
   // A new player (reduced motion switched) keeps the time; a new bout starts at startT.
   useEffect(() => {
@@ -106,6 +107,10 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
       if (to !== from) {
         cues.advance(from, to);
         setT(to);
+      }
+      if (noteUntil.current !== 0 && now >= noteUntil.current) {
+        noteUntil.current = 0;
+        setSpeedNote(false);
       }
       frame = requestAnimationFrame(loop);
     };
@@ -153,7 +158,17 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
   // lit tiles hold still (calm fight): no pulsing scale
   const pulse = 0;
   const [logOpen, setLogOpen] = useState(false);
-  const closeLog = useCallback(() => setLogOpen(false), []);
+  // The sheet holds the bout; closing puts the clock back as it was (paused stays paused).
+  const heldWas = useRef<boolean | null>(null);
+  const openLog = useCallback(() => {
+    if (heldWas.current === null) heldWas.current = holdForSheet(clock);
+    setLogOpen(true);
+  }, [clock]);
+  const closeLog = useCallback(() => {
+    if (heldWas.current !== null) releaseSheet(clock, heldWas.current);
+    heldWas.current = null;
+    setLogOpen(false);
+  }, [clock]);
   const winner = state.ended?.winner ?? hud.winner ?? log.result.winner;
 
   const onPlayPause = (): void => {
@@ -192,7 +207,7 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
       <Hud frame={hud} sides={sides} actors={log.init.actors} t={t} turn={state.turn} reduced={reduced} />
       <div className={css.stageArea}>
         <StageCanvas player={player} t={t} label={`${a.name} against ${b.name}`} />
-        <StageOverlay beats={beats} t={t} reduced={reduced} />
+        <StageOverlay beats={beats} t={t} reduced={reduced} resultIn={ended ? hud.resultIn : 0} />
         <Controls
           paused={paused}
           ended={ended}
@@ -202,18 +217,22 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
           canSkip={!ended && t < tl.resultAt - SKIP_HOLD_MS}
           onPlayPause={onPlayPause}
           onSpeed={(speed) => onSettings({ speed })}
-          onLocked={() => game?.toast(UI.bout.vipSpeed)}
+          onLocked={() => {
+            noteUntil.current = performance.now() + SPEED_NOTE_MS;
+            setSpeedNote(true);
+          }}
           onSkip={onSkip}
           onSound={(on) => {
             if (on) void audio.unlock();
             onSettings({ sound: on });
           }}
         />
+        {speedNote ? <p className={css.speedNote} role="status">{UI.bout.vipSpeed}</p> : null}
       </div>
       {mode === "replay" ? (
         <ReplayBar stepsShown={hud.stepsShown} total={log.steps.length} onSeekStep={(n) => seek(seekTimeFor(tl.stepEnd, n))} />
       ) : null}
-      <LogStrip steps={log.steps} stepsShown={hud.stepsShown} names={names} live={settings.liveLog && !logOpen} onOpen={() => setLogOpen(true)} />
+      <LogStrip steps={log.steps} stepsShown={hud.stepsShown} names={names} live={settings.liveLog && !logOpen} onOpen={openLog} />
       <div className={css.lower}>
         <div className={css.cards}>
           {(["a", "b"] as const).map((side) => (

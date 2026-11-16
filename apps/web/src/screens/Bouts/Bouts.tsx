@@ -60,7 +60,10 @@ export function BoutsScreen() {
                     ) : <span className={`${css.wl} ${css.new}`} aria-hidden="true">?</span>}
                     <Portrait look={b.snapshotB.look} size={40} label="" />
                     <span className={css.text}>
-                      <span className={css.opp}>{UI.history.vs(b.snapshotB.name, b.snapshotB.level)}</span>
+                      {/* the level is its own chip, so a long name never leaves the digit alone on a line (review r2) */}
+                      <span className={css.opp} aria-label={UI.history.vs(b.snapshotB.name, b.snapshotB.level)}>
+                        <span aria-hidden="true">{b.snapshotB.name}</span> <span className={css.lv} aria-hidden="true">{UI.history.lv(b.snapshotB.level)}</span>
+                      </span>
                       <span className={css.line}>{b.watched ? resultLine(b.lineId, won, b.snapshotA.name, b.snapshotB.name) : UI.locker.lastBoutLine(b.snapshotA.name, b.snapshotB.name)}</span>
                     </span>
                     {b.watched ? <span className={css.xp}>{UI.history.xp(b.xp)}</span> : null}

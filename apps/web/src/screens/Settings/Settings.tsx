@@ -65,14 +65,20 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose(): voi
         <Choice label={UI.settings.liveLog} value={s.liveLog} options={onOff} onPick={(v) => set({ liveLog: v })} />
 
         <section className={css.block}>
-          <h3 className={css.blockTitle}>{UI.settings.testArena}</h3>
-          <p className={css.help}>{UI.settings.testArenaHelp}</p>
-          <Button onClick={() => { location.hash = "#/sandbox"; }}>{UI.settings.testArena}</Button>
+          <h3 className={css.blockTitle}>{UI.settings.testing}</h3>
           {/* TEMPORARY: VIP test switch. Remove when the shop sells VIP (plan 13.13). Turning it
               off drops a 3x speed to 2x, so the save never keeps a speed it cannot play. */}
           <Choice label={UI.settings.vipTest} value={s.isVip} options={onOff}
             onPick={(v) => set(v ? { isVip: true } : { isVip: false, speed: s.speed === 3 ? 2 : s.speed })} />
           <p className={css.help}>{UI.settings.vipTestHelp}</p>
+          {/* review r2: the test arena is a testing tool, so it sits behind the same test switch
+              (the #/sandbox address still opens it) */}
+          {s.isVip ? (
+            <>
+              <p className={css.help}>{UI.settings.testArenaHelp}</p>
+              <Button onClick={() => { location.hash = "#/sandbox"; }}>{UI.settings.testArena}</Button>
+            </>
+          ) : null}
         </section>
 
         <section className={css.block}>

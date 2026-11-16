@@ -202,6 +202,7 @@ export const UI = {
     today: "Tonight",
     xp: (n: number) => `+${n} XP`,
     vs: (name: string, level: number) => `${name}, level ${level}`,
+    lv: (level: number) => `LV ${level}`,
     count: (n: number) => `Last ${n} bouts`,
   },
 
@@ -212,6 +213,7 @@ export const UI = {
   settings: {
     title: "Settings",
     testArena: "Test arena",
+    testing: "Testing",
     testArenaHelp: "Two test scrappers with any weapon, skill, pet and shield, up to level 60. Nothing is saved.",
     // TEMPORARY: the VIP test switch, until the shop sells VIP (plan 13.13). Remove with it.
     vipTest: "VIP (test)",
@@ -263,7 +265,13 @@ export const UI = {
     export: "Export save code",
     unreadableTitle: "Your save could not be read",
     unreadableLine: "Its bytes were copied to a backup and are kept. You can import a save code, or start a new save.",
-    backupKey: (k: string) => `Backup kept as ${k}.`,
+    // review r2: plain words, not the storage key (the copy is listed under Settings > Backups)
+    backupKey: (_k: string) => "A copy of the damaged save is kept under Settings, Backups.",
+    pasteLabel: "Paste a save code",
+    pastePlaceholder: "RZ1...",
+    newSaveConfirm: "This starts a new scrapper from scratch. The damaged save stays in the backups. Start over?",
+    newSaveYes: "Yes, start over",
+    newSaveNo: "Keep it for now",
     noBackup: "The backup could not be made, so the damaged copy was left exactly as it was.",
     newSave: "Start a new save",
     importInstead: "Import a save code",
@@ -276,7 +284,8 @@ export const UI = {
 
   sandbox: {
     title: "Sandbox",
-    line: "Pick perks and a level for two test scrappers and run a bout. Nothing is saved.",
+    line: "Two test scrappers, any kit, any level. Nothing is saved.",
+    groupCount: (kind: string, on: number, all: number) => `${kind} (${on} of ${all})`,
     sideA: "Left",
     sideB: "Right",
     level: "Level",
