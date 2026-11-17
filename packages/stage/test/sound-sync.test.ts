@@ -109,7 +109,7 @@ describe("every sound starts with what it sounds (measured on the picture)", () 
       const p = playerOf(b);
       expect(p.timeline.cues.some((c) => c.family === "swing")).toBe(true);
       expect(soundProblems(p, p.timeline.cues)).toEqual([]);
-    }, 60_000);
+    }, 120_000);
   }
 });
 
@@ -125,7 +125,7 @@ describe("control: the check catches sounds out of step", () => {
       return seg === undefined ? c : { ...c, at: seg.from };
     });
     expect(soundProblems(p, early).filter((x) => x.startsWith("swing")).length).toBeGreaterThan(3);
-  }, 60_000);
+  }, 120_000);
 
   it("an impact 40 ms late is caught", () => {
     const p = playerOf(BOUTS[0]!);

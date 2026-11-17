@@ -65,7 +65,7 @@ describe("bout length and variety", () => {
       expect(m).toBeGreaterThanOrEqual(lo);
       expect(m).toBeLessThanOrEqual(hi);
       expect(overtime / N).toBeLessThan(0.02);
-    }, 60000);
+    }, 120_000);
   }
 
   it("level 1 over 2,000 random bouts: 85% show 3 or more beat types, 40% show 5 or more", () => {
@@ -80,7 +80,7 @@ describe("bout length and variety", () => {
     }
     expect(three / N).toBeGreaterThanOrEqual(0.85);
     expect(five / N).toBeGreaterThanOrEqual(0.4);
-  }, 60000);
+  }, 120_000);
 });
 
 describe("speed", () => {

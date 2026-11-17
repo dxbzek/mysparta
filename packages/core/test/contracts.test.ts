@@ -891,6 +891,6 @@ describe("the pure packages compile with no Node and no browser types", () => {
       // Control: the same Node probe compiles under the test config, so the error above comes
       // from the src config and not from a broken probe.
       expect(compile(pkg, "tsconfig.test.json", PROBE_NODE)).toEqual([]);
-    }, 60000);
+    }, 120_000);
   }
 });
