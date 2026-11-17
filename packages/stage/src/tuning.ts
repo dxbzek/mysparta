@@ -13,6 +13,11 @@ export const INTRO = {
   rightJumpAt: 250,
   companionsAt: 600,
   companionsRunMs: 300,
+  /** Each companion starts its run in this long after the one before it in the log. */
+  companionStaggerMs: 90,
+  /** Two companions' entry sounds never come nearer than this (the later one runs in later). */
+  companionSoundGapMs: 80,
+
   namesFrom: 700,
   namesTo: 900,
   fightCardAt: 900,
@@ -303,7 +308,13 @@ export const FLOOR = {
 export const IDLE = { phaseStepMs: 157 } as const;
 
 /** Sound: at most one impact cue in any span this long. */
-export const SOUND = { impactGapMs: 60 } as const;
+export const SOUND = { impactGapMs: 60,
+  /** How long after its start a swing whoosh is loudest: the swish sprites (build-audio.mjs) are at
+   *  their 5 ms peak 5 to 40 ms in, 15 ms in the median, and fall 10 to 20 dB by 50 ms. The whoosh
+   *  is cued this long before the fastest frame of the forward drive (`Builder.swooshOf`), so its
+   *  loud part is heard on it (round-2 close: cued at the drive's start, it was loud 45 to 55 ms
+   *  before the arm came through and nearly silent before the hit). */
+  whooshPeakMs: 15 } as const;
 
 /** Text sizes in stage units. */
 export const TEXT = {

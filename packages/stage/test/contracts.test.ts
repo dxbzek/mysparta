@@ -12,7 +12,8 @@ import type { CreateFightClock, CreateFightPlayer, FightClock, PlayerOpts, SfxFa
 
 describe("the stage package index", () => {
   it("exports the contract, the player, the clock and the cue helper", () => {
-    expect(Object.keys(stage).sort()).toEqual(["SFX_VARIANTS", "createFightClock", "createFightPlayer", "cuesBetween"]);
+    // realAt since the round-2 close: the cue scheduler maps a cue onto real time over the holds
+    expect(Object.keys(stage).sort()).toEqual(["SFX_VARIANTS", "createFightClock", "createFightPlayer", "cuesBetween", "realAt"]);
   });
 });
 

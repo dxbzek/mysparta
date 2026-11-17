@@ -25,7 +25,7 @@ import type { MotionRules } from "./motion";
 import { motionRules } from "./motion";
 import { homeSpan } from "./camera";
 import { basePos, clipTime, drawPlace, facingAt, nudgeAt, segAt } from "./track";
-import { BEAT, CONTACT, FLOOR, FRAMING, HIT_STOP, IDLE, INTRO, KNOCKOUT } from "./tuning";
+import { BEAT, CONTACT, FLOOR, FRAMING, HIT_STOP, IDLE, INTRO, KNOCKOUT, SOUND } from "./tuning";
 import type { Plan } from "./footwork";
 import { drawnScale, layWay, planWay, readyAt } from "./footwork";
 import { dispatch } from "./choreo/index";
@@ -166,36 +166,29 @@ export class Builder {
   /** The strike time of a clip; a clip with no strike strikes at its middle. */
   strikeOf(info: ClipInfo): number { return strikeTime(info) ?? info.durationMs / 2; }
   /**
-   * When a swing's forward drive starts, in clip time: the first sample from which the striking
-   * hand moves toward the target at half its top forward speed or more, up to the strike, measured
-   * on the rig's own pose (sound review, owner on the recorded fight: the whoosh was cued at the
-   * start of the wind-up, 150 ms before the contact, and these whooshes peak 9 to 18 ms after they
-   * start, so it was heard 70 to 130 ms before the arm came through). A clip whose hand does not
-   * drive forward (a pet's bite) drives from its middle. Cached per rig, clip and held item.
+   * When a swing's whoosh is cued: `SOUND.whooshPeakMs` before the fastest moment of the forward
+   * drive, so the loud part of the sample is heard as the weapon comes through fastest. The drive
+   * is measured on the drawn pose of the wind-up just laid (`from` to `contact`), the striking
+   * hand's grip in stage space every 4 ms, toward the target (`facing`). Sound review history: at
+   * the start of the wind-up it was heard 70 to 130 ms before the arm came through; at the start of
+   * the drive (the first sample at half the top speed) it was still loud 45 to 55 ms before the
+   * fastest frames and nearly silent before the hit (round-2 close, measured on the recorded audio).
+   * A clip whose hand does not drive forward (a pet's bite) whooshes at its middle.
    */
-  driveOf(rig: RigId, clip: string, dress: Dress): number {
-    const key = `${rig}|${clip}|${dress.held ?? ""}`;
-    const hit = this.drives.get(key);
-    if (hit !== undefined) return hit;
-    const strike = this.strikeOf(this.info(rig, clip));
-    let at = strike / 2;
+  swooshAt(id: ActorId, from: number, contact: number, facing: 1 | -1): number {
+    let best = 0;
+    let at = (from + contact) / 2;
     try {
-      const xs: number[] = [];
-      for (let t = 0; t <= strike; t += 5) xs.push(this.rig.handAnchor(this.rig.samplePose(rig, clip, t), dress, { x: 0, y: 0, facing: 1 }).x);
-      const v = xs.slice(1).map((x, k) => Math.max(0, x - xs[k]!));
-      const top = Math.max(0, ...v);
-      if (top > 0.05) {
-        // the last sample that is not moving forward before the fastest one, then the first after it at half speed
-        const peak = v.indexOf(top);
-        let k = peak;
-        while (k > 0 && v[k - 1]! >= top * 0.5) k -= 1;
-        at = k * 5;
+      let prev = this.handAt(id, from).x * facing;
+      for (let t = from + 4; t <= contact; t += 4) {
+        const x = this.handAt(id, t).x * facing;
+        if (x - prev > best) { best = x - prev; at = t - 2; }
+        prev = x;
       }
     } catch { /* a rig with no hand: the middle */ }
-    this.drives.set(key, at);
-    return at;
+    if (best <= 0.05) at = (from + contact) / 2;
+    return Math.min(contact, Math.max(from - SOUND.whooshPeakMs, at - SOUND.whooshPeakMs));
   }
-  private readonly drives = new Map<string, number>();
   /** When an effect of a contact starts. Equal to the contact time, except under a planted fault. */
   effectStart(contact: number, key: EffectKey, at: number): number {
     const f = this.internal.shiftEffect;
@@ -514,9 +507,9 @@ export class Builder {
     const lead = p.dress.lead;
     const extra = { aim, ...(lead !== undefined ? { lead } : {}) };
     const segs: Seg[] = [];
-    // the whoosh goes with the forward drive of the swing, not the start of its wind-up
-    this.cue(swingStart + (this.driveOf(atr.rig, p.clip, p.dress) / strike) * strikeIn, p.i, "swing", 0, this.soundItem(p.actor, p.dress.held));
     segs.push(this.play(p.actor, p.clip, swingStart, { rate: strike / strikeIn, until: contactAt, ...extra }));
+    // the whoosh is loudest on the fastest part of the forward drive (`swooshAt`)
+    this.cue(this.swooshAt(p.actor, swingStart, contactAt, facing), p.i, "swing", 0, this.soundItem(p.actor, p.dress.held));
     segs.push(this.play(p.actor, p.clip, contactAt, { c0: strike, rate: 0, until: contactAt + p.hitStop, ...extra }));
     const rest = info.durationMs - strike;
     const restMs = p.combo ? BEAT.comboMs - BEAT.comboStrikeMs : rest;

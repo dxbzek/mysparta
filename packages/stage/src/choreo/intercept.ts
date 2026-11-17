@@ -43,8 +43,10 @@ export function intercept(b: Builder, step: StepOf<"intercept">, i: number): Pla
     b.move(dasher, s + BEAT.anticipationMs, dashMs, xA, yA, 0, "out");
     b.play(dasher, atr.rig === "scrapper" ? "dash" : "run", s + BEAT.anticipationMs, { until: arrive });
   }
-  b.cue(s + BEAT.anticipationMs, i, "dash");
+  // (no dash sound for a dasher already where it comes to: nobody moves)
+  if (way === null || way.kind !== "still") b.cue(s + BEAT.anticipationMs, i, "dash");
   b.out.add(dasher);
+
 
   // The defender's swing lands as the dasher arrives.
   const weapon = dtr.rig === "scrapper" ? step.weapon ?? "fists" : null;

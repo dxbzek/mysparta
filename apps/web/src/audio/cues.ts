@@ -8,20 +8,26 @@
  * the item's own set from soundMap.ts, else the family's set.
  */
 import type { Cue } from "@rankzero/stage";
-import { cuesBetween } from "@rankzero/stage";
+import { cuesBetween, realAt } from "@rankzero/stage";
 import type { AudioEngine } from "./engine";
 import { itemSet } from "./soundMap";
 
 /** `delayMs`: how long after now (real ms) the cue's moment comes; 0 or absent is now. */
 export interface CueSink { play(cue: Cue, delayMs?: number): unknown }
 
+/** How the fight clock maps presentation time to real time: its speed and its holds (clock.ts: a
+ *  Move's span plays at 1x at any speed). */
+export interface ClockMap { speed: number; holds: readonly (readonly [number, number])[] }
+
 export interface CueDriver {
   /** The clock played from `from` to `to`. Returns the cues sounded, in order. With `aheadMs`
    *  (clock ms, usually the frame just played) the cues the clock will reach during the next frame
-   *  are started now, each scheduled `(at - to) / rate` real ms ahead at its own moment (sound
-   *  review, owner on the recorded fight: a cue sounded on the first frame after the clock passed
-   *  it, up to a frame late, every time). `rate` is the clock's speed over that frame. */
-  advance(from: number, to: number, aheadMs?: number, rate?: number): Cue[];
+   *  are started now, each scheduled at its own moment (sound review, owner on the recorded fight: a
+   *  cue sounded on the first frame after the clock passed it, up to a frame late, every time).
+   *  `rate` is a number (the clock's speed over that frame: `(at - to) / rate` real ms ahead) or the
+   *  clock's own map (`realAt(at) - realAt(to)`, so a cue just inside a 1x hold at 3x is not played
+   *  at the 3x rate, 67 ms early: round-2 close). */
+  advance(from: number, to: number, aheadMs?: number, rate?: number | ClockMap): Cue[];
   /** The clock jumped. No sound. */
   seek(to: number): void;
 }
@@ -34,7 +40,12 @@ export function createCueDriver(cues: readonly Cue[], sink: CueSink): CueDriver 
       const lo = Math.max(from, started);
       const hi = to + Math.max(0, aheadMs);
       const due = hi > lo ? cuesBetween(cues, lo, hi) : [];
-      for (const c of due) sink.play(c, c.at > to && rate > 0 ? (c.at - to) / rate : 0);
+      const delay = (at: number): number => {
+        if (at <= to) return 0;
+        if (typeof rate === "number") return rate > 0 ? (at - to) / rate : 0;
+        return Math.max(0, realAt(at, rate.speed, rate.holds) - realAt(to, rate.speed, rate.holds));
+      };
+      for (const c of due) sink.play(c, delay(c.at));
       started = Math.max(started, hi);
       return due;
     },

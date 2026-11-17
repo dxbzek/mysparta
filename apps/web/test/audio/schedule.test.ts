@@ -28,7 +28,26 @@ describe("cues are scheduled at their own moment", () => {
     expect(played).toEqual([[10, 0], [25, 9], [40, 8], [70, 3]]);
   });
 
+  it("with the clock's map, a cue just inside a 1x hold at 3x is delayed by the hold's real time (round-2 close)", () => {
+    // a Move's hold from 1500 to 3166 plays at 1x; the frame 1400 -> 1490 played at 3x (30 real ms)
+    const holds = [[1500, 3166]] as const;
+    const played: [number, number][] = [];
+    const driver = createCueDriver([cue(1480, 2), cue(1550, 1)], { play: (c, d) => played.push([c.at, d ?? 0]) });
+    driver.advance(1400, 1490, 90, { speed: 3, holds });
+    // 1480 was crossed: now. 1550: 10 clock ms at 3x to the hold, then 50 at 1x = 53.3 real ms
+    // (the frame's rate alone, 3, gave 20 ms: 33 ms early)
+    expect(played[0]).toEqual([1480, 0]);
+    expect(played[1]![0]).toBe(1550);
+    expect(played[1]![1]).toBeCloseTo(10 / 3 + 50, 6);
+    // after the hold the 3x rate again: a cue 30 clock ms past its end is 10 real ms ahead
+    const after: number[] = [];
+    const d2 = createCueDriver([cue(3196, 3)], { play: (_c, d) => after.push(d ?? 0) });
+    d2.advance(3150, 3166, 40, { speed: 3, holds });
+    expect(after[0]).toBeCloseTo(10, 6);
+  });
+
   it("without a look-ahead it plays what the clock crossed, now (the old behaviour)", () => {
+
     const played: number[] = [];
     const driver = createCueDriver([cue(10, 1), cue(25, 2)], { play: (c, d) => played.push(d ?? 0) });
     driver.advance(0, 30);

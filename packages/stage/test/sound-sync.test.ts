@@ -4,23 +4,32 @@
  *  - an impact sound (fist, blunt, blade, block) starts within 30 ms of its contact (the contact
  *    mark is where contact-sync.test.ts proves every hit effect starts; build-audio.mjs cuts every
  *    sprite to start 5 ms before its onset, so a cue at the contact sounds 5 ms after it);
- *  - a swing's whoosh starts inside the swing's forward drive: from the first frame in which the
- *    striking hand moves toward the target at half its top forward speed or more (the hand found on
- *    the drawn pose, frame by frame, every 2 ms) up to the contact. It used to start at the start of
- *    the wind-up, 100 to 240 ms before the contact, and was heard before the arm came through;
- *  - a throw's sound starts on the throw clip's release (within 10 ms);
- *  - a dash's sound starts as its footwork starts, a run or a shuffle (within 10 ms), and there is
- *    none when the attacker is already in reach and does not move (there was, level 30 n 70).
- * The control: the same check on the cue list with the whooshes moved back to the wind-up's
- * start, and with an impact 40 ms late, must fail.
+ *  - a swing's whoosh is loudest on the fastest frame of the forward drive: its cue plus the swish
+ *    samples' peak (`SOUND.whooshPeakMs`) is within 12 ms of the moment the striking hand moves
+ *    toward the target fastest (the hand found on the drawn pose, frame by frame, every 2 ms). It
+ *    used to start at the start of the wind-up (heard 70 to 130 ms early), then at the start of the
+ *    drive (still loud 45 to 55 ms before the fastest frames, round-2 close);
+ *  - a throw's sound starts on the release of its own step's throw clip (within 10 ms), and a throw
+ *    sound with no throw clip of its step's actor is a fault;
+ *  - a dash's sound starts as its own step's actor starts its footwork, a run or a shuffle (within
+ *    10 ms), and there is none when the attacker is already in reach and does not move (there was,
+ *    level 30 n 70). Another actor's run starting then (a pet's scramble) does not count.
+ * The control: the same check on the cue list with the whooshes moved back to the wind-up's start
+ * or to the start of the drive, a dash sound moved onto another actor's run, a throw sound moved
+ * off its throw, and an impact 40 ms late, must fail.
  */
 import { describe, expect, it } from "vitest";
 import type { BoutLog, FighterSnapshot } from "@rankzero/core";
 import { REALM_SALT, combineSeed, rivalSnapshot, simulateFight } from "@rankzero/core";
 import { BOUT_FIXTURES } from "@rankzero/core/fixtures";
-import { contentPack, createRig, gatePack } from "@rankzero/rig";
+import { contentPack, createRig, gatePack, strikeTime } from "@rankzero/rig";
+
 import type { Cue } from "../src/contracts";
 import type { StagePlayer } from "../src/createFightPlayer";
+import { SOUND } from "../src/tuning";
+import { homeSpan } from "../src/camera";
+import { drawnBox } from "../src/bounds";
+
 import { playerFor } from "./lib/setup";
 
 const FULL = createRig(gatePack, contentPack);
@@ -34,9 +43,9 @@ function found(level: number, n: number): { name: string; log: BoutLog; a: Fight
   return { name: `find-bout level ${level} n ${n}`, log: simulateFight(combineSeed("find-bout", n), a, b, 1), a, b };
 }
 
-/** The forward drive of a strike seg: the first time from which the drawn hand moves toward the
- *  target at half its top forward speed or more, before its fastest sample. */
-function driveStart(p: StagePlayer, actor: string, from: number, to: number): number {
+/** The forward drive of a strike seg: when the drawn hand moves toward the target fastest
+ *  (`peak`), and the first time from which it moves at half that speed or more before it (`start`). */
+function drive(p: StagePlayer, actor: string, from: number, to: number): { start: number; peak: number } {
   const xs: { t: number; x: number }[] = [];
   for (let t = from; t <= to; t += 2) {
     const f = p.frame(t).actors.find((a) => a.id === actor);
@@ -46,14 +55,27 @@ function driveStart(p: StagePlayer, actor: string, from: number, to: number): nu
   }
   const v = xs.slice(1).map((q, k) => ({ t: xs[k]!.t, v: Math.max(0, q.x - xs[k]!.x) }));
   const top = Math.max(0, ...v.map((q) => q.v));
-  if (top <= 0) return from;
+  if (top <= 0) return { start: from, peak: (from + to) / 2 };
   let k = v.findIndex((q) => q.v === top);
+  const peak = v[k]!.t + 1;
   while (k > 0 && v[k - 1]!.v >= top * 0.5) k -= 1;
-  return v[k]!.t;
+  return { start: v[k]!.t, peak };
 }
 
+/** The actor of a step, when it has one. */
+function actorOf(log: BoutLog, step: number): string | undefined {
+  return (log.steps[step] as { actor?: string } | undefined)?.actor;
+}
+/** Who dashes in a step: its actor, but in an intercept the one whose turn it was (its target). */
+function dasherOf(log: BoutLog, step: number): string | undefined {
+  const s = log.steps[step] as { t: string; actor?: string; target?: string } | undefined;
+  return s?.t === "intercept" ? s.target : s?.actor;
+}
+/** A throw clip: "throw" or the rig's variant of it ("throw-flick", "throw-spin"...). */
+const isThrow = (clip: string): boolean => clip === "throw" || clip.startsWith("throw-");
+
 /** Every sound out of step with what the picture shows, as sentences. */
-function soundProblems(p: StagePlayer, cues: readonly Cue[]): string[] {
+function soundProblems(p: StagePlayer, log: BoutLog, cues: readonly Cue[]): string[] {
   const out: string[] = [];
   const tracks = p.tracks.actors;
   for (const c of cues) {
@@ -66,26 +88,30 @@ function soundProblems(p: StagePlayer, cues: readonly Cue[]): string[] {
       // the strike that lands on this contact: its wind-up seg ends on it
       for (const tr of tracks) {
         if (tr.rig !== "scrapper") continue;
-        const seg = tr.segs.find((g) => STRIKES.has(g.clip) && Math.abs(g.to - mark.at) < 1 && g.from <= c.at + 1);
+        const seg = tr.segs.find((g) => STRIKES.has(g.clip) && Math.abs(g.to - mark.at) < 1 && g.from <= c.at + SOUND.whooshPeakMs + 1);
         if (seg === undefined) continue;
-        const drive = driveStart(p, tr.id, seg.from, seg.to);
-        if (c.at < drive - 10 || c.at > mark.at) out.push(`swing whoosh at ${Math.round(c.at)} ms, the forward drive is ${Math.round(drive)} to ${Math.round(mark.at)} ms (step ${c.step})`);
+        const d = drive(p, tr.id, seg.from, seg.to);
+        const loud = c.at + SOUND.whooshPeakMs;
+        if (Math.abs(loud - d.peak) > 12 || c.at > mark.at) out.push(`swing whoosh loudest at ${Math.round(loud)} ms, the hand fastest at ${Math.round(d.peak)} ms (step ${c.step})`);
         break;
       }
       continue;
     }
     if (c.family === "throw") {
-      const seg = tracks.flatMap((tr) => tr.segs).find((g) => g.clip === "throw" && g.from <= c.at && c.at <= g.to);
-      if (seg !== undefined) {
-        const release = FULL.clipInfo("scrapper", "throw").events.find((e) => e.name === "release")!.t;
-        const at = seg.from + release / (seg.rate > 0 ? seg.rate : 1);
-        if (Math.abs(c.at - at) > 10) out.push(`throw sound at ${Math.round(c.at)} ms, the release at ${Math.round(at)} ms (step ${c.step})`);
-      }
+      // the throw clip of this step's own actor nearest the sound
+      const who = actorOf(log, c.step);
+      const own = (tracks.find((tr) => tr.id === who)?.segs ?? []).filter((g) => isThrow(g.clip) && g.c0 === 0 && g.from <= c.at + 10 && c.at <= g.to + 10);
+      if (own.length === 0) { out.push(`throw sound at ${Math.round(c.at)} ms with no throw of its step's actor ${String(who)} (step ${c.step})`); continue; }
+      const at = own.map((g) => g.from + (strikeTime(FULL.clipInfo("scrapper", g.clip)) ?? 0) / (g.rate > 0 ? g.rate : 1))
+        .reduce((q, r) => (Math.abs(r - c.at) < Math.abs(q - c.at) ? r : q));
+      if (Math.abs(c.at - at) > 10) out.push(`throw sound at ${Math.round(c.at)} ms, the release at ${Math.round(at)} ms (step ${c.step})`);
       continue;
     }
     if (c.family === "dash") {
-      const starts = tracks.flatMap((tr) => tr.segs).filter((g) => DASHES.has(g.clip) && Math.abs(g.from - c.at) <= 10);
-      if (starts.length === 0) out.push(`dash sound at ${Math.round(c.at)} ms with no dash starting then (step ${c.step})`);
+      // the dash of this step's own dasher, not any run that starts then (a pet's scramble)
+      const who = dasherOf(log, c.step);
+      const starts = (tracks.find((tr) => tr.id === who)?.segs ?? []).filter((g) => DASHES.has(g.clip) && Math.abs(g.from - c.at) <= 10);
+      if (starts.length === 0) out.push(`dash sound at ${Math.round(c.at)} ms with no dash of its step's actor ${String(who)} starting then (step ${c.step})`);
     }
   }
   return out;
@@ -105,31 +131,109 @@ const playerOf = (b: (typeof BOUTS)[number]): StagePlayer => {
 
 describe("every sound starts with what it sounds (measured on the picture)", () => {
   for (const b of BOUTS) {
-    it(`${b.name}: impacts on their contact, whooshes in the forward drive, throws on the release, dashes as they start`, () => {
+    it(`${b.name}: impacts on their contact, whooshes loudest on the fastest swing, throws on the release, dashes as they start`, () => {
       const p = playerOf(b);
       expect(p.timeline.cues.some((c) => c.family === "swing")).toBe(true);
-      expect(soundProblems(p, p.timeline.cues)).toEqual([]);
+      expect(soundProblems(p, b.log, p.timeline.cues)).toEqual([]);
     }, 120_000);
   }
+  it("the dash and throw checks are not empty: the bouts have both", () => {
+    expect(BOUTS.some((b) => playerOf(b).timeline.cues.some((c) => c.family === "dash"))).toBe(true);
+    expect(BOUTS.some((b) => playerOf(b).timeline.cues.some((c) => c.family === "throw"))).toBe(true);
+  }, 120_000);
+});
+
+describe("the intro's pet sounds and the draw whoosh come with what they sound (round-2 close)", () => {
+  it("each pet's entry sound comes as its body comes into the bout's frame, the sounds 60 ms or more apart", () => {
+    let checked = 0;
+    for (const b of BOUTS) {
+      const p = playerOf(b);
+      const span = homeSpan(p.tracks);
+      const intro = p.timeline.cues.filter((c) => c.family === "companion" && (b.log.steps[c.step] as { t: string }).t === "enter");
+      for (const [k, c] of intro.entries()) {
+        const who = actorOf(b.log, c.step)!;
+        // the first frame (5 ms apart) in which the drawn pet reaches into the frame
+        const shown = (t: number): boolean => {
+          const a = p.frame(t).actors.find((q) => q.id === who);
+          if (a === undefined) return false;
+          const box = drawnBox(FULL, FULL.samplePose(a.rig, a.clip, a.clipT, a.aim), a.dress, a.place);
+          return box.x1 >= span.x0 && box.x0 <= span.x1;
+        };
+        let first = 0;
+        while (first < 2000 && !shown(first)) first += 5;
+        expect(Math.abs(c.at - first), `${b.name}: ${who} heard at ${c.at}, seen from ${first}`).toBeLessThanOrEqual(30);
+        if (k > 0) expect(c.at - intro[k - 1]!.at, `${b.name}: pet sounds ${intro[k - 1]!.at} and ${c.at}`).toBeGreaterThanOrEqual(60);
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(4);
+  }, 120_000);
+
+  it("a draw's whoosh comes on the frame the weapon shows in the hand", () => {
+    let checked = 0;
+    for (const b of BOUTS) {
+      const p = playerOf(b);
+      b.log.steps.forEach((s, i) => {
+        if (s.t !== "draw") return;
+        const c = p.timeline.cues.find((q) => q.step === i && q.family === "whoosh");
+        expect(c, `${b.name}: a draw with no whoosh (step ${i})`).toBeDefined();
+        let t = p.timeline.stepAt[i]!;
+        while (t < c!.at + 400 && p.frame(t).actors.find((a) => a.id === s.actor)?.dress.held !== s.weapon) t += 2;
+        expect(Math.abs(c!.at - t), `${b.name}: draw whoosh at ${c!.at}, ${s.weapon} in the hand from ${t}`).toBeLessThanOrEqual(17);
+        checked++;
+      });
+    }
+    expect(checked).toBeGreaterThan(5);
+  }, 120_000);
 });
 
 describe("control: the check catches sounds out of step", () => {
+  const n70 = (): (typeof BOUTS)[number] => BOUTS.find((x) => x.name === "find-bout level 30 n 70")!;
+  /** The swing cues moved to a time on their wind-up seg. */
+  const moved = (p: StagePlayer, when: (p: StagePlayer, actor: string, from: number, to: number) => number): Cue[] => p.timeline.cues.map((c) => {
+    if (c.family !== "swing") return c;
+    const mark = p.timeline.contacts.find((m) => m.step === c.step);
+    if (mark === undefined) return c;
+    for (const tr of p.tracks.actors) {
+      if (tr.rig !== "scrapper") continue;
+      const seg = tr.segs.find((g) => STRIKES.has(g.clip) && Math.abs(g.to - mark.at) < 1 && g.from <= c.at + SOUND.whooshPeakMs + 1);
+      if (seg !== undefined) return { ...c, at: when(p, tr.id, seg.from, seg.to) };
+    }
+    return c;
+  });
+
   it("whooshes moved back to the start of the wind-up are caught", () => {
-    const b = BOUTS.find((x) => x.name === "find-bout level 30 n 70")!;
+    const b = n70();
     const p = playerOf(b);
-    const early = p.timeline.cues.map((c) => {
-      if (c.family !== "swing") return c;
-      const mark = p.timeline.contacts.find((m) => m.step === c.step);
-      const seg = mark === undefined ? undefined
-        : p.tracks.actors.flatMap((tr) => tr.segs).find((g) => STRIKES.has(g.clip) && Math.abs(g.to - mark.at) < 1);
-      return seg === undefined ? c : { ...c, at: seg.from };
-    });
-    expect(soundProblems(p, early).filter((x) => x.startsWith("swing")).length).toBeGreaterThan(3);
+    expect(soundProblems(p, b.log, moved(p, (_p, _a, from) => from)).filter((x) => x.startsWith("swing")).length).toBeGreaterThan(3);
+  }, 120_000);
+
+  it("whooshes at the start of the forward drive (the cue before the round-2 close) are caught", () => {
+    const b = n70();
+    const p = playerOf(b);
+    const caught = soundProblems(p, b.log, moved(p, (q, a, from, to) => drive(q, a, from, to).start)).filter((x) => x.startsWith("swing")).length;
+    const swings = p.timeline.cues.filter((c) => c.family === "swing").length;
+    expect(caught).toBeGreaterThan(swings / 3);
+  }, 120_000);
+
+  it("a dash sound on another actor's run, and a throw sound off every throw of its step, are caught", () => {
+    const b = n70();
+    const p = playerOf(b);
+    const dash = p.timeline.cues.find((c) => c.family === "dash")!;
+    const who = dasherOf(b.log, dash.step);
+    const other = p.tracks.actors.filter((tr) => tr.id !== who).flatMap((tr) => tr.segs).find((g) => DASHES.has(g.clip) && g.from > 0)!;
+    expect(other).toBeDefined();
+    const onOther = p.timeline.cues.map((c) => (c === dash ? { ...c, at: other.from } : c));
+    expect(soundProblems(p, b.log, onOther).some((x) => x.startsWith("dash sound"))).toBe(true);
+    const thrown = BOUTS.find((x) => playerOf(x).timeline.cues.some((c) => c.family === "throw"))!;
+    const q = playerOf(thrown);
+    const off = q.timeline.cues.map((c) => (c.family === "throw" ? { ...c, at: c.at + 2000 } : c));
+    expect(soundProblems(q, thrown.log, off).some((s) => s.startsWith("throw sound"))).toBe(true);
   }, 120_000);
 
   it("an impact 40 ms late is caught", () => {
     const p = playerOf(BOUTS[0]!);
     const late = p.timeline.cues.map((c) => (IMPACT.has(c.family) ? { ...c, at: c.at + 40 } : c));
-    expect(soundProblems(p, late).some((x) => x.includes("from its contact"))).toBe(true);
+    expect(soundProblems(p, BOUTS[0]!.log, late).some((x) => x.includes("from its contact"))).toBe(true);
   });
 });

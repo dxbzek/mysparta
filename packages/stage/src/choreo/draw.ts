@@ -13,7 +13,9 @@ export function draw(b: Builder, step: StepOf<"draw">, i: number): Placed {
   const inHand = s + Math.round(dur / 2);
   b.setHeld(step.actor, inHand, step.weapon);
   b.heldNow.set(step.actor, step.weapon);
-  b.cue(s, i, "whoosh", 0, step.weapon);
+  // the whoosh as the weapon shows in the hand (round-2 close: at the start of the draw it came
+  // about 110 ms before anything was drawn)
+  b.cue(inHand, i, "whoosh", 0, step.weapon);
   b.cursor = s + dur;
   return { at: s, apply: inHand };
 }
