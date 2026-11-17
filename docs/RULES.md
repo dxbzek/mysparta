@@ -253,7 +253,7 @@ A shield is carried on the back arm while the front hand keeps its weapon. At mo
 | Padding | passive | Common | Armor +10 |
 | Anticipation | passive | Common | Intercept +20 |
 | Sharpening Stone | passive | Uncommon | melee damage with a Blade weapon +40%; offered only with a Blade weapon |
-| Bare Knuckle | passive | Uncommon | opens the bout with fists (no draw in its first turn that is not a Move) and draws with `S / (S + 12)`; damage with fists +150%, Combo +10 while unarmed |
+| Bare Knuckle | passive | Uncommon | opens the bout with fists (no draw in its first turn that is not a Move) and draws with `S / (S + 12)`; damage with fists +200%, Combo +20 while unarmed |
 | Payback | passive | Uncommon | Riposte +25 |
 | Flurry | passive | Uncommon | Combo +28 |
 | Firm Grip | passive | Uncommon | 80% to resist a disarm or a Snatch; swap chance 15% instead of 30% (this wins over Quick Swap's 50%) |
@@ -281,7 +281,7 @@ A shield is carried on the back arm while the front hand keeps its weapon. At mo
 | Firecrackers | Rare | 4 | 2 | always | 50% of a turn | `roll(12..20)` to the enemy scrapper, 40% of max HP to each enemy companion; no evade, block or Armor |
 | Snatch | Rare | 16 | 1 | own hands empty, the enemy scrapper holds a weapon | 0 | takes that weapon into the hand |
 | Air Horn | Rare | 8 | 1 | an enemy stands | 20 | each enemy companion has 50% to run off; the enemy scrapper's clock +40, or +60 when it has no standing companion |
-| Body Slam | Epic | 12 | 1 | own hands empty | one turn + 100 | `floor((14 + 4 x Strength) x roll(85..115) / 100)` to a random enemy, Armor applies; no evade, block or intercept; knocks off its weapon (Firm Grip can hold on) and its shield |
+| Body Slam | Epic | 12 | 1 | own hands empty | one turn + 100 | `floor((19 + 4 x Strength) x roll(85..115) / 100)` to a random enemy, Armor applies; no evade, block or intercept; knocks off its weapon (Firm Grip can hold on) and its shield |
 | Sand in the Eyes | Uncommon | 4 | 1 | the enemy scrapper stands and has no sand yet | 30% of a turn | the enemy scrapper's Aim -25 for the rest of the bout |
 | Taunt | Uncommon | 4 | 1 | no Taunt is on | 0 | Riposte +40 through the free action that follows and until the start of the own turn after it |
 | Second Wind | Rare | 16 | 1 | own HP below 50% | 0 | heals 15% of max HP |
