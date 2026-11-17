@@ -12,24 +12,35 @@ import { cuesBetween } from "@rankzero/stage";
 import type { AudioEngine } from "./engine";
 import { itemSet } from "./soundMap";
 
-export interface CueSink { play(cue: Cue): unknown }
+/** `delayMs`: how long after now (real ms) the cue's moment comes; 0 or absent is now. */
+export interface CueSink { play(cue: Cue, delayMs?: number): unknown }
 
 export interface CueDriver {
-  /** The clock played from `from` to `to`. Returns the cues sounded, in order. */
-  advance(from: number, to: number): Cue[];
+  /** The clock played from `from` to `to`. Returns the cues sounded, in order. With `aheadMs`
+   *  (clock ms, usually the frame just played) the cues the clock will reach during the next frame
+   *  are started now, each scheduled `(at - to) / rate` real ms ahead at its own moment (sound
+   *  review, owner on the recorded fight: a cue sounded on the first frame after the clock passed
+   *  it, up to a frame late, every time). `rate` is the clock's speed over that frame. */
+  advance(from: number, to: number, aheadMs?: number, rate?: number): Cue[];
   /** The clock jumped. No sound. */
   seek(to: number): void;
 }
 
 export function createCueDriver(cues: readonly Cue[], sink: CueSink): CueDriver {
+  // the clock time up to which cues have been started (some of them scheduled ahead)
+  let started = -Infinity;
   return {
-    advance(from, to) {
-      const due = cuesBetween(cues, from, to);
-      for (const c of due) sink.play(c);
+    advance(from, to, aheadMs = 0, rate = 1) {
+      const lo = Math.max(from, started);
+      const hi = to + Math.max(0, aheadMs);
+      const due = hi > lo ? cuesBetween(cues, lo, hi) : [];
+      for (const c of due) sink.play(c, c.at > to && rate > 0 ? (c.at - to) / rate : 0);
+      started = Math.max(started, hi);
       return due;
     },
     seek() {
       // A seek plays no sound, by rule. Nothing is queued either: the next advance starts here.
+      started = -Infinity;
     },
   };
 }
@@ -49,8 +60,8 @@ export function soundFor(cue: Cue, size: (name: string) => number): { name: stri
 }
 
 export const engineSink = (engine: AudioEngine): CueSink => ({
-  play: (cue) => {
+  play: (cue, delayMs) => {
     const s = soundFor(cue, (name) => engine.size(name));
-    return s !== null && engine.play(s.name, s.variant);
+    return s !== null && engine.play(s.name, s.variant, delayMs);
   },
 });

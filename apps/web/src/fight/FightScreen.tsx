@@ -107,7 +107,8 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
       const from = clock.t;
       const to = clock.tick(dt);
       if (to !== from) {
-        cues.advance(from, to);
+        // the cues of the next frame are scheduled now at their own moments (audio/cues.ts)
+        cues.advance(from, to, to - from, dt > 0 ? (to - from) / dt : 1);
         setT(to);
       }
       if (noteUntil.current !== 0 && now >= noteUntil.current) {

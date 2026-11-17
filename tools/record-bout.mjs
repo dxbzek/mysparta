@@ -15,7 +15,9 @@
  * sound, so the audio track (--audio) is mixed in Node from sfx.mp3, sfx.json and the cue list:
  * each cue at its `at` (scaled by --speed; at 2x and 3x a Move's hold, `Timeline.holds` via
  * `window.__rz.holds`, plays at 1x as the fight clock plays it). The mix is checked: every impact cue at or after its
- * contact, no two impact cues within 60 ms, the peak below clipping, and the longest silence.
+ * contact, no two impact cues within 60 ms, every impact sound found in the mixed track within 30 ms
+ * of its contact (matched on the audio, not read off the cue list), the peak below clipping, and
+ * the longest silence.
  * An agent cannot hear: a person must still listen (brief 3.13).
  *
  * Flags: --fixture <name> | --seed <n> | --find <n> --level <L> (a find-bout candidate), --speed 1|2|3,
@@ -187,6 +189,7 @@ async function mixCues({ cues, contacts, durationMs, speed, holds = [] }) {
   const problems = [];
   let lastImpact = -Infinity;
   const spans = [];
+  const placed = [];
   for (const c of cues) {
     const pick = soundFor(c, size);
     const e = pick === null ? undefined : listOf(pick.name)?.[pick.variant];
@@ -204,7 +207,38 @@ async function mixCues({ cues, contacts, durationMs, speed, holds = [] }) {
     const len = Math.round((e.dur / 1000) * RATE);
     for (let i = 0; i < len && at + i < out.length; i++) out[at + i] += sprite[from + i] ?? 0;
     spans.push([at, at + len]);
+    if (IMPACT.has(c.family)) placed.push({ c, sprite, from, len });
   }
+  // The sync check, measured on the mixed track itself (sound review, owner on the recorded fight:
+  // "the sound effects are off timing"): each impact sound is found in the mix by matching its
+  // sprite's first 60 ms against the track from 80 ms before to 150 ms after its contact, and its
+  // onset (the first sample at 15% of the sprite's peak) must be within 30 ms of the contact.
+  const offsets = [];
+  for (const { c, sprite, from, len } of placed) {
+    const mark = contacts.find((m) => m.step === c.step);
+    if (!mark) continue;
+    let pk = 0;
+    for (let i = 0; i < len; i++) pk = Math.max(pk, Math.abs(sprite[from + i] ?? 0));
+    let on = 0;
+    while (on < len && Math.abs(sprite[from + on] ?? 0) <= 0.15 * pk) on++;
+    const L = Math.min(len - on, Math.round(0.06 * RATE));
+    if (L < 100) continue;
+    const contact = Math.round((realOf(mark.at, speed, holds) / 1000) * RATE);
+    let best = -Infinity, bestAt = 0, tn = 0;
+    for (let i = 0; i < L; i++) tn += sprite[from + on + i] ** 2;
+    for (let o = contact - Math.round(0.08 * RATE); o <= contact + Math.round(0.15 * RATE); o += 2) {
+      if (o < 0 || o + L > out.length) continue;
+      let dot = 0, en = 0;
+      for (let i = 0; i < L; i += 2) { const v = out[o + i]; dot += v * sprite[from + on + i]; en += v * v; }
+      const sc = dot / Math.sqrt(en * tn / 2 + 1e-12);
+      if (sc > best) { best = sc; bestAt = o; }
+    }
+    const ms = ((bestAt - contact) / RATE) * 1000;
+    offsets.push(ms);
+    if (Math.abs(ms) > 30) problems.push(`impact sound at ${Math.round(c.at)} ms starts ${Math.round(ms)} ms from its contact (measured on the mix)`);
+  }
+  const abs = offsets.map(Math.abs).sort((p, q) => p - q);
+  const sync = { impacts: offsets.length, medianMs: abs.length ? Number(abs[abs.length >> 1].toFixed(1)) : null, worstMs: abs.length ? Number(abs[abs.length - 1].toFixed(1)) : null };
   let peak = 0;
   let clippedSamples = 0;
   for (const v of out) { const a = Math.abs(v); if (a > peak) peak = a; if (a >= 1) clippedSamples++; }
@@ -223,7 +257,7 @@ async function mixCues({ cues, contacts, durationMs, speed, holds = [] }) {
   h.writeUInt32LE(RATE * 2, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34); h.write("data", 36); h.writeUInt32LE(pcm.length, 40);
   return {
     wav: Buffer.concat([h, pcm]),
-    report: { cues: cues.length, problems, peak: Number(peak.toFixed(3)), clippedSamples, limiterGain: Number(gain.toFixed(3)), longestSilenceMs: Math.round((longest / RATE) * 1000) },
+    report: { cues: cues.length, sync, problems, peak: Number(peak.toFixed(3)), clippedSamples, limiterGain: Number(gain.toFixed(3)), longestSilenceMs: Math.round((longest / RATE) * 1000) },
   };
 }
 
@@ -268,6 +302,8 @@ async function recordVideo(browser, base) {
     report = r;
     writeFileSync(join(work, "cues.wav"), wav);
     writeFileSync(out.replace(/\.mp4$/, ".wav"), wav);
+    // the cue list the mix was made from, for checking the track against the picture
+    writeFileSync(out.replace(/\.mp4$/, ".cues.json"), JSON.stringify({ durationMs: info.durationMs, cues: info.cues, contacts: info.contacts, holds: info.holds, speed }));
     execFileSync("ffmpeg", ["-v", "error", "-y", "-i", video, "-i", join(work, "cues.wav"), "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-shortest", out]);
   } else {
     copyFileSync(video, out);

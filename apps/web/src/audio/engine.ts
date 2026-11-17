@@ -88,9 +88,11 @@ export interface AudioEngine {
   unlock(): Promise<void>;
   /** Resumes a context that exists and is not running (page visible again). Never loads. */
   resume(): Promise<void>;
-  /** Plays one sound of a set (or of a family's set) now. Unknown names and variants, and sets
-   *  whose file has not loaded yet, are ignored. */
-  play(name: string, variant: number): boolean;
+  /** Plays one sound of a set (or of a family's set) now, or `delayMs` from now on the audio
+   *  clock (a cue the fight clock reaches during the next frame is scheduled at its own moment,
+   *  audio/cues.ts). Unknown names and variants, and sets whose file has not loaded yet, are
+   *  ignored. */
+  play(name: string, variant: number, delayMs?: number): boolean;
   /** How many sounds `name` has that can play now (0 when unknown or its file is not in yet). */
   size(name: string): number;
   /** How many sounds `play` has started; for tests and the debug handle. */
@@ -283,7 +285,7 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
       const list = listOf(name);
       return list !== undefined && list.length > 0 && ready(list[0]!) ? list.length : 0;
     },
-    play(name, variant) {
+    play(name, variant, delayMs = 0) {
       if (!enabled || state !== "ready" || ctx === null || map === null) return false;
       // a suspended or interrupted context would hold the sound and release it with the rest at
       // the next tap: skip it, and ask to resume so the next frame can play
@@ -303,7 +305,7 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
         const i = active.indexOf(src);
         if (i >= 0) active.splice(i, 1);
       };
-      src.start(0, entry.start / 1000, entry.dur / 1000);
+      src.start(delayMs > 0 ? ctx.currentTime + delayMs / 1000 : 0, entry.start / 1000, entry.dur / 1000);
       active.push(src);
       played += 1;
       return true;
