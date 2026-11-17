@@ -32,7 +32,8 @@ const qs = (seed: number): number => Math.abs(Math.floor(seed)) % 16;
  *  heap (review round 2, 16 Nov 2026: in the wall teal it vanished into the arena). Tarp blue
  *  (3:1 or more on every arena floor), dark fold shadows running down the drape, the top fold
  *  lit by the lamp, a dark hem with steel eyelets along it. */
-export const tarp: FxDraw = (env, progress, at, seed) => {
+export const tarp: FxDraw = (env, progress, at, seed, size) => {
+  if (size !== undefined) { drape(env, progress, at, seed, size); return; }
   const c = env.ctx;
   c.translate(at.x, at.y);
   const drop = clamp(progress / 0.35);
@@ -61,6 +62,68 @@ export const tarp: FxDraw = (env, progress, at, seed) => {
   paint(env, dPolys([inkLine([[-22, top + 4], [-8, top + 2]], 1.8), inkLine([[4, top + 2.4], [14, top + 3.4]], 1.2), inkLine([[-20, top + 18], [-16, top + 40]], 1.0)]), LAMP, 0);
   for (const x of [-20, 0, 20]) paint(env, dPoly(ellipsePoly(x, top + 2.6, 1.2, 1.2, 8)), FX.spark, 0.6);
 };
+
+/** The tarp over a pet (round 2, owner on the recorded fight: drawn at a fighter's size it stood
+ *  over a raccoon as a tall upright curtain). A low sheet that drops from above and settles over
+ *  the pet's shape, `size.w` across and `size.h` high: a dome that follows the body, the hem spread
+ *  on the floor, pegged down at both ends with a stake and a cord, dark folds down the drape, the
+ *  top fold lit, a few scuffs of grime. Progress 0 to 0.35 is the drop, the rest a slow heave as
+ *  the pet struggles under it. */
+function drape(env: DrawEnv, progress: number, at: { x: number; y: number; facing: 1 | -1 }, seed: number, size: { w: number; h: number }): void {
+  const c = env.ctx;
+  c.translate(at.x, at.y);
+  const s = qs(seed);
+  const W = size.w / 2 + 5;
+  const H = size.h + 4;
+  const drop = clamp(progress / 0.35);
+  const heave = progress < 0.35 ? 0 : Math.sin(((progress - 0.35) / 0.65) * Math.PI * 2) * 1.2;
+  const lift = (1 - drop) * H * 1.1;
+  const spread = 2 + drop * 3;
+  // a full dome over the body's box (the stage sizes it to the pose the pinned pet holds), with
+  // round shoulders so the sheet covers the body's corners, and a lumpy crown
+  const height = (x: number): number => {
+    const u = x / W;
+    const crown = 1 + 0.06 * Math.sin(u * 5 + s);
+    return -lift - (H + heave) * crown * Math.pow(Math.max(0, 1 - u * u), 0.4) * (0.6 + 0.4 * drop);
+  };
+  const top: Pt[] = [];
+  for (let i = 0; i <= 12; i++) { const x = -W + (2 * W * i) / 12; top.push([x, height(x) + (hash01(s, i) - 0.5) * 1.4]); }
+  const hem: Pt[] = [];
+  for (let i = 12; i >= 0; i--) {
+    const x = -W - spread + ((2 * W + 2 * spread) * i) / 12;
+    hem.push([x, (drop < 1 ? -lift * 0.9 : 0) + 0.6 - hash01(s, i + 20) * 1.6]);
+  }
+  paint(env, dPoly([...top, ...hem]), ALLEY.tarp);
+  // folds: dark wedges from near the crown down to the hem, where the sheet drapes over the body
+  const folds: Pt[][] = [];
+  for (const f of [-0.55, 0.05, 0.6]) {
+    const x0 = f * W * 0.55;
+    const x1 = f * (W + spread);
+    folds.push([[x0 - 1, height(x0) + 3], [x0 + 1.4, height(x0) + 3], [x1 + 2.6, -1.5 - lift * 0.9 * (1 - drop)], [x1 - 2.2, -1 - lift * 0.9 * (1 - drop)]]);
+  }
+  paint(env, dPolys(folds), ALLEY.tarpFold, 0);
+  // the hem band along the floor
+  const band: Pt[] = hem.map((h) => [h[0], h[1] - 2.4] as Pt).reverse();
+  paint(env, dPoly([...band, ...hem]), ALLEY.tarpHem, 0);
+  // grime: a few dark scuffs on the sheet
+  const grime: Pt[][] = [];
+  for (let k = 0; k < 4; k++) {
+    const x = (hash01(s, k + 40) - 0.5) * W * 1.3;
+    const y = height(x) * (0.35 + hash01(s, k + 50) * 0.4);
+    grime.push(ellipsePoly(x, y, 1.6 + hash01(s, k + 60) * 1.4, 0.8, 6));
+  }
+  paint(env, dPolys(grime), ALLEY.tarpFold, 0);
+  // the crown catches the lamp
+  paint(env, dPolys([inkLine([[-W * 0.45, height(-W * 0.45) + 1.5], [W * 0.1, height(W * 0.1) + 1.2]], 1.4)]), LAMP, 0);
+  if (drop < 1) return;
+  // pegged down: a cord from each end of the hem to a stake driven into the floor beside it
+  for (const side of [-1, 1] as const) {
+    const hx = side * (W + spread - 1);
+    const sx = side * (W + spread + 5);
+    paint(env, dPolys([inkLine([[hx, -1.2], [sx, -3.4]], 0.7)]), INK, 0);
+    paint(env, dPoly([[sx - 1.3, -5.2], [sx + 1.3, -5.2], [sx + 0.4, 1.2], [sx - 0.4, 1.2]]), ALLEY.tarpHem, 0.5);
+  }
+}
 
 /** Tape: hazard tape wound round the target, tightening. */
 export const tape: FxDraw = (env, progress, at, seed) => {

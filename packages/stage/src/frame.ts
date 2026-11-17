@@ -9,7 +9,7 @@
  * this millisecond), not from the contact's `starts` record.
  */
 import type { ActorId, PerkId, PropId, SkillId } from "@rankzero/core";
-import type { Aim, Dress, FxKind, Place, RigId } from "@rankzero/rig";
+import type { Aim, Dress, FxKind, FxSize, Place, RigId } from "@rankzero/rig";
 import type { EffectKey } from "./contracts";
 import { IMPACT_FAMILIES } from "./cues";
 import { anchorAt, pointAt } from "./flight";
@@ -31,7 +31,7 @@ export interface FrameProp { item: PropId; x: number; y: number; rot: number; fa
   squash?: number; floorY?: number }
 /** `under`: a tarp lying over a pet is drawn with that pet (right after it, in its depth order), so
  *  a fighter in front of the pet stays in front of its tarp too (pets never cover fighters). */
-export interface FrameFx { fx: FxKind; progress: number; at: Place; seed: number; under?: ActorId }
+export interface FrameFx { fx: FxKind; progress: number; at: Place; seed: number; under?: ActorId; size?: FxSize }
 export interface FrameText { text: string; x: number; y: number; size: number; colour: string; ink: string; alpha: number;
   kind: "number" | "tag" | "banner" | "sticker"; icon?: PerkId;
   /** A banner held in the top band of the view (`TagItem.band`). */
@@ -193,7 +193,7 @@ export function frameAt(tr: Tracks, t: number): Frame {
       progress = e.fx === "tarp" ? (u < 1 ? 0.2 : clamp01((t - e.from - e.fly.ms) / Math.max(1, span - e.fly.ms))) : u;
     }
     if (e.p0 !== undefined || e.p1 !== undefined) progress = (e.p0 ?? 0) + ((e.p1 ?? 1) - (e.p0 ?? 0)) * progress;
-    fx.push({ fx: e.fx, progress, at: { x, y, facing }, seed: e.seed, ...(under !== undefined ? { under } : {}) });
+    fx.push({ fx: e.fx, progress, at: { x, y, facing }, seed: e.seed, ...(under !== undefined ? { under } : {}), ...(e.size !== undefined ? { size: e.size } : {}) });
     if (e.key !== undefined && e.contact !== null) present.push({ key: e.key, contact: e.contact });
   }
 

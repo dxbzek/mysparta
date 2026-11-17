@@ -4,7 +4,7 @@
  * Nothing in here is mutated after `buildTimeline` returns.
  */
 import type { ActorId, BagItem, CompanionId, HeldId, Look, MoveId, PerkId, PropId, ShieldId, Side, SkillId } from "@rankzero/core";
-import type { Aim, FxKind, MoveProp, RigId } from "@rankzero/rig";
+import type { Aim, FxKind, FxSize, MoveProp, RigId } from "@rankzero/rig";
 import type { Cue, EffectKey, Timeline } from "./contracts";
 import type { FlightPath } from "./flight";
 import type { Reach } from "./layout";
@@ -62,6 +62,8 @@ export interface ActorTrack {
  *  its progress (the tarp wobbling over a snared actor). */
 export interface FxItem { fx: FxKind; from: number; to: number; x: number; y: number; facing: 1 | -1; seed: number;
   contact: number | null; key?: EffectKey; follow?: ActorId; dy?: number; loopMs?: number;
+  /** The drawn size of the body it covers (the tarp over a pet; rig FxSize). */
+  size?: FxSize;
   /** For an effect that flies (the tarp, the crackers): from this point to (x, y) over `flyMs`. */
   fly?: { x0: number; y0: number; ms: number; arc: number };
   /** The progress range drawn over the life of the effect (default 0 to 1): the lit crackers in the

@@ -41,7 +41,7 @@
 import { WEAPON_META } from "@rankzero/core";
 import { isShieldId } from "@rankzero/core";
 import type { CompanionId, HeldId, Look, PropId, ShieldId, StageId } from "@rankzero/core";
-import type { Aim, Clip, ClipInfo, Ctx2D, DrawEnv, Dress, Ease, FaceId, FxKind, IconRef, Key, MoveProp, Offset,
+import type { Aim, Clip, ClipInfo, Ctx2D, DrawEnv, Dress, Ease, FaceId, FxKind, FxSize, IconRef, Key, MoveProp, Offset,
   Place, Pose, Rig, RigId, SvgArt } from "../contracts";
 import { CLIP_FALLBACK, COMPANION_CLIPS, SHIELD_PLACEHOLDER, GATE_CLIPS, GATE_WEAPONS, SCRAPPER_BONES, SCRAPPER_CLIPS,
   TRAIL_LEN, TRAIL_STEP_MS, placeholderLength, strikeTime } from "../contracts";
@@ -1009,7 +1009,7 @@ const PLUS = "M-1 -3H1V-1H3V1H1V3H-1V1H-3V-1H-1Z";
 
 const GATE_FX: ReadonlySet<string> = new Set(["burst", "dust", "spark", "whoosh"]);
 
-function drawFx(env: DrawEnv, fx: FxKind, progress: number, at: Place, seed: number, gateOnly: boolean): void {
+function drawFx(env: DrawEnv, fx: FxKind, progress: number, at: Place, seed: number, gateOnly: boolean, size?: FxSize): void {
   if (gateOnly && !GATE_FX.has(fx)) {
     warnOnce(`fx:${String(fx)}`, `no effect art for "${String(fx)}"`);
     return;
@@ -1171,7 +1171,7 @@ function makeRig(gateOnly: boolean): Rig {
     drawStage: (env, stage, layer, crowdBounce) => drawStage(env, stage, layer, crowdBounce, gateOnly),
     strikePoint: (rig, clip, dress, aimY) => strikePoint(rig, clip, dress, gateOnly, aimY),
     hitPoint: (rig, dress, zone) => hitPoint(rig, dress, zone, gateOnly),
-    drawFx: (env, fx, progress, at, seed) => drawFx(env, fx, progress, at, seed, gateOnly),
+    drawFx: (env, fx, progress, at, seed, size) => drawFx(env, fx, progress, at, seed, gateOnly, size),
     portrait, companionPortrait, icon,
   };
 }

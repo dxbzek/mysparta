@@ -234,7 +234,10 @@ export interface IconArt { shapes: readonly { d: string; slot: ColourSlot | "sel
 export type FxKind = "burst" | "dust" | "spark" | "whoosh" | "tarp" | "tape" | "crackers"
   | "rings" /* Whistle, Air Horn */ | "plus" /* heal */ | "trail" /* Haymaker swing */;
 /** `progress` runs from 0 to 1 over the life of the effect. `seed` picks its cosmetic variation. */
-export type FxDraw = (env: DrawEnv, progress: number, at: Place, seed: number) => void;
+/** `size`: the drawn size of the body an effect covers (the tarp over a pet), `w` across and `h`
+ *  above the floor line; without it the effect is drawn at a fighter's size. */
+export interface FxSize { w: number; h: number }
+export type FxDraw = (env: DrawEnv, progress: number, at: Place, seed: number, size?: FxSize) => void;
 /** One arena: the back wall layer and the floor layer of the 360 x 240 stage, with its own small
  *  crowd on the back layer. `crowdBounce` runs from 0 to 1 (0 = the crowd stands still).
  *  Every arena keeps the stage geometry: the floor line, the home marks and the companion marks
@@ -376,7 +379,7 @@ export interface Rig {
    * two points meet, so the striking end touches the target at any height `Aim` covers.
    */
   hitPoint(rig: RigId, dress: Dress, zone: "head" | "body"): Offset;
-  drawFx(env: DrawEnv, fx: FxKind, progress: number, at: Place, seed: number): void;
+  drawFx(env: DrawEnv, fx: FxKind, progress: number, at: Place, seed: number, size?: FxSize): void;
   portrait(look: Look): SvgArt;                                             // React cards and portraits
   companionPortrait(id: CompanionId): SvgArt;
   icon(ref: IconRef): SvgArt;                                               // missing art gives a plain ring

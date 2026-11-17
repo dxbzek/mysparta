@@ -13,7 +13,7 @@
 import type { CompanionId, HeldId, Look, PropId, ShieldId, StageId } from "@rankzero/core";
 import { COMPANION_IDS, WEAPON_META, isShieldId } from "@rankzero/core";
 import type { Aim, AppearanceSet, IconArt, Clip, ClipInfo, CompanionClip, ContentClip, ContentPack, CreateRig, DrawEnv, Dress,
-  FaceId, FxDraw, FxKind, GatePack, IconRef, Offset, Place, Pose, PropArt, Rig, RigDef, RigId, Shape, StageDraw,
+  FaceId, FxDraw, FxKind, FxSize, GatePack, IconRef, Offset, Place, Pose, PropArt, Rig, RigDef, RigId, Shape, StageDraw,
   SvgArt, WeaponArt } from "../contracts";
 import { CLIP_FALLBACK, COMPANION_CLIPS, SCRAPPER_CLIPS, strikeTime } from "../contracts";
 import { BODY_CENTRE, HEAD_CENTRE, KNUCKLES } from "../gate/parts";
@@ -1001,14 +1001,14 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
   }
 
   const fx: Partial<Record<FxKind, FxDraw>> = { ...gate.fx, ...(content?.fx ?? {}) };
-  function drawFx(env: DrawEnv, kind: FxKind, progress: number, at: Place, seed: number): void {
+  function drawFx(env: DrawEnv, kind: FxKind, progress: number, at: Place, seed: number, size?: FxSize): void {
     const draw = fx[kind];
     if (draw === undefined || (gateOnly && !GATE_FX.has(kind))) {
       warnOnce(`fx:${String(kind)}`, `no effect art for "${String(kind)}"`);
       return;
     }
     env.ctx.save();
-    draw(env, progress < 0 ? 0 : progress > 1 ? 1 : progress, at, seed);
+    draw(env, progress < 0 ? 0 : progress > 1 ? 1 : progress, at, seed, size);
     env.ctx.restore();
   }
 

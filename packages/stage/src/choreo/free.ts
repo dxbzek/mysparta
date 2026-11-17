@@ -3,6 +3,7 @@
 import type { StepOf } from "@rankzero/core";
 import type { Builder } from "../timeline";
 import { MOVE } from "../tuning";
+import { petTarp } from "./snare";
 import type { Placed } from "./index";
 
 export function free(b: Builder, step: StepOf<"free">, i: number): Placed {
@@ -19,8 +20,14 @@ export function free(b: Builder, step: StepOf<"free">, i: number): Placed {
     b.snared.delete(step.actor);
   }
   // the tarp flies up and away
-  if (tarp) b.fx.push({ fx: "tarp", from: at, to: at + MOVE.freeMs, x: p.x - p.facing * 30, y: p.y - 70, facing: p.facing,
-    seed: b.opts.cosmeticSeed + i, contact: null, fly: { x0: p.x, y0: p.y, ms: MOVE.freeMs, arc: 10 } });
+  // (a pet's sheet is its own size and flies off a pet's height, not a fighter's)
+  const pt = petTarp(b, step.actor);
+  // a pet that scrambled in from the frame's edge before the tarp landed goes home now (choreo/move.ts)
+  if (pt !== null) b.out.add(step.actor);
+  const [ox, oy] = pt === null ? [30, 70] : [20, 30];
+  if (tarp) b.fx.push({ fx: "tarp", from: at, to: at + MOVE.freeMs, x: p.x - p.facing * ox, y: p.y - oy, facing: p.facing,
+    seed: b.opts.cosmeticSeed + i, contact: null, fly: { x0: p.x + p.facing * (pt?.dx ?? 0), y0: p.y, ms: MOVE.freeMs, arc: 10 },
+    ...(pt !== null ? { size: pt.size } : {}) });
   if (step.cause === "timeout") {
     b.nudge({ actor: step.actor, key: "hop", from: at, outMs: MOVE.freeMs, holdMs: 0, backMs: 0, dx: 0, arc: 8, contact: null });
     b.busy(at, at + MOVE.freeMs);

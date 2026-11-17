@@ -50,6 +50,8 @@ import type { Sig, SigKind } from "../model";
 import type { Builder, SwingPlan } from "../timeline";
 import { drawnBox } from "../bounds";
 import { clearLanding } from "./fall";
+import { petTarp } from "./snare";
+import { homeSpan } from "../camera";
 import { BEAT, MOVE } from "../tuning";
 import type { Placed } from "./index";
 
@@ -234,10 +236,27 @@ function tarp(b: Builder, step: MoveStep, i: number, s: number, c: number): Plac
   const t = throwClip(b, i, step.actor, tp.x, c);
   const arrive = t.release + MOVE.tarpFlightMs;
   const landing = arrive + MOVE.tarpDropMs;
-  const spot = b.place(target, arrive);
+  let spot = b.place(target, arrive);
+  const pt = petTarp(b, target);
+  if (pt !== null) {
+    // the pinned pet and its tarp, pegs and all, stay inside the frame every canvas shows: a pet by
+    // the frame's edge scrambles in while the tarp flies (owner on the recorded fight, level 30 n 70:
+    // the raccoon's tarp stood at the right edge, cut off by it)
+    const span = homeSpan(b);
+    const centre = spot.x + spot.facing * pt.dx;
+    const shift = Math.min(0, span.x1 - (centre + pt.half)) + Math.max(0, span.x0 - (centre - pt.half));
+    if (Math.abs(shift) > 0.5) {
+      const from = Math.max(c, t.release - 120);
+      b.move(target, from, arrive - from, spot.x + shift, spot.y, 0, "inOut");
+      b.play(target, "run", from, { until: arrive });
+      // (it is walked home once it is free, choreo/free.ts, not while it is pinned)
+      spot = { ...spot, x: spot.x + shift };
+    }
+  }
   // the tarp flies on an arc to above the target, then drops over it
-  b.fx.push({ fx: "tarp", from: t.release, to: landing, x: spot.x, y: spot.y, facing: spot.facing, seed: b.opts.cosmeticSeed + i,
-    contact: null, fly: { x0: t.hand.x, y0: t.hand.y + 40, ms: MOVE.tarpFlightMs, arc: 30 } });
+  b.fx.push({ fx: "tarp", from: t.release, to: landing, x: spot.x + spot.facing * (pt?.dx ?? 0), y: spot.y, facing: spot.facing,
+    seed: b.opts.cosmeticSeed + i, contact: null, fly: { x0: t.hand.x, y0: t.hand.y + 40, ms: MOVE.tarpFlightMs, arc: 30 },
+    ...(pt !== null ? { size: pt.size } : {}) });
   b.tarpLanding = { target, at: landing };
   b.moveCue(c, i, "tarp", "act");            // the tarp shaken out
   b.moveCue(landing, i, "tarp", "effect");   // it slaps down and wraps the target

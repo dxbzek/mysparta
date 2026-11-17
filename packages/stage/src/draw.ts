@@ -209,7 +209,7 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
     drawSlung(env, rig, a);
     rig.drawActor(env, poseOf(a), a.dress, a.place);
     // a tarp over a pet goes with the pet: a fighter in front of it stays in front
-    for (const e of f.fx) if (e.under === a.id) rig.drawFx(env, e.fx, e.progress, e.at, e.seed);
+    for (const e of f.fx) if (e.under === a.id) rig.drawFx(env, e.fx, e.progress, e.at, e.seed, e.size);
   }
   for (const p of f.flights) {
     c.save();
@@ -226,9 +226,9 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
       c.translate(e.at.x, e.at.y);
       c.scale(big, big);
       c.translate(-e.at.x, -e.at.y);
-      rig.drawFx(env, e.fx, e.progress, e.at, e.seed);
+      rig.drawFx(env, e.fx, e.progress, e.at, e.seed, e.size);
       c.restore();
-    } else rig.drawFx(env, e.fx, e.progress, e.at, e.seed);
+    } else rig.drawFx(env, e.fx, e.progress, e.at, e.seed, e.size);
   }
   // each skill's own picture, over the actors (sigs.ts)
   for (const s of f.sigs) drawSig(env, s, rig, poseOf);

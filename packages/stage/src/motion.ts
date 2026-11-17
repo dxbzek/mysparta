@@ -1,6 +1,7 @@
 /**
  * The reduced-motion table (brief 3.15). With reduced motion: no camera shake, no white flash,
- * no slow motion, no ticket tape, no crowd bounce, hit-stop capped at 60 ms, a pet's knockback halved.
+ * no slow motion, no ticket tape, no crowd bounce, hit-stop capped at 60 ms, a pet's knockback halved,
+ * and a tarp that lies still over the pinned one instead of heaving.
  * A scrapper's knockback is not halved (review finding 17, 15 Nov 2026; NEEDS THE OWNER'S SIGN-OFF,
  * it departs from brief 3.15): it is now his own footwork, a fixed step of 6 units for a light hit
  * and 10 for a heavy one (tuning CONTACT.knockStep, times his drawn size) that the flinch clips
@@ -24,16 +25,18 @@ export interface MotionRules {
   hitStopCap: number;
   /** A pet's knockback push is multiplied by this (a scrapper's footwork step is not; see above). */
   knockback: number;
+  /** A lasting effect (the tarp over a pinned actor) heaves on a loop; without it, it lies still. */
+  fxLoop: boolean;
 }
 
 export const FULL_MOTION: Readonly<MotionRules> = {
   shake: true, flash: false, slowMotion: true, tape: true, crowd: true,
-  hitStopCap: HIT_STOP.knockout, knockback: 1,
+  hitStopCap: HIT_STOP.knockout, knockback: 1, fxLoop: true,
 };
 
 export const REDUCED_MOTION: Readonly<MotionRules> = {
   shake: false, flash: false, slowMotion: false, tape: false, crowd: false,
-  hitStopCap: 60, knockback: 0.5,
+  hitStopCap: 60, knockback: 0.5, fxLoop: false,
 };
 
 export function motionRules(reduced: boolean): Readonly<MotionRules> {
