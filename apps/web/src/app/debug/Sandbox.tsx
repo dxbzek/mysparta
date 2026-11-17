@@ -46,16 +46,17 @@ function Side({ title, picked, onToggle, onAll, onNone }: { title: string; picke
         <Button variant="primary" onClick={onAll}>{UI.sandbox.all}</Button>
         <Button onClick={onNone}>{UI.sandbox.none}</Button>
       </div>
+      {/* each kind folds away (review r2: the open lists made the page about 4,000 px long) */}
       {GROUPS.map((g) => (
-        <fieldset key={g.title} className={css.group}>
-          <legend className={css.legend}>{g.title}</legend>
-          <div className={css.chips}>
+        <details key={g.title} className={css.group}>
+          <summary className={css.legend}>{UI.sandbox.groupCount(g.title, g.ids.filter((id) => picked.includes(id)).length, g.ids.length)}</summary>
+          <div className={css.chips} role="group" aria-label={g.title}>
             {g.ids.map((id) => {
               const on = picked.includes(id);
               return <Button key={id} variant={on ? "dark" : "secondary"} pressed={on} className={css.chip} onClick={() => onToggle(id)}>{NAMES[id]}</Button>;
             })}
           </div>
-        </fieldset>
+        </details>
       ))}
     </Panel>
   );
@@ -98,12 +99,12 @@ export function SandboxScreen() {
       <header className={common.top}>
         <Button square onClick={() => go({ name: "locker" })} aria-label={UI.back}><BackGlyph /></Button>
         <div className={common.titles}>
-          <span className={common.kicker}>{UI.sandbox.line}</span>
           <h1 className={common.h1}>{UI.sandbox.title}</h1>
         </div>
         <span />
       </header>
       <main className={common.body}>
+        <p className={css.line}>{UI.sandbox.line}</p>
         <Panel className={css.controls}>
           <label className={css.num}>{UI.sandbox.level}
             <input className={common.field} type="number" min={1} max={60} value={level} onChange={(e) => setLevel(Math.max(1, Math.min(60, Number(e.target.value) || 1)))} />

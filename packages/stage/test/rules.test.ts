@@ -78,12 +78,65 @@ describe("sound cues", () => {
     expect(checked).toBeGreaterThan(10);
   });
 
-  it("has a win or loss cue on the banner, landing cues in the intro, a Move stinger per Move", () => {
+  it("has a win or loss cue on the banner, landing cues in the intro, one act cue per Move", () => {
     const p = fixturePlayer("bout-all-steps");
     const fams = p.timeline.cues.map((c) => c.family);
     expect(fams.filter((f) => f === "win" || f === "loss").length).toBe(1);
-    expect(fams.filter((f) => f === "move").length).toBe(BOUT_FIXTURES["bout-all-steps"].log.steps.filter((s) => s.t === "move").length);
+    // contract rev 4: no shared stinger; every Move sounds its own action once (and may add its
+    // effect), and every "move" cue names its Move
+    const steps = BOUT_FIXTURES["bout-all-steps"].log.steps;
+    const moves = steps.flatMap((s, i) => (s.t === "move" ? [[i, s.move] as const] : []));
+    for (const [i, id] of moves) {
+      const acts = p.timeline.cues.filter((c) => c.step === i && c.beat === "act");
+      // a Snatch that takes nothing grabs air: no grab sound (its swing swish is all there is)
+      const st = steps[i]!;
+      const silent = st.t === "move" && st.move === "snatch" && st.taken === undefined;
+      expect(acts.length, `step ${i} ${id}`).toBe(silent ? 0 : 1);
+      if (!silent) expect(acts[0]!.move, `step ${i}`).toBe(id);
+    }
+    for (const c of p.timeline.cues.filter((q) => q.family === "move")) expect(c.move, `move cue at ${c.at}`).toBeDefined();
     expect(p.timeline.cues.filter((c) => c.family === "landing" && c.at < 1500).length).toBe(2);
+  });
+
+  it("a Snatch that takes nothing makes no grab sound; one that takes the weapon does", () => {
+    const fx = BOUT_FIXTURES["bout-all-steps"];
+    const i = fx.log.steps.findIndex((st) => st.t === "move" && st.move === "snatch" && st.taken !== undefined);
+    expect(i).toBeGreaterThanOrEqual(0);
+    const grabs = (p: { timeline: { cues: { step: number; move?: string }[] } }): number =>
+      p.timeline.cues.filter((c) => c.step === i && c.move === "snatch").length;
+    expect(grabs(fixturePlayer("bout-all-steps"))).toBe(1);
+    // the same bout with the snatch resisted (nothing taken)
+    const steps = fx.log.steps.map((st, k) => {
+      if (k !== i || st.t !== "move") return st;
+      const { taken: _taken, ...rest } = st;
+      return rest;
+    });
+    const p = buildPlayer({ ...fx.log, steps }, fx.a, fx.b, capsuleRig, optsFor(fx.log));
+    expect(grabs(p)).toBe(0);
+    // the reach is still heard: the swing's own swish
+    expect(p.timeline.cues.some((c) => c.step === i && c.family === "swing")).toBe(true);
+  });
+
+  it("gives Move hits their Move's sound, not a bare fist, and a crit or knockout a heavy layer (contract rev 4)", () => {
+    let moveHits = 0;
+    for (const name of ["bout-gate", "bout-all-steps", "bout-cap"] as const) {
+      const p = fixturePlayer(name);
+      const log = BOUT_FIXTURES[name].log;
+      for (const c of p.timeline.cues) {
+        if (!["fist", "blunt", "blade"].includes(c.family)) continue;
+        const s = log.steps[c.step]!;
+        if (s.t === "move") {
+          expect(c.move, `${name} step ${c.step}`).toBe(s.move);
+          expect(c.beat).toBe("effect");
+          moveHits++;
+        }
+        const crit = (s.t === "attack" || s.t === "intercept" || s.t === "riposte" || s.t === "throw") && s.outcome === "hit" && s.crit;
+        if (crit || c.step === p.timeline.killStep) {
+          expect(p.timeline.cues.some((q) => q.family === "landing" && q.accent === true && q.at === c.at), `${name} step ${c.step}`).toBe(true);
+        }
+      }
+    }
+    expect(moveHits).toBeGreaterThan(0);
   });
 });
 
@@ -279,7 +332,10 @@ describe("choreography", () => {
           break;
         case "taunt":
           expect(mine.map((g) => g.clip), why).toContain("taunt");
-          expect(kinds, why).toContain("rings");
+          // the shout is a balloon out of his mouth (sigs.ts), not the Whistle's and the Air Horn's
+          // sound rings (review round 2: the expectation of rings here was the confusable picture)
+          expect(kinds, `${why}: no sound rings`).not.toContain("rings");
+          expect(tr.sigs.some((g) => g.kind === "taunt" && g.actor === s.actor && g.from === at), `${why}: the shout balloon`).toBe(true);
           {
             const enemy = s.actor.startsWith("a") ? "b0" : "a0";
             expect(segsOf(enemy).some((g) => g.clip === "angry" && g.from > at), `${why}: the enemy is angered`).toBe(true);
@@ -295,9 +351,16 @@ describe("choreography", () => {
           expect(mine.map((g) => g.clip), why).toContain("slam");
           // he comes in on his feet: the run (push-off, dash, brake) from far, the shuffle from near (footwork.ts)
           expect(mine.some((g) => g.clip === "dash-push" || g.clip === "dash" || g.clip === "shuffle"), `${why}: comes in`).toBe(true);
-          expect(mine.some((g) => g.clip === "slam" && g.rate === 0), `${why}: the squeeze holds`).toBe(true);
-          // the hold snares with no tarp: the target plays its snared clip and no tarp lands on it
-          expect(segsOf(s.target!).some((g) => g.clip === "snared" && g.from >= at), why).toBe(true);
+          // the squeeze: the bear hug on a fighter (rig "hug", the target "hugged": review round 2,
+          // the frozen grab pose and the tarp's snared pose read as two people back to back; this
+          // expectation named those two clips); on a pet the grab pose still holds
+          if (s.target!.endsWith("0")) {
+            expect(mine.some((g) => g.clip === "hug"), `${why}: the squeeze holds`).toBe(true);
+            expect(segsOf(s.target!).some((g) => g.clip === "hugged" && g.from >= at), why).toBe(true);
+          } else {
+            expect(mine.some((g) => g.clip === "slam" && g.rate === 0), `${why}: the squeeze holds`).toBe(true);
+            expect(segsOf(s.target!).some((g) => g.clip === "snared" && g.from >= at), why).toBe(true);
+          }
           expect(tr.fx.some((f) => f.fx === "tarp" && f.from >= at && f.from <= end && f.follow === s.target), why).toBe(false);
           expect(resultOver(s.target!, s.move, at), why).toBe(true);
           break;

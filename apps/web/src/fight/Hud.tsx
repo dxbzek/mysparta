@@ -66,10 +66,14 @@ function SideHud({ side, frame, info, levelLabel, reduced }: { side: Side; frame
   );
 }
 
-function HpNumber({ side, frame }: { side: Side; frame: HudFrame }) {
+function hpOf(side: Side, frame: HudFrame): number {
   const main = frame.hp[`${side}0` as ActorId];
-  const now = main ? Math.max(0, Math.round(main.now)) : 0;
-  return <span className={`${css.hpNum} ${side === "b" ? css.hpNumB : ""} ${now === 0 ? css.hpZero : ""}`} data-hp={now}>{now}</span>;
+  return main ? Math.max(0, Math.round(main.now)) : 0;
+}
+
+function HpNumber({ side, frame }: { side: Side; frame: HudFrame }) {
+  const now = hpOf(side, frame);
+  return <span className={`${css.hpNum} ${side === "b" ? css.hpNumB : css.hpNumA} ${now === 0 ? css.hpZero : ""}`} data-hp={now}>{now}</span>;
 }
 
 export function Hud({ frame, sides, levelLabel = (n) => `LV ${n}`, turn, reduced = false }: HudProps) {
@@ -78,8 +82,11 @@ export function Hud({ frame, sides, levelLabel = (n) => `LV ${n}`, turn, reduced
       <SideHud side="a" frame={frame} info={sides.a} levelLabel={levelLabel} reduced={reduced} />
       <div className={css.hudMid}>
         {turn !== undefined ? <span className={css.badge}>{turn > 0 ? `Turn ${turn}` : "Ready"}</span> : null}
-        <div className={css.hpNums}>
+        {/* review r2: two bare numbers side by side read as a score; each now wears its side's
+            colour, with an HP divider between them */}
+        <div className={css.hpNums} role="group" aria-label={`${sides.a.name} ${hpOf("a", frame)} HP, ${sides.b.name} ${hpOf("b", frame)} HP`}>
           <HpNumber side="a" frame={frame} />
+          <span className={css.hpSep} aria-hidden="true">HP</span>
           <HpNumber side="b" frame={frame} />
         </div>
       </div>

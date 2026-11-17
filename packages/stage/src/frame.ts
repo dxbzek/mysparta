@@ -15,7 +15,7 @@ import { IMPACT_FAMILIES } from "./cues";
 import { anchorAt, pointAt } from "./flight";
 import type { Nudge, Seg, SigKind, TagRole, Tracks } from "./model";
 import { clipTime, drawPlace, eased, heldAt, segAt, shieldAt } from "./track";
-import { CONTACT, FLIGHT, FLOOR, MOVE } from "./tuning";
+import { BLEND, CONTACT, FLIGHT, FLOOR, MOVE } from "./tuning";
 
 export interface FrameActor {
   id: ActorId; rig: RigId; clip: string; clipT: number; aim?: Aim; place: Place; floorY: number;
@@ -108,11 +108,17 @@ export function frameAt(tr: Tracks, t: number): Frame {
     if (a.look !== undefined) dress.look = a.look;
     if (white.has(a.id)) dress.tint = "white";
     if (seg?.lead !== undefined) dress.lead = seg.lead;
-    if (seg?.prop !== undefined) dress.prop = seg.prop;
+    // (the whistle is drawn by its signature, sigs.ts, small and in the mouth: the rig's prop art
+    // read as a head-sized white blob on a phone, review round 2)
+    if (seg?.prop !== undefined && seg.prop !== "whistle") dress.prop = seg.prop;
     let slung: PropId[] | undefined;
     for (const g of tr.slings) {
-      if (g.actor !== a.id || t < g.from || t >= g.to) continue;
-      slung = [];
+      // it goes back on the arm only once the arm is back in its guard: the pose crossfade after
+      // the Move's last clip takes up to BLEND.maxMs (review round 2: the shield snapped back onto
+      // an arm still raised at the mouth and covered the face)
+      if (g.actor !== a.id || t < g.from || t >= g.to + BLEND.maxMs) continue;
+      // (two slings may overlap, a Move right after a Move: what the first put aside stays there)
+      slung ??= [];
       if (g.shield && dress.shield !== null) { slung.push(dress.shield); dress.shield = null; }
       if (g.held && dress.held !== null && dress.held !== "fists") { slung.push(dress.held); dress.held = "fists"; }
     }

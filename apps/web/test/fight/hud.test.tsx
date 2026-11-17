@@ -16,7 +16,7 @@ import { BAG_SHOWN, BagStrip, SideBag, bagView } from "../../src/fight/BagStrip"
 import { beatsOf, litAt } from "../../src/fight/beats";
 import { FighterCard, cardInfo } from "../../src/fight/FighterCard";
 import { Hud, hitGlow } from "../../src/fight/Hud";
-import { LogStrip, stripParts, stripSteps } from "../../src/fight/LogStrip";
+import { LogStrip, STRIP_MORE, stripParts, stripSteps } from "../../src/fight/LogStrip";
 import { StageOverlay } from "../../src/fight/StageOverlay";
 import { TextLog, logLines } from "../../src/fight/TextLog";
 import { actorNames } from "../../src/text/log";
@@ -50,6 +50,14 @@ describe("Hud", () => {
     expect(html).toContain('data-hp="0"');
     expect(html).toContain("width:20.67%");   // 12.4 of 60
     expect(html).toContain("width:50.00%");   // the trail, 30 of 60
+  });
+
+  it("labels the two HP numbers in their side colours with an HP divider, so they never read as a score (review r2)", () => {
+    const html = renderToStaticMarkup(<Hud frame={player.hud(0)} sides={sides} actors={log.init.actors} />);
+    expect(html).toMatch(/class="[^"]*hpNumA[^"]*"[^>]*data-hp=/);
+    expect(html).toMatch(/class="[^"]*hpNumB[^"]*"[^>]*data-hp=/);
+    expect(html).toMatch(/data-hp="\d+">\d+<\/span><span class="[^"]*hpSep[^"]*" aria-hidden="true">HP<\/span>/);
+    expect(html).toContain(`aria-label="${a.name} ${Math.round(player.hud(0).hp.a0!.now)} HP, ${b.name} ${Math.round(player.hud(0).hp.b0!.now)} HP"`);
   });
 
   it("slaps the name stickers on with namesIn, not a timer", () => {
@@ -199,6 +207,19 @@ describe("LogStrip", () => {
     expect(stripSteps(log.steps, n)).toHaveLength(Math.min(2, n));
     if (n > 0) expect(html).toContain(stripParts(log.steps[n - 1]!, names).map((p) => p.text).join("").slice(0, 12).replace(/'/g, "&#x27;"));
     expect(html).toContain("Open the full bout log");
+  });
+  it("review r2: earlier lines fill spare height in a box that adds none, hidden from the live region", () => {
+    const n = log.steps.length;
+    const html = renderToStaticMarkup(<LogStrip steps={log.steps} stepsShown={n} names={names} live onOpen={() => undefined} />);
+    expect(html).toMatch(/class="[^"]*_stripMoreBox_[^"]*" aria-hidden="true"/);
+    const more = html.slice(html.indexOf("_stripMoreBox_"));
+    expect((more.match(/<li/g) ?? []).length).toBe(Math.min(STRIP_MORE, Math.max(0, n - 2)));
+  });
+  it("review r2: the locked-3x note is a status line in the strip, and the status box is always present", () => {
+    const off = renderToStaticMarkup(<LogStrip steps={log.steps} stepsShown={3} names={names} live onOpen={() => undefined} />);
+    expect(off).toMatch(/<p class="rz-visually-hidden" role="status"><\/p>/);
+    const on = renderToStaticMarkup(<LogStrip steps={log.steps} stepsShown={3} names={names} live note="3x speed is a VIP perk" onOpen={() => undefined} />);
+    expect(on).toMatch(/<p class="[^"]*_stripNote_[^"]*" role="status">3x speed is a VIP perk<\/p>/);
   });
 });
 

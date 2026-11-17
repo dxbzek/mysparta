@@ -106,7 +106,7 @@ const STOP_GLYPHS: Pt[][] = [glyph(S_, -3.9), glyph(T_, -1.9), glyph(O_, 0.1), g
 export const STOP_SIGN: WeaponArt = weapon([
   fillOf(rod(-16.5, 31, 1.15, 0), "metal", 0),
   fillsOf(Array.from({ length: 14 }, (_, i) => roundRect(-14 + i * 3, -0.35, 1.3, 0.7, 0.3)), "ink", 1),
-  fillOf(((): Pt[] => { const o = ngon(SIGN_C[0], SIGN_C[1], SIGN_R, 8, 22.5); o[1] = [o[1]![0] - 1.0, o[1]![1] - 0.4]; return o; })(), "wood", 2),
+  fillOf(((): Pt[] => { const o = ngon(SIGN_C[0], SIGN_C[1], SIGN_R, 8, 22.5); o[1] = [o[1]![0] - 1.0, o[1]![1] - 0.4]; return o; })(), "sign", 2),
   fillOf([...ngon(SIGN_C[0], SIGN_C[1], 9.0, 8, 22.5), ngon(SIGN_C[0], SIGN_C[1], 9.0, 8, 22.5)[0]!, ...ngon(SIGN_C[0], SIGN_C[1], 8.1, 8, 22.5).concat([ngon(SIGN_C[0], SIGN_C[1], 8.1, 8, 22.5)[0]!]).reverse()], "white", 3),
   // the letters, and the same letters turned over across the post's line (item y = 0), painted
   // when the sign is drawn mirrored (holder facing left): "STOP" never reads "9OT2"
@@ -135,10 +135,10 @@ const O = 9;
 export const LAWN_FLAMINGO: WeaponArt = weapon([
   line([[-12, 0], [10 + O, 0.2]], 0.9, 0, false),
   line([[-12, 0.9], [9 + O, 1.6]], 0.9, 0, false),
-  fillOf(ellipsePoly(17 + O, 0.6, 8.2, 4.4, 22, -6), "metal", 1),
-  fillOf([[11.4 + O, -0.6], [16 + O, -2.2], [21 + O, -1.2], [17 + O, 1.0]], "metal", 1.5),
-  fillOf(band([[23 + O, -1.4], [25.6 + O, -6.2], [29.6 + O, -7.4], [32.4 + O, -5.4], [33.4 + O, -2.2]], 2.0), "metal", 2),
-  fillOf(ellipsePoly(34.2 + O, -1.2, 2.1, 1.9, 14), "metal", 2.2),
+  fillOf(ellipsePoly(17 + O, 0.6, 8.2, 4.4, 22, -6), "pink", 1),
+  fillOf([[11.4 + O, -0.6], [16 + O, -2.2], [21 + O, -1.2], [17 + O, 1.0]], "pink", 1.5),
+  fillOf(band([[23 + O, -1.4], [25.6 + O, -6.2], [29.6 + O, -7.4], [32.4 + O, -5.4], [33.4 + O, -2.2]], 2.0), "pink", 2),
+  fillOf(ellipsePoly(34.2 + O, -1.2, 2.1, 1.9, 14), "pink", 2.2),
   fillOf([[35.4 + O, -2.2], [39.8 + O, -0.6], [40.6 + O, 0.5], [36 + O, 0.4]], "white", 2.4),
   fillOf([[38.4 + O, -1.0], [39.8 + O, -0.6], [40.6 + O, 0.5], [38.6 + O, 0.4]], "ink", 2.5),
   blob(34.2 + O, -1.8, 0.45, 0.45, 2.6, 8),

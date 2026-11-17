@@ -42,7 +42,8 @@ export function ko(b: Builder, step: StepOf<"ko">, i: number): Placed {
   if (kill) {
     b.koShown = true;
     // the reframe takes in the body as drawn, and no pet lies under it (choreo/fall.ts)
-    b.koFocus = fallFocus(b, step.actor, k, clip);
+    const slowClip = b.motion.slowMotion ? KNOCKOUT.slowMs * KNOCKOUT.slowScale : 0;
+    b.koFocus = fallFocus(b, step.actor, k, clip, (c) => (c <= slowClip ? k + c / KNOCKOUT.slowScale : k + (slowClip > 0 ? KNOCKOUT.slowMs : 0) + c - slowClip));
     if (b.cursor < fallEnd) b.cursor = fallEnd;
   } else if (b.cursor < k + 200) b.cursor = k + 200;
   return { at: k, apply: k };

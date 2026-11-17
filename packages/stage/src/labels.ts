@@ -177,7 +177,16 @@ export function avoidOf(f: Frame, s: Screen, down: number = AVOID.down): Box[] {
  *  high over its floor place and this far forward, and this far each side, up (a cocked fist, a
  *  raised horn) and down (to the belt: the chest, the throwing arm, the hands at the face);
  *  `shoulders` is how far down a tag may come when there is no room beside the body. */
-export const AVOID = { head: 74, dx: 2, half: 15, up: 18, down: 40, shoulders: 16 } as const;
+export const AVOID = { head: 74, dx: 2, half: 15, up: 18, down: 40, shoulders: 16,
+  /** For a pet's tag, down to the feet: a pet stands at a fighter's shins, so its tag would land
+   *  on the legs of a fighter over it (review round 2: a crow's MISS across a fighter's legs). */
+  feet: 76 } as const;
+
+/** True when the tag rides on a pet. */
+function onPet(f: Frame, t: FrameText): boolean {
+  const a = t.actor !== undefined ? f.actors.find((x) => x.id === t.actor) : undefined;
+  return a !== undefined && a.rig !== "scrapper";
+}
 
 /** A tag's spot relative to where it would sit alone (`wanted`), fixed when it pops in. `twin`:
  *  the same words over the same actor were already up, so it is that tag, held on. */
@@ -204,7 +213,7 @@ export function layoutLabels(f: Frame, s: Screen, spots?: ReadonlyMap<number, Sp
     const b = boxOf(want);
     // a tag with a spot keeps it (it was clear of the heads when it popped in); one without is
     // kept clear of them now
-    const avoid = spot === undefined ? avoidOf(f, s) : [];
+    const avoid = spot === undefined ? avoidOf(f, s, onPet(f, t) ? AVOID.feet : AVOID.down) : [];
     const free = placed.every((p) => !meet(b, boxOf(p), LABEL.gap - 0.01)) && avoid.every((q) => !meet(b, q, 0));
     const got = free ? want : freeSpot(want, placed, s, avoid, awayOf(f, t)) ?? want;
     placed.push(got);
@@ -243,7 +252,8 @@ export function birthsFor(tr: Tracks, view: { w: number; h: number }, reduced: b
     }
     const base = wanted(me, s);
     const away = awayOf(f, me);
-    const got = freeSpot(base, up, s, avoidOf(f, s), away) ?? freeSpot(base, up, s, avoidOf(f, s, AVOID.shoulders), away)
+    const pet = onPet(f, me) ? freeSpot(base, up, s, avoidOf(f, s, AVOID.feet), away) : null;
+    const got = pet ?? freeSpot(base, up, s, avoidOf(f, s), away) ?? freeSpot(base, up, s, avoidOf(f, s, AVOID.shoulders), away)
       ?? freeSpot(base, up, s, [], away) ?? base;
     spots.set(i, { dx: got.x - base.x, dy: got.y - base.y });
   }

@@ -44,9 +44,12 @@ import { toStage } from "@rankzero/rig";
 import { land, moveNameTag, overHead, resultTag, skillTag } from "../effects";
 import { flightMs, makePath } from "../flight";
 import { CORAL, GREEN, SKY, VOLT } from "../palette";
-import { layWay, planWay } from "../footwork";
+import { drawnScale, layWay, planWay, readyAt } from "../footwork";
+import { BODY_GAP, SCRAPPER_REACH } from "../layout";
 import type { Sig, SigKind } from "../model";
 import type { Builder, SwingPlan } from "../timeline";
+import { drawnBox } from "../bounds";
+import { clearLanding } from "./fall";
 import { BEAT, MOVE } from "../tuning";
 import type { Placed } from "./index";
 
@@ -55,14 +58,24 @@ type MoveStep = StepOf<"move">;
 export function move(b: Builder, step: MoveStep, i: number): Placed {
   const s = b.cursor;
   if (!b.has(step.actor)) return { at: s, apply: s };
-  // the action starts at once: the stinger, the bag, the small name tag over the user
-  b.cue(s, i, "move");
+  // the action starts at once: the bag, the small name tag over the user. No stinger: each Move
+  // sounds its own action when it shows and its effect when it lands (contract rev 4; a shared
+  // music hit on every Move was an audio banner and made every skill sound the same)
   b.bag(b.track(step.actor).side, s, step.bagAfter);
   moveNameTag(b, step.move, step.actor, s);
   const placed = action(b, step, i, s, s);
-  // the user's own clips of this Move end where its last one does
-  const end = Math.max(b.cursor, ...b.track(step.actor).segs.filter((g) => g.from >= s).map((g) => g.to));
+  // (a Snatch that takes nothing has no act sound: the hand closes on air, its swing swish is all)
+  const noSound = step.move === "snatch" && step.taken === undefined;
+  if (!noSound && !b.cues.some((q) => q.step === i && q.beat === "act")) b.moveCue(s, i, step.move, "act");
+  // the user's own clips of this Move end where its last one does (the open idle that footwork
+  // lays after a walk is not one of them: with it the sling never ended, and after a Grapple or a
+  // Body Slam the user's shield stayed on its back for the rest of the bout)
+  const end = Math.max(b.cursor, ...b.track(step.actor).segs.filter((g) => g.from >= s && g.busy && g.to !== Infinity).map((g) => g.to));
   sling(b, step.actor, s, end, step.move !== "snatch");
+  // at 2x and 3x the clock plays the Move at 1x: from the action to the end of its signature (and
+  // at least the name tag), so it can be told apart (clock.ts)
+  const sigEnd = b.sigs.filter((g) => g.from >= s && g.actor === step.actor && g.to !== Infinity).reduce((m, g) => Math.max(m, g.to), s);
+  b.holds.push([s, Math.min(Math.max(end, sigEnd, s + MOVE.nameTagMs), s + MOVE.holdMaxMs)]);
   return placed;
 }
 
@@ -106,6 +119,9 @@ function action(b: Builder, step: MoveStep, i: number, s: number, c: number): Pl
     case "energy-drink": {
       const end = b.play(step.actor, "drink", c, { prop: "can" }).to;
       sig(b, step, c, end + 120);
+      // the can cracks open as it comes up; the gulps as his head goes back
+      b.moveCue(c, i, "energy-drink", "act");
+      b.moveCue(c + Math.round((end - c) * MOVE.gulpShare), i, "energy-drink", "effect");
       // it kicks in: a green glow round him as he finishes the can
       b.auras.push({ from: c + Math.round((end - c) * 0.6), to: end + 260, actor: step.actor, colour: GREEN });
       // the heal shows as he finishes the gulp
@@ -125,6 +141,7 @@ function action(b: Builder, step: MoveStep, i: number, s: number, c: number): Pl
       // he breathes in deep in a green glow; the heal step shows its number during it
       const [b0, b1] = powerParts(b, step.actor).breath;
       b.play(step.actor, "power-up", c, { c0: b0, rate: (b1 - b0) / MOVE.breathMs, until: c + MOVE.breathMs });
+      b.moveCue(c, i, "second-wind", "act");   // the deep breath in
       b.auras.push({ from: c, to: c + MOVE.breathMs + 150, actor: step.actor, colour: GREEN });
       sig(b, step, c, c + MOVE.breathMs + 150);
       b.cursor = c + 160;
@@ -148,6 +165,7 @@ function enemyOf(b: Builder, id: ActorId): ActorId | null {
 function haymaker(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
   const [c0, c1] = powerParts(b, step.actor).charge;
   b.play(step.actor, "power-up", c, { c0, rate: (c1 - c0) / MOVE.chargeMs, until: c + MOVE.chargeMs });
+  b.moveCue(c, i, "haymaker", "act");   // the charge crackles on the fist
   // sparks crackle on the cocked fist
   const p = b.place(step.actor, c);
   b.fx.push({ fx: "spark", from: c + 140, to: c + MOVE.chargeMs, x: p.x, y: p.y, facing: p.facing, seed: b.opts.cosmeticSeed + i,
@@ -164,6 +182,7 @@ function haymaker(b: Builder, step: MoveStep, i: number, s: number, c: number): 
 function blow(b: Builder, step: MoveStep, i: number, s: number, c: number, prop: "whistle" | "horn"): Placed {
   const [w0, w1] = powerParts(b, step.actor).blow;
   b.play(step.actor, "power-up", c, { c0: w0, rate: (w1 - w0) / MOVE.blowMs, until: c + MOVE.blowMs, prop });
+  b.moveCue(c, i, step.move, "act");   // the whistle or the horn blast, as the rings leave the mouth
   const head = overHead(b, step.actor, c);
   const p = b.place(step.actor, c);
   // the rings draw 66 above `at`: centred on the mouth, out past the object's end, so the
@@ -220,6 +239,8 @@ function tarp(b: Builder, step: MoveStep, i: number, s: number, c: number): Plac
   b.fx.push({ fx: "tarp", from: t.release, to: landing, x: spot.x, y: spot.y, facing: spot.facing, seed: b.opts.cosmeticSeed + i,
     contact: null, fly: { x0: t.hand.x, y0: t.hand.y + 40, ms: MOVE.tarpFlightMs, arc: 30 } });
   b.tarpLanding = { target, at: landing };
+  b.moveCue(c, i, "tarp", "act");            // the tarp shaken out
+  b.moveCue(landing, i, "tarp", "effect");   // it slaps down and wraps the target
   sig(b, step, t.release, arrive + 60, { target, fly: { x0: t.hand.x, y0: t.hand.y, x1: spot.x, y1: spot.y - 40, ms: MOVE.tarpFlightMs, arc: 30 } });
   resultTag(b, "tarp", target, landing + 60, CORAL);
   b.cursor = Math.max(t.end, landing);
@@ -236,6 +257,7 @@ function firecrackers(b: Builder, step: MoveStep, i: number, s: number, c: numbe
   // the lit bundle fizzes in the throwing hand until it leaves it
   b.fx.push({ fx: "crackers", from: c, to: t.release, x: t.hand.x, y: t.hand.y, facing: 1, seed, contact: null,
     track: b.handTrack(step.actor, c, t.release, 25), p0: 0, p1: lit * 0.6 });
+  b.moveCue(c, i, "firecrackers", "act");   // the fuse fizzes
   sig(b, step, c, t.release + 60);
   // a bundle flies to each target's feet; they all land at one moment (the farthest sets it)
   let ms = 0;
@@ -251,7 +273,7 @@ function firecrackers(b: Builder, step: MoveStep, i: number, s: number, c: numbe
     b.fx.push({ fx: "crackers", from: t.release, to: at, x: p.x, y: p.y - 8, facing: 1, seed, contact: null,
       fly: { x0: t.hand.x, y0: t.hand.y, ms, arc: 26 }, p0: lit * 0.6, p1: lit });
     ci = land(b, { i, at, attacker: step.actor, target: h.target, outcome: "hit", damage: h.damage, crit: false,
-      hpAfter: h.hpAfter, weapon: null, hitStop, burstFx: "crackers" }, ci);
+      hpAfter: h.hpAfter, weapon: null, hitStop, burstFx: "crackers", move: "firecrackers" }, ci);
   }
   skillTag(b, step.procs, at);
   b.cause = { step: i, at, actor: step.actor, hitStop };
@@ -262,8 +284,11 @@ function firecrackers(b: Builder, step: MoveStep, i: number, s: number, c: numbe
 function snatch(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
   const target = step.target;
   if (target === undefined || !b.has(target)) { b.cursor = c; return { at: s, apply: c }; }
+  // it stops at arm's length and flicks the weapon out of the hand (review round 2: the dash ran
+  // into the body and the two fighters stacked into one shape)
   const sw = b.swing({ i, actor: step.actor, target, clip: "flick", dress: b.dress(step.actor), zone: "body", start: c,
-    mode: "dash", combo: false, hitStop: 0, slow: false });
+    mode: "dash", combo: false, hitStop: 0, slow: false,
+    minRoom: (BODY_GAP.body + MOVE.snatchReach) * Math.max(drawnScale(b, step.actor), drawnScale(b, target)) + b.lungeOf(step.actor, "flick") });
   const at = sw.contactAt;
   let apply = at;
   // the robbed hand shows: the target's shield goes on its back for the moment of the snatch
@@ -278,6 +303,7 @@ function snatch(b: Builder, step: MoveStep, i: number, s: number, c: number): Pl
     b.heldNow.set(target, "fists");
     b.setHeld(step.actor, at + MOVE.snatchJumpMs, step.taken);
     b.heldNow.set(step.actor, step.taken);
+    b.moveCue(at, i, "snatch", "act");   // the grab on the weapon (only when there is one to grab)
     b.cue(at, i, "whoosh", 0, step.taken);
     // the robbed hand jerks back, empty
     b.play(target, "hit-light", at, { busy: false });
@@ -304,6 +330,8 @@ function sand(b: Builder, step: MoveStep, i: number, s: number, c: number): Plac
       contact: null, fly: { x0: t.hand.x, y0: t.hand.y, ms, arc: 8 }, p0: 0.15, p1: 0.45 });
   }
   const at = t.release + ms;
+  b.moveCue(c, i, "sand-in-the-eyes", "act");      // the handful scooped up
+  b.moveCue(at, i, "sand-in-the-eyes", "effect");  // the sand bursts on the face
   // it bursts on the face in a tan cloud (sigs.ts; the floor's dust kick drew above the head, in
   // the tag row), and it rubs its eyes, groping blind
   b.play(target, "rub-eyes", at, { until: at + MOVE.rubMs, busy: false });
@@ -318,17 +346,16 @@ function sand(b: Builder, step: MoveStep, i: number, s: number, c: number): Plac
 function taunt(b: Builder, step: MoveStep, i: number, s: number, c: number): Placed {
   // two fist pumps and a beckon, shouting (rig "taunt"; it was the win celebration, which read as
   // standing there with a raised fist)
+  // (no sound rings: those are the Whistle's and the Air Horn's picture; the shout is a balloon)
   const seg = b.play(step.actor, "taunt", c, { until: c + MOVE.tauntMs });
-  const head = overHead(b, step.actor, c);
-  const p = b.place(step.actor, c);
-  b.fx.push({ fx: "rings", from: c + 120, to: c + 120 + MOVE.ringsMs, x: 0, y: 0, facing: p.facing, seed: b.opts.cosmeticSeed + i,
-    contact: null, follow: step.actor, dy: head.y + 80 - p.y });   // the rings draw 66 above `at`: centred on the mouth
   sig(b, step, c, c + MOVE.tauntMs - 80);
+  b.moveCue(c + MOVE.tauntShoutMs, i, "taunt", "act");   // the shout, with the rings from his mouth
   // it works: the enemy squares up, fists shaking, anger marks and steam
   const enemy = enemyOf(b, step.actor);
   if (enemy !== null) {
     const a0 = c + 260;
     b.play(enemy, "angry", a0, { until: a0 + MOVE.angryMs, busy: false });
+    b.moveCue(a0 + MOVE.angrySnortMs, i, "taunt", "effect");   // the enemy's angry snort
     sling(b, enemy, a0, a0 + MOVE.angryMs);
     b.sigs.push({ kind: "angry", actor: enemy, target: null, from: a0, to: a0 + MOVE.angryMs });
   }
@@ -338,12 +365,12 @@ function taunt(b: Builder, step: MoveStep, i: number, s: number, c: number): Pla
   return { at: s, apply: c };
 }
 
-/** Body Slam and Grapple close in the same way: a dash to stand right against the target. A pet
- *  that stands behind its owner (seen from the attacker) runs out in front of him first, as for a
- *  swing (Builder.petMeets), and one that cannot come out has its owner step back past it
- *  (Builder.ownerGives); without that the attacker ran through the owner to reach it (round 2:
- *  find-bout level 30 n 2 under sim version 4). */
-function closeIn(b: Builder, i: number, actor: ActorId, target: ActorId, c0: number): { at: number; facing: 1 | -1 } {
+/** Body Slam and Grapple close in the same way: a dash to stand right against the target, `gap`
+ *  short of it. A pet that stands behind its owner (seen from the attacker) runs out in front of
+ *  him first, as for a swing (Builder.petMeets), and one that cannot come out has its owner step
+ *  back past it (Builder.ownerGives); without that the attacker ran through the owner to reach it
+ *  (round 2: find-bout level 30 n 2 under sim version 4). */
+function closeIn(b: Builder, i: number, actor: ActorId, target: ActorId, c0: number, gap: number): { at: number; facing: 1 | -1 } {
   let c = c0;
   const scrapperAtPet = b.track(actor).rig === "scrapper" && b.track(target).rig !== "scrapper";
   const plan = (start: number): SwingPlan => ({ i, actor, target, clip: "slam", dress: b.dress(actor), zone: "body", start,
@@ -352,19 +379,22 @@ function closeIn(b: Builder, i: number, actor: ActorId, target: ActorId, c0: num
     const met = b.petMeets(plan(c), b.place(actor, c).x);
     if (met !== null) c = Math.max(c, met + BEAT.restMs - BEAT.anticipationMs);
   }
+  // aim at where the target stands once it has finished a step it is still taking (a fighter
+  // shuffling home was grabbed 15 units short of the hug gap: level 30 n 0 under sim version 7)
+  const settle = (): number => (b.track(target).rig === "scrapper" ? Math.max(c, readyAt(b, target)) : c);
   let me = b.place(actor, c);
-  let tp = b.place(target, c);
+  let tp = b.place(target, settle());
   let facing: 1 | -1 = tp.x >= me.x ? 1 : -1;
   if (scrapperAtPet) {
-    const gave = b.ownerGives(plan(c), me.x, tp.x - facing * MOVE.grappleGap, facing);
+    const gave = b.ownerGives(plan(c), me.x, tp.x - facing * gap, facing);
     if (gave !== null) {
       c = Math.max(c, gave + BEAT.restMs - BEAT.anticipationMs);
       me = b.place(actor, c);
-      tp = b.place(target, c);
+      tp = b.place(target, settle());
       facing = tp.x >= me.x ? 1 : -1;
     }
   }
-  const stopX = tp.x - facing * MOVE.grappleGap;
+  const stopX = tp.x - facing * gap;
   const feet = b.track(actor).rig === "scrapper" && b.internal.easedDash !== true;
   // real footwork (footwork.ts): the run or the shuffle, set at the target when it ends
   const way = feet ? planWay(b, actor, stopX - me.x, tp.y - me.y, true) : null;
@@ -391,18 +421,29 @@ function grapple(b: Builder, step: MoveStep, i: number, s: number, c: number): P
   const target = step.target;
   const hit = step.hits?.[0];
   if (target === undefined || !b.has(target)) { b.cursor = c; return { at: s, apply: c }; }
-  const g = closeIn(b, i, step.actor, target, c).at;
-  // the grab, then the squeeze: the grab pose held while the target struggles in the hold
+  const g = closeIn(b, i, step.actor, target, c, MOVE.hugGap).at;
+  // the grab (the slam clip's reach in), then the squeeze: the bear hug (rig "hug": arms locked
+  // round its ribs, heaving), the target in the hold (rig "hugged": bent back, arms flung up, legs
+  // kicking). A pet has no such clip: it holds its snared pose.
   const grab = grabTime(b, step.actor);
+  const pair = b.track(step.actor).rig === "scrapper" && b.track(target).rig === "scrapper";
   b.play(step.actor, "slam", g, { until: g + grab });
-  b.play(step.actor, "slam", g + grab, { c0: grab, rate: 0, until: g + grab + MOVE.squeezeMs });
-  b.play(target, "snared", g + grab, { until: g + grab + MOVE.squeezeMs, busy: false });
+  if (pair) b.play(step.actor, "hug", g + grab, { until: g + grab + MOVE.squeezeMs });
+  else b.play(step.actor, "slam", g + grab, { c0: grab, rate: 0, until: g + grab + MOVE.squeezeMs });
+  b.moveCue(g + grab, i, "grapple", "act");   // the grab: a grunt and the cloth bunching
+  b.play(target, pair ? "hugged" : "snared", g + grab, { until: g + grab + MOVE.squeezeMs, busy: false });
+  // the hug lifts it off its feet for the squeeze, and it drops back (review round 2: two bodies
+  // standing flat, stacked, read as two people back to back)
+  if (b.track(target).rig === "scrapper") {
+    b.nudge({ actor: target, key: "lift", from: g + grab, outMs: MOVE.hugLiftMs, holdMs: Math.max(0, MOVE.squeezeMs - 2 * MOVE.hugLiftMs),
+      backMs: MOVE.hugLiftMs, dx: 0, arc: MOVE.hugLift, contact: null });
+  }
   sling(b, target, g, g + grab + MOVE.squeezeMs);
   sig(b, step, g + grab - 60, g + grab + MOVE.squeezeMs, { target });
   const at = g + grab + MOVE.squeezeHitMs;
   if (hit !== undefined) {
     land(b, { i, at, attacker: step.actor, target, outcome: "hit", damage: hit.damage, crit: false,
-      hpAfter: hit.hpAfter, weapon: null, hitStop: 0, ownClip: true });
+      hpAfter: hit.hpAfter, weapon: null, hitStop: 0, ownClip: true, move: "grapple" });
   }
   resultTag(b, "grapple", target, at + 80, CORAL);
   skillTag(b, step.procs, at);
@@ -415,19 +456,31 @@ function bodySlam(b: Builder, step: MoveStep, i: number, s: number, c: number): 
   const target = step.target;
   const hit = step.hits?.[0];
   if (target === undefined || !b.has(target)) { b.cursor = c; return { at: s, apply: c }; }
-  const g = closeIn(b, i, step.actor, target, c).at;
+  const g = closeIn(b, i, step.actor, target, c, MOVE.grappleGap).at;
   const seg = b.play(step.actor, "slam", g);
   const at = g + b.strikeOf(b.info(b.track(step.actor).rig, "slam"));
+  b.moveCue(g + grabTime(b, step.actor), i, "body-slam", "act");   // the heave
   // the target's slammed clip runs with the slam, so it hits the floor at the contact
   const ttr = b.track(target);
   const slammed = ttr.rig === "scrapper" ? "slammed" : "hit";
   const info = b.info(ttr.rig, slammed);
   const landAt = info.events.find((e) => e.name === "land")?.t ?? b.strikeOf(info);
   const tseg = b.play(target, slammed, Math.max(g, at - landAt));
+  // nothing lies under it where it lands: its pets run clear first (choreo/fall.ts)
+  if (ttr.rig === "scrapper") {
+    const tp = b.place(target, at);
+    const box = drawnBox(b.rig, b.rig.samplePose(ttr.rig, slammed, landAt), b.dress(target), { x: tp.x, y: tp.y, facing: tp.facing });
+    // (and not under the slammer either: the strip runs from his back to the far end of the body,
+    // or the boar ran out from under the body and stood in the slammer's legs)
+    const me = b.place(step.actor, at);
+    const s0 = drawnScale(b, step.actor);
+    const [l, r] = me.facing === 1 ? [SCRAPPER_REACH.back * s0, SCRAPPER_REACH.front * s0] : [SCRAPPER_REACH.front * s0, SCRAPPER_REACH.back * s0];
+    clearLanding(b, at - MOVE.slamClearLead, { x0: Math.min(box.x0, me.x - l), x1: Math.max(box.x1, me.x + r) }, step.actor);
+  }
   const hitStop = b.hitStopFor(i, false);
   if (hit !== undefined) {
     const ci = land(b, { i, at, attacker: step.actor, target, outcome: "hit", damage: hit.damage, crit: false,
-      hpAfter: hit.hpAfter, weapon: null, hitStop, ownClip: true });
+      hpAfter: hit.hpAfter, weapon: null, hitStop, ownClip: true, move: "body-slam" });
     seg.strikes = ci;
   }
   sling(b, target, g, at + 300);
@@ -439,6 +492,20 @@ function bodySlam(b: Builder, step: MoveStep, i: number, s: number, c: number): 
   resultTag(b, "body-slam", target, at + 80, CORAL);
   skillTag(b, step.procs, at);
   b.cause = { step: i, at, actor: step.actor, hitStop };
-  b.cursor = Math.max(seg.to, tseg.to) + BEAT.recoverMs;
+  // the slammer steps back to fighting distance while its target gets up (the checker, level 30
+  // n 25: the two stood stacked through the get-up and the next blow)
+  let set = seg.to;
+  if (ttr.rig === "scrapper" && b.track(step.actor).rig === "scrapper" && b.internal.easedDash !== true) {
+    const me = b.place(step.actor, seg.to);
+    const tp = b.place(target, seg.to);
+    const away: 1 | -1 = me.x <= tp.x ? -1 : 1;
+    const bounds = b.frameBounds(step.actor);
+    const x = Math.min(bounds.x1, Math.max(bounds.x0, tp.x + away * BODY_GAP.body * Math.max(drawnScale(b, step.actor), drawnScale(b, target))));
+    if (away * (x - me.x) > 0.5) {
+      const way = planWay(b, step.actor, x - me.x, 0, false, seg.to);
+      if (way.kind !== "still") set = layWay(b, step.actor, seg.to, x, me.y, way);
+    }
+  }
+  b.cursor = Math.max(set, tseg.to) + BEAT.recoverMs;
   return { at: s, apply: at };
 }

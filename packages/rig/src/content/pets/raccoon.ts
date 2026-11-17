@@ -153,10 +153,13 @@ function clips(a: Anatomy): Record<CompanionClip, Clip> {
     [0, S0], [80, hunch, "inOut"], [125, reach, "in"], [150, bite, "out"], [178, worry(1)], [205, worry(-1)], [230, worry(0.5)], [280, S0, "inOut"],
   ]), { events: P.attack.events, lag: { tail2: 30, tail3: 50 } });
 
-  const flinch = poseFrom(S0, { x: -1.2, y: 1.2, rot: { body: -3, hips: 5, chest: 2, neck: 4, head: 16, jaw: 14, ear: -50, tail1: 30, tail2: 10 },
-    feet: { foreF: { x: -0.4, y: -0.8, a: 20 }, hindF: { a: 4 } } });
+  // the flinch reads at phone size (review round 2: it moved 1.2 units): it rocks back onto the
+  // hind legs, the chest and head jerk up, the jaw opens in a hiss, the ears go flat and the tail
+  // bristles up; the front paws come off the floor
+  const flinch = poseFrom(S0, { x: -2.8, y: 0.5, rot: { body: -7, hips: 6, chest: -5, neck: -6, head: -8, jaw: 16, ear: -48, tail1: 32, tail2: 18, tail3: 8 },
+    feet: { foreF: { x: -0.8, y: -2.2, a: 24 }, hindF: { a: 6 }, hindB: { a: 6 } } });
   const hit = sampleClip(bones, legs, P.hit.durationMs, false, 10, track([
-    [0, S0], [60, flinch, "out"], [140, poseFrom(flinch, { x: 0.4, y: -0.3, feet: { foreF: { x: 0.4, y: 0.8, a: -20 } } }), "inOut"], [300, S0, "inOut"],
+    [0, S0], [90, flinch, "out"], [140, poseFrom(flinch, { x: 0.4, y: -0.3, feet: { foreF: { x: 0.4, y: 0.8, a: -20 } } }), "inOut"], [300, S0, "inOut"],
   ]), { events: P.hit.events, lag: { tail2: 30, tail3: 50 } });
 
   const down = poseFrom(S0, { x: 0.4, y: 4.8, rot: { body: 2, hips: 6, chest: 6, neck: 10, head: 24, jaw: 10, ear: -50, tail1: 20, tail2: 6 },

@@ -12,14 +12,14 @@ import { MOVE_IDS, SKILL_IDS, WEAPON_META, content, impactFamily } from "@rankze
 import { toStage } from "@rankzero/rig";
 import type { EffectKey, SfxItem } from "./contracts";
 import { noise } from "./cues";
-import { frameSpan } from "./camera";
+import { homeSpan } from "./camera";
 import { drawnBox } from "./bounds";
 import { drawnScale } from "./footwork";
 import { segAt } from "./track";
 import { CORAL, GREEN, INK, PAPER, SKY, VOLT, WHITE } from "./palette";
 import type { TagItem, TagRole } from "./model";
 import type { Builder } from "./timeline";
-import { CONTACT, MOVE, OUTCOME, TEXT } from "./tuning";
+import { CONTACT, FRAMING, MOVE, OUTCOME, TEXT } from "./tuning";
 import type { Zone } from "./layout";
 import { STAGE_W, aimZone, hitOffset } from "./layout";
 
@@ -37,6 +37,9 @@ export interface Landing {
   /** Where the burst goes instead of the target's hit point (a rolled Tyre: at the shins). */
   burstAt?: { x: number; y: number };
   procs?: readonly Proc[];
+  /** A Move's hit (Firecrackers, Grapple, Body Slam): its impact cue carries the Move, so it
+   *  sounds like the pops, the squeeze or the slam, never a bare fist (contract rev 4). */
+  move?: MoveId;
 }
 
 const clampNum = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
@@ -189,7 +192,9 @@ export function land(b: Builder, L: Landing, ci?: number): number {
       b.crowds.push({ from: s("crowd"), ms: CONTACT.crowdMs, contact: c });
       b.cue(s("crowd"), L.i, "crowd");
     }
-    b.cue(s("sound"), L.i, impactFamily(L.weapon), 0, hitItem(b, L), "body");
+    b.cue(s("sound"), L.i, impactFamily(L.weapon), 0, hitItem(b, L), "body", L.move !== undefined ? { move: L.move, beat: "effect" } : undefined);
+    // a crit or the knockout blow lands heavier: a deep layer under the impact (contract rev 4)
+    if (L.crit || kill) b.cue(s("sound"), L.i, "landing", 1, null, undefined, { accent: true });
     b.lastHitAt.set(L.target, L.at);
   } else if (L.outcome === "block") {
     // A shield on the back arm comes up and takes the blow (content v2); otherwise the arms do.
@@ -277,15 +282,20 @@ export function evadeEarly(b: Builder, target: ActorId, attacker: ActorId, at: n
   const tr = b.track(target);
   if (tr.rig === "scrapper" && b.internal.easedDash !== true) {
     guardUp(b, target, from);
+    // a hop back stops at the camera's frame (review round 2: a dodge carried a fighter half off
+    // the phone's screen, and it blocked the next blow there); with no room it is a hop on the spot
+    const p0 = b.place(target, from + OUTCOME.evadeUp);
+    const fb = b.frameBounds(target, FRAMING.hopInset);
+    const clamped = Math.min(fb.x1, Math.max(fb.x0, p0.x + dir * OUTCOME.evadeHop * drawnScale(b, target)));
+    // (never toward the attacker: one already past the edge hops on the spot)
+    const hopTo = dir * (clamped - p0.x) > 0 ? clamped : p0.x;
     if (dodgeOf(b, i, attacker, swung) === "slip") {
       const info = b.info(tr.rig, "slip");
       b.play(target, "slip", from, { until: from + (info.loop ? OUTCOME.evadeMs : info.durationMs) });
       return;
     }
     b.play(target, "evade", from);
-    const p = b.place(target, from + OUTCOME.evadeUp);
-    b.move(target, from + OUTCOME.evadeUp, OUTCOME.evadeDown - OUTCOME.evadeUp, p.x + dir * OUTCOME.evadeHop * drawnScale(b, target), p.y,
-      OUTCOME.evadeArc, "linear");
+    b.move(target, from + OUTCOME.evadeUp, OUTCOME.evadeDown - OUTCOME.evadeUp, hopTo, p0.y, OUTCOME.evadeArc, "linear");
     b.out.add(target);
     return;
   }
@@ -297,7 +307,7 @@ export function evadeEarly(b: Builder, target: ActorId, attacker: ActorId, at: n
     // of view); with no room behind it, it leaps up on the spot
     // (by the pet's widest drawn pose, not its reach: an Alley Cat's run is 28 units wide of its
     // place against a reach of 23, and left the frame by 3 in find-bout level 8 n 37)
-    const span = frameSpan(b);
+    const span = homeSpan(b);
     const q = b.place(target, from);
     const m = petExtent(b, target);
     // A pet at a home mark by the frame's edge has less room than its run pose needs: it then lands
@@ -340,7 +350,7 @@ export function petExtent(b: Builder, id: ActorId): number {
 
 /** How far a pet at `at` can still move in direction `dir` and stay inside the camera's bout frame. */
 function petRoom(b: Builder, id: ActorId, at: number, dir: 1 | -1): number {
-  const span = frameSpan(b);
+  const span = homeSpan(b);
   const m = petExtent(b, id);
   const x = b.place(id, at).x;
   return Math.max(0, dir === 1 ? span.x1 - m - x : x - (span.x0 + m));

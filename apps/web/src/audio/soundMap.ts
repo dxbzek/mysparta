@@ -5,9 +5,10 @@
  * held item, shield and pet its own set where a fitting recording exists, otherwise its material
  * group. A cue with no item, or an item whose set is missing from the sprite, falls back to the
  * family's set (`families` in sfx.json). The set names are the ones tools/build-audio.mjs builds;
- * a test checks that every name used here exists in the shipped sfx.json.
+ * a test checks that every name used here exists in the shipped sfx.json. Since contract rev 4 a
+ * cue may also name a Move (`Cue.move`, `Cue.beat`): its own set below wins over the item.
  */
-import type { CompanionId, HeldId, PropId, ShieldId } from "@rankzero/core";
+import type { CompanionId, HeldId, MoveId, PropId, ShieldId } from "@rankzero/core";
 import type { Cue, SfxItem } from "@rankzero/stage";
 
 /** A hit on the body, by what struck. */
@@ -101,12 +102,55 @@ export const VOICE_SET: Readonly<Record<CompanionId, string>> = {
   "alley-cat": "voice-cat",
 };
 
+/**
+ * A Move's own sounds (stage contract rev 4; round 2 review: all 12 Moves started with one of four
+ * random music stingers, and half of them made no other sound, so a horn, a whistle and a gulp all
+ * sounded the same). `act` is the action as it shows, `effect` where it takes hold. Every set here
+ * is in the core sprite, so a Move never falls back to the family while the content loads.
+ */
+export const MOVE_SET: Readonly<Record<MoveId, { act: string; effect?: string }>> = {
+  // the charge crackles on the cocked fist; the boosted blow bursts with a crackle and a boom
+  haymaker: { act: "move-charge", effect: "move-haymaker-hit" },
+  // the can cracks open (tab click and hiss), then the gulps
+  "energy-drink": { act: "move-can-open", effect: "move-gulp" },
+  // the tarp shaken out, then its slap and flap as it drops over the target
+  tarp: { act: "move-tarp-shake", effect: "move-tarp-land" },
+  // a referee's pea whistle, one sharp blast
+  whistle: { act: "move-whistle" },
+  // the lit fuse fizzes; a string of pops round the feet instead of a punch
+  firecrackers: { act: "move-fuse", effect: "move-crackers" },
+  // the grab on the weapon (the whoosh of its flight is its own cue)
+  snatch: { act: "move-grab" },
+  // a handheld air horn blast
+  "air-horn": { act: "move-air-horn" },
+  // the heave, then the body hitting the floor (the floor's landing thud plays under it)
+  "body-slam": { act: "move-heave", effect: "move-slam" },
+  // the handful scooped, then the hiss and scatter of sand on the face
+  "sand-in-the-eyes": { act: "move-sand-scoop", effect: "move-sand" },
+  // his shout, then the enemy's angry snort
+  taunt: { act: "move-shout", effect: "move-snort" },
+  // the deep breath in
+  "second-wind": { act: "move-breath" },
+  // the grab grunt, then the strain and the cloth squeezed in the hold
+  grapple: { act: "move-grab-grunt", effect: "move-squeeze" },
+};
+
+/** The heavy layer under a crit or the knockout blow (a "landing" cue with `accent`). */
+export const ACCENT_SET = "hit-accent";
+
 const has = <K extends string>(table: Readonly<Partial<Record<K, string>>>, item: SfxItem | undefined): item is K & SfxItem =>
   item !== undefined && Object.prototype.hasOwnProperty.call(table, item);
 
 /** The set for a cue's item, or null when the family's own set should play. */
-export function itemSet(cue: Pick<Cue, "family" | "item" | "on">): string | null {
+export function itemSet(cue: Pick<Cue, "family" | "item" | "on"> & Partial<Pick<Cue, "move" | "beat" | "accent">>): string | null {
   const { family, item, on } = cue;
+  // a Move's sound wins over the item (a Move hit is struck with fists, but sounds like the Move)
+  if (cue.move !== undefined && Object.prototype.hasOwnProperty.call(MOVE_SET, cue.move)) {
+    const m = MOVE_SET[cue.move];
+    const set = cue.beat === "effect" ? m.effect : m.act;
+    if (set !== undefined) return set;
+  }
+  if (family === "landing" && cue.accent === true) return ACCENT_SET;
   switch (family) {
     case "fist": case "blunt": case "blade":
       return has(HIT_SET, item) ? HIT_SET[item] : null;
@@ -130,5 +174,6 @@ export function itemSet(cue: Pick<Cue, "family" | "item" | "on">): string | null
 /** Every set name these tables use (for the sprite test). */
 export function setsUsed(): string[] {
   const all = [HIT_SET, SWISH_SET, THROW_SET, BLOCK_SET, DROP_SET, VOICE_SET].flatMap((t) => Object.values(t) as string[]);
-  return [...new Set([...all, "block-parry"])].sort();
+  const moves = Object.values(MOVE_SET).flatMap((m) => (m.effect !== undefined ? [m.act, m.effect] : [m.act]));
+  return [...new Set([...all, ...moves, "block-parry", ACCENT_SET])].sort();
 }

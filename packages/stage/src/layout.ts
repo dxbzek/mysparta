@@ -54,7 +54,7 @@ export const PET_REACH: Readonly<Record<CompanionId, Reach>> = {
  *  Cat's run reached 5 units past it and left the frame in its dodge hop (round 2, find-bout level
  *  8 n 37). A test measures these again. */
 export const PET_FRAME_REACH: Readonly<Record<CompanionId, { back: number; front: number }>> = {
-  raccoon: { back: 21, front: 17 }, goose: { back: 19, front: 25 }, boar: { back: 28, front: 40 },
+  raccoon: { back: 22, front: 17 }, goose: { back: 19, front: 25 }, boar: { back: 28, front: 40 },
   "stray-dog": { back: 27, front: 24.5 }, crow: { back: 12.5, front: 14 }, "alley-cat": { back: 28.5, front: 20 },
 };
 

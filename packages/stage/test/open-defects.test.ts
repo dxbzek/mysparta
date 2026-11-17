@@ -14,8 +14,12 @@
  *     not by the drawn body, and a pet hit during its hop was knocked out of the frame. The real
  *     bouts are back in pets.test.ts.
  *  3. OPEN. A foot on the floor slides in a flinch (over 1 unit) or in footwork (over 0.5 units) in
- *     these sim-version-6 bouts: flinch in level 10 n 1 and level 30 n 5, 22, 32, 34, 37; footwork
- *     in level 30 n 5, 12, 29, 34, 36. feet.test.ts measures clean bouts; these are the dirty ones.
+ *     these sim-version-6 and 7 bouts: flinch in level 10 n 1 and level 30 n 22, 32, 34, 37; footwork
+ *     in level 30 n 5, 12, 29, 36 (level 30 n 5's flinch and n 34's footwork were cleaned by the
+ *     stage lane's round 2). feet.test.ts measures clean bouts; these are the dirty ones.
+ *  4. OPEN (found at the merge of the stage and sim lanes). After a Body Slam at a fighter, a pet
+ *     that ran clear of the landing passes a fighter (mostly its own owner) before the slammed one
+ *     is up: 17 of 19 level-30 bouts under sim version 7 (framing.test.ts checks n 213, a clean one).
  */
 import { describe, expect, it } from "vitest";
 import type { ActorId, ActorInit, BoutLog, CompanionId, FighterSnapshot, Step } from "@rankzero/core";
@@ -111,8 +115,8 @@ describe("stage defects from the round-2 sim (versions 4 to 6)", () => {
     expect(r.out).toEqual([]);
   });
 
-  for (const [level, n, what] of [[10, 1, "flinch"], [30, 5, "flinch"], [30, 22, "flinch"], [30, 32, "flinch"], [30, 34, "flinch"],
-    [30, 37, "flinch"], [30, 5, "footwork"], [30, 12, "footwork"], [30, 29, "footwork"], [30, 34, "footwork"], [30, 36, "footwork"]] as const) {
+  for (const [level, n, what] of [[10, 1, "flinch"], [30, 22, "flinch"], [30, 32, "flinch"], [30, 34, "flinch"],
+    [30, 37, "flinch"], [30, 5, "footwork"], [30, 12, "footwork"], [30, 29, "footwork"], [30, 36, "footwork"]] as const) {
     it.fails(`no foot slides in a ${what} in find-bout level ${level} n ${n}`, () => {
       const p = foundPlayer(level, n);
       const bad = what === "flinch" ? slides(p, FULL, 1, { only: new Set(["hit-light", "hit-heavy"]) }) : slides(p, FULL);
@@ -133,4 +137,34 @@ describe("stage defects from the round-2 sim (versions 4 to 6)", () => {
     expect(hops).toBeGreaterThan(10);
     expect(out).toEqual([]);
   });
+
+  for (const n of [70, 84]) {
+    it.fails(`after a Body Slam no pet that ran clear passes a fighter in find-bout level 30 n ${n}`, () => {
+      const a = rivalSnapshot(REALM_SALT, 30, 2 * n);
+      const b = rivalSnapshot(REALM_SALT, 30, 2 * n + 1);
+      const log = simulateFight(combineSeed("find-bout", n), a, b, 1);
+      const p = playerFor(log, a, b, FULL);
+      const i = log.steps.findIndex((s) => s.t === "move" && s.move === "body-slam");
+      const step = log.steps[i]! as { target: string };
+      const from = p.timeline.stepAt[i]!;
+      const sig = p.tracks.sigs.find((g) => g.kind === "body-slam" && g.from >= from)!;
+      const up = p.tracks.actors.find((x) => x.id === step.target)!.segs.find((g) => g.clip === "slammed" && g.from >= from)!.to;
+      const ran = new Set(p.tracks.actors.filter((x) => x.rig !== "scrapper" && x.moves.some((m) => m.from >= from && m.from < sig.at!)).map((x) => x.id as string));
+      const side = new Map<string, number>();
+      const crossed: string[] = [];
+      for (let t = from; t <= up + 1500; t += 20) {
+        const g = p.frame(t);
+        for (const pet of g.actors.filter((x) => ran.has(x.id))) {
+          for (const fi of g.actors.filter((x) => x.rig === "scrapper")) {
+            const key = `${pet.id}/${fi.id}`;
+            const now = Math.sign(pet.place.x - fi.place.x);
+            const was = side.get(key);
+            if (was !== undefined && now !== 0 && was !== 0 && now !== was) crossed.push(`${t}: ${pet.id} passes ${fi.id}`);
+            if (now !== 0) side.set(key, now);
+          }
+        }
+      }
+      expect(crossed).toEqual([]);
+    });
+  }
 });

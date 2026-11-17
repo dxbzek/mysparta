@@ -61,6 +61,42 @@
   background: var(--c-dark);
   color: var(--t-on-dark);
 }
+/* a chip the lifted card would change: dashed hazard edge; a chip the taken card changed: filled hazard */
+.chipPreview {
+  border-style: dashed;
+  border-color: var(--c-ink);
+  background: var(--c-raised);
+  box-shadow: inset 0 0 0 2px var(--c-hazard);
+}
+/* the Max HP chip keeps its dark face while previewed: its light text was unreadable on the
+   raised face (checker r2). The hazard ring still marks it. */
+.hpChip.chipPreview {
+  background: var(--c-dark);
+  color: var(--t-on-dark);
+  border-color: var(--c-hazard);
+}
+.chipTaken,
+.hpChip.chipTaken {
+  background: var(--c-hazard);
+  color: var(--t-on-hazard);
+}
+.chipArrow {
+  margin: 0 1px;
+  font-size: 0.7em;
+}
+.chipTaken b,
+.chipPreview b {
+  font-size: 17px;
+  white-space: nowrap;
+}
+:global(html[data-motion="full"]) .chipTaken {
+  animation: chipPop 420ms cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes chipPop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
 .pick {
   margin: 4px 0 0;
   text-align: center;

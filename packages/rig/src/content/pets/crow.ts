@@ -69,7 +69,10 @@ export function crow(): PetArt & { anatomy: Anatomy } {
     if (!far) a.ink(W("wing.tip"), [line([[-4.4, -10.2], [-7.2, -9.6], [-9.4, -8.8]]), line([[-4.6, -9.4], [-7.6, -8.8]])], 0.14, z + 0.02);
     a.fill(W("wing.mid"), mv(S([[-0.2, -11.6], [-3.4, -11.5], [-6.0, -10.3], [-6.8, -8.9], [-4.4, -8.0], [-1.0, -8.4]]), d), "skin", z + 0.05, sh);
     if (!far) a.ink(W("wing.mid"), [[[-2.4, -9.0], [-2.0, -8.3]], [[-4.0, -9.0], [-3.8, -8.2]], [[-5.4, -9.3], [-5.4, -8.6]]], 0.14, z + 0.06);
-    a.fill(W("wing"), mv(S([[4.0, -11.6], [1.4, -12.25], [-1.6, -11.85], [-3.6, -10.6], [-3.4, -9.0], [-1.0, -8.0], [1.6, -7.8], [3.6, -8.8]]), d), far ? "skin" : "accent", z + 0.1, sh);
+    a.fill(W("wing"), mv(S([[4.0, -11.6], [1.4, -12.25], [-1.6, -11.85], [-3.6, -10.6], [-3.4, -9.0], [-1.0, -8.0], [1.6, -7.8], [3.6, -8.8]]), d), "skin", z + 0.1, sh);
+    // the folded wing lies on the body in the body's black, its top edge caught by the rim light (it
+    // was a pale plank under the body: review round 2)
+    if (!far) a.fill(W("wing"), mv(topBand(S([[4.0, -11.6], [1.4, -12.25], [-1.6, -11.85], [-3.6, -10.6], [-3.4, -9.0], [-1.0, -8.0], [1.6, -7.8], [3.6, -8.8]]), -12.4, 4.0, 0.8, 0), d), "accent", z + 0.11);
     if (!far) a.ink(W("wing"), [line([[2.6, -11.0], [0.4, -10.4], [-2.2, -9.6]]), line([[2.4, -9.6], [0.0, -9.0], [-2.0, -8.6]])], 0.14, z + 0.12);
   };
   legParts("legB", FAR, 10, true);
@@ -78,7 +81,9 @@ export function crow(): PetArt & { anatomy: Anatomy } {
   // the body and tail traced from a USFWS photograph of a crow on the ice (traced-torsos.ts)
   a.fill("body", CROW_TORSO, "skin", 20.05);
   a.fill("neck", ellipse(4.8, -12.0, 2.0, 2.4, -20, 14), "skin", 20.1);                                            // the neck under the head
-  a.fill("body", topBand(CROW_TORSO, -9.5, 4.8, 2.6, 0), "accent", 20.07);                                     // blue-grey sheen on the back
+  // a thin lamp rim on the back and tail (a 2.6-deep band read as a pale plank under the body:
+  // review round 2, the tail sits below the folded wing, so the band showed as a wedge)
+  a.fill("body", topBand(CROW_TORSO, -7.0, 4.8, 0.55, 0), "accent", 20.07);
   a.ink("tail", [topEdge(CROW_TORSO, -10.6, -6.0, 4).map(([x, y]) => [x, y + 0.9] as Pt)], 0.14, 20.08);   // the tail feathers' line
   a.fill("neck", S([[3.4, -12.6], [4.8, -13.5], [5.9, -13.3], [4.8, -12.6]], 3), "accent", 20.11);                                // sheen on the nape
   a.fill("jaw", [[8.2, -13.7], [11.0, -13.55], [10.8, -15.0], [8.3, -15.0]], "ink", 20.12);

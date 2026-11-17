@@ -13,7 +13,7 @@
  *   tops 8         + tee, hoodie, track top, flannel shirt, leather jacket, long work coat
  *   bottoms 5      + track pants, shorts, work trousers with knee patches
  *   shoes 4        + high-tops, low work shoes with a toe cap
- *   accessories 6  + goatee, moustache, headband, a plaster across the nose
+ *   accessories 6  + a long beard, mutton chops and moustache, a wide headband, a neckerchief
  *   skin 8, hair colours 8, palettes 12 (gate/style.ts)
  */
 import type { AppearanceSet, FaceId, Shape } from "../../contracts";
@@ -118,15 +118,21 @@ export const LOOK_FACES: readonly Record<FaceId, Shape[]>[] = [
 ];
 
 // ------------------------------------------------------------------------------- accessories
+// Review round 2 ("look variants barely differ"): a goatee, a thin moustache and a plaster on
+// the nose were a few pixels each on the phone, so four of the six accessories looked the same
+// as none. Each is now a mass of colour a viewer sees at fight size: a long beard to the chest,
+// mutton chops joined to a heavy moustache, a wide headband with long tails, a neckerchief.
 export const LOOK_ACCESSORIES: readonly Shape[][] = [
   ...ACCESSORIES,
-  [shape(B, hdPoly([[10.2, -3.2], [10.1, -0.8], [8.0, 1.0], [6.4, 0.2], [7.4, -1.8], [8.6, -3.4]]), "hair", 43)],                 // goatee
-  [shape(B, hdPoly([[7.2, -5.1], [10.4, -5.7], [10.7, -4.8], [9.6, -4.3], [7.6, -3.7], [6.6, -4.2]]), "hair", 43)],               // moustache
-  [shape(B, hdPoly([[9.3, -15.9], [8.9, -18.2], [3.0, -20.0], [-4.4, -19.8], [-9.6, -16.8], [-10.2, -14.2], [-8.6, -14.6], [-3.6, -17.2], [2.8, -17.6]]), "accent", 44.5),
-    shape(B, hdPoly([[-9.6, -16.0], [-13.0, -13.0], [-12.4, -11.8], [-9.8, -14.4]]), "accent", 44.4),
-    line([[6.0, -17.4], [-6.0, -17.6]], 0.22, 44.6)],                                                                              // headband, the knot behind
-  [shape(B, hdPoly([[9.6, -10.4], [11.6, -9.6], [11.2, -8.5], [9.3, -9.3]]), "white", 42.8),
-    line([[10.2, -10.0], [10.6, -8.9]], 0.18, 42.9)],                                                                             // a plaster across the nose
+  [shape(B, hdPoly([[-2.8, -9.4], [0.6, -9.2], [4.4, -5.4], [8.2, -4.2], [10.4, -3.4], [10.9, -0.4], [10.0, 4.4], [7.6, 7.2], [4.6, 4.2], [0.4, -0.2], [-2.8, -4.6]]), "hair", 43),
+    line([[8.4, -1.6], [8.0, 3.6]], 0.3, 43.1), line([[5.6, -2.0], [5.8, 2.4]], 0.26, 43.1)],                                       // a long beard, to the chest
+  [shape(B, hdPoly([[-3.2, -12.2], [-0.4, -12.4], [1.8, -6.6], [6.6, -5.0], [10.6, -5.9], [10.9, -4.5], [7.2, -2.6], [1.0, -1.8], [-2.8, -4.8]]), "hair", 43),
+    line([[0.2, -9.6], [2.4, -4.4]], 0.26, 43.1)],                                                                                // mutton chops into a heavy moustache
+  [shape(B, hdPoly([[9.5, -15.2], [9.0, -19.0], [3.0, -21.0], [-4.6, -20.8], [-10.0, -17.6], [-10.8, -13.6], [-8.6, -13.4], [-3.6, -16.4], [2.8, -16.8]]), "accent", 44.5),
+    shape(B, hdPoly([[-9.8, -16.4], [-15.4, -11.6], [-14.2, -9.6], [-12.2, -11.6], [-12.6, -7.6], [-10.8, -7.2], [-9.4, -13.6]]), "accent", 44.4),
+    line([[6.0, -17.6], [-6.0, -17.8]], 0.22, 44.6)],                                                                              // a wide headband, long tails behind
+  [shape(B, hdPoly([[-8.8, -6.0], [-4.0, -3.6], [2.0, -1.8], [7.0, 0.0], [7.8, 3.4], [4.4, 7.4], [1.6, 4.0], [-3.0, 2.6], [-8.6, -0.8]]), "accent", 43),
+    line([[6.4, 1.0], [0.6, 0.4], [-6.6, -2.6]], 0.24, 43.1)],                                                                    // a neckerchief, knotted at the front
 ];
 
 // -------------------------------------------------------------------------------------- tops

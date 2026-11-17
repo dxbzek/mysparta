@@ -40,6 +40,8 @@ export function attack(b: Builder, step: StepOf<"attack">, i: number): Placed {
       seed: b.opts.cosmeticSeed + i, contact: null, follow: step.actor, dy: 0 });
     // the cocked fist still glows through the swing, and the blow bursts on the target (sigs.ts)
     b.sigs.push({ kind: "haymaker-swing", actor: step.actor, target: step.outcome === "hit" ? step.target : null, from: swingStart, to: sw.contactAt + 300, at: sw.contactAt });
+    // the payoff sounds: the charged crackle bursts with the blow (contract rev 4)
+    if (step.outcome === "hit") b.moveCue(sw.contactAt, i, "haymaker", "effect");
     b.boosted.delete(step.actor);
   }
   b.cause = { step: i, at: sw.contactAt, actor: step.actor, hitStop };

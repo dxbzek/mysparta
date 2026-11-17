@@ -12,7 +12,7 @@ import type { Clip, Ease, FaceId, Key } from "../../contracts";
 import { twoBone, wrapNear } from "../../engine/ik";
 import type { Stride, StrideClip } from "../../engine/sample";
 import { frames, modelOf, worldAngles } from "../../engine/pose";
-import { BONE, GRIP_ROT, K, PROPORTION, SCRAPPER_RIG } from "../skeleton";
+import { BONE, GRIP_ROT, K, PROPORTION, SCRAPPER_RIG, STOW } from "../skeleton";
 
 const model = modelOf(SCRAPPER_RIG);
 type P2 = readonly [number, number];
@@ -51,6 +51,8 @@ export interface Spec {
   held?: number;
   /** World angle the held item lies at, whatever the hand does (sets `held`; a dropped weapon). */
   item?: number;
+  /** The held item is put away while the hands are busy at the head (`STOW`). */
+  stow?: boolean;
   face?: FaceId;
   ease?: Ease;
   scale?: P2;
@@ -66,6 +68,7 @@ export function solve(s: Spec, prev?: readonly number[]): number[] {
   rot[BONE.torso] = s.torso ?? 0;
   rot[BONE.head] = s.head ?? 0;
   rot[BONE.held] = s.held ?? 0;
+  rot[BONE.stow] = s.stow === true ? STOW.on : 0;
   const rx = s.root?.[0] ?? 0;
   const ry = s.root?.[1] ?? 0;
   let r = rot;

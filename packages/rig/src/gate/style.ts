@@ -70,12 +70,18 @@ export const PALETTES_MORE: readonly Palette[] = [
   { top: "#1E3438", bottom: "#6E5632", shoes: "#8C5E30", accent: "#E8923E" },
   { top: "#8C6A4A", bottom: "#2E2A26", shoes: "#C88A50", accent: "#3A2A20" },
 ];
-/** Fixed colours of the other slots. */
-export const FIXED: Readonly<Record<"metal" | "wood" | "white" | "ink", string>> = {
+/** Fixed colours of the other slots. The item colours (review round 2, 16 Nov 2026: "the stop
+ *  sign is brown and the cone is cream") are the real objects' own paint under the sodium lamp:
+ *  a road sign's red, a cone's safety orange, a lawn flamingo's pink, a paint tin's blue label. */
+export const FIXED: Readonly<Record<"metal" | "wood" | "white" | "ink" | "sign" | "cone" | "pink" | "paint", string>> = {
   metal: "#E8B07A",       // steel under a sodium lamp
   wood: "#9A5A2A",
   white: "#F2D4A8",       // cream, never pure white on a figure
   ink: INK,
+  sign: "#B8352A",        // road-sign red (ALLEY.sign)
+  cone: "#E8662A",        // safety orange
+  pink: "#E2789A",        // plastic flamingo pink
+  paint: "#4A8FD0",       // a paint tin's label
 };
 
 /** The flash: the target's parts redrawn in this for 60 ms. */
@@ -90,9 +96,13 @@ export const COMPANION_COLOURS = {
   goose: { body: "#E8D2AE", dark: "#5A4A3A", light: "#F2C070" },
   boar: { body: "#8A5A3A", dark: "#3A2418", light: "#C89A6A" },
   "stray-dog": { body: "#9A7A52", dark: "#3A2A1A", light: "#D8B888" },   // content v2 stand-ins
-  // a blue-grey crow with a clear sheen (movement pass 2: the near-black one vanished on the
-  // night arena's teal floor and brick); the eye stays the pale cream of FIXED.white
-  crow: { body: "#5A667E", dark: "#323A4A", light: "#8494B0" },
+  // a blue-grey crow, dark flight feathers, a bright blue lamp rim on the back, nape, crown and
+  // bill. The body stays this light on purpose: a near-black one vanishes on the night arenas'
+  // floors (movement pass 2; and again in review round 2, when a blue-black body measured 1.1:1
+  // on the back yard). The content test holds every pet's body at 2:1 or more on every floor.
+  // The crow reads as a crow by its shape, black wing and tail, and heavy bill, not by grey paint.
+  // The eye stays the pale cream of FIXED.white.
+  crow: { body: "#5A667E", dark: "#232936", light: "#86A6D6" },
   "alley-cat": { body: "#C8823A", dark: "#4A2A10", light: "#F0C080" },
 } as const;
 
@@ -110,6 +120,9 @@ export const ALLEY = {
   crack: "#041416", shutter: "#123F48", shutterLine: "#06191D", windowLit: "#E8923E",
   pole: "#06191D", fence: "#041416", crowd: "#020C0E", paint: "#B9A27A", puddle: "#164A52",
   grime: "#020A0C", trash: "#2A3A30", sign: "#B8352A",
+  // the Tarp Move's sheet: a blue poly tarp (review round 2: the old wall teal was 1.2-1.4:1
+  // on the floor and the brick); 3:1 or more on every arena floor (content test)
+  tarp: "#5EA4E4", tarpFold: "#2E6AA6", tarpHem: "#1C4A7A",
 } as const;
 
 /** Every colour this file defines, for the "every fill is a palette slot" test. */

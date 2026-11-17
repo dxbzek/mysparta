@@ -28,7 +28,10 @@ function paint(env: DrawEnv, d: string, colour: string, outline: number = LINE.i
 const clamp = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 const qs = (seed: number): number => Math.abs(Math.floor(seed)) % 16;
 
-/** Tarp: a sheet thrown over the target, dropping from above and settling into a draped heap. */
+/** Tarp: a blue poly tarp thrown over the target, dropping from above and settling into a draped
+ *  heap (review round 2, 16 Nov 2026: in the wall teal it vanished into the arena). Tarp blue
+ *  (3:1 or more on every arena floor), dark fold shadows running down the drape, the top fold
+ *  lit by the lamp, a dark hem with steel eyelets along it. */
 export const tarp: FxDraw = (env, progress, at, seed) => {
   const c = env.ctx;
   c.translate(at.x, at.y);
@@ -40,9 +43,22 @@ export const tarp: FxDraw = (env, progress, at, seed) => {
   for (let i = 0; i <= 8; i++) { const x = -w + (2 * w * i) / 8; pts.push([x, top + Math.sin(i * 1.3 + s) * 2.2 * (1 - drop * 0.5) + Math.abs(x) * 0.12]); }
   const hem: Pt[] = [];
   for (let i = 8; i >= 0; i--) { const x = -w - 4 + ((2 * w + 8) * i) / 8; hem.push([x, -2 - (i % 2) * 5 - hash01(s, i) * 3]); }
-  paint(env, dPoly([...pts, ...hem]), ALLEY.shutter);
-  paint(env, dPolys([inkLine([[-14, top + 10], [-18, -8]], 1.2), inkLine([[2, top + 8], [4, -10]], 1.2), inkLine([[16, top + 10], [20, -6]], 1.2)]), INK, 0);
-  paint(env, dPolys([inkLine([[-22, top + 4], [-8, top + 2]], 1.4), inkLine([[-20, top + 18], [-16, top + 40]], 1.0)]), LAMP, 0);
+  paint(env, dPoly([...pts, ...hem]), ALLEY.tarp);
+  // the folds: dark wedges from the top down to the hem, where the sheet hangs over the body
+  const folds: Pt[][] = [];
+  for (const [x0, x1] of [[-15, -19], [2, 5], [16, 21]] as const) {
+    folds.push([[x0 - 1.2, top + 8], [x0 + 1.6, top + 8], [x1 + 3.2, -7], [x1 - 2.6, -6]]);
+  }
+  paint(env, dPolys(folds), ALLEY.tarpFold, 0);
+  paint(env, dPolys([inkLine([[-14, top + 10], [-18, -8]], 0.9), inkLine([[2, top + 8], [4, -10]], 0.9), inkLine([[16, top + 10], [20, -6]], 0.9)]), INK, 0);
+  // the hem: a dark band along the bottom edge, its eyelets steel rings
+  const band: Pt[] = [];
+  for (let i = 0; i <= 8; i++) { const h = hem[8 - i]!; band.push([h[0], h[1] - 3.2]); }
+  for (let i = 8; i >= 0; i--) band.push(hem[8 - i]!);
+  paint(env, dPoly(band), ALLEY.tarpHem, 0);
+  for (let i = 1; i < 8; i += 2) { const h = hem[8 - i]!; paint(env, dPoly(ellipsePoly(h[0], h[1] - 1.6, 0.9, 0.9, 8)), FX.spark, 0.5); }
+  // the top fold catches the lamp
+  paint(env, dPolys([inkLine([[-22, top + 4], [-8, top + 2]], 1.8), inkLine([[4, top + 2.4], [14, top + 3.4]], 1.2), inkLine([[-20, top + 18], [-16, top + 40]], 1.0)]), LAMP, 0);
   for (const x of [-20, 0, 20]) paint(env, dPoly(ellipsePoly(x, top + 2.6, 1.2, 1.2, 8)), FX.spark, 0.6);
 };
 
@@ -177,7 +193,12 @@ export const CONTENT_FX = { tarp, tape, crackers, rings, plus, trail };
  *  mouth), the way the comic draws a held object to read. */
 const up = (k: number, pts: readonly Pt[]): Pt[] => pts.map(([x, y]) => [x * k, y * k]);
 const WHISTLE_K = 1.6;
-const HORN_K = 1.3;
+/** The air horn a size and a half up, and turned in the hand so the bell points level at the
+ *  enemy from in front of the face (review round 2: at 1.3 and the old grip turn the can poked
+ *  out behind the skull and the bell pointed down at the chest; the blow's back hand points
+ *  about 30 degrees down as drawn, so a grip turn of -31 puts the horn level; the hand holds the back of
+ *  the can, so the can sits in front of the face, not behind the skull). */
+const HORN_K = 1.6;
 
 /** The can of the Energy Drink, the referee whistle and the air horn: small real objects drawn
  *  in the back hand while their Move plays (item units, grip at the origin). The rig draws one in
@@ -199,7 +220,7 @@ export const PROPS: Record<MoveProp, PropArt> = {
     blob(6.4 * WHISTLE_K, 1.4 * WHISTLE_K, 0.7 * WHISTLE_K, 0.7 * WHISTLE_K, 1, 8),
     fillOf(ellipsePoly(-1.6 * WHISTLE_K, 0, 1.2 * WHISTLE_K, 1.2 * WHISTLE_K, 10), "accent", 0.5),
   ] },
-  horn: { grip: { x: 0, y: 0, rot: -10 }, shapes: [
+  horn: { grip: { x: -2 * HORN_K, y: 0, rot: -31 }, shapes: [
     fillOf(up(HORN_K, rod(-3.6, 3, 2.2, 0.4)), "accent", 0),
     fillOf(up(HORN_K, roundRect(2.4, -1.2, 2.6, 2.4, 0.3)), "metal", 1),
     fillOf(up(HORN_K, [[4.6, -0.9], [8, -0.9], [12.6, -3.6], [12.6, 3.6], [8, 0.9], [4.6, 0.9]]), "metal", 2),

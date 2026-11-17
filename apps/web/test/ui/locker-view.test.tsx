@@ -21,6 +21,11 @@ describe("LockerView", () => {
     expect(kit).toContain(">+3</button>");
     expect(count(html, /aria-label="(Win|Loss)"/g)).toBe(3);
   });
+  it("the stats panel lists Health with the other three stats, as Reveal, Level-up and Kit do (review r2)", () => {
+    const html = renderToStaticMarkup(<LockerView {...lockerMockProps()} />);
+    const stats = html.slice(html.indexOf('aria-label="Stats"'));
+    for (const s of ["Health", "Strength", "Agility", "Speed"]) expect(stats).toMatch(new RegExp(`aria-label="${s} [0-9]+"`));
+  });
   it("a new scrapper's Last bouts says there are none, with no All bouts link (finding 62)", () => {
     const html = renderToStaticMarkup(<LockerView {...lockerMockProps()} bouts={[]} />);
     expect(html).toContain("No bouts yet. Tap Fight to pick a rival.");

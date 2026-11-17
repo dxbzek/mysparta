@@ -16,8 +16,11 @@ export interface ComboHit { at: number; side: Side; count: number; step: number 
 export interface Beats { fires: Fire[]; combos: ComboHit[]; koAt: number | null; koSide: Side | null }
 
 /** How long a fire lights its tile, and a combo counter stays up. A Move has no banner: it
- *  simply happens on the stage (owner, 15 Nov 2026: "It should just show"). */
-export const BEAT_MS = { fire: 1150, combo: 760, stampIn: 200 } as const;
+ *  simply happens on the stage (owner, 15 Nov 2026: "It should just show"). Review r2: on a
+ *  phone at 1x a tag over the stage is often up for under half a second, so the lit tile on the
+ *  card is the steady second channel that says which skill fired: it stays fully lit for about a
+ *  second and fades over the next 0.6 s. */
+export const BEAT_MS = { fire: 1600, combo: 760, stampIn: 200 } as const;
 
 
 function contactOf(tl: Timeline, step: number): number | null {

@@ -9,12 +9,16 @@ import type { PerkId } from "@rankzero/core";
 import { GameContext } from "../../src/app/context";
 import type { Game } from "../../src/app/context";
 import { LocalRivalSource } from "../../src/state/opponents";
-import { FILTERS, InventoryDetail, InventoryScreen, inventoryItems, ownersOf, silhouetteArt, sortedPerks } from "../../src/screens/Inventory/Inventory";
+import { FILTERS, InventoryDetail, InventoryScreen, inventoryItems, inventorySections, ownersOf, silhouetteArt, SKILL_FRAME_PARTS, sortedPerks } from "../../src/screens/Inventory/Inventory";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { tabRoute } from "../../src/screens/Locker/Locker";
 import { MAIN_TABS } from "../../src/ui/LockerView";
 import { rig } from "../../src/seams/rig";
 import { perkText, shortEffect } from "../../src/text/perks";
 import { memGame, playUntilLevelUp } from "../state/helpers";
+// test only: the rig's frame count, read from its source (its public entry does not export it)
+import { FRAME_PARTS as RIG_FRAME_PARTS } from "../../../../packages/rig/src/content/icons";
 
 const RANK = { common: 0, uncommon: 1, rare: 2, epic: 3, mythic: 4 } as const;
 
@@ -60,6 +64,68 @@ describe("inventory", () => {
     for (const p of retiredOnly) expect(shownUnlocked.has(p)).toBe(true);
     expect(out).toContain(`Unlocked ${found.size} of ${PERK_IDS.length}`);
     expect(out).toContain(`aria-valuenow="${found.size}"`);
+  });
+
+  it("review r2: 'All' is split under a heading per kind, in the same order; a kind filter is one plain list", () => {
+    const all = inventoryItems(new Set(PERK_IDS.slice(0, 10)), "all", true);
+    const secs = inventorySections(all, "all");
+    expect(secs.map((x) => x.kind)).toEqual(["weapon", "skill", "companion", "shield"]);
+    expect(secs.flatMap((x) => x.ids).sort()).toEqual([...all].sort());
+    for (const x of secs) expect(x.ids).toEqual(all.filter((id) => perkKind(id) === x.kind));
+    const w = inventoryItems(new Set(), "weapon", true);
+    expect(inventorySections(w, "weapon")).toEqual([{ kind: null, ids: w }]);
+  });
+
+  it("review r2: the filter row stays on screen while the grid scrolls, and a phone gets three tiles a row", async () => {
+    const cssText = readFileSync(fileURLToPath(new URL("../../src/screens/Inventory/Inventory.module.css", import.meta.url)), "utf8");
+    expect(cssText).toMatch(/\.controls \{[^}]*position: sticky;[^}]*top: 0;/);
+    expect(cssText).toMatch(/\.grid \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+    const { html } = await setup();
+    const out = html(<InventoryScreen />);
+    for (const k of ["Weapons", "Skills", "Pets", "Shields"]) expect(out).toMatch(new RegExp(`<h2 class="[^"]*"[^>]*>${k}`));
+  });
+
+  it("review r2: a locked silhouette drops the pet portrait's backdrop and the skill badge, so the item's own shape shows", async () => {
+    const { loadFullRig } = await import("../../src/seams/rig");
+    await loadFullRig();
+    const vb = (id: PerkId) => rig.icon(id).viewBox.split(" ").map(Number);
+    // the backdrop square of a pet (Stray Dog drew as an opaque black square) is gone
+    for (const id of COMPANION_IDS) {
+      const [x, y, w, h] = vb(id);
+      const full = `M${+x!.toFixed(2)} ${+y!.toFixed(2)}L`;
+      expect(silhouetteArt(rig.icon(id), "companion").parts.some((p) => p.d.startsWith(full) && !p.transform), id).toBe(false);
+      void w; void h;
+    }
+    // skills: every icon sits on the same badge (a rough square and its shadow); the silhouette keeps only the item
+    // The dropped parts must really be the frame, checked from the drawn geometry and not from the
+    // drop rule itself: the first is one outline that spans nearly the whole 24-unit box, centred;
+    // the second is one outline inside it, also centred (the inner disc or square).
+    const box = (d: string) => {
+      const n = (d.match(/-?\d*\.?\d+(?:e-?\d+)?/gi) ?? []).map(Number);
+      const xs = n.filter((_, i) => i % 2 === 0);
+      const ys = n.filter((_, i) => i % 2 === 1);
+      return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+    };
+    const centred = (b: ReturnType<typeof box>) => Math.abs((b.x0 + b.x1) / 2 - 12) < 1.5 && Math.abs((b.y0 + b.y1) / 2 - 12) < 1.5;
+    expect(SKILL_FRAME_PARTS).toBe(RIG_FRAME_PARTS);
+    for (const id of SKILL_IDS) {
+      const art = rig.icon(id);
+      expect(art.viewBox, id).toBe("0 0 24 24");
+      const [outer, inner] = art.parts.slice(0, SKILL_FRAME_PARTS).map((p) => {
+        expect(p.transform, id).toBeFalsy();
+        expect(p.d.match(/M/g), id).toHaveLength(1);
+        return box(p.d);
+      });
+      expect(outer!.x1 - outer!.x0, id).toBeGreaterThan(19);
+      expect(outer!.y1 - outer!.y0, id).toBeGreaterThan(19);
+      expect(centred(outer!) && centred(inner!), id).toBe(true);
+      expect(inner!.x0 > outer!.x0 && inner!.x1 < outer!.x1 && inner!.y0 > outer!.y0 && inner!.y1 < outer!.y1, id).toBe(true);
+      const sil = silhouetteArt(art, "skill");
+      expect(sil.parts.map((p) => p.d), id).toEqual(art.parts.slice(SKILL_FRAME_PARTS).map((p) => p.d));
+    }
+    // two badge-only silhouettes that used to look the same now differ
+    const sig = (id: PerkId) => silhouetteArt(rig.icon(id), "skill").parts.map((p) => p.d).join("|");
+    expect(new Set(["whistle", "taunt", "tarp", "air-horn"].map((id) => sig(id as PerkId))).size).toBe(4);
   });
 
   it("tiles are sorted by rarity, then name", () => {

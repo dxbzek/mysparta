@@ -71,7 +71,8 @@ export interface LockerViewProps {
   xp: number;
   xpToNext: number;
   maxHp: number;
-  stats: Readonly<Record<Exclude<StatKey, "health">, number>>;
+  /** All four stats (review r2: Health is a level-up pick, so the home screen shows it too). */
+  stats: Readonly<Record<StatKey, number>>;
   /** The value that fills a stat bar; the app lane picks it (for example the roster's highest). */
   statScale: number;
   primary: LockerPrimary;
@@ -139,6 +140,7 @@ export function LockerView(p: LockerViewProps) {
             <span className={css.hpLabel}>{t.maxHp}</span>
             <span className={css.hpValue}>{p.maxHp}</span>
           </div>
+          <StatBar stat="health" value={p.stats.health} max={p.statScale} />
           <StatBar stat="strength" value={p.stats.strength} max={p.statScale} />
           <StatBar stat="agility" value={p.stats.agility} max={p.statScale} />
           <StatBar stat="speed" value={p.stats.speed} max={p.statScale} />

@@ -10,10 +10,11 @@ import { soundFor } from "../../src/audio/cues";
 function fakeHost() {
   const calls: string[] = [];
   const started: [number, number, number][] = [];
-  const ctx: AudioContextLike = {
+  // a real context is "running" after a resume inside a gesture
+  const ctx: AudioContextLike & { state: string } = {
     currentTime: 0,
     state: "suspended",
-    resume: async () => { calls.push("resume"); },
+    resume: async () => { calls.push("resume"); ctx.state = "running"; },
     decodeAudioData: async () => { calls.push("decode"); return {}; },
     createBufferSource: () => ({ buffer: null, connect: () => undefined, start: (w, o, d) => { started.push([w, o, d]); } }),
     destination: {},

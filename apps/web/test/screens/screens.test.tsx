@@ -91,6 +91,17 @@ describe("screens", () => {
     expect(out).toContain("Take it");
     expect(html(<BoutsScreen />)).toMatch(/Replay the bout with/);
   });
+
+  it("a History row puts the rival's level in its own unbreakable chip (review r2: 'LEVEL' / '3' orphan)", async () => {
+    const { g, id, html } = await setup();
+    await playUntilLevelUp(g, id);
+    const out = html(<BoutsScreen />);
+    // the name is plain readable text and the level reaches screen readers as hidden words, not an
+    // aria-label on a generic span (review r2 checker)
+    expect(out).toMatch(/<span class="rz-visually-hidden">, level \d+<\/span>/);
+    expect(out).not.toMatch(/class="[^"]*_opp_[^"]*"[^>]*aria-label=/);
+    expect(out).toMatch(/class="[^"]*_lv_[^"]*" aria-hidden="true">LV \d+</);
+  });
 });
 
 describe("colours only from tokens.css", () => {

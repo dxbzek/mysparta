@@ -24,6 +24,7 @@ import { THRUST, THRUST_1H } from "./thrust";
 import { THROW_FLICK, THROW_HEAVE, THROW_ROLL, THROW_SIDE } from "./throws";
 import { FOOTWORK } from "./footwork";
 import { GESTURES } from "./gestures";
+import { HUGS } from "./hug";
 
 export const VARIANTS: Readonly<Record<string, Clip>> = {
   "swing-2h": SWING_2H, "swing-low": SWING_LOW, "swing-flat": SWING_FLAT, "thrust-1h": THRUST_1H,
@@ -32,6 +33,8 @@ export const VARIANTS: Readonly<Record<string, Clip>> = {
   ...FOOTWORK,
   // nor these: the Moves' gestures and their targets' reactions (gestures.ts)
   ...GESTURES,
+  // nor these: the Grapple's bear hug, both sides of it (hug.ts)
+  ...HUGS,
 };
 /** The base clip each variant stands in for (its length and events are that clip's). */
 export const VARIANT_BASE: Readonly<Record<string, string>> = {

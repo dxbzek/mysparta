@@ -41,6 +41,12 @@ export const SFX_VARIANTS: Readonly<Record<SfxFamily, number>> = {
 export type SfxItem = HeldId | ShieldId | CompanionId;
 /** What an impact landed on: the target's body, its shield, or the weapon it parried with. */
 export type SfxOn = "body" | "shield" | "weapon";
+/** A Move's two sound moments (contract rev 4; review: "skills sound the same", all 12 shared one
+ *  music stinger). `act`: the action itself, when it shows (the horn blast, the whistle, the shout,
+ *  the can cracked open, the breath in, the fuse lit, the grab). `effect`: where it takes hold (the
+ *  gulp, the pops round the feet, the sand on the face, the tarp wrapping the target, the slam,
+ *  the squeeze, the target's angry snort, a boosted Haymaker blow landing). */
+export type MoveBeat = "act" | "effect";
 /** Every word the stage paints. The stage holds no player text of its own. */
 export interface StageText { fight: string; wins(name: string): string; block: string; miss: string;
   crit: string; overtime: string; moveName(id: MoveId): string; skillName(id: ProcId): string;   // a skill, or a shield (content v2)
@@ -67,14 +73,27 @@ export interface Cue { at: number; step: number; family: SfxFamily; variant: num
    *  and companion cues; absent on crowd, dash, landing, Move, win and loss cues. */
   item?: SfxItem;
   /** Impact cues (fist, blunt, blade, block) only: what was struck. */
-  on?: SfxOn }
+  on?: SfxOn;
+  /** Contract rev 4: the Move this sound belongs to, and which of its moments. Every Move has one
+   *  "move" cue with `beat` "act"; a Move whose result lands later adds an `effect` cue (family
+   *  "move", or the impact cue of its hit carrying the Move, which then plays the Move's sound in
+   *  place of the bare fist). The host plays the Move's own set, else the family's. */
+  move?: MoveId;
+  beat?: MoveBeat;
+  /** Contract rev 4: a "landing" cue at the same moment as a crit or knockout blow, the heavy layer
+   *  under its impact sound. */
+  accent?: true }
 /** `stepAt[i]` and `stepEnd[i]` are the start and end time of step i. `busy` lists the spans in
  *  which an actor is doing more than idling, sorted by start. `killStep` is a step index, or -1.
  *  `firstActionAt` is the start of the first step after the intro. `resultAt` is when the result
  *  card may slide up. */
 export interface Timeline { durationMs: number; stepAt: number[]; stepEnd: number[];
   contacts: ContactMark[]; busy: (readonly [from: number, to: number])[]; cues: Cue[];
-  killStep: number; firstActionAt: number; resultAt: number }
+  killStep: number; firstActionAt: number; resultAt: number;
+  /** The Moves, from the start of the action to the end of its signature and tags, sorted: the
+   *  clock plays these at 1x at any speed, so a Move can be told apart at 2x and 3x (review round 2:
+   *  at 3x a Taunt lasted 430 ms of real time). Pass them to `createFightClock`. */
+  holds?: (readonly [from: number, to: number])[] }
 /** What the DOM around the canvas shows at one time. */
 export interface HudFrame { hp: Partial<Record<ActorId, { now: number; trail: number; max: number }>>;
   bag: Record<Side, BagItem[]>; stepsShown: number /* the text log shows steps below this index */;
@@ -96,4 +115,4 @@ export interface FightClock { readonly t: number; speed: 1 | 2 | 3; paused: bool
   tick(realDtMs: number): number; seek(tMs: number): void }
 /** Makes the clock for one bout: it starts at t = 0, at speed 1, not paused. The fight screen
  *  gets its clock from here and never writes a second one. */
-export type CreateFightClock = (durationMs: number) => FightClock;
+export type CreateFightClock = (durationMs: number, holds?: readonly (readonly [from: number, to: number])[]) => FightClock;

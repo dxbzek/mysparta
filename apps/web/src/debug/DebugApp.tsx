@@ -80,6 +80,7 @@ function DebugBout({ route }: { route: Extract<DebugRoute, { page: "bout" }> }) 
       get played() { return handle.played; },
       cues: handle.cues,
       contacts: handle.contacts,
+      holds: handle.holds,
     };
     window.__rz = h;
   }, [handle, fontsReady]);
@@ -125,7 +126,7 @@ export function lockerMockProps(over: { levelUp?: boolean; done?: boolean } = {}
     xp: 5,
     xpToNext: 8,
     maxHp: 98,
-    stats: { strength: 11, agility: 6, speed: 4 },
+    stats: { health: 7, strength: 11, agility: 6, speed: 4 },
     statScale: 16,
     primary,
     kit: [...l10Raccoon.perks, "padding", "tarp", "pipe", "whistle"],

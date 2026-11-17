@@ -191,7 +191,8 @@ describe("joints (owner amendment 13.2)", () => {
         if (Math.max(...vals) - Math.min(...vals) >= 5) moved[b]! += 1;
       });
     }
-    bones.forEach((b, i) => { if (b.id !== "root") expect(moved[i], b.id).toBeGreaterThanOrEqual(1); });
+    // `stow` is a channel (the held item put away for a Move reaction), not a joint: no gate clip keys it
+    bones.forEach((b, i) => { if (b.id !== "root" && b.id !== "stow") expect(moved[i], b.id).toBeGreaterThanOrEqual(1); });
     for (const id of ["handF", "handB", "head", "footF", "footB"]) expect(moved[bones.findIndex((b) => b.id === id)], id).toBeGreaterThanOrEqual(3);
   });
   it("ko-fall ends lying on the floor, and lets go of the weapon", () => {

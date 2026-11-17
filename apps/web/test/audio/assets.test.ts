@@ -61,7 +61,8 @@ describe("audio sprites", () => {
     const packs = new Map(map.credits.map((c) => [c.pack, c]));
     for (const c of map.credits) {
       expect(allowed.has(c.licence), `${c.pack}: ${c.licence}`).toBe(true);
-      expect(c.page, c.pack).toMatch(/^https:\/\//);
+      // a synthesised sound has no page: its recipe is in the build script (round 2: air horn, whistle)
+      expect(c.page, c.pack).toMatch(c.pack === "synth" ? /^tools\/build-audio\.mjs$/ : /^https:\/\//);
       expect(c.author.length, c.pack).toBeGreaterThan(0);
       expect(c.fetched, c.pack).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
