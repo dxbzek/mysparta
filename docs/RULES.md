@@ -598,3 +598,55 @@ Open, not decided here:
 - Level-1 win rate by starting weapon, starts with 300 or more bouts: 41.9% (Sledgehammer) to 67.8% (Monkey Wrench), a 26-point spread; it was 18 points before this round. The Common and Uncommon starts run from 41.9% to 59.7%; six Rare starts sit at 62 to 68% (Bike Chain, Screwdrivers, Cricket Bat, Hubcap, Boomerang, Monkey Wrench). Every scrapper now draws on turn 1, so the weapon counts from the first swing, and a disarm of a level-1 scrapper's only weapon leaves fists for the bout. By starting skill the spread is 12 points (Stubborn 43.8% to Pitcher 56.0%). A rule that returns a scrapper's last weapon to its bag after a disarm would narrow this; it changes the log contract and was not done here.
 - For the stage: boosters have a tag and no lasting body effect; a Body Slam at a pet behind its owner runs the attacker past the owner (find-bout level 30 n 2), and a pet's dodge hop leaves the bout frame in find-bout level 10 n 36.
 - Saved scrappers get their starting skill and new cards on their next walk, with no migration (as after the pet pass).
+
+### Round 2, second and third pass (16 and 17 November 2026)
+
+A checker re-measured the first pass and found seven things wrong; the second pass (sim version 5) was cut off unfinished, the third (sim versions 6 and 7) finished it. Each rule is written above where it applies (sections 3, 5, 6 and 7). Show rates are the share of a skill's owner bouts in which its tag or its Move appears, over 3,000 pool bouts per level; gaps are measured on stage over 300 of them.
+
+**What changed, and why:**
+
+- **Tags spaced by screen time, and still shown** (section 7). The first pass made every once-a-bout tag wait 2 whole turns after any tag; at level 30 nearly every turn was inside the wait. Now the sim keeps a clock of about how long the stage plays each step, and a tag that waits needs 1,600 ms of it after the last tag or Move. Seldom moments (the chance passives, Head Start, Bare Knuckle, Light Feet, the weapon-kind number skills, Quick Swap) and the first tag of a rule skill do not wait; one that loses its step is owed and shows on the next step of its kind. Inside a tier group the tag offered longest ago wins the step.
+- **Quick Swap** (section 5, step 3): swaps a used weapon 50% of the time and a turn with a draw or swap costs 30% less time; it tags only a draw that was not a certain one (every scrapper draws on turn 1, so that draw said nothing). It showed in 0 to 15% of its owner's bouts and changed no result.
+- **Rule skills get real moments**: Firm Grip wins the swap chance over Quick Swap and tags a turn its weapon was kept; Parry tags a block its Block bonus decided; Bare Knuckle's first turn that is not a Move is fought with fists, and its tag goes on its fist swings; Light Feet tags a landed throw (Agility adds to Thrown damage); Glass Cannon also tags the first hit its owner takes.
+- **The stat card grows** (section 3): +2, +3 from the kit's 7th stat card, +4 from its 21st. **The perk card's +1** also comes on the 17th to 22nd perk card.
+- **The last weapon is held harder** (section 6d): a hit's disarm chance is cut to 40% when the defender's bag holds no weapon. A disarm of a level-1 scrapper's only weapon left fists for the bout.
+- **Stage**: a Body Slam at a pet behind its owner now has the swing's step-out (the pet comes out in front, or the owner gives room); the camera frames a pet by its widest pose; a pet's hop and knockback stay inside the frame.
+- **The gate** limits always-stat as well as always-perk, at levels 5, 10, 20 and 30.
+- **Sim version 7.** The golden digests changed.
+
+| Row | Number | Was | Now | Why |
+|---|---|---|---|---|
+| Stubborn | chance | 50% | 95% | its moment (a dodged or blocked swing) came in 24% of its owner's level-30 bouts |
+| Junk Collector | throw chance while a weapon waits | 35% | 65% | showed in 30% at level 30 |
+| Trick Shot | ricochet | 35% | 50% | showed in 35% at level 30 |
+| Flurry | Combo | 20 | 28 | showed in 32% at level 30 once tags were spaced |
+| Snatch | weight | 13 | 16 | fired in 33% of its owner's level-30 bouts |
+| Bare Knuckle | fist damage, unarmed Combo | 100%, 10 | 200%, 20 | it now opens with fists: 39.5% ownership at level 2 with 150% / 10 |
+| Body Slam | base | 14 | 19 | 46.9% with-and-without at level 30 (line 47%) |
+| Quick Swap | swap chance, turn time | none | 50%, -30% | see above |
+| Big Heart, Heavy Hands, Light Feet | points, multiplier | 3, 30 / 3, 40 / 3, 35 | 2, 35 / 2, 50 / 2, 45 | second pass |
+| Goose, Boar | HP cost | 22%, 25% | 20%, 22% | second pass |
+| 14 weapon rows | Dmg, Draw, Block and others | | | second pass: the level-1 start spread (packages/core/src/content/weapons.ts) |
+
+**Results** (checker's number / now):
+
+| | Before | Now |
+|---|---|---|
+| `pnpm session` | red (it counted one starting perk) | 30 of 30 checks |
+| Owner bouts with the tag, level 30: Flurry, Payback, Knock Loose, Head Start | 6%, 8%, 7%, 77% | 40.9%, 45.6%, 44.3%, 100% |
+| Lowest skill show rate, level 10 / level 30 (non-booster skills with 60+ owner bouts) | 6% (level 30) | 35.0% Whistle (60 bouts; next Anticipation 44.2%) / 33.9% Snatch, 34.7% Stubborn, 34.9% Whistle |
+| Median gap between tags on stage, level 30 (level 10) | | 1.79 s (2.43 s) |
+| Median gap between skill moments, tags and Moves, level 30 (level 10) | 1.37 s | 1.35 s (2.01 s) |
+| Tags per level-30 bout, median | | 9 |
+| Quick Swap: owner bouts with the tag, level 10 / 30; with-and-without, level 10 / 30 | 0 to 15%; about 50% | 80.1% / 52.4%; 57.5% / 58.6% (50.4 to 54.9% at levels 2 to 5) |
+| Always the stat card, win %, levels 5 / 10 / 20 / 30 | - / 36 / - / 24 | 47.0 / 52.7 / 54.0 / 49.3 |
+| Always the perk card, the same | | 51.1 / 50.0 / 51.4 / 46.6 |
+| Level-1 start spread, starts with 300+ bouts (Rare included) | 26 points (41.9 to 67.8%) | 15.1 points (44.9% Pipe to 60.0% Cricket Bat); by starting skill 14.6 points (Tarp 44.2% to Pitcher 58.8%) |
+| Level-30 show rate: Bare Knuckle, Anticipation, Firm Grip, Junk Collector, Stubborn | 2%, 24%, 28%, 30%, 24% | 66.6%, 38.2%, 48.0%, 41.0%, 34.7% |
+
+Gate (`pnpm balance`, full sample, levels 2, 3, 5, 10 and 30): PASS, no limit broken. Median turns 12, 12, 13, 14 and 18 at levels 2, 3, 5, 10 and 30; overtime 0.0%.. Nearest to a limit: with-and-without at level 30, Body Slam 47.5%, Pipe 47.6%, Hockey Stick 48.1%, Boar 48.3% (line 47%); level-up policy always-perk 46.6% at level 30 (band 45 to 55).
+
+Open, not decided here:
+- At level 30 a bout holds about 23 skills over 19 turns; with the tags spaced, Snatch (33.9%), Stubborn (34.7%) and Whistle (34.9%) sit just under a third, inside sampling noise of 35%. A wider spacing (1,700 ms gave 1.52 s between all skill moments) starves Padding and Quick Swap and breaks the 9-tag median; the median gap between all skill moments, Moves counted, is 1.35 s at level 30 (1.79 s between tags).
+- Shields (Bin Lid, Skateboard) show in about 22% of their owner's level-30 bouts.
+- For the stage: a foot slides in a flinch or in footwork in some level-30 bouts (open-defects.test.ts lists them).
