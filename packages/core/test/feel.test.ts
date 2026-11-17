@@ -15,7 +15,7 @@ import { rivalSnapshot } from "../src/progress/rivals";
 import { simulateFight } from "../src/sim/simulate";
 import { OPENING_PCT, OPENING_PET_PCT, OPENING_TURNS, SCRAPPER_TARGET_WEIGHT, pickEnemy, sortProcs } from "../src/sim/bout";
 import { meleeAttack } from "../src/sim/melee";
-import { playMove } from "../src/sim/moves";
+import { UNARMED_MOVES, playMove } from "../src/sim/moves";
 import { throwAttack } from "../src/sim/thrown";
 import { takeTurn } from "../src/sim/turn";
 import { fn, queue, scripted, setup, snap } from "./helpers";
@@ -123,6 +123,8 @@ function couldFire(log: BoutLog, side: "a" | "b", move: MoveId): boolean {
     last = s.turn;
     const actor = "actor" in s ? s.actor : null;
     const own = actor === `${side}0` || (s.t === "intercept" && s.target === `${side}0`);
+    // Round 2: only the unarmed Moves are ready in the opening (moves.ts).
+    if (s.turn <= OPENING_TURNS && !UNARMED_MOVES.has(move)) continue;
     if (own && readyAt(stateAt(log, i), side, move)) return true;
   }
   return false;

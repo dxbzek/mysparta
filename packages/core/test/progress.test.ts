@@ -16,7 +16,7 @@ import { SKILLS } from "../src/content/skills";
 import { allowed, perkChance, rollPerk } from "../src/progress/perks";
 import { startPerk } from "../src/progress/create";
 import { startStats, effectiveOf, maxHpOf } from "../src/progress/stats";
-import { walk } from "../src/progress/route";
+import { perkCardPlus, statCardAmount, walk } from "../src/progress/route";
 import { cardIndices } from "../src/progress/rivals";
 
 const DAY = "2026-11-14";
@@ -93,7 +93,7 @@ describe("creation", () => {
       const side = card.left.kind === "perk" && card.left.perk === "big-heart" ? "L"
         : card.right.kind === "perk" && card.right.perk === "big-heart" ? "R" : null;
       if (side === null) continue;
-      expect(api.sheetOf({ ...r, picks: [side], xp: 0 }).stats.mult.health).toBe(130);
+      expect(api.sheetOf({ ...r, picks: [side], xp: 0 }).stats.mult.health).toBe(135);
       return;
     }
     throw new Error("no Big Heart card found");
@@ -158,20 +158,29 @@ describe("the Route", () => {
     const s = api.fighterSeed(REALM_SALT, "Tug");
     expect(api.routeNode(s, ["L", "R", "R"])).toEqual(api.routeNode(s, ["L", "R", "R"]));
   });
-  it("offers a stat card of +2 and a perk or split card, and the kit matches the picks", () => {
+  it("offers a stat card (+2, more after 6 and 20 of them) and a perk or split card, and the kit matches the picks", () => {
     const rng = makeRng(7);
     for (let i = 0; i < 300; i++) {
       const r = rec(api.randomName(i + 9000), randomPicks(rng, 15));
       const sheet = api.sheetOf(r);
       let points = 14;
-      const perks: PerkId[] = [sheet.startPerk];
+      let statCards = 0;
+      let perkCards = 0;
+      const perks: PerkId[] = [sheet.startPerk, sheet.startSkill];
       for (const n of api.route(r)) {
         const kinds = [n.left.kind, n.right.kind].sort();
         expect(kinds[1]).toBe("stat");
         const card = n.taken === "L" ? n.left : n.right;
-        if (card.kind === "stat") { expect(card.amount).toBe(2); points += 2; }
+        if (card.kind === "stat") { expect(card.amount).toBe(statCardAmount(statCards)); points += card.amount; statCards += 1; }
         else if (card.kind === "split") { expect(card.stats[0]).not.toBe(card.stats[1]); points += 2; }
-        else perks.push(card.perk);
+        else {
+          perks.push(card.perk);
+          // Round 2: some perk cards carry +1 point in a stat (the first two level-ups, and the
+          // 17th to the 22nd perk card taken).
+          expect(card.plus !== undefined, `level ${n.level}`).toBe(perkCardPlus(n.level, perkCards));
+          perkCards += 1;
+          if (card.plus !== undefined) points += 1;
+        }
       }
       expect(sheet.perks).toEqual(perks);
       const boosterPoints = perks.reduce((a, p) => a + (skillOf(p) === undefined ? 0
@@ -184,7 +193,7 @@ describe("the Route", () => {
     for (let i = 0; i < 400; i++) {
       const r = rec(api.randomName(i + 20000), randomPicks(rng, 30));
       const kit = walk(r.seed, r.picks);
-      const owned: PerkId[] = [kit.startPerk];
+      const owned: PerkId[] = [kit.startPerk, kit.startSkill];
       for (const n of kit.nodes) {
         for (const c of [n.left, n.right]) {
           if (c.kind !== "perk") continue;
@@ -271,11 +280,15 @@ describe("rivals", () => {
         expect(s.level).toBe(level);
         const pts = Object.values(s.stats.points).reduce((a, b) => a + b, 0);
         expect(pts).toBeGreaterThanOrEqual(14);
-        // Every level-up adds 2 points or one perk.
-        const perks = s.perks.length - 1;
+        // Every level-up adds one perk (with 1 point at most, round 2) or 2 to 4 points (a stat
+        // card grows with the stat cards taken; a split gives 2). A scrapper starts with two perks.
+        const perks = s.perks.length - 2;
         const boosterPoints = s.perks.reduce((a, p) => a + (skillOf(p) === undefined ? 0
           : ["health", "strength", "agility", "speed"].reduce((b, k) => b + (skillOf(p)!.tiers[0][k] ?? 0), 0)), 0);
-        expect((pts - 14 - boosterPoints) / 2 + perks).toBe(level - 1);
+        const others = level - 1 - perks;
+        expect(others).toBeGreaterThanOrEqual(0);
+        expect(pts - 14 - boosterPoints).toBeGreaterThanOrEqual(2 * others);
+        expect(pts - 14 - boosterPoints).toBeLessThanOrEqual(4 * others + perks);
       }
     }
   });
@@ -293,14 +306,14 @@ describe("rivals", () => {
     r = api.afterBout(r, 1, DAY);
     expect(cardIndices(r, REALM_SALT, DAY)).not.toEqual(cardIndices(rec("Marla"), REALM_SALT, DAY));
   });
-  it("at levels 1 to 3 always holds at least 2 rivals with no weapon", () => {
+  it("at levels 1 to 3 holds one easy rival, armed, in the last place; every rival owns a weapon", () => {
     for (let i = 0; i < 400; i++) {
       for (const lvl of [1, 2, 3]) {
         const r = rec(api.randomName(i), Array.from({ length: lvl - 1 }, () => "L" as Side2));
         for (const day of ["2026-11-14", "2026-11-15"]) {
           const card = api.tonightsCard(r, REALM_SALT, day);
-          const unarmed = card.filter((s) => !s.perks.some((p) => perkKind(p) === "weapon")).length;
-          expect(unarmed).toBeGreaterThanOrEqual(2);
+          expect(card.every((s) => s.perks.some((p) => perkKind(p) === "weapon"))).toBe(true);
+          expect(card.map((s) => s.id.includes(":easy:"))).toEqual([false, false, false, false, false, true]);
           for (const s of card) expect(Number(s.id.split(":").pop())).toBeLessThan(RIVALS_PER_LEVEL);
         }
       }
@@ -324,14 +337,14 @@ describe("found perks and sheets", () => {
       expect(ss).toEqual({ maxHp: s.maxHp, effective: s.effective, derived: s.derived, companionCostPct: s.companionCostPct });
     }
   });
-  it("takes the companion cost off max HP: two Raccoons and a Boar cost 47%", () => {
+  it("takes the companion cost off max HP: two Raccoons and a Boar cost 44%", () => {
     const base = 54 + 7 * 5;
-    expect(maxHpOf(5, 10, 47)).toBe(Math.floor((base * 53) / 100));
+    expect(maxHpOf(5, 10, 44)).toBe(Math.floor((base * 56) / 100));
     const s = api.snapshotSheet({ id: "x", name: "X", look: api.rollLook(1, 0, 0), level: 10, rulesVersion: 1,
       stats: { points: { health: 5, strength: 5, agility: 5, speed: 5 }, mult: { health: 100, strength: 100, agility: 100, speed: 100 } },
       perks: ["raccoon", "raccoon", "boar"] });
-    expect(s.companionCostPct).toBe(47);
-    expect(s.maxHp).toBe(Math.floor((base * 53) / 100));
+    expect(s.companionCostPct).toBe(44);
+    expect(s.maxHp).toBe(Math.floor((base * 56) / 100));
   });
   it("seeds a bout from both ids and the lifetime count", () => {
     expect(api.boutSeed("a", "b", 3)).toBe(api.boutSeed("a", "b", 3));

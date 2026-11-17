@@ -13,9 +13,9 @@ export const COMPANIONS: Readonly<Record<CompanionId, CompanionDef>> = {
   // Strength here are the level-1 values.
   "raccoon": { id: "raccoon", rarity: RARITY_OF.raccoon, weight: 90, limit: 2, excludes: [], hpCostPct: 11,
     hp: 3, strength: 1, agility: 6, speed: 6, dmg: 1, combo: 20, evade: 10, aim: 5, disarm: 0, startClock: 10, swings: 1, flies: false },
-  "goose": { id: "goose", rarity: RARITY_OF.goose, weight: 5, limit: 1, excludes: ["boar"], hpCostPct: 22,
+  "goose": { id: "goose", rarity: RARITY_OF.goose, weight: 5, limit: 1, excludes: ["boar"], hpCostPct: 20,
     hp: 6, strength: 1, agility: 12, speed: 16, dmg: 1, combo: 30, evade: 25, aim: 5, disarm: 0, startClock: 40, swings: 1, flies: false },
-  "boar": { id: "boar", rarity: RARITY_OF.boar, weight: 5, limit: 1, excludes: ["goose"], hpCostPct: 25,
+  "boar": { id: "boar", rarity: RARITY_OF.boar, weight: 5, limit: 1, excludes: ["goose"], hpCostPct: 22,
     hp: 7, strength: 2, agility: 2, speed: 4, dmg: 2, combo: 0, evade: 0, aim: 20, disarm: 10, startClock: 150,
     swings: 1, flies: false },
   // content v2. Stray Dog: the all-rounder that grabs a weapon now and then. Crow: flies, pecks,

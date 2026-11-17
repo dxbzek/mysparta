@@ -13,7 +13,7 @@ import { sk } from "../content/skills";
 import { hasTag } from "../content/weapons";
 import type { Actor } from "./combatant";
 import type { Bout } from "./bout";
-import { bagCopy, emit, firstAction, pickEnemy, proc, sortProcs, spent } from "./bout";
+import { bagCopy, due, emit, firstAction, pickEnemy, pickProc, proc, spent } from "./bout";
 import { MAX_COMBO, comboChance, consequences, resolve } from "./melee";
 
 /** A held melee weapon is thrown this often while another weapon waits in the bag. */
@@ -24,6 +24,9 @@ export const THROW_LAST_PCT = 5;
 /** The chance that a held weapon that is not Thrown is thrown this turn. */
 export function throwChance(a: Actor, bagHasWeapon: boolean): number {
   if (a.skills.has("pitcher")) return sk("pitcher", "throwChance");
+  // Junk Collector throws as often as Pitcher while a weapon waits in the bag (round-2 review: its
+  // tag needs a melee throw, and showed in under a quarter of its owner's bouts).
+  if (a.skills.has("junk-collector") && bagHasWeapon) return sk("junk-collector", "throwChance");
   return bagHasWeapon ? THROW_PCT : THROW_LAST_PCT;
 }
 
@@ -54,7 +57,7 @@ export function throwAttack(b: Bout, att: Actor, first: Actor): WeaponId {
   for (let n = 0; ; n++) {
     const procs: Proc[] = [];
     if (whyProc !== null) procs.push(whyProc);
-    if (n === 0) firstAction(att, procs);
+    if (n === 0) firstAction(b, att, procs);
     const c = resolve(b, att, def, true, false, procs);
     const after = afterThrow(b, att, weapon, procs);
     const bag = b.bag[att.side];
@@ -63,7 +66,7 @@ export function throwAttack(b: Bout, att: Actor, first: Actor): WeaponId {
     const step = { t: "throw", turn: b.turn, actor: att.id, target: def.id, weapon, outcome: c.outcome,
       damage: c.damage, crit: c.crit, hpAfter: c.hpAfter, n, after, bagAfter: bagCopy(bag) } as Step & { why?: "combo"; procs?: Proc[] };
     if (n > 0) step.why = "combo";
-    const p = sortProcs(c.procs);
+    const p = pickProc(b, c.procs);
     if (p !== undefined) step.procs = p;
     emit(b, step);
     consequences(b, att, def, c);
@@ -84,7 +87,7 @@ export function throwAttack(b: Bout, att: Actor, first: Actor): WeaponId {
     if (combos >= MAX_COMBO) break;
     const r = b.r.hit.int(100);
     if (!(r < combo)) break;
-    if (flurry > 0 && r >= comboNoFlurry) whyProc = proc(att, "flurry");
+    if (flurry > 0 && due(b, att, "flurry", r >= comboNoFlurry)) whyProc = proc(att, "flurry");
     combos += 1;
     combo = Math.floor(combo / 2);
     comboNoFlurry = Math.floor(comboNoFlurry / 2);

@@ -69,6 +69,11 @@ export interface Actor {
   taunt: number;
   /** A weapon left the hand by a throw: the next turn draws from the bag for sure. */
   reload: boolean;
+  /** The first draw of the bout is sure (round-2 review: a third of level-1 swings were fists
+   *  although every scrapper starts with a weapon, because the first draw was a 33-54% roll). Unlike
+   *  `reload` it does not skip the Move roll, so an unarmed Move can still come first. False for a
+   *  Bare Knuckle owner, who opens with fists. */
+  startDraw: boolean;
   /** A companion's extra damage percent (Pet Lover of its owner). */
   dmgPct: number;
   clock: number; priority: boolean;
@@ -78,8 +83,19 @@ export interface Actor {
   level: number;
   /** HP lost in turn `lossTurn` of the opening (see OPENING_PCT). */
   loss: number; lossTurn: number;
-  /** Quick Swap made this turn's draw: its tag goes on the turn's first swing or throw. */
+  /** A Quick Swap owner drew or swapped a weapon this turn: the turn costs less time and its first
+   *  swing or throw can carry the tag. */
   quickSwapPending: boolean;
+  /** Firm Grip turned away this turn's swap roll (it would have passed at the usual 30%): the
+   *  turn's first swing or throw can carry the tag, once a bout. */
+  /** The Quick Swap draw or swap of this turn was not a sure draw (the first of the bout or the one
+   *  after a throw, which every scrapper makes): only then can the turn carry the tag. */
+  quickSwapTag: boolean;
+  firmGripKept: boolean;
+  /** Bare Knuckle: the first turn that is not a Move is fought with fists, no draw (turn.ts). */
+  fistsFirst: boolean;
+  /** The actor's last own turn was a Move: this turn rolls no Move (turn.ts). */
+  movedLast: boolean;
 }
 
 const warned = new Set<string>();
@@ -112,10 +128,12 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
   const actors: Actor[] = [{
     id: `${side}0` as ActorId, side, kind: "scrapper", scrapper: true, maxHp, hp: maxHp, status: "up",
     str: eff.strength, agi: eff.agility, spd: eff.speed, held: "fists", heldAttacked: false, shield,
-    snared: false, snareSkips: 0, snareLimit: 0, sand: 0, taunt: 0, reload: false, dmgPct: 0,
+    snared: false, snareSkips: 0, snareLimit: 0, sand: 0, taunt: 0, reload: false,
+    // Bare Knuckle opens with fists: no sure first draw.
+    startDraw: !skills.has("bare-knuckle"), dmgPct: 0,
     clock: 0, priority: false, skills, comp: null, dmg: 0,
     haymaker: false, lastStandUsed: false, headStartPending: skills.has("head-start"), level: s.level,
-    loss: 0, lossTurn: 0, quickSwapPending: false,
+    loss: 0, lossTurn: 0, quickSwapPending: false, quickSwapTag: false, firmGripKept: false, fistsFirst: skills.has("bare-knuckle"), movedLast: false,
   }];
   let n = 1;
   for (const p of perks) {
@@ -127,9 +145,9 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
       id: `${side}${n}` as ActorId, side, kind: p, scrapper: false, maxHp: hp, hp, status: "up",
       str: companionScale(def.strength, s.level, COMPANION_STR_GROWTH), agi: def.agility, spd: def.speed,
       held: "fists", heldAttacked: false, shield: null, snared: false, snareSkips: 0, snareLimit: 0, sand: 0,
-      taunt: 0, reload: false, dmgPct: petDmg, clock: 0, priority: false,
+      taunt: 0, reload: false, startDraw: false, dmgPct: petDmg, clock: 0, priority: false,
       skills: new Set(), comp: def, dmg: def.dmg, haymaker: false, lastStandUsed: false, headStartPending: false,
-      level: s.level, loss: 0, lossTurn: 0, quickSwapPending: false,
+      level: s.level, loss: 0, lossTurn: 0, quickSwapPending: false, quickSwapTag: false, firmGripKept: false, fistsFirst: false, movedLast: false,
     });
     n += 1;
   }

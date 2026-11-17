@@ -23,7 +23,8 @@
  * lie partly outside it).
  */
 import type { Tracks } from "./model";
-import { FLOOR_Y, SCRAPPER_REACH, STAGE_H, STAGE_W } from "./layout";
+import type { CompanionId } from "@rankzero/core";
+import { FLOOR_Y, PET_FRAME_REACH, SCRAPPER_REACH, STAGE_H, STAGE_W } from "./layout";
 
 /** Every number of the camera, in stage units and ms at 1x. */
 export const CAMERA = {
@@ -131,7 +132,8 @@ export function homeSpan(tr: Pick<Tracks, "actors">): Span {
     } else {
       // the pet's whole drawn box at its mark, facing the fight
       const m = CAMERA.companionMargin;
-      const [l, r] = a.homeFacing === 1 ? [a.reach.back, a.reach.front] : [a.reach.front, a.reach.back];
+      const fr = PET_FRAME_REACH[a.rig as CompanionId] ?? a.reach;
+      const [l, r] = a.homeFacing === 1 ? [fr.back, fr.front] : [fr.front, fr.back];
       x0 = Math.min(x0, a.home.x - l - m);
       x1 = Math.max(x1, a.home.x + r + m);
     }

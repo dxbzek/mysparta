@@ -37,7 +37,7 @@ export function sheetOf(rec: ScrapperRecord): ScrapperSheet {
   const ss = snapshotSheet(snap);
   return {
     level, xp: rec.xp, xpToNext: xpToNext(level), levelUpWaiting: levelUpWaiting(rec),
-    look: snap.look, stats: kit.stats, effective: ss.effective, startPerk: kit.startPerk,
+    look: snap.look, stats: kit.stats, effective: ss.effective, startPerk: kit.startPerk, startSkill: kit.startSkill,
     perks: kit.perks, maxHp: ss.maxHp, companionCostPct: ss.companionCostPct, derived: ss.derived,
   };
 }

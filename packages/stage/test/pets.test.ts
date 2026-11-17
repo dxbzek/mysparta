@@ -18,7 +18,7 @@ import { COMPANION_IDS, simulateFight } from "@rankzero/core";
 import { l1Pipe } from "@rankzero/core/fixtures";
 import { boxArea, drawnBox, measureReach, scaleForShare } from "../src/bounds";
 import { frameSpan } from "../src/camera";
-import { PET_HEIGHT, PET_REACH, PET_SCALE, SCRAPPER_REACH, STAGE_W } from "../src/layout";
+import { PET_FRAME_REACH, PET_HEIGHT, PET_REACH, PET_SCALE, SCRAPPER_REACH, STAGE_W } from "../src/layout";
 import { BOUTS, FRAME_MS, FULL, RIGS, boxOf, logOf, worstOf } from "./lib/pets";
 import { playerFor } from "./lib/setup";
 
@@ -54,6 +54,25 @@ describe("pets beside their owners, measured on every frame", () => {
       for (const id of COMPANION_IDS as readonly CompanionId[]) {
         const up = measureReach(rig, id, { held: null, shield: null, scale: PET_SCALE[id] }).up;
         expect(up / fighter, `${rigName} ${id}`).toBeLessThanOrEqual(PET_HEIGHT[id] + 0.005);
+      }
+    }
+  });
+
+  it("the camera's pet frame reach covers each pet's idle, run and hit poses on both rigs (round 2: an Alley Cat's run left the frame)", () => {
+    for (const [name, rig] of RIGS) {
+      for (const id of COMPANION_IDS as readonly CompanionId[]) {
+        let back = 0;
+        let front = 0;
+        for (const clip of ["idle", "run", "hit"]) {
+          const ms = rig.clipInfo(id, clip).durationMs;
+          for (let k = 0; k < 24; k++) {
+            const box = drawnBox(rig, rig.samplePose(id, clip, (ms * k) / 24), { held: null, shield: null, scale: PET_SCALE[id] }, { x: 0, y: 0, facing: 1 });
+            back = Math.max(back, -box.x0);
+            front = Math.max(front, box.x1);
+          }
+        }
+        expect(back, `${name} ${id} back`).toBeLessThanOrEqual(PET_FRAME_REACH[id].back + 1e-6);
+        expect(front, `${name} ${id} front`).toBeLessThanOrEqual(PET_FRAME_REACH[id].front + 1e-6);
       }
     }
   });
@@ -94,7 +113,14 @@ describe("a pet's dodge hop stays in view (verifier, 15 Nov 2026: level 3 n 5, t
     const { REALM_SALT, combineSeed, rivalSnapshot } = await import("@rankzero/core");
     const out: string[] = [];
     let count = 0;
-    for (const [level, k] of [[3, 12], [5, 12], [6, 30], [8, 3], [8, 33]] as const) {
+    // The list changed with sim version 4 (round 2), which left the old bouts (level 3 n 12,
+    // 5 n 12, 6 n 30, 8 n 33) with no pet dodge, and again with sim version 5 (round 2, second
+    // pass; it was 3 n 117, 5 n 20, 6 n 85, 8 n 3, 8 n 19, 10 n 45). Level 8 n 37 and 76 and level
+    // 10 n 36 are back (round 2, third pass): at a home mark by the frame's edge an Alley Cat's run
+    // pose reached past the frame, which was set by the pets' idle reach (now PET_FRAME_REACH), and a
+    // pet hit during its hop was knocked out of it (a pet's knockback now stops at the frame). A scan
+    // of 600 find-bout bouts at levels 3 to 10 (34 hops) finds none out of frame.
+    for (const [level, k] of [[5, 20], [6, 73], [8, 3], [8, 37], [8, 76], [8, 95], [8, 117], [10, 36], [10, 45], [10, 84], [10, 97]] as const) {
     const a = rivalSnapshot(REALM_SALT, level, 2 * k);
     const b = rivalSnapshot(REALM_SALT, level, 2 * k + 1);
     const log = simulateFight(combineSeed("find-bout", k), a, b, 1);

@@ -7,7 +7,7 @@ import { LOOK_SPACE } from "../contracts/fighter";
 import type { PerkId } from "../contracts/ids";
 import { combineSeed, hashString, makeRng } from "../prng";
 import { FIRST_PARTS, SECOND_PARTS } from "../content/names";
-import { rollPerk, startable } from "./perks";
+import { rollPerk, startSkillable, startable } from "./perks";
 
 export const NAME_MIN = 3;
 export const NAME_MAX = 14;
@@ -49,6 +49,17 @@ export function startPerk(seed: number): PerkId {
   for (;;) {
     const id = rollPerk(rng);
     if (startable(id)) return id;
+  }
+}
+
+/** The second starting perk: a skill rolled from its own stream ("start2", so every name keeps the
+ *  weapon it had) until it fits the kit of the starting weapon and is not a booster or Snatch (see
+ *  `startSkillable`). The skill category is always reachable, so the loop ends. */
+export function startSkill(seed: number, first: PerkId): PerkId {
+  const rng = makeRng(combineSeed(seed, "start2"));
+  for (;;) {
+    const id = rollPerk(rng);
+    if (startSkillable(id, [first])) return id;
   }
 }
 

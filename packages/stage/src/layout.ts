@@ -48,6 +48,16 @@ export const PET_REACH: Readonly<Record<CompanionId, Reach>> = {
   raccoon: reach(20, 17, 18, 4.5), goose: reach(18, 18.5, 30, 4), boar: reach(26.5, 39, 38.5, 7),
   "stray-dog": reach(23, 24, 27, 5), crow: reach(12, 13, 17.5, 3.5), "alley-cat": reach(23, 20, 21.5, 5),
 };
+/** How far each pet's body reaches over its idle, run and hit poses (a pet runs in its dodge hop
+ *  and is hit in place), `back` and `front` only, rounded up to half a unit: the larger of the real
+ *  art and the capsule test rig. The camera frames a pet by it: framed by the idle reach, an Alley
+ *  Cat's run reached 5 units past it and left the frame in its dodge hop (round 2, find-bout level
+ *  8 n 37). A test measures these again. */
+export const PET_FRAME_REACH: Readonly<Record<CompanionId, { back: number; front: number }>> = {
+  raccoon: { back: 22, front: 17 }, goose: { back: 19, front: 25 }, boar: { back: 28, front: 40 },
+  "stray-dog": { back: 27, front: 24.5 }, crow: { back: 12.5, front: 14 }, "alley-cat": { back: 28.5, front: 20 },
+};
+
 /** The reach of an actor of this kind. */
 export const reachFor = (kind: "scrapper" | CompanionId): Reach => (kind === "scrapper" ? SCRAPPER_REACH : PET_REACH[kind]);
 

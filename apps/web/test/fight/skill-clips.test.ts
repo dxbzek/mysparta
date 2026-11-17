@@ -45,7 +45,9 @@ describe("the Moves on the app's rig", () => {
     const ctx = cv.getContext("2d");
     const cache = new Map<string, Path2D>();
     const env = { ctx, path(d: string) { let q = cache.get(d); if (q === undefined) { q = new Path2D(d); cache.set(d, q); } return q; } } as unknown as DrawEnv;
-    for (const n of [0, 1, 2, 6, 8, 9, 10]) {
+    // the list of sim version 5 (round 2, second pass); it was 2, 5, 30, 34 under version 4 and
+    // 0, 1, 2, 6, 8, 9, 10 before
+    for (const n of [0, 3, 4, 9, 16, 28]) {
       const a = rivalSnapshot(REALM_SALT, 30, 2 * n);
       const b = rivalSnapshot(REALM_SALT, 30, 2 * n + 1);
       const log = simulateFight(combineSeed("find-bout", n), a, b, 1);

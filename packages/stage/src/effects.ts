@@ -13,6 +13,7 @@ import { toStage } from "@rankzero/rig";
 import type { EffectKey, SfxItem } from "./contracts";
 import { noise } from "./cues";
 import { homeSpan } from "./camera";
+import { drawnBox } from "./bounds";
 import { drawnScale } from "./footwork";
 import { segAt } from "./track";
 import { CORAL, GREEN, INK, PAPER, SKY, VOLT, WHITE } from "./palette";
@@ -158,8 +159,12 @@ export function land(b: Builder, L: Landing, ci?: number): number {
     if (L.ownClip !== true) {
       b.play(L.target, b.flinchClip(ttr.rig, heavy), s("flinch"), { flinchOf: c });
       if (!b.knockStep(L.target, s("knockback"), heavy, dir, c)) {
-        const amount = clampNum(CONTACT.knockbackBase + (CONTACT.knockbackPerHp * L.damage) / ttr.maxHp,
-          CONTACT.knockbackMin, CONTACT.knockbackMax) * m.knockback;
+        let amount = clampNum(CONTACT.knockbackBase + (CONTACT.knockbackPerHp * L.damage) / ttr.maxHp,
+          CONTACT.knockbackMin, CONTACT.knockbackMax);
+        // a pet's knockback stops at the camera's bout frame (pets hit in their dodge hop were knocked
+        // out of it in find-bout level 8 n 37 and 76 and level 10 n 36); reduced motion halves what is left
+        if (ttr.rig !== "scrapper") amount = Math.min(amount, petRoom(b, L.target, s("knockback"), dir));
+        amount *= m.knockback;
         b.nudge({ actor: L.target, key: "knockback", from: s("knockback"), outMs: CONTACT.knockbackOutMs, holdMs: 0,
           backMs: CONTACT.knockbackBackMs, dx: dir * amount, arc: 0, contact: c });
       }
@@ -299,12 +304,16 @@ export function evadeEarly(b: Builder, target: ActorId, attacker: ActorId, at: n
     // stands its ground, and runs back in (review finding 20: it used to glide in its idle pose)
     const hold = OUTCOME.petEvadeHoldMs;
     // the hop stays inside the camera's bout frame (verifier: a crow at the stage's edge hopped out
-    // of view); with no room behind it, it leaps up on the spot, never toward the attacker
+    // of view); with no room behind it, it leaps up on the spot
+    // (by the pet's widest drawn pose, not its reach: an Alley Cat's run is 28 units wide of its
+    // place against a reach of 23, and left the frame by 3 in find-bout level 8 n 37)
     const span = homeSpan(b);
     const q = b.place(target, from);
-    const m = Math.max(tr.reach.back, tr.reach.front);
+    const m = petExtent(b, target);
+    // A pet at a home mark by the frame's edge has less room than its run pose needs: it then lands
+    // the few units inside that keep its body in view (never more than the room it lacks).
     const to = Math.min(span.x1 - m, Math.max(span.x0 + m, q.x + dir * OUTCOME.evadeHop));
-    const dx = dir * Math.max(0, dir * (to - q.x));
+    const dx = to - q.x;
     b.play(target, "run", from, { until: from + OUTCOME.evadeMs });
     b.play(target, "run", from + OUTCOME.evadeMs + hold, { until: from + OUTCOME.evadeMs + hold + OUTCOME.petEvadeBackMs });
     b.nudge({ actor: target, key: "hop", from, outMs: OUTCOME.evadeMs, holdMs: hold, backMs: OUTCOME.petEvadeBackMs,
@@ -314,6 +323,37 @@ export function evadeEarly(b: Builder, target: ActorId, attacker: ActorId, at: n
   b.play(target, "evade", from);
   b.nudge({ actor: target, key: "hop", from, outMs: OUTCOME.evadeMs, holdMs: 260, backMs: 220, dx: dir * OUTCOME.evadeHop,
     arc: OUTCOME.evadeArc, contact: null });
+}
+
+const extents = new WeakMap<Builder, Map<string, number>>();
+/** How far a pet's drawn body reaches from its place, on its widest side, over its run, hit and idle
+ *  poses (its `reach` is the idle pose and is narrower than its run). Cached per rig and dress. */
+export function petExtent(b: Builder, id: ActorId): number {
+  const tr = b.track(id);
+  const dress = b.dress(id);
+  const key = `${tr.rig}|${JSON.stringify(dress)}`;
+  const cache = extents.get(b) ?? new Map<string, number>();
+  extents.set(b, cache);
+  const hit = cache.get(key);
+  if (hit !== undefined) return hit;
+  let m = Math.max(tr.reach.back, tr.reach.front);
+  for (const clip of ["run", "hit", "idle"]) {
+    const ms = b.info(tr.rig, clip).durationMs;
+    for (let k = 0; k < 8; k++) {
+      const box = drawnBox(b.rig, b.rig.samplePose(tr.rig, clip, (ms * k) / 8), dress, { x: 0, y: 0, facing: 1 });
+      m = Math.max(m, -box.x0, box.x1);
+    }
+  }
+  cache.set(key, m);
+  return m;
+}
+
+/** How far a pet at `at` can still move in direction `dir` and stay inside the camera's bout frame. */
+function petRoom(b: Builder, id: ActorId, at: number, dir: 1 | -1): number {
+  const span = homeSpan(b);
+  const m = petExtent(b, id);
+  const x = b.place(id, at).x;
+  return Math.max(0, dir === 1 ? span.x1 - m - x : x - (span.x0 + m));
 }
 
 /** A heal: a Teal "+N", a ring of small plus shapes for 400 ms, the HP bar fills over 200 ms. */

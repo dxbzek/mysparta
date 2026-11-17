@@ -8,8 +8,8 @@ import { hasTag, reachOf, weaponNumbers } from "../content/weapons";
 import type { Actor } from "./combatant";
 import { CAP, clampPct, valuesOf } from "./combatant";
 import type { Bout } from "./bout";
-import { allowance, armored, emit, firstAction, knockOut, land, opening, proc, scrapperOfSide, sortProcs, spent, tryDisarm, tryFree,
-  tryShield } from "./bout";
+import { allowance, armored, boosterProcs, due, emit, firstAction, knockOut, land, opening, pickProc, proc, scrapperOfSide, spent, tryDisarm,
+  tryFree, tryShield } from "./bout";
 import { shieldNumbers } from "../content/shields";
 import { roll } from "./rng";
 
@@ -93,13 +93,14 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   const r = b.r.hit.int(100);
   const evaded = !def.snared && r < ev;
   if (evaded) {
-    if (def.skills.has("slippery") && r >= evadeChance(att, def, 0, sk("slippery", "evade"), thrown)) {
+    if (def.skills.has("slippery") && due(b, def, "slippery", r >= evadeChance(att, def, 0, sk("slippery", "evade"), thrown))) {
       procs.push(proc(def, "slippery"));
     }
     // Sand in the Eyes: the swing missed only because the sand took the attacker's Aim.
     if (att.sand > 0 && r >= evadeChance(att, def, -att.sand, 0, thrown)) {
       procs.push(proc(scrapperOfSide(b, def.side), "sand-in-the-eyes"));
     }
+    boosterProcs(b, att, def, "evade", procs);
     return { outcome: "evade", damage: 0, crit: false, hpAfter: def.hp, procs, blocked: false };
   }
   if (seBonus > 0 && !def.snared && r < evadeChance(att, def, seBonus, 0, thrown)) wouldMiss = true;
@@ -109,10 +110,12 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   const blocked = !def.snared && rb < bl;
   if (blocked) {
     if (def.shield !== null) procs.push(proc(def, def.shield));
+    // Parry's Block decided the roll.
+    if (def.skills.has("parry") && rb >= blockChance(att, def, -sk("parry", "block"), thrown)) procs.push(proc(def, "parry"));
     return { outcome: "block", damage: 0, crit: false, hpAfter: def.hp, procs, blocked: true };
   }
   if (sePierce > 0 && !def.snared && rb < blockChance(att, def, sePierce, thrown)) wouldMiss = true;
-  if (wouldMiss) procs.push(proc(att, "sharp-eye"));
+  if (seBonus > 0 && due(b, att, "sharp-eye", wouldMiss)) procs.push(proc(att, "sharp-eye"));
 
   const variance = thrown ? roll(b.r.damage, 95, 125) : roll(b.r.damage, 85, 115);
   const critChance = Math.min(valuesOf(att).crit + (boosted ? sk("haymaker", "crit") : 0), CAP.crit);
@@ -122,14 +125,18 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   const armor = thrown ? null : valuesOf(def).armor;
   const full = damageOf(raw, variance, mult, crit, armor);
   // Number skills show where they changed the damage (no random number: the same hit, re-counted).
-  const left = allowance(b, def);
+  const big = crit || boosted;
+  const left = allowance(b, def, big);
   const cut = (d: number): number => (left === Infinity ? d : Math.max(1, Math.min(d, left)));
   const skill = damageSkill(att, thrown);
   if (skill !== null && cut(damageOf(raw, variance, damageMult(att, thrown, boosted, true), crit, armor)) !== cut(full)) {
     procs.push(proc(skill === "pet-lover" ? scrapperOfSide(b, att.side) : att, skill));
   }
   if (armor !== null) armorProcs(def, armor, (a) => cut(damageOf(raw, variance, mult, crit, a)), cut(full), procs);
-  const damage = opening(b, def, full);
+  boosterProcs(b, att, def, "hit", procs);
+  // Light Feet's Agility also adds to Thrown damage: it may name itself on its owner's landed throw.
+  if (thrown && att.scrapper && att.skills.has("light-feet")) procs.push(proc(att, "light-feet"));
+  const damage = opening(b, def, full, big);
   const hpAfter = land(def, damage, procs);
   return { outcome: "hit", damage, crit, hpAfter, procs, blocked: false };
 }
@@ -154,7 +161,7 @@ export function consequences(b: Bout, att: Actor, def: Actor, c: SwingCalc): voi
 function swingStep(t: "attack" | "intercept" | "riposte", b: Bout, att: Actor, def: Actor, c: SwingCalc): Step {
   const step = { t, turn: b.turn, actor: att.id, target: def.id, weapon: att.scrapper ? att.held : null,
     outcome: c.outcome, damage: c.damage, crit: c.crit, hpAfter: c.hpAfter } as Step & { procs?: Proc[] };
-  const p = sortProcs(c.procs);
+  const p = pickProc(b, c.procs);
   if (p !== undefined) step.procs = p;
   return step;
 }
@@ -183,10 +190,10 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
     const r = b.r.hit.int(100);
     if (r < chance) {
       const procs: Proc[] = [];
-      if (def.skills.has("anticipation") && r >= interceptChance(att, def, sk("anticipation", "intercept"))) {
+      if (def.skills.has("anticipation") && due(b, def, "anticipation", r >= interceptChance(att, def, sk("anticipation", "intercept")))) {
         procs.push(proc(def, "anticipation"));
       }
-      firstAction(att, procs);
+      firstAction(b, att, procs);
       const c = resolve(b, def, att, false, false, procs);
       emit(b, swingStep("intercept", b, def, att, c));
       consequences(b, def, att, c);
@@ -209,7 +216,11 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
   for (let n = 0; ; n++) {
     const procs: Proc[] = [];
     if (whyProc !== null) procs.push(whyProc);
-    if (n === 0) firstAction(att, procs);
+    if (n === 0) firstAction(b, att, procs);
+    // Bare Knuckle: its owner swings with fists on purpose (it opens with them); once a bout.
+    if (att.scrapper && att.held === "fists" && att.skills.has("bare-knuckle")) procs.push(proc(att, "bare-knuckle"));
+    // Light Feet's Agility also drives the combo chance: it may name itself on a combo swing.
+    if (why === "combo" && att.scrapper && att.skills.has("light-feet")) procs.push(proc(att, "light-feet"));
     const boosted = n === 0 && att.scrapper && att.haymaker;
     if (boosted) att.haymaker = false;
     const c = resolve(b, att, def, false, boosted, procs);
@@ -242,7 +253,7 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
     if (combos < MAX_COMBO) {
       const r = b.r.hit.int(100);
       if (r < combo) {
-        if (flurry > 0 && r >= comboNoFlurry) whyProc = proc(att, "flurry");
+        if (flurry > 0 && due(b, att, "flurry", r >= comboNoFlurry)) whyProc = proc(att, "flurry");
         combos += 1;
         combo = Math.floor(combo / 2);
         comboNoFlurry = Math.floor(comboNoFlurry / 2);
@@ -265,7 +276,7 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
       const taunt = def.taunt > 0 ? sk("taunt", "riposte") : 0;
       if (parried && r >= base) procs.push(proc(def, "parry"));
       else if (taunt > 0 && r >= clampPct(dv.riposte - taunt, CAP.riposte)) procs.push(proc(def, "taunt"));
-      else if (def.skills.has("payback") && r >= clampPct(dv.riposte - sk("payback", "riposte"), CAP.riposte)) {
+      else if (def.skills.has("payback") && due(b, def, "payback", r >= clampPct(dv.riposte - sk("payback", "riposte"), CAP.riposte))) {
         procs.push(proc(def, "payback"));
       }
       const c = resolve(b, def, att, false, false, procs);

@@ -33,7 +33,8 @@ export function previewCard(core: CoreApi, snap: FighterSnapshot, card: RouteCar
 export function cardTitle(card: RouteCard): string {
   if (card.kind === "stat") return UI.levelUp.statPlus(card.amount, STAT_NAME[card.stat]);
   if (card.kind === "split") return `${UI.levelUp.statPlus(1, STAT_NAME[card.stats[0]])}, ${UI.levelUp.statPlus(1, STAT_NAME[card.stats[1]])}`;
-  return perkText(card.perk).name;
+  const name = perkText(card.perk).name;
+  return card.plus === undefined ? name : `${name}, ${UI.levelUp.statPlus(1, STAT_NAME[card.plus])}`;
 }
 
 function StatIcon({ stat, size }: { stat: StatKey; size: number }) {
@@ -52,6 +53,7 @@ export function RouteCardFace({ card, preview, owned }: { card: RouteCard; previ
         <span className={css.faceName}>{t.name}</span>
         <span className={css.faceKind}>{t.kind}</span>
         <span className={css.faceLine}>{t.effect}</span>
+        {card.plus !== undefined ? <span className={css.faceName}>{UI.levelUp.statPlus(1, STAT_NAME[card.plus])}</span> : null}
         {t.costs.map((c) => <span key={c} className={`${css.faceLine} ${common.cost}`}>{c}</span>)}
         {need ? <span className={`${css.faceLine} ${common.note}`}>{need}</span> : null}
       </span>
@@ -82,11 +84,12 @@ export function RouteCardChip({ card, taken }: { card: RouteCard; taken: boolean
   if (card.kind === "perk") {
     const t = perkText(card.perk);
     return (
-      <span className={`${css.chip} ${taken ? css.chipTaken : css.chipNot}`} aria-label={`${label}: ${t.name}, ${t.rarityWord}`}>
+      <span className={`${css.chip} ${taken ? css.chipTaken : css.chipNot}`} aria-label={`${label}: ${cardTitle(card)}, ${t.rarityWord}`}>
         <PerkIcon id={card.perk} size={44} rarity />
         <span className={css.chipText}>
           <span className={css.chipName}>{t.name}</span>
           <span className={`${common.rarity} ${common[t.rarity]} ${css.raritySmall}`}>{t.rarityWord}</span>
+          {card.plus !== undefined ? <span className={css.chipName}>{UI.levelUp.statPlus(1, STAT_NAME[card.plus])}</span> : null}
         </span>
       </span>
     );

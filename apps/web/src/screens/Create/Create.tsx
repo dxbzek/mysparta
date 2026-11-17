@@ -181,6 +181,7 @@ function Reveal({ rec, onDone }: { rec: ScrapperRecord; onDone(): void }) {
         <div className={`${css.perk} ${css[`glow-${rarity}`] ?? ""}`} style={{ animationDelay: `${REVEAL_BAR_MS * 4}ms` }}>
           <p className={css.perkLabel}>{UI.create.startPerk}</p>
           <PerkRow id={sheet.startPerk} owned={sheet.perks} />
+          <PerkRow id={sheet.startSkill} owned={sheet.perks} />
         </div>
         <div className={css.revealAction}>
           {done ? (

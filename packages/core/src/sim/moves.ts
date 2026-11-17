@@ -11,18 +11,28 @@ import type { Actor } from "./combatant";
 import { valuesOf } from "./combatant";
 import type { Bout } from "./bout";
 import { armored, bagCopy, emit, opening, openingCut, enemiesUp, headStart, knockOut, land, pickEnemy, proc, scrapperOfSide,
-  sortProcs, tryDisarm, tryFree, tryShield } from "./bout";
+  pickProc, screenNow, tryDisarm, tryFree, tryShield, OPENING_TURNS } from "./bout";
 import { turnBase, turnCost } from "./clock";
 import { roll } from "./rng";
 import { armorProcs } from "./melee";
 
-export const MOVE_SLACK = 12;
+/** Was 12 (round-2 review): with Moves held back until the opening is over, a slack of 6 still
+ *  fires each owned Move in most bouts, mid-fight instead of on the owner's first turn. */
+export const MOVE_SLACK = 6;
 /** Taunt costs no time, so its owner acts again at once; the bonus lasts through that action and
  *  ends at the start of the owner's turn after it. */
 export const TAUNT_TURNS = 2;
 
+/** The Moves made with empty hands. */
+export const UNARMED_MOVES: ReadonlySet<MoveId> = new Set<MoveId>(["body-slam", "grapple", "snatch"]);
+
 /** Whether a Move's condition holds for `a` right now. */
 export function moveReady(b: Bout, a: Actor, id: MoveId): boolean {
+  // No Move in the opening (round-2 review): Moves fired on the owner's 1st-3rd turn, where the
+  // opening cut their damage to a jab's size, and then nothing happened for the rest of the bout.
+  // The unarmed Moves are the exception: empty hands are mostly a thing of the first turn, so they
+  // may still come then, and their hits use the opening's larger "big" allowance.
+  if (b.turn <= OPENING_TURNS && !UNARMED_MOVES.has(id)) return false;
   const enemies = enemiesUp(b, a);
   switch (id) {
     // A throw never uses the boost, so a Haymaker is not called while a Thrown weapon is in the hand.
@@ -85,8 +95,9 @@ function useUp(bag: BagItem[], id: MoveId): void {
 
 function moveStep(b: Bout, a: Actor, id: MoveId, procs: Proc[], extra: Partial<Extract<Step, { t: "move" }>>): Step {
   const step = { t: "move", turn: b.turn, actor: a.id, move: id, bagAfter: bagCopy(b.bag[a.side]), ...extra } as Step & { procs?: Proc[] };
-  const p = sortProcs(procs);
+  const p = pickProc(b, procs);
   if (p !== undefined) step.procs = p;
+  b.lastTag = screenNow(b);
   return step;
 }
 
@@ -95,7 +106,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
   const bag = b.bag[a.side];
   useUp(bag, id);
   const procs: Proc[] = [];
-  headStart(a, procs);
+  headStart(b, a, procs);
   const now = a.clock;
 
   switch (id) {
@@ -188,8 +199,9 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       const variance = roll(b.r.damage, 85, 115);
       const raw = Math.floor(((sk("body-slam", "base") + sk("body-slam", "perStrength") * a.str) * variance) / 100);
       const armor = valuesOf(target).armor;
-      armorProcs(target, armor, (x) => openingCut(b, target, armored(raw, x)), openingCut(b, target, armored(raw, armor)), procs);
-      const damage = opening(b, target, armored(raw, armor));
+      armorProcs(target, armor, (x) => openingCut(b, target, armored(raw, x), true), openingCut(b, target, armored(raw, armor), true),
+        procs);
+      const damage = opening(b, target, armored(raw, armor), true);
       const hpAfter = land(target, damage, procs);
       emit(b, moveStep(b, a, id, procs, { target: target.id, hits: [{ target: target.id, damage, hpAfter }] }));
       if (target.hp > 0) tryDisarm(b, a, target, "slam");
@@ -222,8 +234,8 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       const variance = roll(b.r.damage, 85, 115);
       const raw = Math.floor(((sk("grapple", "base") + sk("grapple", "perStrength") * a.str) * variance) / 100);
       const armor = valuesOf(foe).armor;
-      armorProcs(foe, armor, (x) => openingCut(b, foe, armored(raw, x)), openingCut(b, foe, armored(raw, armor)), procs);
-      const damage = opening(b, foe, armored(raw, armor));
+      armorProcs(foe, armor, (x) => openingCut(b, foe, armored(raw, x), true), openingCut(b, foe, armored(raw, armor), true), procs);
+      const damage = opening(b, foe, armored(raw, armor), true);
       const hpAfter = land(foe, damage, procs);
       emit(b, moveStep(b, a, id, procs, { target: foe.id, hits: [{ target: foe.id, damage, hpAfter }] }));
       if (foe.hp === 0) {

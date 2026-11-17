@@ -41,11 +41,11 @@ describe("content tables", () => {
   });
 
   it("matches spot values of the skill table", () => {
-    expect(SKILLS["big-heart"].tiers[0]).toEqual({ health: 3, healthMult: 30 });
+    expect(SKILLS["big-heart"].tiers[0]).toEqual({ health: 2, healthMult: 35 });
     expect(SKILLS.mountain.tiers[0]).toMatchObject({ healthMult: 150, agilityMult: -20, speedMult: -20, startClock: 150 });
     expect(SKILLS.parry.tiers[0]).toEqual({ block: 10, riposteAfterBlock: 80 });
     expect(SKILLS.haymaker.move).toEqual({ weight: 5, uses: 1 });
-    expect(SKILLS["body-slam"].tiers[0]).toMatchObject({ base: 18, perStrength: 3, extraCost: 100 });
+    expect(SKILLS["body-slam"].tiers[0]).toMatchObject({ base: 19, perStrength: 4, extraCost: 100 });
     expect(SKILLS.whistle.move).toEqual({ weight: 20, uses: 2 });
     expect(SKILLS.whistle.tiers[0]).toMatchObject({ belowHpPct: 90 });
   });
@@ -53,8 +53,8 @@ describe("content tables", () => {
   it("matches the companion table and its scaling", () => {
     // Pet pass (15 November 2026): level-1 values, grown by COMPANION_HP_GROWTH / COMPANION_STR_GROWTH.
     expect(COMPANIONS.raccoon).toMatchObject({ weight: 90, limit: 2, hpCostPct: 11, hp: 3, strength: 1, startClock: 10 });
-    expect(COMPANIONS.goose).toMatchObject({ weight: 5, limit: 1, excludes: ["boar"], hpCostPct: 22, combo: 30, evade: 25 });
-    expect(COMPANIONS.boar).toMatchObject({ weight: 5, limit: 1, excludes: ["goose"], hpCostPct: 25, hp: 7, strength: 2, startClock: 150 });
+    expect(COMPANIONS.goose).toMatchObject({ weight: 5, limit: 1, excludes: ["boar"], hpCostPct: 20, combo: 30, evade: 25 });
+    expect(COMPANIONS.boar).toMatchObject({ weight: 5, limit: 1, excludes: ["goose"], hpCostPct: 22, hp: 7, strength: 2, startClock: 150 });
     expect(COMPANIONS["stray-dog"]).toMatchObject({ limit: 1, excludes: ["alley-cat"], swings: 1, flies: false });
     expect(COMPANIONS.crow).toMatchObject({ limit: 1, swings: 1, flies: true });
     expect(COMPANIONS["alley-cat"]).toMatchObject({ limit: 1, excludes: ["stray-dog"], swings: 2, flies: false });
