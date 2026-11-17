@@ -160,7 +160,24 @@ function clearFallZone(b: Builder, fallen: ActorId, k: number, body: { x0: numbe
       x = back === 1 ? winner.x0 - OUTCOME.fallClear - r : winner.x1 + OUTCOME.fallClear + l;
     }
     x = Math.min(STAGE_W - r - 4, Math.max(l + 4, x));
-    edge = back === 1 ? x - l - OUTCOME.fallClear : x + r + OUTCOME.fallClear;
+    // never past a fighter, standing or falling, to get there: a pet on the far side of both clears
+    // to its own side of the body instead, off the stage's end if it must (level 30 n 268 under sim
+    // version 7: a boar waiting off the right end ran across the fallen body and the winner)
+    const fighters = b.actors.filter((f) => f.rig === "scrapper" && k >= f.showFrom && k < f.goneAt).map((f) => b.place(f.id, k).x);
+    const crosses = (to: number): boolean => fighters.some((fx) => (fx - q.x) * (fx - to) < 0);
+    const off = Math.min(l, r);
+    const own = q.x > (whole.x0 + whole.x1) / 2
+      ? Math.min(STAGE_W + off, Math.max(q.x, whole.x1 + OUTCOME.fallClear + l))
+      : Math.max(-off, Math.min(q.x, whole.x0 - OUTCOME.fallClear - r));
+    // (only when that spot is clear of the body: near the stage's end a pet the body falls on has
+    // no room there and takes the way toward the fight, as before)
+    const ownClear = own - l >= whole.x1 || own + r <= whole.x0;
+    if (crosses(x) && !crosses(own) && ownClear) {
+      if (Math.abs(own - q.x) < 0.5) continue;
+      x = own;
+    } else {
+      edge = back === 1 ? x - l - OUTCOME.fallClear : x + r + OUTCOME.fallClear;
+    }
     const ms = Math.max(120, Math.round((Math.abs(x - q.x) / MOVE.fleeSpeed) * 1000));
     b.face(tr.id, k, x < q.x ? -1 : 1);
     b.move(tr.id, k, ms, x, q.y, 0, "inOut");
@@ -199,7 +216,19 @@ export function clearLanding(b: Builder, by: number, body: { x0: number; x1: num
     const off = Math.min(l, r);
     const canL = homeLeft ? left >= -off : left >= edge;
     const canR = homeLeft ? right <= STAGE_W - edge : right <= STAGE_W + off;
-    const toLeft = canL && canR ? homeLeft : canL || (!canR && Math.abs(left - q.x) <= Math.abs(right - q.x));
+    // A side it can reach only by running past a fighter, standing or on the floor, is never taken
+    // (the merge of the stage and sim lanes: with its own side full, a raccoon ran from 278 to 147
+    // through both fighters, level 30 n 70, and back again after the get-up; 17 of 19 level-30 Body
+    // Slams with pets on stage under sim version 7). With no room on a side it can reach, it waits
+    // just off the stage's end there, out of sight, beside any pet already waiting.
+    const fighters = b.actors.filter((f) => f.rig === "scrapper" && from >= f.showFrom && from < f.goneAt)
+      .map((f) => b.place(f.id, from).x);
+    const crosses = (x: number): boolean => fighters.some((fx) => (fx - q.x) * (fx - x) < 0);
+    const reachL = !crosses(Math.min(left, q.x - 1));
+    const reachR = !crosses(Math.max(right, q.x + 1));
+    let toLeft = canL && canR ? homeLeft : canL || (!canR && Math.abs(left - q.x) <= Math.abs(right - q.x));
+    if (toLeft && !reachL && reachR) toLeft = false;
+    else if (!toLeft && !reachR && reachL) toLeft = true;
     const x = toLeft ? Math.max(-off, left) : Math.min(STAGE_W + off, right);
     if (toLeft) lo = x - l - OUTCOME.fallClear; else hi = x + r + OUTCOME.fallClear;
     const ms = Math.min(by - from, Math.max(120, Math.round((Math.abs(x - q.x) / MOVE.fleeSpeed) * 1000)));

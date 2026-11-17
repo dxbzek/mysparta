@@ -63,10 +63,8 @@ const BOUTS: readonly [number, number][] = [[30, 1], [3, 1], [30, 0], [30, 10], 
 const WIDE: readonly [number, number][] = [...BOUTS, [30, 6], [10, 9], [10, 8], [10, 12]];
 /** Under sim version 7 (round 2 sim lane) the reviewer's Body Slam (level 30 n 25) and Air Horn
  *  (n 10) scenes moved to other bouts: a Body Slam at a fighter with pets on stage (n 213), and an
- *  Air Horn that scares a pet off (n 29). Open, for the stage: in 17 of the 19 level-30 bouts up to
- *  n 421 with a Body Slam at a fighter and pets on stage, a pet that ran clear passes a fighter
- *  (its own owner, mostly) before the slammed one is up; n 70 and n 84 are kept under test in
- *  open-defects.test.ts. */
+ *  Air Horn that scares a pet off (n 29). The sweep of every level-30 bout with a Body Slam at a
+ *  fighter and pets on stage is in open-defects.test.ts. */
 const SLAM: [number, number] = [30, 213];
 const HORN: [number, number] = [30, 29];
 

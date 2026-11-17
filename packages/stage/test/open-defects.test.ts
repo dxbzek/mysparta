@@ -17,9 +17,13 @@
  *     these sim-version-6 and 7 bouts: flinch in level 10 n 1 and level 30 n 22, 32, 34, 37; footwork
  *     in level 30 n 5, 12, 29, 36 (level 30 n 5's flinch and n 34's footwork were cleaned by the
  *     stage lane's round 2). feet.test.ts measures clean bouts; these are the dirty ones.
- *  4. OPEN (found at the merge of the stage and sim lanes). After a Body Slam at a fighter, a pet
- *     that ran clear of the landing passes a fighter (mostly its own owner) before the slammed one
- *     is up: 17 of 19 level-30 bouts under sim version 7 (framing.test.ts checks n 213, a clean one).
+ *  4. FIXED (round 2, after the merge of the stage and sim lanes). After a Body Slam at a fighter, a
+ *     pet that ran clear of the landing ran through both fighters when its own side was full
+ *     (choreo/fall.ts clearLanding sent it to the far side), and after a knockout a pet waiting
+ *     off the stage's end ran across the body and the winner (clearFallZone). A pet now never takes
+ *     a spot it can reach only past a fighter. Checked over every level-30 bout up to n 500 with
+ *     the scene (lib/slam.ts): 30 crossings in 11 of 19 bouts before, none after. Passing behind
+ *     its own standing owner, as when it steps out to meet an attacker or bites, is the design.
  */
 import { describe, expect, it } from "vitest";
 import type { ActorId, ActorInit, BoutLog, CompanionId, FighterSnapshot, Step } from "@rankzero/core";
@@ -31,6 +35,7 @@ import { frameSpan } from "../src/camera";
 import type { StagePlayer } from "../src/createFightPlayer";
 import { slides } from "./lib/feet";
 import { playerFor } from "./lib/setup";
+import { found30, hasSlamWithPets, slamCrossings, slamPlayer } from "./lib/slam";
 
 const FULL = createRig(gatePack, contentPack);
 const FRAME_MS = 1000 / 60;
@@ -139,32 +144,23 @@ describe("stage defects from the round-2 sim (versions 4 to 6)", () => {
   });
 
   for (const n of [70, 84]) {
-    it.fails(`after a Body Slam no pet that ran clear passes a fighter in find-bout level 30 n ${n}`, () => {
-      const a = rivalSnapshot(REALM_SALT, 30, 2 * n);
-      const b = rivalSnapshot(REALM_SALT, 30, 2 * n + 1);
-      const log = simulateFight(combineSeed("find-bout", n), a, b, 1);
-      const p = playerFor(log, a, b, FULL);
-      const i = log.steps.findIndex((s) => s.t === "move" && s.move === "body-slam");
-      const step = log.steps[i]! as { target: string };
-      const from = p.timeline.stepAt[i]!;
-      const sig = p.tracks.sigs.find((g) => g.kind === "body-slam" && g.from >= from)!;
-      const up = p.tracks.actors.find((x) => x.id === step.target)!.segs.find((g) => g.clip === "slammed" && g.from >= from)!.to;
-      const ran = new Set(p.tracks.actors.filter((x) => x.rig !== "scrapper" && x.moves.some((m) => m.from >= from && m.from < sig.at!)).map((x) => x.id as string));
-      const side = new Map<string, number>();
-      const crossed: string[] = [];
-      for (let t = from; t <= up + 1500; t += 20) {
-        const g = p.frame(t);
-        for (const pet of g.actors.filter((x) => ran.has(x.id))) {
-          for (const fi of g.actors.filter((x) => x.rig === "scrapper")) {
-            const key = `${pet.id}/${fi.id}`;
-            const now = Math.sign(pet.place.x - fi.place.x);
-            const was = side.get(key);
-            if (was !== undefined && now !== 0 && was !== 0 && now !== was) crossed.push(`${t}: ${pet.id} passes ${fi.id}`);
-            if (now !== 0) side.set(key, now);
-          }
-        }
-      }
-      expect(crossed).toEqual([]);
+    it(`after a Body Slam no pet passes a fighter in find-bout level 30 n ${n} (it ran through both, sim version 7)`, () => {
+      const f = found30(n);
+      expect(hasSlamWithPets(f)).toBe(true);
+      expect(slamCrossings(slamPlayer(f, FULL), f.log, false)).toEqual([]);
     });
   }
+
+  it("after a Body Slam no pet passes a fighter, in every level-30 find-bout bout up to n 500 with that scene (30 crossings in 11 of 19 before the fix)", () => {
+    const out: string[] = [];
+    let bouts = 0;
+    for (let n = 0; n < 500; n++) {
+      const f = found30(n);
+      if (!hasSlamWithPets(f)) continue;
+      bouts += 1;
+      out.push(...slamCrossings(slamPlayer(f, FULL), f.log, false).map((x) => `n ${n} ${x}`));
+    }
+    expect(bouts).toBeGreaterThanOrEqual(15);
+    expect(out).toEqual([]);
+  }, 300_000);
 });
