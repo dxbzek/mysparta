@@ -117,7 +117,7 @@ Numbers are per rank; a node at rank r gives r times each.
 | Arsenal | 2 | Fast Swap | 2 | a turn in which its owner drew or swapped costs 10% less time (after Quick Swap's cut) |
 | Arsenal | 3 | Steel Guard | 2 | Block +5 while a weapon is held |
 | Arsenal | cap | **Fresh Steel** | 1 | the first swing with a weapon just drawn or swapped in (not a throw) has damage +30% and cannot be blocked |
-| Thrower | 1 | Strong Arm | 3 | damage of a throw +10% |
+| Thrower | 1 | Strong Arm | 3 | damage of a throw +8% |
 | Thrower | 1 | Sidearm | 3 | the chance a melee weapon is thrown +5 (with any base: 20, 5, Pitcher's or Junk Collector's) |
 | Thrower | 2 | Dead Eye | 3 | Aim +8 on a throw (before the halving) |
 | Thrower | 2 | Bank Shot | 2 | a landed throw of a weapon that stays in the hand bounces on to a random standing enemy 15% of the time, once a turn; added to Trick Shot's 50 (its tag only when Trick Shot is owned) |

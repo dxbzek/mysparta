@@ -61,7 +61,7 @@ const PER: Readonly<Record<TalentId, Readonly<Record<string, number>>>> = {
   "steel-guard": { block: 5 },
   "fresh-steel": { freshDmg: 30 },
   // Thrower: throwing chance and damage, ricochets, catching
-  "strong-arm": { thrownDmg: 10 },
+  "strong-arm": { thrownDmg: 8 },
   "sidearm": { throwChance: 5 },
   "dead-eye": { thrownAim: 8 },
   "bank-shot": { ricochet: 15 },

@@ -63,7 +63,7 @@ const quick = args.includes("--quick");
 const div = quick ? 10 : 1;
 const PAIRS = Math.floor(Number(opt("--pairs") ?? 40000) / div);
 const PER_PERK = Math.floor(Number(opt("--per-perk") ?? 4000) / div);
-const LEVELS = (opt("--levels") ?? "2,3,5,10,30").split(",").map(Number);
+const LEVELS = (opt("--levels") ?? "2,3,5,10,30").split(",").filter((x) => x !== "").map(Number);
 const POLICY_LEVELS = (opt("--policy-levels") ?? "5,10,20,30").split(",").filter((x) => x !== "").map(Number);
 const POLICY_SEEDS = Math.floor(Number(opt("--policy-seeds") ?? 2000) / div);
 const POLICY_BAND = 5;

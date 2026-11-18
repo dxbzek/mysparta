@@ -34,5 +34,7 @@
  *   9: content v3, batch 2 (18 November 2026): body equipment (30 pieces, docs/RULES.md 6c) worn by
  *      rivals and by the loadout, gear cards on the Route (14% of perk cards, each with +1 stat
  *      point), rivals take the default loadout.
+ *  10: content v3, batch 3 (19 November 2026): the talent tree (docs/RULES.md 3c): 30 node rules,
+ *      rivals spend their points down one branch that fits their kit, capstone tags.
  */
-export const SIM_VERSION = 9;
+export const SIM_VERSION = 10;

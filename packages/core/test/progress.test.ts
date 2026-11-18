@@ -287,10 +287,13 @@ describe("rivals", () => {
         const perks = s.perks.length - 2;
         const boosterPoints = s.perks.reduce((a, p) => a + (skillOf(p) === undefined ? 0
           : ["health", "strength", "agility", "speed", "toughness", "precision"].reduce((b, k) => b + (skillOf(p)!.tiers[0][k] ?? 0), 0)), 0);
+        // (and the stat talents' points, content v3 batch 3: Gym Rat's Strength, Thick Skin's Toughness)
+        const talentPoints = (s.talents?.["gym-rat"] ?? 0) * api.content.talents["gym-rat"].per.strength!
+          + (s.talents?.["thick-skin"] ?? 0) * api.content.talents["thick-skin"].per.toughness!;
         const others = level - 1 - perks;
         expect(others).toBeGreaterThanOrEqual(0);
-        expect(pts - 20 - boosterPoints).toBeGreaterThanOrEqual(2 * others);
-        expect(pts - 20 - boosterPoints).toBeLessThanOrEqual(3 * others + perks);
+        expect(pts - 20 - boosterPoints - talentPoints).toBeGreaterThanOrEqual(2 * others);
+        expect(pts - 20 - boosterPoints - talentPoints).toBeLessThanOrEqual(3 * others + perks);
       }
     }
   });
