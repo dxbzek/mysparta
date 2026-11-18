@@ -13,7 +13,7 @@ import { api } from "../src/api";
 import { COMPANIONS } from "../src/content/companions";
 import { FIRST_PARTS, SECOND_PARTS } from "../src/content/names";
 import { SKILLS } from "../src/content/skills";
-import { allowed, perkChance, rollPerk } from "../src/progress/perks";
+import { GEAR_CARD_PCT, allowed, perkChance, rollPerk } from "../src/progress/perks";
 import { startPerk } from "../src/progress/create";
 import { startStats, effectiveOf, maxHpOf } from "../src/progress/stats";
 import { perkCardPlus, statCardAmount, walk } from "../src/progress/route";
@@ -173,7 +173,10 @@ describe("the Route", () => {
       expect(sheet.perks).toEqual(perks);
       const boosterPoints = perks.reduce((a, p) => a + (skillOf(p) === undefined ? 0
         : ["health", "strength", "agility", "speed", "toughness", "precision"].reduce((b, k) => b + (skillOf(p)!.tiers[0][k] ?? 0), 0)), 0);
-      expect(Object.values(sheet.stats.points).reduce((a, b) => a + b, 0)).toBe(points + boosterPoints);
+      // (the sheet's stats are the bout's snapshot's: the worn gear's points are in them)
+      const gearPoints = Object.values(sheet.loadout.gear).reduce((a, g) => a + ["health", "strength", "agility", "speed", "toughness", "precision"]
+        .reduce((b, k) => b + (api.content.gear[g!].tiers[0][k as "health"] ?? 0), 0), 0);
+      expect(Object.values(sheet.stats.points).reduce((a, b) => a + b, 0)).toBe(points + boosterPoints + gearPoints);
     }
   });
   it("never offers a perk the kit cannot take", () => {
@@ -231,12 +234,22 @@ describe("rarity", () => {
       return (4 / 100) * (petW[id]! / 160);
     };
     let sum = 0;
-    for (const id of PERK_IDS) {
+    // (gear is not on the perk roll: a gear card has a roll of its own, GEAR_CARD_PCT of perk cards)
+    for (const id of PERK_IDS.filter((p) => perkKind(p) !== "gear")) {
       const c = perkChance(id);
       expect(c.num / c.den).toBeCloseTo(want(id), 15);
       sum += c.num / c.den;
     }
     expect(sum).toBeCloseTo(1, 12);
+    const gearIds = PERK_IDS.filter((p) => perkKind(p) === "gear");
+    const gearTotal = gearIds.reduce((a, p) => a + RARITY_WEIGHT[RARITY_OF[p]], 0);
+    let gearSum = 0;
+    for (const id of gearIds) {
+      const c = perkChance(id);
+      expect(c.num / c.den).toBeCloseTo((GEAR_CARD_PCT / 100) * (RARITY_WEIGHT[RARITY_OF[id]] / gearTotal), 15);
+      gearSum += c.num / c.den;
+    }
+    expect(gearSum).toBeCloseTo(GEAR_CARD_PCT / 100, 12);
     // Spot figures of content v2 (the brief's were 4.1%, 5.0% and 3.6% with the first lists).
     expect(perkChance("padding").num / perkChance("padding").den).toBeCloseTo(0.0315, 3);
     expect(perkChance("pipe").num / perkChance("pipe").den).toBeCloseTo(0.0293, 3);
@@ -248,7 +261,7 @@ describe("rarity", () => {
     const counts = new Map<PerkId, number>();
     const rng = makeRng(combineSeed("rarity", 1));
     for (let i = 0; i < N; i++) { const id = rollPerk(rng); counts.set(id, (counts.get(id) ?? 0) + 1); }
-    for (const id of PERK_IDS) {
+    for (const id of PERK_IDS.filter((p) => perkKind(p) !== "gear")) {
       const c = perkChance(id);
       const p = c.num / c.den;
       const sd = Math.sqrt(N * p * (1 - p));

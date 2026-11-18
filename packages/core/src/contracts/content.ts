@@ -5,7 +5,7 @@
  * one copy of every identity fact. Lookups by raw string from a save warn once and fall back.
  * They never throw.
  */
-import type { CompanionId, HeldId, PerkId, ShieldId, SkillId } from "./ids";
+import type { CompanionId, GearId, GearSlot, HeldId, PerkId, ShieldId, SkillId } from "./ids";
 
 export type Rarity = "common" | "uncommon" | "rare" | "epic" | "mythic";
 export type WeaponTag = "light" | "heavy" | "pole" | "thrown" | "blade";
@@ -38,6 +38,73 @@ export interface CompanionDef { id: CompanionId; rarity: Rarity /* label only */
 export interface ShieldNumbers { block: number; thrownBlock: number; armor: number; riposte: number;
   damage: number; tempo: number; knock: number }
 export interface ShieldDef { id: ShieldId; rarity: Rarity; tiers: readonly [ShieldNumbers] }
+
+/**
+ * The numbers of one piece of body equipment while it is worn (content v3, batch 2). Whole numbers,
+ * each optional (absent = 0). One small bonus, sometimes a small cost (docs/RULES.md 6c).
+ *  health strength agility speed toughness precision
+ *               stat points, added to the snapshot's stats when a bout's snapshot is made (the sim
+ *               never adds them again, like a booster's)
+ *  evade block aim pierce intercept riposte combo disarm crit armor grip
+ *               added to the derived value of that name while worn
+ *  headTough    Toughness added for the soak of a crit taken (a crit is a clean blow to the head)
+ *  critCut      percent cut from the half a crit adds to a hit taken (x1.5 becomes x(1.5 - critCut/100))
+ *  sandProof    1: Sand in the Eyes takes no Aim from the wearer
+ *  petEvade     Evade added against a companion's swing
+ *  fistDmg      percent added to the damage multiplier of a swing with fists
+ *  snatchResist percent chance to keep the weapon when a Snatch takes it
+ *  thrownBlock  Block added against a throw only, after the throw halving
+ *  moveSoak     HP taken off a Body Slam or a Grapple hit taken (never below 1)
+ *  drawEase     taken off the 6 of the empty-hand draw `S / (S + 6)` (not with Quick Swap or Bare Knuckle)
+ *  petSoak      HP taken off every hit of a companion's swing taken (never below 1)
+ *  snareCut     a Tarp's snare on the wearer lasts this many skipped turns fewer (at least 1)
+ *  startClock   added to the start clock (a minus starts sooner) */
+export type GearKey = "health" | "strength" | "agility" | "speed" | "toughness" | "precision"
+  | "evade" | "block" | "aim" | "pierce" | "intercept" | "riposte" | "combo" | "disarm" | "crit" | "armor" | "grip"
+  | "headTough" | "critCut" | "sandProof" | "petEvade" | "fistDmg" | "snatchResist" | "thrownBlock" | "moveSoak"
+  | "drawEase" | "petSoak" | "snareCut" | "startClock";
+export type GearNumbers = Readonly<Partial<Record<GearKey, number>>>;
+export interface GearDef { id: GearId; slot: GearSlot; rarity: Rarity; tiers: readonly [GearNumbers] }
+/** What must be known about a piece of gear before any number table exists: its slot, its rarity
+ *  colour, and what the real object is and where it sits on the body. Identity only. */
+export interface GearMeta { slot: GearSlot; rarity: Rarity; look: string }
+export const GEAR_META: Readonly<Record<GearId, GearMeta>> = {
+  // head (on the head bone)
+  "bandana":          { slot: "head",  rarity: "common",   look: "a cloth band knotted round the brow, the tails hanging at the back" },
+  "beanie":           { slot: "head",  rarity: "common",   look: "a knitted cap pulled over the crown, a folded cuff over the brow" },
+  "hard-hat":         { slot: "head",  rarity: "uncommon", look: "a yellow builder's hard hat with a ridge and a short brim" },
+  "goggles":          { slot: "head",  rarity: "uncommon", look: "work goggles over the eyes, a strap round the head" },
+  "welding-mask":     { slot: "head",  rarity: "rare",     look: "a dark welding mask over the face with a narrow viewing slot, hinged at the temples" },
+  "motorbike-helmet": { slot: "head",  rarity: "epic",     look: "a full-face motorbike helmet with a dark visor and a chin bar" },
+  // torso (on the torso bone)
+  "work-vest":        { slot: "torso", rarity: "common",   look: "a canvas work vest with chest pockets over the shirt" },
+  "hi-vis-vest":      { slot: "torso", rarity: "common",   look: "an orange high-visibility vest with two silver bands" },
+  "padded-jacket":    { slot: "torso", rarity: "uncommon", look: "a puffy quilted jacket, the quilting in rows" },
+  "leather-jacket":   { slot: "torso", rarity: "uncommon", look: "a black leather jacket, open, with a zip and a collar" },
+  "hockey-chest-pad": { slot: "torso", rarity: "rare",     look: "a hard hockey chest protector over the shirt, plates on the chest and shoulders" },
+  "tyre-rubber-vest": { slot: "torso", rarity: "epic",     look: "a vest cut from old tyre rubber, tread on the outside, laced at the sides" },
+  // hands (on both hand bones)
+  "work-gloves":      { slot: "hands", rarity: "common",   look: "tan leather work gloves with a cuff" },
+  "taped-fists":      { slot: "hands", rarity: "common",   look: "white tape wound round the knuckles and wrists" },
+  "rubber-gloves":    { slot: "hands", rarity: "uncommon", look: "long yellow rubber washing-up gloves up the forearm" },
+  "fingerless-gloves":{ slot: "hands", rarity: "uncommon", look: "black fingerless gloves, the fingertips bare" },
+  "oven-mitts":       { slot: "hands", rarity: "rare",     look: "big padded oven mitts, a thumb and a mitten, checked cloth" },
+  "welding-gloves":   { slot: "hands", rarity: "epic",     look: "heavy suede welding gauntlets up to the mid forearm" },
+  // legs (on the thigh and shin bones)
+  "ripped-jeans":     { slot: "legs",  rarity: "common",   look: "blue jeans torn open at the knees" },
+  "cargo-pants":      { slot: "legs",  rarity: "common",   look: "khaki cargo trousers with a big pocket on each thigh" },
+  "knee-pads":        { slot: "legs",  rarity: "uncommon", look: "hard knee pads strapped over the knees" },
+  "track-pants":      { slot: "legs",  rarity: "uncommon", look: "track trousers with two stripes down the side" },
+  "magazine-shin-guards": { slot: "legs", rarity: "rare",  look: "rolled magazines taped round both shins as guards" },
+  "overalls":         { slot: "legs",  rarity: "epic",     look: "denim work overalls, the bib up the chest on two straps" },
+  // feet (on the foot bones)
+  "sneakers":         { slot: "feet",  rarity: "common",   look: "white sneakers with a coloured stripe and laces" },
+  "flip-flops":       { slot: "feet",  rarity: "common",   look: "rubber flip-flops, bare toes and a thong strap" },
+  "rain-boots":       { slot: "feet",  rarity: "uncommon", look: "green rubber rain boots up the calf" },
+  "skate-shoes":      { slot: "feet",  rarity: "uncommon", look: "flat chunky skate shoes with a thick sole" },
+  "steel-toe-boots":  { slot: "feet",  rarity: "rare",     look: "brown work boots laced up the ankle, a scuffed steel toe cap" },
+  "slippers":         { slot: "feet",  rarity: "epic",     look: "fluffy house slippers" },
+};
 
 /** Roll weight of one item inside its category. Common to Mythic is 200 to 1. */
 export const RARITY_WEIGHT: Readonly<Record<Rarity, number>> = {
@@ -254,6 +321,17 @@ export const RARITY_OF: Readonly<Record<PerkId, Rarity>> = {
   // shields (the same words as SHIELD_META)
   "car-door": "uncommon", "bin-lid": "common", "wooden-pallet": "uncommon", "ironing-board": "rare",
   "skateboard": "rare", "riot-shield": "epic",
+  // gear (the same words as GEAR_META: 10 common, 10 uncommon, 5 rare, 5 epic)
+  "bandana": "common", "beanie": "common", "hard-hat": "uncommon", "goggles": "uncommon", "welding-mask": "rare",
+  "motorbike-helmet": "epic",
+  "work-vest": "common", "hi-vis-vest": "common", "padded-jacket": "uncommon", "leather-jacket": "uncommon",
+  "hockey-chest-pad": "rare", "tyre-rubber-vest": "epic",
+  "work-gloves": "common", "taped-fists": "common", "rubber-gloves": "uncommon", "fingerless-gloves": "uncommon",
+  "oven-mitts": "rare", "welding-gloves": "epic",
+  "ripped-jeans": "common", "cargo-pants": "common", "knee-pads": "uncommon", "track-pants": "uncommon",
+  "magazine-shin-guards": "rare", "overalls": "epic",
+  "sneakers": "common", "flip-flops": "common", "rain-boots": "uncommon", "skate-shoes": "uncommon",
+  "steel-toe-boots": "rare", "slippers": "epic",
 };
 
 /** Sound family of a held item: fists and knuckle-dusters "fist", a Blade tag "blade", the rest

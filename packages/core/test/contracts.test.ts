@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import {
-  COMPANION_IDS, CONTRACT_REV, LOG_VERSION, LOOK_SPACE, MOVE_IDS, PERK_IDS, RARITY_OF, RARITY_WEIGHT,
+  COMPANION_IDS, CONTRACT_REV, GEAR_IDS, GEAR_META, GEAR_SLOTS, isGearId, LOG_VERSION, LOOK_SPACE, MOVE_IDS, PERK_IDS, RARITY_OF, RARITY_WEIGHT,
   RIVALS_PER_LEVEL, RULES_VERSION, SHIELD_IDS, SHIELD_META, SKILL_IDS, STAGE_IDS, STEP_TYPES, WEAPON_IDS, WEAPON_META,
   checkLog, hpPercent, impactFamily, initialState, isCompanionId, isMoveId, isPerkId, isProcId, isShieldId, isSkillId,
   isStageId, isWeaponId, killStep, perkKind, reduce, resultOf, stageFor, stateAt,
@@ -44,8 +44,8 @@ describe("ids", () => {
   });
 
   it("has no id in two lists and no id twice in one list", () => {
-    const all: string[] = [...WEAPON_IDS, ...SKILL_IDS, ...COMPANION_IDS, ...SHIELD_IDS];
-    expect(new Set(all).size).toBe(92);
+    const all: string[] = [...WEAPON_IDS, ...SKILL_IDS, ...COMPANION_IDS, ...SHIELD_IDS, ...GEAR_IDS];
+    expect(new Set(all).size).toBe(122);
     expect(new Set(SHIELD_IDS).size).toBe(SHIELD_IDS.length);
     expect(new Set(WEAPON_IDS).size).toBe(WEAPON_IDS.length);
     expect(new Set(SKILL_IDS).size).toBe(SKILL_IDS.length);
@@ -63,9 +63,14 @@ describe("ids", () => {
     for (const id of PERK_IDS) expect(id).toMatch(/^[a-z]+(-[a-z]+)*$/);
   });
 
-  it("lists 92 perks and sorts each into its kind", () => {
-    expect(PERK_IDS.length).toBe(92);
-    expect(new Set(PERK_IDS).size).toBe(92);
+  it("lists 122 perks and sorts each into its kind", () => {
+    expect(PERK_IDS.length).toBe(122);
+    expect(new Set(PERK_IDS).size).toBe(122);
+    // body equipment (content v3, batch 2): 30 pieces, six in each of the five slots, never a proc
+    expect(GEAR_IDS.length).toBe(30);
+    for (const slot of GEAR_SLOTS) expect(GEAR_IDS.filter((g) => GEAR_META[g].slot === slot).length).toBe(6);
+    for (const id of GEAR_IDS) { expect(perkKind(id)).toBe("gear"); expect(isGearId(id)).toBe(true); expect(isProcId(id)).toBe(false); }
+    expect(isGearId("pipe")).toBe(false);
     for (const id of SHIELD_IDS) { expect(perkKind(id)).toBe("shield"); expect(isShieldId(id)).toBe(true); expect(isProcId(id)).toBe(true); }
     for (const id of SKILL_IDS) expect(isProcId(id)).toBe(true);
     expect(isProcId("pipe")).toBe(false);
@@ -78,10 +83,10 @@ describe("ids", () => {
     expect(isPerkId("not-a-perk")).toBe(false);
   });
 
-  it("is at contract rev 7 (content v3) and log version 2; the rules version stays 1", () => {
+  it("is at contract rev 8 (content v3, batch 2) and log version 2; the rules version stays 1", () => {
     expect(RULES_VERSION).toBe(1);
     expect(LOG_VERSION).toBe(2);
-    expect(CONTRACT_REV).toBe(7);
+    expect(CONTRACT_REV).toBe(8);
     expect(RIVALS_PER_LEVEL).toBe(240);
   });
 });
@@ -136,7 +141,8 @@ describe("identity tables", () => {
     expect(Object.keys(WEAPON_META).sort()).toEqual([...WEAPON_IDS, "fists"].sort());
   });
 
-  it("RARITY_OF has 92 entries, one per perk", () => {
+  it("RARITY_OF has 122 entries, one per perk, gear as GEAR_META says", () => {
+    for (const id of GEAR_IDS) expect(RARITY_OF[id]).toBe(GEAR_META[id].rarity);
     expect(Object.keys(RARITY_OF).sort()).toEqual([...PERK_IDS].sort());
     for (const id of PERK_IDS) expect(rarities).toContain(RARITY_OF[id]);
   });

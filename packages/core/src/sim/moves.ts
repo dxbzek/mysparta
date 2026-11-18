@@ -8,7 +8,7 @@ import type { MoveId, WeaponId } from "../contracts/ids";
 import { SKILLS, sk } from "../content/skills";
 import { hasTag } from "../content/weapons";
 import type { Actor } from "./combatant";
-import { valuesOf } from "./combatant";
+import { gearOf, valuesOf } from "./combatant";
 import type { Bout } from "./bout";
 import { armored, bagCopy, emit, opening, openingCut, enemiesUp, headStart, knockOut, land, pickEnemy, proc, scrapperOfSide,
   pickProc, screenNow, tryDisarm, tryFree, tryShield, OPENING_TURNS } from "./bout";
@@ -101,6 +101,12 @@ function moveStep(b: Bout, a: Actor, id: MoveId, procs: Proc[], extra: Partial<E
   return step;
 }
 
+/** Knee Pads (gear): HP off a Body Slam or a Grapple hit taken, never below 1. */
+function moveSoaked(target: Actor, d: number): number {
+  const s = gearOf(target, "moveSoak");
+  return s > 0 ? Math.max(1, d - s) : d;
+}
+
 /** Plays a Move and returns its time cost in beats. */
 export function playMove(b: Bout, a: Actor, id: MoveId): number {
   const bag = b.bag[a.side];
@@ -132,7 +138,8 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       emit(b, moveStep(b, a, id, procs, { target: target.id }));
       target.snared = true;
       target.snareSkips = 0;
-      target.snareLimit = sk("tarp", "skips");
+      // Rain Boots (gear): the tarp slides off sooner.
+      target.snareLimit = Math.max(1, sk("tarp", "skips") - gearOf(target, "snareCut"));
       emit(b, { t: "snare", turn: b.turn, actor: a.id, target: target.id });
       return Math.floor((turnBase(a, a.held) * sk("tarp", "costPct")) / 100);
     }
@@ -173,6 +180,12 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
         emit(b, moveStep(b, a, id, procs, { target: foe.id }));
         return sk("snatch", "cost");
       }
+      // Rubber Gloves (gear): the weapon slips out of the snatching hand (no tag).
+      const slip = gearOf(foe, "snatchResist");
+      if (slip > 0 && b.r.disarm.int(100) < slip) {
+        emit(b, moveStep(b, a, id, procs, { target: foe.id }));
+        return sk("snatch", "cost");
+      }
       foe.held = "fists";
       foe.heldAttacked = false;
       a.held = weapon;
@@ -199,9 +212,10 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       const variance = roll(b.r.damage, 85, 115);
       const raw = Math.floor(((sk("body-slam", "base") + sk("body-slam", "perStrength") * a.str) * variance) / 100);
       const armor = valuesOf(target).armor;
-      armorProcs(target, armor, (x) => openingCut(b, target, armored(raw, x), true), openingCut(b, target, armored(raw, armor), true),
+      const pad = (d: number): number => moveSoaked(target, d);
+      armorProcs(target, armor, (x) => openingCut(b, target, pad(armored(raw, x)), true), openingCut(b, target, pad(armored(raw, armor)), true),
         procs);
-      const damage = opening(b, target, armored(raw, armor), true);
+      const damage = opening(b, target, pad(armored(raw, armor)), true);
       const hpAfter = land(target, damage, procs);
       emit(b, moveStep(b, a, id, procs, { target: target.id, hits: [{ target: target.id, damage, hpAfter }] }));
       if (target.hp > 0) tryDisarm(b, a, target, "slam");
@@ -212,7 +226,8 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
     }
     case "sand-in-the-eyes": {
       const foe = scrapperOfSide(b, a.side === "a" ? "b" : "a");
-      foe.sand = sk("sand-in-the-eyes", "aimLoss");
+      // Goggles (gear): the sand takes no Aim.
+      foe.sand = gearOf(foe, "sandProof") > 0 ? 0 : sk("sand-in-the-eyes", "aimLoss");
       emit(b, moveStep(b, a, id, procs, { target: foe.id }));
       return Math.floor((turnBase(a, a.held) * sk("sand-in-the-eyes", "costPct")) / 100);
     }
@@ -234,8 +249,9 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       const variance = roll(b.r.damage, 85, 115);
       const raw = Math.floor(((sk("grapple", "base") + sk("grapple", "perStrength") * a.str) * variance) / 100);
       const armor = valuesOf(foe).armor;
-      armorProcs(foe, armor, (x) => openingCut(b, foe, armored(raw, x), true), openingCut(b, foe, armored(raw, armor), true), procs);
-      const damage = opening(b, foe, armored(raw, armor), true);
+      const pad = (d: number): number => moveSoaked(foe, d);
+      armorProcs(foe, armor, (x) => openingCut(b, foe, pad(armored(raw, x)), true), openingCut(b, foe, pad(armored(raw, armor)), true), procs);
+      const damage = opening(b, foe, pad(armored(raw, armor)), true);
       const hpAfter = land(foe, damage, procs);
       emit(b, moveStep(b, a, id, procs, { target: foe.id, hits: [{ target: foe.id, damage, hpAfter }] }));
       if (foe.hp === 0) {

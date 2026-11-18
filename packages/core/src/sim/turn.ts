@@ -6,6 +6,7 @@ import type { HeldId, WeaponId } from "../contracts/ids";
 import { sk } from "../content/skills";
 import { hasTag, weaponNumbers } from "../content/weapons";
 import type { Actor } from "./combatant";
+import { gearOf } from "./combatant";
 import type { Bout } from "./bout";
 import { bagCopy, emit, knockOut, pickEnemy } from "./bout";
 import { turnCost } from "./clock";
@@ -30,7 +31,8 @@ export function swapChance(a: Actor): number {
  *  are owned). */
 export function drawSlack(a: Actor): number {
   if (a.skills.has("quick-swap")) return sk("quick-swap", "drawSlack");
-  return a.skills.has("bare-knuckle") ? sk("bare-knuckle", "drawSlack") : DRAW_SLACK;
+  // Cargo Pants (gear): the next weapon is close to hand.
+  return a.skills.has("bare-knuckle") ? sk("bare-knuckle", "drawSlack") : Math.max(1, DRAW_SLACK - gearOf(a, "drawEase"));
 }
 
 /** Picks a weapon out of the bag by Draw weight with chance S / (S + slack). One random number. */

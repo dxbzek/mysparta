@@ -4,7 +4,7 @@
  * fraction (see perkChance).
  */
 import type { CompanionId, PerkId, SkillId, WeaponId } from "../contracts/ids";
-import { COMPANION_IDS, SHIELD_IDS, SKILL_IDS, WEAPON_IDS, isCompanionId, isShieldId, perkKind } from "../contracts/ids";
+import { COMPANION_IDS, GEAR_IDS, SHIELD_IDS, SKILL_IDS, WEAPON_IDS, isCompanionId, isShieldId, perkKind } from "../contracts/ids";
 import type { PerkKind } from "../contracts/ids";
 import { RARITY_OF, RARITY_WEIGHT } from "../contracts/content";
 import type { Rng } from "../prng";
@@ -12,8 +12,9 @@ import { COMPANIONS } from "../content/companions";
 import { SKILLS } from "../content/skills";
 import { hasTag } from "../content/weapons";
 
-/** Category roll out of 100: weapon 44, skill 46, shield 6, companion 4 (content v2). */
-export const CATEGORY_PCT: Readonly<Record<PerkKind, number>> = { weapon: 44, skill: 46, shield: 6, companion: 4 };
+/** Category roll out of 100: weapon 44, skill 46, shield 6, companion 4 (content v2). Gear is not
+ *  on this roll: a gear card has a roll of its own (`GEAR_CARD_PCT`, route.ts). */
+export const CATEGORY_PCT: Readonly<Record<PerkKind, number>> = { weapon: 44, skill: 46, shield: 6, companion: 4, gear: 0 };
 /** Order of the categories on the roll. */
 const CATEGORY_ORDER: readonly PerkKind[] = ["weapon", "skill", "shield", "companion"];
 /** A kit owns this many weapons at most (round-2 review). */
@@ -33,7 +34,16 @@ const POOLS: Readonly<Record<PerkKind, Pool>> = {
   skill: pool(SKILL_IDS, (id) => RARITY_WEIGHT[RARITY_OF[id]]),
   companion: pool(COMPANION_IDS, (id) => COMPANIONS[id as CompanionId].weight),
   shield: pool(SHIELD_IDS, (id) => RARITY_WEIGHT[RARITY_OF[id]]),
+  gear: pool(GEAR_IDS, (id) => RARITY_WEIGHT[RARITY_OF[id]]),
 };
+
+/** A perk card is a gear card this often (content v3, batch 2): a roll on a stream of its own,
+ *  `(seed, "gear", level-up, picks so far)`, so the other cards of a level-up stay as they were. */
+export const GEAR_CARD_PCT = 18;
+/** One piece of gear by rarity weight (one random number). */
+export function rollGear(rng: Rng): PerkId {
+  return pickWeighted(POOLS.gear, rng.int(POOLS.gear.total));
+}
 
 function pickWeighted(p: Pool, r: number): PerkId {
   let left = r;
@@ -63,6 +73,10 @@ export function rollPerk(rng: Rng, weaponPct: number = CATEGORY_PCT.weapon): Per
 /** The exact chance that one roll gives this perk, as a fraction num / den. */
 export function perkChance(id: PerkId): { num: number; den: number } {
   const kind = perkKind(id);
+  if (kind === "gear") {
+    const at = POOLS.gear.ids.indexOf(id);
+    return { num: GEAR_CARD_PCT * (at < 0 ? 0 : POOLS.gear.weights[at]!), den: 100 * POOLS.gear.total };
+  }
   const p = POOLS[kind];
   const at = p.ids.indexOf(id);
   return { num: CATEGORY_PCT[kind] * (at < 0 ? 0 : p.weights[at]!), den: 100 * p.total };

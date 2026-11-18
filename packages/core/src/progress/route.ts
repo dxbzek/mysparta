@@ -5,7 +5,7 @@
 import type { KitBase, Pick as Side2, RouteCard, RouteNode, StatBlock, StatKey } from "../contracts/fighter";
 import type { PerkId } from "../contracts/ids";
 import { combineSeed, makeRng } from "../prng";
-import { allowed, rollPerk, weaponShare } from "./perks";
+import { GEAR_CARD_PCT, allowed, fits, rollGear, rollPerk, weaponShare } from "./perks";
 import { startPerk, startSkill } from "./create";
 import { STAT_KEYS, applyCardToStats, applyPerkToStats, draftOf, freeze, startStats } from "./stats";
 
@@ -66,8 +66,13 @@ export function statCardAmount(statCards: number): number {
 }
 
 /** The two cards of node `k` (k = 0 is the first level-up) for a kit that owns `owned` and has taken
- *  `statCards` stat cards and `perkCards` perk cards. */
-function nodeCards(seed: number, k: number, prefix: string, owned: readonly PerkId[], statCards: number, perkCards: number): { left: RouteCard; right: RouteCard } {
+ *  `statCards` stat cards and `perkCards` perk cards. From node `gearFrom` on (0 for a record of this
+ *  build), the perk card is a gear card GEAR_CARD_PCT of the time: a roll on its own stream, then a
+ *  piece of gear by rarity, rolled again (up to PERK_REROLLS more times) while it is owned; it takes
+ *  the place of the perk card (or the split), with the same +1 rule. The stat card and the left-right
+ *  order stay as they were, so a walk with no gear card is the walk of content v3 batch 1. */
+function nodeCards(seed: number, k: number, prefix: string, owned: readonly PerkId[], statCards: number, perkCards: number,
+  gearFrom = 0): { left: RouteCard; right: RouteCard } {
   const rng = makeRng(combineSeed(seed, "route", k, prefix));
   const n = STAT_KEYS.length;
   const stat: RouteCard = { kind: "stat", stat: STAT_KEYS[rng.int(n)]!, amount: statCardAmount(statCards) };
@@ -84,7 +89,19 @@ function nodeCards(seed: number, k: number, prefix: string, owned: readonly Perk
     const second = (first + 1 + rng.int(n - 1)) % n;
     perkCard = { kind: "split", stats: [STAT_KEYS[first]!, STAT_KEYS[second]!] as [StatKey, StatKey] };
   }
-  return rng.int(2) === 0 ? { left: stat, right: perkCard } : { left: perkCard, right: stat };
+  const left = rng.int(2) === 0;
+  if (k >= gearFrom) {
+    const g = makeRng(combineSeed(seed, "gear", k, prefix));
+    if (g.int(100) < GEAR_CARD_PCT) {
+      for (let i = 0; i <= PERK_REROLLS; i++) {
+        const gear = rollGear(g);
+        if (!fits(gear, owned)) continue;
+        perkCard = perkCardPlus(k + 2, perkCards) ? { kind: "perk", perk: gear, plus: STAT_KEYS[g.int(n)]! } : { kind: "perk", perk: gear };
+        break;
+      }
+    }
+  }
+  return left ? { left: stat, right: perkCard } : { left: perkCard, right: stat };
 }
 
 function applyCard(d: StatsDraft, perks: PerkId[], card: RouteCard): void {
@@ -99,7 +116,7 @@ function applyCard(d: StatsDraft, perks: PerkId[], card: RouteCard): void {
 /** Starts a kit from the seed and walks the picks; with a carried kit (`base`, an earlier build's,
  *  contracts/fighter.ts `KitBase`) it starts from that kit after its picks and walks the rest. The
  *  Route then holds only the level-ups walked here: the cards of the carried ones are not known. */
-export function walk(seed: number, picks: readonly Side2[], base?: KitBase): Kit {
+export function walk(seed: number, picks: readonly Side2[], base?: KitBase, gearFrom = 0): Kit {
   const from = base !== undefined && base.picks <= picks.length ? base : undefined;
   const start = from === undefined ? startKit(seed) : (() => {
     const perks = [...from.perks];
@@ -113,7 +130,7 @@ export function walk(seed: number, picks: readonly Side2[], base?: KitBase): Kit
   let perkCards = from === undefined ? 0 : Math.max(0, from.perks.length - from.starts);
   let statCards = from === undefined ? 0 : Math.max(0, from.picks - perkCards);
   for (let k = from?.picks ?? 0; k < picks.length; k++) {
-    const cards = nodeCards(seed, k, picksKey(picks, k), perks, statCards, perkCards);
+    const cards = nodeCards(seed, k, picksKey(picks, k), perks, statCards, perkCards, gearFrom);
     const taken = picks[k]!;
     const card = taken === "L" ? cards.left : cards.right;
     applyCard(d, perks, card);
@@ -125,9 +142,9 @@ export function walk(seed: number, picks: readonly Side2[], base?: KitBase): Kit
 }
 
 /** The two cards after the given picks (from a carried kit, when there is one). Never rerolls. */
-export function routeNode(seed: number, picks: readonly Side2[], base?: KitBase): { left: RouteCard; right: RouteCard } {
-  const kit = walk(seed, picks, base);
-  return nodeCards(seed, picks.length, picksKey(picks, picks.length), kit.perks, kit.statCards, kit.perkCards);
+export function routeNode(seed: number, picks: readonly Side2[], base?: KitBase, gearFrom = 0): { left: RouteCard; right: RouteCard } {
+  const kit = walk(seed, picks, base, gearFrom);
+  return nodeCards(seed, picks.length, picksKey(picks, picks.length), kit.perks, kit.statCards, kit.perkCards, gearFrom);
 }
 
 /**

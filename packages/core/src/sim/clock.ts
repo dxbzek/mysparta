@@ -8,6 +8,7 @@ import { sk } from "../content/skills";
 import { shieldNumbers } from "../content/shields";
 import type { HeldId } from "../contracts/ids";
 import type { Actor } from "./combatant";
+import { gearOf } from "./combatant";
 import type { Stream } from "./rng";
 import { roll } from "./rng";
 
@@ -44,6 +45,8 @@ export function startOffset(a: Actor): number {
   let off = 0;
   if (a.skills.has("head-start")) off += sk("head-start", "startClock");
   if (a.skills.has("mountain")) off += sk("mountain", "startClock");
+  // Slippers (gear)
+  off += gearOf(a, "startClock");
   return off;
 }
 

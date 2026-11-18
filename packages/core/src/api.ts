@@ -4,6 +4,8 @@
  */
 import type { ContentTables, CoreApi } from "./contracts/api";
 import type { DayKey, FighterSnapshot, KitBase, Pick as Side2, ScrapperRecord } from "./contracts/fighter";
+import { GEAR } from "./content/gear";
+import { defaultLoadout } from "./progress/loadout";
 import { combineSeed } from "./prng";
 import { COMPANIONS } from "./content/companions";
 import { SKILLS } from "./content/skills";
@@ -11,10 +13,10 @@ import { WEAPONS } from "./content/weapons";
 import { SHIELDS } from "./content/shields";
 import { checkName, createRecord, fighterSeed, randomName, rollLook } from "./progress/create";
 import { afterBout, energyNextMs, energyNow } from "./progress/energy";
-import { routeNode, walk } from "./progress/route";
+import { routeNode } from "./progress/route";
 import { rivalSnapshot, tonightsCard } from "./progress/rivals";
-import { foundPerks, sheetOf, snapshotOf, snapshotSheet } from "./progress/snapshot";
-import { afterPick, xpForBout, xpToNext } from "./progress/xp";
+import { foundPerks, joinLoadout, kitOf, loadoutOf, sheetOf, snapshotOf, snapshotSheet, withLoadout } from "./progress/snapshot";
+import { afterPick as xpAfterPick, xpForBout, xpToNext } from "./progress/xp";
 import { simulateFight } from "./sim/simulate";
 export { SIM_VERSION } from "./sim/version";
 export { ENERGY_COST, ENERGY_MAX, ENERGY_REFILL_MS } from "./progress/energy";
@@ -23,7 +25,12 @@ export { LEGACY_NEW_STAT_POINTS, legacyBase, legacyKit, sixStatsOf } from "./pro
 export type { LegacyKit } from "./progress/legacy";
 import { canonical } from "./canonical";
 
-export const content: ContentTables = { weapons: WEAPONS, skills: SKILLS, companions: COMPANIONS, shields: SHIELDS };
+export const content: ContentTables = { weapons: WEAPONS, skills: SKILLS, companions: COMPANIONS, shields: SHIELDS, gear: GEAR };
+
+/** Takes the waiting level-up; a new item joins a stored loadout when there is room (joinLoadout). */
+export function afterPick(rec: ScrapperRecord, pick: Side2): ScrapperRecord {
+  return joinLoadout(rec, xpAfterPick(rec, pick));
+}
 
 /** Fight seed = hash(fighter id, opponent id, the fighter's lifetime bout count). */
 export function boutSeed(aId: string, bId: string, lifetimeBouts: number): number {
@@ -31,7 +38,7 @@ export function boutSeed(aId: string, bId: string, lifetimeBouts: number): numbe
 }
 
 export function route(rec: ScrapperRecord) {
-  return walk(rec.seed, rec.picks, rec.base).nodes;
+  return kitOf(rec).nodes;
 }
 
 export const api: CoreApi = {
@@ -44,7 +51,10 @@ export const api: CoreApi = {
   sheetOf,
   snapshotOf,
   snapshotSheet,
-  routeNode: (seed: number, picks: readonly Side2[], base?: KitBase) => routeNode(seed, picks, base),
+  loadoutOf,
+  withLoadout,
+  defaultLoadout,
+  routeNode: (seed: number, picks: readonly Side2[], base?: KitBase, gearFrom?: number) => routeNode(seed, picks, base, gearFrom ?? 0),
   route,
   xpToNext,
   xpForBout,
@@ -62,6 +72,9 @@ export const api: CoreApi = {
 
 export {
   canonical, checkName, randomName, fighterSeed, rollLook, createRecord, sheetOf, snapshotOf, snapshotSheet,
-  routeNode, xpToNext, xpForBout, energyNow, energyNextMs, afterBout, afterPick, rivalSnapshot, tonightsCard, foundPerks,
-  simulateFight,
+  routeNode, xpToNext, xpForBout, energyNow, energyNextMs, afterBout, rivalSnapshot, tonightsCard, foundPerks,
+  simulateFight, loadoutOf, withLoadout, defaultLoadout,
 };
+/** For the save migration to schema 5 (apps/web state/migrations.ts) and the tools. */
+export { loadoutPerks, resolveLoadout, statsWithGear, wornGear } from "./progress/loadout";
+export { GEAR, gn, gearSlot } from "./content/gear";

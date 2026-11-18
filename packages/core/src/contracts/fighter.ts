@@ -1,7 +1,7 @@
 /**
  * FROZEN CONTRACT (work package 0). Scrappers: what a save stores, what is recomputed, what a bout reads.
  */
-import type { PerkId } from "./ids";
+import type { CompanionId, GearId, GearSlot, PerkId, ShieldId, WeaponId } from "./ids";
 
 /** Six since content v3 (CONTRACT_REV 7): Toughness (a flat cut of every hit taken, and a firmer
  *  hold on the weapon and the shield) and Precision (Aim and Crit). */
@@ -40,6 +40,19 @@ export type TimeMs = number;
  */
 export interface KitBase { picks: number; starts: number; perks: PerkId[]; stats: StatBlock }
 
+/**
+ * What a scrapper takes into a bout (content v3, batch 2, plan 13.12): the weapons in its bag (up to
+ * MAX_LOADOUT_WEAPONS of the ones it owns, at least one when it owns any), the shield it carries or
+ * none, the pets that come along (a subset of the ones it owns, the Raccoon up to twice), and the
+ * gear worn, one per slot. The draw order inside a bout stays random from the bag. A record with no
+ * loadout, and every rival, takes the sim's own choice (`defaultLoadout`: every weapon up to the
+ * limit, the best by rarity, its shield, its pets, the rarest gear of each slot).
+ */
+export interface Loadout { weapons: WeaponId[]; shield: ShieldId | null; pets: CompanionId[];
+  gear: Partial<Record<GearSlot, GearId>> }
+/** A loadout's bag holds this many weapons at most. */
+export const MAX_LOADOUT_WEAPONS = 5;
+
 /** The only thing a save stores per scrapper. Level, stats, kit and Route are always recomputed
  *  (from `base` on, when an earlier build's kit was carried over). */
 export interface ScrapperRecord {
@@ -54,6 +67,12 @@ export interface ScrapperRecord {
    *  ENERGY_MAX. One point comes back every ENERGY_REFILL_MS after `energyAt` (docs/RULES.md 4). */
   energy: number; energyAt: TimeMs;
   base?: KitBase;
+  /** What it takes into a bout (CONTRACT_REV 8). Absent: the sim's own choice, `defaultLoadout`.
+   *  Items it does not own are left out when the loadout is read (`loadoutOf`). */
+  loadout?: Loadout;
+  /** Level-ups before this pick index offer no gear card (CONTRACT_REV 8): the save migration sets
+   *  it to the picks an old save had taken, so its kit walks as it did. Absent = 0. */
+  gearFrom?: number;
 }
 
 /** Whole percentages. See the derived-values table of the rules. */
@@ -71,6 +90,10 @@ export interface ScrapperSheet {
   startSkill: PerkId;                                     // the second starting perk: a skill (round-2 review)
   perks: PerkId[]; maxHp: number; companionCostPct: number;
   derived: DerivedValues;                                 // bare-handed values, for the Stats tab
+  /** What it takes into a bout (CONTRACT_REV 8), read with `loadoutOf`. `stats`, `effective`,
+   *  `maxHp`, `companionCostPct` and `derived` are those of the bout's snapshot: the gear worn and
+   *  the pets taken are in them; `perks` is everything owned. */
+  loadout: Loadout;
 }
 /** What a card shows about any snapshot, a rival's included: max HP after the companion cost, the
  *  effective stats behind the stat bars, and the bare-handed derived values. Never stored.

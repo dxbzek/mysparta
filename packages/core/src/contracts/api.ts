@@ -3,10 +3,10 @@
  * packages/core/src/api.ts. The package index checks it with `const check: CoreApi = impl`.
  * Every function is pure: the same inputs give the same output on every engine.
  */
-import type { CompanionDef, ShieldDef, SkillDef, WeaponDef } from "./content";
-import type { DayKey, TimeMs, FighterSnapshot, KitBase, Look, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
+import type { CompanionDef, GearDef, ShieldDef, SkillDef, WeaponDef } from "./content";
+import type { DayKey, TimeMs, FighterSnapshot, KitBase, Loadout, Look, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
   SnapshotSheet } from "./fighter";
-import type { CompanionId, HeldId, PerkId, ShieldId, SkillId } from "./ids";
+import type { CompanionId, GearId, HeldId, PerkId, ShieldId, SkillId } from "./ids";
 import type { BoutLog } from "./log";
 
 /** The four number tables of the rules, as total Records. The screens read every number they
@@ -16,6 +16,8 @@ export interface ContentTables {
   skills: Readonly<Record<SkillId, SkillDef>>;
   companions: Readonly<Record<CompanionId, CompanionDef>>;
   shields: Readonly<Record<ShieldId, ShieldDef>>;
+  /** Body equipment (CONTRACT_REV 8). */
+  gear: Readonly<Record<GearId, GearDef>>;
 }
 
 export interface CoreApi {
@@ -35,14 +37,24 @@ export interface CoreApi {
   createRecord(a: { id: string; name: string; realmSalt: string; lookSalt: number; colourSalt: number;
                     today: DayKey; nowMs: TimeMs }): ScrapperRecord;
   sheetOf(rec: ScrapperRecord): ScrapperSheet;
+  /** The bout's snapshot: its perks hold every skill it owns and only the weapons, shield, pets and
+   *  gear of its loadout (`loadoutOf`), and its stats hold the worn gear's stat points. */
   snapshotOf(rec: ScrapperRecord): FighterSnapshot;
+  /** The loadout a record takes into a bout (CONTRACT_REV 8): its own, with anything it does not own
+   *  left out, the bag cut to MAX_LOADOUT_WEAPONS and given one weapon when it would be empty while
+   *  any is owned; or, with none stored, `defaultLoadout` of what it owns. */
+  loadoutOf(rec: ScrapperRecord): Loadout;
+  /** The record with this loadout stored, cleaned as `loadoutOf` reads it. Pure. */
+  withLoadout(rec: ScrapperRecord, loadout: Loadout): ScrapperRecord;
+  /** The sim's own loadout for a kit that owns `perks` (rivals, and a record with none stored). */
+  defaultLoadout(perks: readonly PerkId[]): Loadout;
   /** Max HP, effective stats, derived values and companion cost of any snapshot: a rival on
    *  Tonight's Card, either side of the face-off sheet, a sandbox snapshot. It holds the HP
    *  formula and the companion cost, so no screen copies a rule. */
   snapshotSheet(s: FighterSnapshot): SnapshotSheet;
   /** The two cards after the given picks (from the record's carried kit, `base`, when it has one).
    *  A pure function of its inputs: it never rerolls. */
-  routeNode(seed: number, picks: readonly Pick[], base?: KitBase): { left: RouteCard; right: RouteCard };
+  routeNode(seed: number, picks: readonly Pick[], base?: KitBase, gearFrom?: number): { left: RouteCard; right: RouteCard };
 
   /** Every level-up taken so far, oldest first. */
   route(rec: ScrapperRecord): RouteNode[];

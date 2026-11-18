@@ -6,7 +6,7 @@ import type { Proc, Step } from "../contracts/log";
 import { sk } from "../content/skills";
 import { hasTag, reachOf, weaponNumbers } from "../content/weapons";
 import type { Actor } from "./combatant";
-import { CAP, clampPct, valuesOf } from "./combatant";
+import { CAP, clampPct, gearOf, soakOf, valuesOf } from "./combatant";
 import type { Bout } from "./bout";
 import { allowance, armored, boosterProcs, due, emit, firstAction, knockOut, land, opening, pickProc, proc, scrapperOfSide, spent, tryDisarm,
   tryFree, tryShield } from "./bout";
@@ -31,6 +31,8 @@ export function damageMult(att: Actor, thrown: boolean, boosted: boolean, bare =
     if (skill === "pitcher") m += sk("pitcher", "thrownDamage");
     if (skill === "sharpening-stone") m += sk("sharpening-stone", "bladeDamage");
     if (skill === "bare-knuckle") m += sk("bare-knuckle", "fistDamage");
+    // Taped Fists (gear): more damage with fists.
+    if (!thrown && att.held === "fists") m += gearOf(att, "fistDmg");
     m += shieldNumbers(att.shield).damage;
   } else if (skill === "pet-lover") {
     m += att.dmgPct;
@@ -57,9 +59,11 @@ export function rawDamage(att: Actor, thrown: boolean): number {
  * (x3/2, rounded down), then Armor (melee only), then the defender's soak (Toughness), never
  * below 1.
  */
-export function damageOf(raw: number, variance: number, mult: number, crit: boolean, armor: number | null, soak = 0): number {
+export function damageOf(raw: number, variance: number, mult: number, crit: boolean, armor: number | null, soak = 0,
+  critPct = 150): number {
   let d = Math.floor((Math.floor((raw * variance) / 100) * mult) / 100);
-  if (crit) d = Math.floor((d * 3) / 2);
+  // (x150 / 100 is the old x3 / 2 for every whole number; the Welding Mask lowers it)
+  if (crit) d = Math.floor((d * critPct) / 100);
   if (armor !== null) d = armored(d, armor);
   if (soak > 0) d -= soak;
   return d < 1 ? 1 : d;
@@ -75,14 +79,16 @@ export function evadeChance(att: Actor, def: Actor, aimLess: number, evadeLess: 
   const dv = valuesOf(def);
   const agi = 3 * (def.agi - att.agi);
   const lead = agi < -30 ? -30 : agi > 30 ? 30 : agi;
-  const c = clampPct(dv.evade - evadeLess + lead - (av.aim - aimLess), CAP.evade);
+  // Hi-Vis Vest (gear): more Evade against a companion's swing.
+  const pet = att.comp !== null ? gearOf(def, "petEvade") : 0;
+  const c = clampPct(dv.evade + pet - evadeLess + lead - (av.aim - aimLess), CAP.evade);
   return thrown ? Math.floor(c / 2) : c;
 }
 export function blockChance(att: Actor, def: Actor, pierceLess: number, thrown: boolean): number {
   if (!def.scrapper) return 0;
   const c = clampPct(valuesOf(def).block - (valuesOf(att).pierce - pierceLess), CAP.block);
   if (!thrown) return c;
-  return clampPct(Math.floor(c / 2) + shieldNumbers(def.shield).thrownBlock, CAP.block);
+  return clampPct(Math.floor(c / 2) + shieldNumbers(def.shield).thrownBlock + gearOf(def, "thrownBlock"), CAP.block);
 }
 
 /** Rolls one swing and applies its HP loss. The caller writes the step, then calls `consequences`. */
@@ -126,17 +132,20 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   const mult = damageMult(att, thrown, boosted);
   const dv = valuesOf(def);
   const armor = thrown ? null : dv.armor;
-  const soak = dv.soak;
-  const full = damageOf(raw, variance, mult, crit, armor, soak);
+  // gear: a crit is a clean blow to the head (Motorbike Helmet: more Toughness for its soak; Welding
+  // Mask: a smaller crit); a companion's bite lands on the shins (Magazine Shin Guards)
+  const soak = (crit && def.scrapper ? soakOf(def.tou + gearOf(def, "headTough")) : dv.soak) + (att.comp !== null ? gearOf(def, "petSoak") : 0);
+  const critPct = 150 - gearOf(def, "critCut");
+  const full = damageOf(raw, variance, mult, crit, armor, soak, critPct);
   // Number skills show where they changed the damage (no random number: the same hit, re-counted).
   const big = crit || boosted;
   const left = allowance(b, def, big);
   const cut = (d: number): number => (left === Infinity ? d : Math.max(1, Math.min(d, left)));
   const skill = damageSkill(att, thrown);
-  if (skill !== null && cut(damageOf(raw, variance, damageMult(att, thrown, boosted, true), crit, armor, soak)) !== cut(full)) {
+  if (skill !== null && cut(damageOf(raw, variance, damageMult(att, thrown, boosted, true), crit, armor, soak, critPct)) !== cut(full)) {
     procs.push(proc(skill === "pet-lover" ? scrapperOfSide(b, att.side) : att, skill));
   }
-  if (armor !== null) armorProcs(def, armor, (a) => cut(damageOf(raw, variance, mult, crit, a, soak)), cut(full), procs);
+  if (armor !== null) armorProcs(def, armor, (a) => cut(damageOf(raw, variance, mult, crit, a, soak, critPct)), cut(full), procs);
   boosterProcs(b, att, def, "hit", procs);
   // Light Feet's Agility also adds to Thrown damage: it may name itself on its owner's landed throw.
   if (thrown && att.scrapper && att.skills.has("light-feet")) procs.push(proc(att, "light-feet"));

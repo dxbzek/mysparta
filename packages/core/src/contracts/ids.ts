@@ -17,7 +17,12 @@ export const LOG_VERSION = 2 as const;
  *  (`ScrapperRecord.energy`/`energyAt`, `CoreApi.energyNow`/`energyNextMs`, `afterBout` and
  *  `createRecord` take ms), six stats (`StatKey` adds toughness and precision, `DerivedValues`
  *  adds soak and grip), and the save is schema version 4. */
-export const CONTRACT_REV = 7;
+/** 8: content v3, batch 2 (plan 13.12): the weapon loadout (`ScrapperRecord.loadout`: the bag,
+ *  the shield and the pets a scrapper takes into a bout, `CoreApi.loadoutOf`/`withLoadout`) and body
+ *  equipment (`GEAR_IDS`, `GearSlot`, a "gear" perk kind, `Loadout.gear`, `ContentTables.gear`, rig
+ *  `Dress.gear` and `ContentPack.gear`), `ScrapperRecord.gearFrom` for an old save's kit; the save is
+ *  schema version 5. */
+export const CONTRACT_REV = 8;
 
 export const REALM_SALT = "yard-1";
 /** Rivals in the pool at each level, index 0 to 239. */
@@ -58,6 +63,18 @@ export const COMPANION_IDS = ["raccoon","goose","boar","stray-dog","crow","alley
  *  weapon. At most one per scrapper. */
 export const SHIELD_IDS = ["car-door","bin-lid","wooden-pallet","ironing-board","skateboard","riot-shield"] as const;
 
+/** Body equipment (content v3, batch 2, plan 13.12): five slots, six items each, in slot order.
+ *  Worn on the fighter, one per slot, chosen in the loadout. Kept to 30 on purpose. */
+export const GEAR_SLOTS = ["head","torso","hands","legs","feet"] as const;
+export type GearSlot = (typeof GEAR_SLOTS)[number];
+export const GEAR_IDS = [
+  "bandana","beanie","hard-hat","goggles","welding-mask","motorbike-helmet",
+  "work-vest","hi-vis-vest","padded-jacket","leather-jacket","hockey-chest-pad","tyre-rubber-vest",
+  "work-gloves","taped-fists","rubber-gloves","fingerless-gloves","oven-mitts","welding-gloves",
+  "ripped-jeans","cargo-pants","knee-pads","track-pants","magazine-shin-guards","overalls",
+  "sneakers","flip-flops","rain-boots","skate-shoes","steel-toe-boots","slippers"] as const;
+export type GearId = (typeof GEAR_IDS)[number];
+
 export type WeaponId = (typeof WEAPON_IDS)[number];
 /** What a hand holds. "fists" is the stat block used when nothing is held. */
 export type HeldId = WeaponId | "fists";
@@ -68,8 +85,8 @@ export type ShieldId = (typeof SHIELD_IDS)[number];
 /** Things that can lie on the floor: a weapon or a shield. */
 export type PropId = WeaponId | ShieldId;
 /** Flat union. A contract test asserts that no id is in two lists. Raccoon may be owned twice. */
-export type PerkId = WeaponId | SkillId | CompanionId | ShieldId;
-export type PerkKind = "weapon" | "skill" | "companion" | "shield";
+export type PerkId = WeaponId | SkillId | CompanionId | ShieldId | GearId;
+export type PerkKind = "weapon" | "skill" | "companion" | "shield" | "gear";
 /** What a proc names: a skill, or the shield that made a block. */
 export type ProcId = SkillId | ShieldId;
 
@@ -77,8 +94,8 @@ export type ProcId = SkillId | ShieldId;
 const MOVES_ARE_SKILLS: readonly SkillId[] = MOVE_IDS;
 void MOVES_ARE_SKILLS;
 
-/** All 92 perk ids: 41 weapons, then 39 skills, then 6 companions, then 6 shields. */
-export const PERK_IDS: readonly PerkId[] = [...WEAPON_IDS, ...SKILL_IDS, ...COMPANION_IDS, ...SHIELD_IDS];
+/** All 122 perk ids: 41 weapons, then 39 skills, then 6 companions, then 6 shields, then 30 gear. */
+export const PERK_IDS: readonly PerkId[] = [...WEAPON_IDS, ...SKILL_IDS, ...COMPANION_IDS, ...SHIELD_IDS, ...GEAR_IDS];
 
 const WEAPON_SET: ReadonlySet<string> = new Set(WEAPON_IDS);
 const SKILL_SET: ReadonlySet<string> = new Set(SKILL_IDS);
@@ -86,6 +103,8 @@ const MOVE_SET: ReadonlySet<string> = new Set(MOVE_IDS);
 const COMPANION_SET: ReadonlySet<string> = new Set(COMPANION_IDS);
 const SHIELD_SET: ReadonlySet<string> = new Set(SHIELD_IDS);
 const STAGE_SET: ReadonlySet<string> = new Set(STAGE_IDS);
+const GEAR_SET: ReadonlySet<string> = new Set(GEAR_IDS);
+const SLOT_SET: ReadonlySet<string> = new Set(GEAR_SLOTS);
 
 /** Guards for raw strings, for example ids read from a save. They never throw. */
 export function isWeaponId(id: string): id is WeaponId { return WEAPON_SET.has(id); }
@@ -94,8 +113,10 @@ export function isMoveId(id: string): id is MoveId { return MOVE_SET.has(id); }
 export function isCompanionId(id: string): id is CompanionId { return COMPANION_SET.has(id); }
 export function isShieldId(id: string): id is ShieldId { return SHIELD_SET.has(id); }
 export function isStageId(id: string): id is StageId { return STAGE_SET.has(id); }
+export function isGearId(id: string): id is GearId { return GEAR_SET.has(id); }
+export function isGearSlot(id: string): id is GearSlot { return SLOT_SET.has(id); }
 export function isPerkId(id: string): id is PerkId {
-  return WEAPON_SET.has(id) || SKILL_SET.has(id) || COMPANION_SET.has(id) || SHIELD_SET.has(id);
+  return WEAPON_SET.has(id) || SKILL_SET.has(id) || COMPANION_SET.has(id) || SHIELD_SET.has(id) || GEAR_SET.has(id);
 }
 /** A skill or a shield: the two things a proc may name. */
 export function isProcId(id: string): id is ProcId { return SKILL_SET.has(id) || SHIELD_SET.has(id); }
@@ -105,5 +126,6 @@ export function perkKind(id: PerkId): PerkKind {
   if (WEAPON_SET.has(id)) return "weapon";
   if (COMPANION_SET.has(id)) return "companion";
   if (SHIELD_SET.has(id)) return "shield";
+  if (GEAR_SET.has(id)) return "gear";
   return "skill";
 }
