@@ -29,11 +29,22 @@ interface Fixture3 { build: string; simVersion: number; doc: { fighters: OldReco
   schemaVersion: number } & Record<string, unknown>; expect: Record<string, FighterSnapshot> }
 const load = <T = Fixture>(c: string): T => JSON.parse(readFileSync(resolve(__dirname, `fixtures/save-${c}.json`), "utf8")) as T;
 const pets = (perks: readonly string[]): string[] => perks.filter((p) => (COMPANION_IDS as readonly string[]).includes(p));
-/** An old four-stat block as this build carries it: Toughness 3 and Precision 3 added. */
-const six = (s: StatBlock): StatBlock => ({
-  points: { ...s.points, toughness: 3, precision: 3 },
-  mult: { ...s.mult, toughness: 100, precision: 100 },
-});
+/** An old four-stat block as this build carries it (docs/RULES.md "Old saves"): its multipliers
+ *  kept, no old stat higher than it was, every point kept, and Toughness + Precision 6 plus what the
+ *  four old stats gave up (half of each one's gain after level 1). */
+const isSix = (got: StatBlock, was: StatBlock, name: string): void => {
+  const olds = ["health", "strength", "agility", "speed"] as const;
+  let gave = 0;
+  for (const k of olds) {
+    expect(got.mult[k], `${name} ${k}`).toBe(was.mult[k]);
+    expect(got.points[k], `${name} ${k}`).toBeLessThanOrEqual(was.points[k]);
+    expect(got.points[k], `${name} ${k}`).toBeGreaterThanOrEqual(Math.ceil(was.points[k] / 2));
+    gave += was.points[k] - got.points[k];
+  }
+  expect(got.points.toughness + got.points.precision, name).toBe(6 + gave);
+  expect(Math.abs(got.points.toughness - got.points.precision), name).toBeLessThanOrEqual(1);
+  expect([got.mult.toughness, got.mult.precision], name).toEqual([100, 100]);
+};
 const four = (s: StatBlock) => ({ health: s.points.health, strength: s.points.strength, agility: s.points.agility, speed: s.points.speed });
 
 describe.each(["aac2d64", "1681640"])("a schema-2 save written by build %s", (c) => {
@@ -69,7 +80,7 @@ describe.each(["aac2d64", "1681640"])("a schema-2 save written by build %s", (c)
     const mona = r.doc.fighters.find((f) => f.name === "Mona Grit")!;
     const ms = snapshotOf(mona);
     expect(ms.perks).toEqual(fx.expect.a.perks);
-    expect(ms.stats).toEqual(six(fx.expect.a.stats));
+    isSix(ms.stats, fx.expect.a.stats, "Mona");
     expect(pets(ms.perks)).toEqual(pets(fx.expect.a.perks));
     // Kip levelled twice after his last bout: everything he had then, and the two new cards on top
     const kip = r.doc.fighters.find((f) => f.name === "Kip Ladle")!;
@@ -130,7 +141,7 @@ describe("a schema-3 save written by build 74fc265 (sim version 7)", () => {
       const now = snapshotOf(f);
       expect(now.level, f.name).toBe(was.level);
       expect(now.perks, f.name).toEqual(was.perks);
-      expect(now.stats, f.name).toEqual(six(was.stats));
+      isSix(now.stats, was.stats, f.name);
       expect(f.picks, f.name).toEqual(old.picks);
       expect([f.xp, f.lifetimeBouts, f.createdDay], f.name).toEqual([old.xp, old.lifetimeBouts, old.createdDay]);
       expect([f.energy, f.energyAt], f.name).toEqual([ENERGY_MAX, 0]);

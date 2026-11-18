@@ -18,7 +18,7 @@ import { combineSeed, makeRng } from "../prng";
 import { sk } from "../content/skills";
 import { allowed, rollPerk, weaponShare } from "./perks";
 import { startPerk, startSkill } from "./create";
-import { STAT_CHANGERS } from "./stats";
+import { STAT_CHANGERS, startStats } from "./stats";
 
 type Four = "health" | "strength" | "agility" | "speed";
 const FOUR: readonly Four[] = ["health", "strength", "agility", "speed"];
@@ -114,28 +114,56 @@ export function legacyKit(seed: number, picks: readonly Side2[], base?: KitBase)
   return { perks, starts, stats: { points: { ...d.points }, mult: { ...d.mult } } };
 }
 
-/** Points an old four-stat block gains in each new stat: the 6 points the starting budget grew by
- *  (14 to 20), split evenly. So an old kit holds as many points as a kit of today at its level
- *  (docs/RULES.md, "Old saves": its power stays about where it was). */
+/** Points an old four-stat block gains in each new stat at once: the 6 points the starting budget
+ *  grew by (14 to 20), split evenly, so an old level-1 kit is a kit of today (whose Toughness +
+ *  Precision is 6 at the start). */
 export const LEGACY_NEW_STAT_POINTS = 3;
+/** Of the points an old stat gained after level 1 (cards, boosters), half (rounded down) moves to
+ *  Toughness and Precision. An old stat card always landed in one of the four old stats, the
+ *  strongest per point; with the 3 + 3 alone an old kit beat the pool of its level 57% of the time
+ *  at level 10 and 67% at level 30. Moving half keeps the total and brings it to 47.8% and 50.4%,
+ *  where the same picks walked today stand (47.9% and 51.3%); moving a third left 51.4% and 57.9%.
+ *  Measured over 1,500 random-pick kits per level against the pool. */
+export const LEGACY_MOVE_DIV = 2;
 
-/** An old stat block with Toughness and Precision added (LEGACY_NEW_STAT_POINTS each, multiplier
- *  100). A block that already holds six stats is returned as it is. A missing old stat reads 2. */
-export function sixStatsOf(s: { points: Partial<Record<StatKey, number>>; mult: Partial<Record<StatKey, number>> }): StatBlock {
+type Block = { points: Partial<Record<StatKey, number>>; mult: Partial<Record<StatKey, number>> };
+
+/** An old stat block with six stats (multiplier 100 for the new two). Toughness and Precision get
+ *  LEGACY_NEW_STAT_POINTS each; with `start` (the scrapper's level-1 points of the four old stats,
+ *  `startStats`), each old stat also gives up a LEGACY_MOVE_DIV-th of what it gained above its start,
+ *  shared between Toughness and Precision (Toughness takes the odd one). The total never changes.
+ *  A block that already holds six stats is returned as it is. A missing old stat reads 2. */
+export function sixStatsOf(s: Block, start?: Readonly<Record<"health" | "strength" | "agility" | "speed", number>>,
+  div: number = LEGACY_MOVE_DIV): StatBlock {
   const has = (k: StatKey): boolean => Number.isInteger(s.points[k]) && Number.isInteger(s.mult[k]);
   const pt = (k: StatKey, d: number): number => (has(k) ? s.points[k]! : d);
   const ml = (k: StatKey): number => (has(k) ? s.mult[k]! : 100);
+  if (has("toughness") && has("precision")) {
+    return { points: { health: pt("health", 2), strength: pt("strength", 2), agility: pt("agility", 2), speed: pt("speed", 2),
+      toughness: pt("toughness", 2), precision: pt("precision", 2) },
+      mult: { health: ml("health"), strength: ml("strength"), agility: ml("agility"), speed: ml("speed"),
+        toughness: ml("toughness"), precision: ml("precision") } };
+  }
+  const four = { health: pt("health", 2), strength: pt("strength", 2), agility: pt("agility", 2), speed: pt("speed", 2) };
+  let moved = 0;
+  if (start !== undefined && div > 0) {
+    for (const k of ["health", "strength", "agility", "speed"] as const) {
+      const m = Math.floor(Math.max(0, four[k] - start[k]) / div);
+      four[k] -= m;
+      moved += m;
+    }
+  }
   return {
-    points: { health: pt("health", 2), strength: pt("strength", 2), agility: pt("agility", 2), speed: pt("speed", 2),
-      toughness: pt("toughness", LEGACY_NEW_STAT_POINTS), precision: pt("precision", LEGACY_NEW_STAT_POINTS) },
-    mult: { health: ml("health"), strength: ml("strength"), agility: ml("agility"), speed: ml("speed"),
-      toughness: ml("toughness"), precision: ml("precision") },
+    points: { ...four, toughness: LEGACY_NEW_STAT_POINTS + Math.ceil(moved / 2), precision: LEGACY_NEW_STAT_POINTS + Math.floor(moved / 2) },
+    mult: { health: ml("health"), strength: ml("strength"), agility: ml("agility"), speed: ml("speed"), toughness: 100, precision: 100 },
   };
 }
 
-/** The carried kit a migrated scrapper gets: its legacy kit after all its picks, with six stats. */
-export function legacyBase(seed: number, picks: readonly Side2[], base?: KitBase): KitBase {
+/** The carried kit a migrated scrapper gets: its legacy kit after all its picks, with six stats
+ *  (`sixStatsOf` with its level-1 points, which the old deal and today's deal share). */
+export function legacyBase(seed: number, picks: readonly Side2[], base?: KitBase, div: number = LEGACY_MOVE_DIV): KitBase {
   const kit = legacyKit(seed, picks, base);
-  return { picks: picks.length, starts: kit.starts, perks: kit.perks, stats: sixStatsOf(kit.stats) };
+  const st = startStats(seed).points;
+  return { picks: picks.length, starts: kit.starts, perks: kit.perks,
+    stats: sixStatsOf(kit.stats, { health: st.health, strength: st.strength, agility: st.agility, speed: st.speed }, div) };
 }
-
