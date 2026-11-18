@@ -2,7 +2,7 @@
  * Feet on the floor in real bouts (movement pass 2; owner, 16 Nov 2026: "make sure characters have
  * animation for walks, run, dodge etc, block properly"). Measured on the drawn feet of the real art
  * (the gate and content packs), every 60 fps frame of the three fixture bouts and of three find-bout
- * bouts (level 10 candidate 5, level 30 candidates 0 and 9 under sim version 6; level 30 was candidate 2 until the pet pass changed the sim, then 24 for the start pass, 23 until round 2, 22 under sim version 4, 32 under sim version 5; candidate 9 also has a pet attack the scrapper hops away from. Open, for the stage: under sim version 6 a foot slides in a flinch in level 10 n 1 and level 30 n 22, 32, 34 and 37, and in footwork in level 30 n 5, 12, 29 and 36; those bouts are kept under test in open-defects.test.ts), see lib/feet.ts:
+ * bouts (level 10 candidate 5, level 30 candidates 0 and 35 under sim version 8, content v3; level 30 candidates 0 and 9 under sim versions 6 and 7; level 30 was candidate 2 until the pet pass changed the sim, then 24 for the start pass, 23 until round 2, 22 under sim version 4, 32 under sim version 5; candidate 9 also has a pet attack the scrapper hops away from. Open, for the stage: under sim version 8 a foot slides in a flinch in level 10 n 11 and level 30 n 3, 6, 8 and 37, and in footwork in level 30 n 1, 14, 29 and 58; those bouts are kept under test in open-defects.test.ts), see lib/feet.ts:
  *  - no toe or heel on the floor slides more than 0.5 units along it during footwork (the brace,
  *    the run, the brake, the shuffle, both dodges, both blocks, the idle and the cuts between them);
  *    before this pass the worst was 53.8 units in the fixtures (the eased dash, the walk home
@@ -40,7 +40,7 @@ const BOUTS: readonly { name: string; log: BoutLog; a: FighterSnapshot; b: Fight
   ...FIXTURE_NAMES.map((name) => ({ ...BOUT_FIXTURES[name], name })),
   { name: "find-bout level 10 n 5", ...found(10, 5) },
   { name: "find-bout level 30 n 0", ...found(30, 0) },
-  { name: "find-bout level 30 n 9", ...found(30, 9) },
+  { name: "find-bout level 30 n 35", ...found(30, 35) },
 ];
 const cache = new Map<string, StagePlayer>();
 function player(name: string, internal?: Internal): StagePlayer {
@@ -104,9 +104,9 @@ describe("feet on the floor in real bouts, measured on the drawn feet", () => {
     for (const clip of ["dash-push", "brake", "shuffle", "slip", "evade", "block", "block-shield"]) expect(count(clip), clip).toBeGreaterThan(0);
     // the find-bout bout at level 30 alone has the shuffles and both dodges (its runs went with the
     // pet spacing fix: an attacked pet now steps out in front of its owner, so the attacker no
-    // longer runs past him to reach it; the runs are counted over all the bouts above). Candidate 9
-    // also has a dodged pet attack, which plays "evade".
-    const l30 = player("find-bout level 30 n 9").tracks.actors.flatMap((tr) => tr.segs.map((g) => g.clip));
+    // longer runs past him to reach it; the runs are counted over all the bouts above). The level-30
+    // candidate is 35 under sim version 8 (9 before, which also had a dodged pet attack).
+    const l30 = player("find-bout level 30 n 35").tracks.actors.flatMap((tr) => tr.segs.map((g) => g.clip));
     for (const clip of ["shuffle", "slip", "evade"]) expect(l30, clip).toContain(clip);
   });
 

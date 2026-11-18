@@ -12,17 +12,21 @@
  *     under sim version 4, level 8 n 37 under sim version 5): the frame was set by a pet's idle
  *     reach and its run pose is wider (layout.PET_FRAME_REACH), the hop was clamped by reach and
  *     not by the drawn body, and a pet hit during its hop was knocked out of the frame. The real
- *     bouts are back in pets.test.ts.
+ *     bouts are back in pets.test.ts. Kept here on find-bout level 8 n 33 under sim version 8
+ *     (content v3; n 37 under versions 5 to 7 no longer has a pet hop).
  *  3. OPEN. A foot on the floor slides in a flinch (over 1 unit) or in footwork (over 0.5 units) in
- *     these sim-version-6 and 7 bouts: flinch in level 10 n 1 and level 30 n 22, 32, 34, 37; footwork
- *     in level 30 n 5, 12, 29, 36 (level 30 n 5's flinch and n 34's footwork were cleaned by the
- *     stage lane's round 2). feet.test.ts measures clean bouts; these are the dirty ones.
+ *     these sim-version-8 bouts (content v3): flinch in level 10 n 11 and level 30 n 3, 6, 8, 37;
+ *     footwork in level 30 n 1, 14, 29, 58. (Under sim versions 6 and 7: flinch in level 10 n 1 and
+ *     level 30 n 22, 32, 34, 37, footwork in level 30 n 5, 12, 29, 36; level 30 n 5's flinch and n 34's
+ *     footwork were cleaned by the stage lane's round 2.) feet.test.ts measures clean bouts; these
+ *     are the dirty ones.
  *  4. FIXED (round 2, after the merge of the stage and sim lanes). After a Body Slam at a fighter, a
  *     pet that ran clear of the landing ran through both fighters when its own side was full
  *     (choreo/fall.ts clearLanding sent it to the far side), and after a knockout a pet waiting
  *     off the stage's end ran across the body and the winner (clearFallZone). A pet now never takes
  *     a spot it can reach only past a fighter. Checked over every level-30 bout up to n 500 with
- *     the scene (lib/slam.ts): 30 crossings in 11 of 19 bouts before, none after. Passing behind
+ *     the scene (lib/slam.ts): 30 crossings in 11 of 19 bouts before, none after. Pinned on level 30
+ *     n 76 and 84 under sim version 8 (n 70 and 84 under version 7). Passing behind
  *     its own standing owner, as when it steps out to meet an attacker or bites, is the design.
  */
 import { describe, expect, it } from "vitest";
@@ -114,14 +118,15 @@ describe("stage defects from the round-2 sim (versions 4 to 6)", () => {
     expect(out).toEqual([]);
   });
 
-  it("a pet's dodge hop stays inside the bout frame in find-bout level 8 n 37 (it left it under sim version 5)", () => {
-    const r = hopsOut(foundPlayer(8, 37), "L8 n37");
+  it("a pet's dodge hop stays inside the bout frame in find-bout level 8 n 33 (sim version 8; n 37 left it under sim version 5)", () => {
+    const r = hopsOut(foundPlayer(8, 33), "L8 n33");
     expect(r.hops).toBeGreaterThan(0);
     expect(r.out).toEqual([]);
   });
 
-  for (const [level, n, what] of [[10, 1, "flinch"], [30, 22, "flinch"], [30, 32, "flinch"], [30, 34, "flinch"],
-    [30, 37, "flinch"], [30, 5, "footwork"], [30, 12, "footwork"], [30, 29, "footwork"], [30, 36, "footwork"]] as const) {
+  // sim version 8 (content v3)
+  for (const [level, n, what] of [[10, 11, "flinch"], [30, 3, "flinch"], [30, 6, "flinch"], [30, 8, "flinch"],
+    [30, 37, "flinch"], [30, 1, "footwork"], [30, 14, "footwork"], [30, 29, "footwork"], [30, 58, "footwork"]] as const) {
     it.fails(`no foot slides in a ${what} in find-bout level ${level} n ${n}`, () => {
       const p = foundPlayer(level, n);
       const bad = what === "flinch" ? slides(p, FULL, 1, { only: new Set(["hit-light", "hit-heavy"]) }) : slides(p, FULL);
@@ -143,8 +148,8 @@ describe("stage defects from the round-2 sim (versions 4 to 6)", () => {
     expect(out).toEqual([]);
   });
 
-  for (const n of [70, 84]) {
-    it(`after a Body Slam no pet passes a fighter in find-bout level 30 n ${n} (it ran through both, sim version 7)`, () => {
+  for (const n of [76, 84]) {
+    it(`after a Body Slam no pet passes a fighter in find-bout level 30 n ${n} (sim version 8; n 70 ran through both under sim version 7)`, () => {
       const f = found30(n);
       expect(hasSlamWithPets(f)).toBe(true);
       expect(slamCrossings(slamPlayer(f, FULL), f.log, false)).toEqual([]);

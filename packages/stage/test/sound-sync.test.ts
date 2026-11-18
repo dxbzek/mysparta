@@ -214,7 +214,11 @@ describe("control: the check catches sounds out of step", () => {
     const p = playerOf(b);
     const dash = p.timeline.cues.find((c) => c.family === "dash")!;
     const who = dasherOf(b.log, dash.step);
-    const other = p.tracks.actors.filter((tr) => tr.id !== who).flatMap((tr) => tr.segs).find((g) => DASHES.has(g.clip) && g.from > 0)!;
+    // (a run of another actor that starts when the dasher starts none: under sim version 8 the two
+    // fighters of n 70 shuffle off together, so the other's first runs fall on the dasher's own)
+    const own = (p.tracks.byId.get(who as never)?.segs ?? []).filter((g) => DASHES.has(g.clip)).map((g) => g.from);
+    const other = p.tracks.actors.filter((tr) => tr.id !== who).flatMap((tr) => tr.segs)
+      .find((g) => DASHES.has(g.clip) && g.from > 0 && own.every((t) => Math.abs(g.from - t) > 10))!;
     expect(other).toBeDefined();
     const onOther = p.timeline.cues.map((c) => (c === dash ? { ...c, at: other.from } : c));
     expect(soundProblems(p, b.log, onOther).some((x) => x.startsWith("dash sound"))).toBe(true);
