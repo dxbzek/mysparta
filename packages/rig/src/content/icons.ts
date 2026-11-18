@@ -12,8 +12,8 @@
  *    teal shadow (`shade`) on its far side from the lamp (lower right); at most three shapes and
  *    one ink detail, nothing finer than about 1.2 units.
  */
-import type { CompanionId, Rarity, ShieldId, SkillId, StatKey } from "@rankzero/core";
-import { RARITY_OF } from "@rankzero/core";
+import type { CompanionId, Rarity, ShieldId, SkillId, StatKey, TalentBranch, TalentId } from "@rankzero/core";
+import { RARITY_OF, TALENT_IDS, TALENT_META } from "@rankzero/core";
 import type { ColourSlot, ContentUi, GateUi, IconArt, WeaponArt } from "../contracts";
 import type { Poly, Pt } from "../gate/vocab";
 import { dPoly, dPolys, ellipsePoly, hash01, inkLine, parsePolys, quad, rotPt, roundRect } from "../gate/vocab";
@@ -531,3 +531,78 @@ export const PET_ICONS = Object.fromEntries((Object.keys(PET_PICS) as CompanionI
   const tone = RARITY_TONE[RARITY_OF[id]];
   return [id, { shapes: [...roundBadge(1301 + i * 41, tone), ...PET_PICS[id].map(fitLine)] }];
 })) as unknown as Record<CompanionId, IconArt>;
+
+// -------------------------------------------------------------------------- talent icons
+/**
+ * Talent node icons (content v3, batch 3, plan 13.11), `talent:<id>` in `contentPack.icons`. One
+ * frame per kind, in the branch's own tone so a branch reads as one family: a node is a hex nut
+ * (the yard's own hardware) stamped in its branch colour, a capstone a jagged yellow burst. The
+ * pictogram is the skill pictogram nearest to what the node does, or one drawn here (a target, a
+ * pair of fangs, a dog bowl, a shell, a shield with a star), grown to fill the frame like a stamp.
+ */
+export const BRANCH_TONE: Readonly<Record<TalentBranch, ColourSlot>> = {
+  brawler: "sign", arsenal: "metal", thrower: "cone", pack: "green", "iron-wall": "denim",
+};
+function hexNut(seed: number, tone: ColourSlot): IconShape[] {
+  const rim: Pt[] = [];
+  for (let i = 0; i < 6; i++) {
+    const a = ((i * 60 + 30) * Math.PI) / 180;
+    const r = 11.6 - hash01(seed, i) * 0.5;
+    rim.push([12 + Math.cos(a) * r, 12 + Math.sin(a) * r]);
+  }
+  const inner: Pt[] = [];
+  for (let i = 0; i < 6; i++) {
+    const a = ((i * 60 + 30) * Math.PI) / 180;
+    inner.push([12 + Math.cos(a) * 8.6, 12 + Math.sin(a) * 8.6]);
+  }
+  return [flat([rim], tone), flat([inner], "hair")];
+}
+function burst(seed: number): IconShape[] {
+  const rim: Pt[] = [];
+  for (let i = 0; i < 24; i++) {
+    const a = (i / 24) * Math.PI * 2 - Math.PI / 2;
+    const r = (i % 2 === 0 ? 11.9 : 9.4) - hash01(seed, i) * 0.6;
+    rim.push([12 + Math.cos(a) * r, 12 + Math.sin(a) * r]);
+  }
+  return [flat([rim], "yellow"), flat([circ(12, 12, 8.0, 24)], "hair")];
+}
+const OWN_PICS = {
+  target: pic(solid([circ(12, 12, 7.6, 26)], "white"), flat([circ(12, 12, 5.0, 22)], "sign"), flat([circ(12, 12, 2.4, 16)], "white"),
+    inkOf([[[18.6, 5.4], [12.6, 11.4]]], 1.4), flat([[[17.4, 3.6], [20.6, 3.4], [20.4, 6.6]]], "metal")),
+  fangs: pic(solid([[[4.4, 7.6], [19.6, 7.6], [19.6, 10.2], [4.4, 10.2]]], "sign"),
+    solid([[[6.0, 10.0], [9.4, 10.0], [7.7, 18.6]], [[14.6, 10.0], [18.0, 10.0], [16.3, 18.6]]], "white"),
+    flat([[[10.4, 10.0], [13.6, 10.0], [12, 13.4]]], "white")),
+  bowl: pic(solid([[[3.6, 11.2], [20.4, 11.2], [18.6, 17.6], [16.4, 18.8], [7.6, 18.8], [5.4, 17.6]]], "metal"),
+    flat([[[5.0, 9.4], [19.0, 9.4], [20.4, 11.4], [3.6, 11.4]]], "wood"), inkOf([[[6.6, 14.4], [17.4, 14.4]]], 0.9),
+    flat([circ(9.0, 7.4, 1.4, 10), circ(12, 6.4, 1.4, 10), circ(15.0, 7.4, 1.4, 10)], "bottom")),
+  shell: pic(solid([[...quad([3.4, 17.0], [12, 1.6], [20.6, 17.0], 10)]], "green"), flat([[[2.4, 16.6], [21.6, 16.6], [21.0, 19.0], [3.0, 19.0]]], "bottom"),
+    inkOf([[[8.0, 9.4], [12, 7.0], [16.0, 9.4]], [[12, 7.2], [12, 16.4]], [[6.4, 13.0], [17.6, 13.0]]], 0.9)),
+  starShield: pic(solid([[[5.0, 4.4], [19.0, 4.4], [19.0, 11.0], ...quad([19.0, 11.0], [18.4, 17.6], [12, 20.6], 6).slice(1), ...quad([12, 20.6], [5.6, 17.6], [5.0, 11.0], 6).slice(1)]], "white"),
+    flat([starPoly(5, 4.6, 2.0).map(([x, y]) => [x, y - 0.4] as Pt)], "yellow")),
+  blade: pic(solid([[[4.6, 18.4], [15.6, 6.6], [19.6, 4.4], [17.6, 8.6], [6.6, 20.0]]], "white"), solid([roundRect(3.0, 17.0, 4.6, 2.4, 0.6)], "wood"),
+    flat([starPoly(4, 3.2, 1.0).map(([x, y]) => [x + 5.6, y - 6.4] as Pt)], "yellow")),
+} as const;
+const TALENT_PICS: Readonly<Record<TalentId, Pic>> = {
+  "iron-knuckles": PICS["bare-knuckle"], "gym-rat": PICS["heavy-hands"], "follow-through": PICS.flurry, stagger: PICS.stubborn,
+  bruiser: PICS.haymaker, knockdown: PICS["body-slam"],
+  "weapon-care": PICS["sharpening-stone"], "quick-hands": PICS["quick-swap"], hook: PICS["knock-loose"], "fast-swap": PICS["fast-twitch"],
+  "weapon-master": PICS.parry, "fresh-steel": OWN_PICS.blade,
+  "strong-arm": PICS.pitcher, sidearm: PICS["junk-collector"], "dead-eye": PICS["sharp-eye"], "bank-shot": PICS["trick-shot"],
+  "quick-catch": PICS.snatch, bullseye: OWN_PICS.target,
+  "good-boy": PICS["big-heart"], "sharp-teeth": OWN_PICS.fangs, "quick-paws": PICS["light-feet"], "second-bowl": OWN_PICS.bowl,
+  "guard-dog": PICS.whistle, "loyal-pack": PICS["pet-lover"],
+  "thick-skin": PICS.padding, brace: PICS["plate-vest"], "shield-strap": PICS["firm-grip"], counter: PICS.payback,
+  turtle: OWN_PICS.shell, unbreakable: OWN_PICS.starShield,
+};
+function talentIcon(id: TalentId, seed: number): IconArt {
+  const cap = TALENT_META[id].tier === 3;
+  const tone = cap ? "yellow" : BRANCH_TONE[TALENT_META[id].branch];
+  const frame = cap ? burst(seed) : hexNut(seed, tone);
+  const k = cap ? 1.12 : 1.16;
+  const shapes = TALENT_PICS[id].shapes.map((s) => {
+    const big = scaleShape(s, k);
+    return fitLine(big.slot === tone ? { ...big, slot: (tone === "white" ? "metal" : "white") as Slot } : big);
+  });
+  return { shapes: [...frame, ...shapes] };
+}
+export const TALENT_ICONS = Object.fromEntries(TALENT_IDS.map((id, i) => [`talent:${id}`, talentIcon(id, 1301 + i * 41)])) as Record<`talent:${TalentId}`, IconArt>;

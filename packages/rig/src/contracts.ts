@@ -52,7 +52,7 @@
  *    prop is drawn at its own size in the hand, in flight and on the floor, so it never changes
  *    size when it is thrown, dropped or snatched.
  */
-import type { CompanionId, GearId, GearSlot, HeldId, Look, PerkId, PropId, ShieldId, SkillId, StageId, StatKey } from "@rankzero/core";
+import type { CompanionId, GearId, GearSlot, HeldId, Look, PerkId, PropId, ShieldId, SkillId, StageId, StatKey, TalentId } from "@rankzero/core";
 
 export type RigId = "scrapper" | CompanionId;
 export const SCRAPPER_BONES = ["root","pelvis","torso","head","armB.up","armB.lo","handB",
@@ -297,7 +297,7 @@ export interface ContentPack {              // the content-art lane: packages/ri
    *  item (fists, the gate's pipe and knife included), drawn for 28-64 px. `rig.icon` uses these
    *  over the engine's whole-weapon drawing, which turns a long pole into a hairline and a
    *  weapon drawn as links into an empty icon. */
-  icons: Record<SkillId | `ui:${ContentUi}` | ShieldId | HeldId | GearId, IconArt> & Partial<Record<CompanionId, IconArt>>;
+  icons: Record<SkillId | `ui:${ContentUi}` | ShieldId | HeldId | GearId | `talent:${TalentId}`, IconArt> & Partial<Record<CompanionId, IconArt>>;
   /** Body equipment (CONTRACT_REV 8): every piece drawn on the bones of its slot. */
   gear: Record<GearId, GearArt>;
   /** Animation pass (16 Nov 2026), optional: the clip variants a held item plays in place of a
@@ -306,7 +306,8 @@ export interface ContentPack {              // the content-art lane: packages/ri
   variants?: Readonly<Record<string, Clip>>;
   uses?: Readonly<Partial<Record<HeldId, Readonly<Record<string, string>>>>>;
 }
-export type IconRef = PerkId | "fists" | `stat:${StatKey}` | `ui:${GateUi | ContentUi}`;
+/** `talent:<id>`: a talent node of the tree (CONTRACT_REV 9). */
+export type IconRef = PerkId | "fists" | `stat:${StatKey}` | `ui:${GateUi | ContentUi}` | `talent:${TalentId}`;
 export interface SvgPart { d: string; fill: string; stroke?: string; strokeWidth?: number; transform?: string }
 export interface SvgArt { viewBox: string; parts: SvgPart[] }
 

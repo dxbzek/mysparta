@@ -20,7 +20,7 @@ import { HIT_LIGHT_STEP } from "./clips/reactions";
 import { USES, VARIANTS } from "./clips/use";
 import { CONTENT_FX, PROPS } from "./fx";
 import { CONTENT_LOOKS } from "./looks";
-import { CONTENT_UI_ICONS, PET_ICONS, SHIELD_ICONS, SKILL_ICONS, WEAPON_ICONS } from "./icons";
+import { CONTENT_UI_ICONS, PET_ICONS, SHIELD_ICONS, SKILL_ICONS, TALENT_ICONS, WEAPON_ICONS } from "./icons";
 import { PET_ART } from "./pets";
 import { SHIELD_ART } from "./shields";
 import { CONTENT_STAGES } from "./stages";
@@ -39,7 +39,7 @@ export const contentPack: ContentPack = {
   looks: CONTENT_LOOKS,
   companions: PET_ART,
   fx: CONTENT_FX,
-  icons: { ...SKILL_ICONS, ...CONTENT_UI_ICONS, ...SHIELD_ICONS, ...WEAPON_ICONS, ...PET_ICONS, ...GEAR_ICONS },
+  icons: { ...SKILL_ICONS, ...CONTENT_UI_ICONS, ...SHIELD_ICONS, ...WEAPON_ICONS, ...PET_ICONS, ...GEAR_ICONS, ...TALENT_ICONS },
   // body equipment (content v3 batch 2): drawn on the bones of its slot
   gear: GEAR_ART,
 };
