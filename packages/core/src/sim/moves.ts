@@ -101,8 +101,20 @@ function moveStep(b: Bout, a: Actor, id: MoveId, procs: Proc[], extra: Partial<E
   return step;
 }
 
+/** Rubber Gloves (gear): the chance a Snatch slips off this scrapper's weapon. */
+export function snatchSlip(foe: Actor): number {
+  return gearOf(foe, "snatchResist");
+}
+/** Skipped turns of a Tarp's snare on `target` (Rain Boots take some off, at least 1). */
+export function tarpSkips(target: Actor): number {
+  return Math.max(1, sk("tarp", "skips") - gearOf(target, "snareCut"));
+}
+/** Aim Sand in the Eyes takes from `foe` (none through Goggles). */
+export function sandLoss(foe: Actor): number {
+  return gearOf(foe, "sandProof") > 0 ? 0 : sk("sand-in-the-eyes", "aimLoss");
+}
 /** Knee Pads (gear): HP off a Body Slam or a Grapple hit taken, never below 1. */
-function moveSoaked(target: Actor, d: number): number {
+export function moveSoaked(target: Actor, d: number): number {
   const s = gearOf(target, "moveSoak");
   return s > 0 ? Math.max(1, d - s) : d;
 }
@@ -139,7 +151,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       target.snared = true;
       target.snareSkips = 0;
       // Rain Boots (gear): the tarp slides off sooner.
-      target.snareLimit = Math.max(1, sk("tarp", "skips") - gearOf(target, "snareCut"));
+      target.snareLimit = tarpSkips(target);
       emit(b, { t: "snare", turn: b.turn, actor: a.id, target: target.id });
       return Math.floor((turnBase(a, a.held) * sk("tarp", "costPct")) / 100);
     }
@@ -181,7 +193,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
         return sk("snatch", "cost");
       }
       // Rubber Gloves (gear): the weapon slips out of the snatching hand (no tag).
-      const slip = gearOf(foe, "snatchResist");
+      const slip = snatchSlip(foe);
       if (slip > 0 && b.r.disarm.int(100) < slip) {
         emit(b, moveStep(b, a, id, procs, { target: foe.id }));
         return sk("snatch", "cost");
@@ -227,7 +239,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
     case "sand-in-the-eyes": {
       const foe = scrapperOfSide(b, a.side === "a" ? "b" : "a");
       // Goggles (gear): the sand takes no Aim.
-      foe.sand = gearOf(foe, "sandProof") > 0 ? 0 : sk("sand-in-the-eyes", "aimLoss");
+      foe.sand = sandLoss(foe);
       emit(b, moveStep(b, a, id, procs, { target: foe.id }));
       return Math.floor((turnBase(a, a.held) * sk("sand-in-the-eyes", "costPct")) / 100);
     }

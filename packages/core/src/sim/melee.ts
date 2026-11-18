@@ -72,6 +72,19 @@ export function damageOf(raw: number, variance: number, mult: number, crit: bool
 export interface SwingCalc { outcome: "hit" | "evade" | "block"; damage: number; crit: boolean; hpAfter: number;
   procs: Proc[]; blocked: boolean }
 
+/** The soak a hit takes off (content v3): the defender's, and from its gear: a crit is a clean blow
+ *  to the head (Motorbike Helmet: Toughness counted higher for its soak), a companion's bite lands
+ *  on the shins (Magazine Shin Guards). */
+export function takenSoak(att: Actor, def: Actor, crit: boolean): number {
+  const dv = valuesOf(def);
+  return (crit && def.scrapper ? dv.soak - soakOf(def.tou) + soakOf(def.tou + gearOf(def, "headTough")) : dv.soak)
+    + (att.comp !== null ? gearOf(def, "petSoak") : 0);
+}
+/** A crit taken by `def` multiplies by this percent: 150, less the Welding Mask's cut. */
+export function critPctOf(def: Actor): number {
+  return 150 - gearOf(def, "critCut");
+}
+
 /** Evade and block chances, halved against a throw (a shield's thrownBlock is added after the
  *  halving). Companions never block. A snared actor neither evades nor blocks. */
 export function evadeChance(att: Actor, def: Actor, aimLess: number, evadeLess: number, thrown: boolean): number {
@@ -132,11 +145,8 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   const mult = damageMult(att, thrown, boosted);
   const dv = valuesOf(def);
   const armor = thrown ? null : dv.armor;
-  // gear: a crit is a clean blow to the head (Motorbike Helmet: more Toughness for its soak; Welding
-  // Mask: a smaller crit); a companion's bite lands on the shins (Magazine Shin Guards)
-  const soak = (crit && def.scrapper ? dv.soak - soakOf(def.tou) + soakOf(def.tou + gearOf(def, "headTough")) : dv.soak)
-    + (att.comp !== null ? gearOf(def, "petSoak") : 0);
-  const critPct = 150 - gearOf(def, "critCut");
+  const soak = takenSoak(att, def, crit);
+  const critPct = critPctOf(def);
   const full = damageOf(raw, variance, mult, crit, armor, soak, critPct);
   // Number skills show where they changed the damage (no random number: the same hit, re-counted).
   const big = crit || boosted;
