@@ -17,7 +17,7 @@ import { contentPack, createRig, gatePack } from "@rankzero/rig";
 import { drawnBox } from "../src/bounds";
 import { homeSpan } from "../src/camera";
 import type { StagePlayer } from "../src/createFightPlayer";
-import { STAGE_W } from "../src/layout";
+import { BODY_GAP, SCRAPPER_REACH, STAGE_W } from "../src/layout";
 import { playerFor } from "./lib/setup";
 
 const FULL = createRig(gatePack, contentPack);
@@ -63,4 +63,25 @@ describe("downed bodies lie clear of the feet and inside the frame (real art)", 
     const any = BOUTS.some((b) => b.log.steps.some((s) => s.t === "ko" && s.actor !== "a0" && s.actor !== "b0"));
     expect(any).toBe(true);
   });
+});
+
+describe("a blow at a pinned pet behind its owner (real art)", () => {
+  it("level 30 n 70: the owner gives room past the goose, not between it and the sledgehammer", () => {
+    const b = found(30, 70);
+    const p = playerFor(b.log, b.a, b.b, FULL);
+    // every blow at a pinned pet: at its contact the two fighters are a body gap and a body apart
+    let checked = 0;
+    b.log.steps.forEach((s, i) => {
+      if (s.t !== "attack" || s.target === "a0" || s.target === "b0") return;
+      const pinned = b.log.steps.slice(0, i).some((q, k) => q.t === "snare" && q.target === s.target
+        && !b.log.steps.slice(k, i).some((r) => r.t === "free" && r.actor === s.target));
+      if (!pinned) return;
+      const c = p.timeline.contacts.find((m) => m.step === i)!;
+      const f = p.frame(c.at);
+      const [x0, x1] = ["a0", "b0"].map((id) => f.actors.find((a) => a.id === id)!.place.x);
+      expect(Math.abs(x0! - x1!), `step ${i} at ${c.at}`).toBeGreaterThanOrEqual(BODY_GAP.body + SCRAPPER_REACH.front);
+      checked++;
+    });
+    expect(checked).toBeGreaterThan(0);
+  }, 120_000);
 });
