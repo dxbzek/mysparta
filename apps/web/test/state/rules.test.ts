@@ -4,12 +4,16 @@
 import { describe, expect, it } from "vitest";
 import { PERK_IDS, api } from "@rankzero/core";
 import { shownRecord, unwatchedOf } from "../../src/state/actions";
-import { countdown, dayKeyOf, msToMidnight } from "../../src/state/day";
+import { ENERGY_MAX, ENERGY_REFILL_MS } from "@rankzero/core";
+import { guard } from "../../src/app/guards";
+import { dayKeyOf } from "../../src/state/day";
 import { DAY_MS, T0, memGame, playUntilLevelUp, rival } from "./helpers";
 
+const MIN = 60_000;
 const left = (g: Awaited<ReturnType<typeof memGame>>, id: string): number =>
-  api.boutsLeft(g.store.doc.fighters.find((f) => f.id === id)!, g.clock.today());
+  api.energyNow(g.store.doc.fighters.find((f) => f.id === id)!, g.clock.now());
 
+/** Fights (taking level-ups on the way) until the energy runs out. Returns the bouts fought. */
 async function spendDay(g: Awaited<ReturnType<typeof memGame>>, id: string): Promise<number> {
   let n = 0;
   for (;;) {
@@ -21,7 +25,7 @@ async function spendDay(g: Awaited<ReturnType<typeof memGame>>, id: string): Pro
     }
     const r = await g.actions.startBout(id, await rival(g, id, n));
     if (!r.ok) {
-      expect(r.error).toBe("no-bouts");
+      expect(r.error).toBe("no-energy");
       return n;
     }
     await g.actions.markWatched(r.value.id);
@@ -29,22 +33,27 @@ async function spendDay(g: Awaited<ReturnType<typeof memGame>>, id: string): Pro
   }
 }
 
-describe("bouts per day", () => {
-  it("8 on the creation day, 6 after the day rolls over, none carried over", async () => {
+describe("energy (content v3, in place of the daily bout cap)", () => {
+  it("a new scrapper starts full: 6 bouts, then none until a point comes back 20 minutes later", async () => {
     const g = await memGame();
     const c = await g.actions.create("Marla", 0, 0);
     if (!c.ok) throw new Error(c.error);
-    expect(left(g, c.value.id)).toBe(8);
-    expect(await spendDay(g, c.value.id)).toBe(8);
-    expect(left(g, c.value.id)).toBe(0);
-    g.clock.add(DAY_MS);
-    expect(left(g, c.value.id)).toBe(6);
+    expect(left(g, c.value.id)).toBe(ENERGY_MAX);
     expect(await spendDay(g, c.value.id)).toBe(6);
+    expect(left(g, c.value.id)).toBe(0);
+    g.clock.add(ENERGY_REFILL_MS - 1000);
+    expect(left(g, c.value.id)).toBe(0);
+    g.clock.add(1000);
+    expect(left(g, c.value.id)).toBe(1);
+    expect(await spendDay(g, c.value.id)).toBe(1);
+    // a full bar 2 hours after the last bout, and no more after a day
+    g.clock.add(2 * 60 * MIN);
+    expect(left(g, c.value.id)).toBe(6);
     g.clock.add(DAY_MS);
     expect(left(g, c.value.id)).toBe(6);
   });
 
-  it("a clock that moves back resets nothing", async () => {
+  it("a clock that moves back refills nothing", async () => {
     const g = await memGame();
     const c = await g.actions.create("Dez", 0, 0);
     if (!c.ok) throw new Error(c.error);
@@ -52,15 +61,37 @@ describe("bouts per day", () => {
     g.clock.add(-3 * DAY_MS);
     expect(left(g, c.value.id)).toBe(0);
     const r = await g.actions.startBout(c.value.id, await rival(g, c.value.id));
-    expect(r).toEqual({ ok: false, error: "no-bouts" });
+    expect(r).toEqual({ ok: false, error: "no-energy" });
+    // back to the real time: still the refill of the real clock only
+    g.clock.add(3 * DAY_MS + 19 * MIN);
+    expect(left(g, c.value.id)).toBe(0);
   });
 
-  it("the countdown runs to local midnight", () => {
-    const at = new Date(2026, 10, 15, 18, 48, 0).getTime();
-    expect(countdown(msToMidnight(at))).toBe("5 h 12 min");
-    expect(dayKeyOf(at)).toBe("2026-11-15");
-    expect(dayKeyOf(at + msToMidnight(at))).toBe("2026-11-16");
-    expect(countdown(30_000)).toBe("1 min");
+  it("the Card opens again when a point comes back (the guard reads the clock's time)", async () => {
+    const g = await memGame();
+    const c = await g.actions.create("Kip", 0, 0);
+    if (!c.ok) throw new Error(c.error);
+    await spendDay(g, c.value.id);
+    expect(guard({ name: "card" }, g.store.doc, g.clock.now()).name).toBe("locker");
+    g.clock.add(ENERGY_REFILL_MS);
+    const rec = g.store.doc.fighters[0]!;
+    if (!api.sheetOf(rec).levelUpWaiting) expect(guard({ name: "card" }, g.store.doc, g.clock.now()).name).toBe("card");
+  });
+
+  it("a bout fought mid-refill keeps the time earned towards the next point", async () => {
+    const g = await memGame();
+    const c = await g.actions.create("Rue", 0, 0);
+    if (!c.ok) throw new Error(c.error);
+    const id = c.value.id;
+    for (let i = 0; i < 2; i++) {
+      const r = await g.actions.startBout(id, await rival(g, id, i));
+      if (!r.ok) throw new Error(r.error);
+      await g.actions.markWatched(r.value.id);
+    }
+    g.clock.add(30 * MIN);
+    const rec = g.store.doc.fighters[0]!;
+    expect(api.energyNow(rec, g.clock.now())).toBe(5);
+    expect(api.energyNextMs(rec, g.clock.now())).toBe(10 * MIN);
   });
 });
 
@@ -100,15 +131,15 @@ describe("the gates", () => {
     if (!r.ok) throw new Error(r.error);
     const stored = g.store.doc.fighters[0]!;
     expect(stored.xp).toBe(r.value.xp);                       // the save already holds the result
-    expect(stored.boutsUsed).toBe(1);
+    expect(stored.energy).toBe(5);
     const shown = shownRecord(g.store.doc, stored);
     expect(shown.xp).toBe(0);
-    expect(api.boutsLeft(shown, g.clock.today())).toBe(8);
+    expect(api.energyNow(shown, g.clock.now())).toBe(6);
     expect(unwatchedOf(g.store.doc)?.id).toBe(r.value.id);
     await g.actions.markWatched(r.value.id);
     const after = shownRecord(g.store.doc, g.store.doc.fighters[0]!);
     expect(after.xp).toBe(r.value.xp);
-    expect(api.boutsLeft(after, g.clock.today())).toBe(7);
+    expect(api.energyNow(after, g.clock.now())).toBe(5);
     expect(unwatchedOf(g.store.doc)).toBeUndefined();
   });
 

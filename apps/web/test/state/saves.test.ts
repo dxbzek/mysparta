@@ -171,7 +171,7 @@ describe("slots", () => {
   it("history keeps 50 logs and 200 rows", () => {
     const g = { ...emptyDoc(T0) };
     const row = (i: number) => ({ id: `b${i}`, log: api.simulateFight(1, snapA, snapB, 1) });
-    const snapA = api.snapshotOf(api.createRecord({ id: "a", name: "Marla", realmSalt: "yard-1", lookSalt: 0, colourSalt: 0, today: "2026-11-15" }));
+    const snapA = api.snapshotOf(api.createRecord({ id: "a", name: "Marla", realmSalt: "yard-1", lookSalt: 0, colourSalt: 0, today: "2026-11-15", nowMs: T0 }));
     const snapB = api.rivalSnapshot("yard-1", 1, 0);
     const rows = Array.from({ length: 230 }, (_, i) => row(i)) as unknown as SaveDoc["history"];
     const out = trimHistory(rows);

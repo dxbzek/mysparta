@@ -3,14 +3,14 @@
  * save, and today, give the route to show. They run when the hash changes, so typing a URL
  * cannot get past them:
  *   - while a level-up waits, Tonight's Card and every bout URL go back to the Locker;
- *   - with no bouts left, or a bout not yet watched, the Card goes back to the Locker;
+ *   - with no energy, or a bout not yet watched, the Card goes back to the Locker;
  *   - an empty save only shows Create (and settings);
  *   - the level-up screen only opens while one waits.
  * "Waiting" is read from the record AS SHOWN: while the bout that earned a level-up is unwatched,
  * the screens still show the old XP, so that bout can be watched first.
  */
 import { api } from "@rankzero/core";
-import type { CoreApi, DayKey } from "@rankzero/core";
+import type { CoreApi } from "@rankzero/core";
 import type { SaveDoc } from "../contracts";
 import { shownRecord, unwatchedOf } from "../state/actions";
 import { SLOT_LIMIT } from "../state/schema";
@@ -20,7 +20,8 @@ export function activeRecord(doc: SaveDoc) {
   return doc.fighters.find((f) => f.id === doc.activeId) ?? doc.fighters[0];
 }
 
-export function guard(route: Route, doc: SaveDoc, today: DayKey, core: CoreApi = api): Route {
+/** `nowMs` is the injected clock's time: energy refills with it (content v3). */
+export function guard(route: Route, doc: SaveDoc, nowMs: number, core: CoreApi = api): Route {
   if (route.name === "sandbox") return route;
   const rec = activeRecord(doc);
   if (!rec) {
@@ -30,7 +31,7 @@ export function guard(route: Route, doc: SaveDoc, today: DayKey, core: CoreApi =
   const shown = shownRecord(doc, rec);
   const sheet = core.sheetOf(shown);
   const waiting = sheet.levelUpWaiting;
-  const left = core.boutsLeft(shown, today);
+  const left = core.energyNow(shown, nowMs);
   const locker: Route = { name: "locker" };
   switch (route.name) {
     case "home":

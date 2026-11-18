@@ -218,7 +218,7 @@ export function App(props: AppProps) {
   useEffect(() => {
     if (!ready) return;
     const asked = parseRoute(hash);
-    const shown = guard(asked, store.doc, clock.today(), env.core);
+    const shown = guard(asked, store.doc, clock.now(), env.core);
     if (!sameRoute(asked, shown) || hash === "") location.replace(hrefOf(shown));
     setRoute(shown);
   }, [hash, hashN, ready, store, clock, env.core]);

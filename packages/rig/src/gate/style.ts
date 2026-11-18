@@ -111,7 +111,8 @@ export const FX = { burst: "#FFF1C2", burstCore: "#FFFFFF", spark: "#FFC060", du
 
 /** Icon colours (canvas-side; the DOM tokens live in the web app). */
 export const ICON = {
-  health: "#5BD66F", strength: "#FF5A4E", agility: "#A78BFA", speed: "#4CC9F0", ui: "#F4F2EC",
+  health: "#5BD66F", strength: "#FF5A4E", agility: "#A78BFA", speed: "#4CC9F0", toughness: "#F59A3C", precision: "#F06BB4",
+  ui: "#F4F2EC",
 } as const;
 
 /** The alley (gate arena "yard", drawn as the style-13 street). */
@@ -165,4 +166,5 @@ export function slotColour(slot: ColourSlot, c: SlotColours): string {
 export const palette = {
   ink: INK, teal: TEAL, tealDeep: TEAL_DEEP, lamp: LAMP, glow: GLOW,
   health: ICON.health, strength: ICON.strength, agility: ICON.agility, speed: ICON.speed,
+  toughness: ICON.toughness, precision: ICON.precision,
 } as const;

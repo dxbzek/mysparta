@@ -65,7 +65,7 @@ describe("the longest legal name fits the HUD and the cards (finding 36)", () =>
 
   it("the card renders the size step for a 14-letter name", async () => {
     const { FighterCard } = await import("../../src/fight/FighterCard");
-    const info = { side: "a" as const, name: "Maximiliana Wo", level: 1, look: api.rollLook(1, 0, 0), stats: { health: 1, strength: 1, agility: 1, speed: 1 }, skills: [], pets: [] };
+    const info = { side: "a" as const, name: "Maximiliana Wo", level: 1, look: api.rollLook(1, 0, 0), stats: { health: 1, strength: 1, agility: 1, speed: 1, toughness: 1, precision: 1 }, skills: [], pets: [] };
     const frame = { hp: {} } as never;
     const html = renderToStaticMarkup(<FighterCard info={info} frame={frame} state={undefined} pets={[]} bag={[]} lit={new Map()} pulse={0} />);
     expect(html).toContain('data-size="long"');

@@ -5,6 +5,7 @@
  * skills, never which ones: scouting stays a guess.
  */
 import { useEffect, useMemo, useState } from "react";
+import { EnergyMeter } from "../parts/EnergyMeter";
 import type { CompanionId, FighterSnapshot, HeldId } from "@rankzero/core";
 import { perkKind } from "@rankzero/core";
 import { activeRecord } from "../../app/guards";
@@ -23,12 +24,14 @@ import { CompareStat, MiniStat } from "../parts/MiniStats";
 import common from "../common.module.css";
 import css from "./Card.module.css";
 
-export interface RivalInfo { snap: FighterSnapshot; maxHp: number; str: number; agi: number; spd: number; weapons: number; skills: number; pets: CompanionId[] }
+export interface RivalInfo { snap: FighterSnapshot; maxHp: number; str: number; agi: number; spd: number; tou: number; pre: number;
+  weapons: number; skills: number; pets: CompanionId[] }
 
 export function rivalInfo(core: ReturnType<typeof useGame>["core"], snap: FighterSnapshot): RivalInfo {
   const s = core.snapshotSheet(snap);
   return {
     snap, maxHp: s.maxHp, str: s.effective.strength, agi: s.effective.agility, spd: s.effective.speed,
+    tou: s.effective.toughness, pre: s.effective.precision,
     weapons: snap.perks.filter((p) => perkKind(p) === "weapon").length,
     skills: snap.perks.filter((p) => perkKind(p) === "skill").length,
     pets: snap.perks.filter((p) => perkKind(p) === "companion") as CompanionId[],
@@ -44,7 +47,7 @@ export function CardScreen() {
   const [hand, setHand] = useState<FighterSnapshot[] | null>(null);
   const [pick, setPick] = useState<RivalInfo | null>(null);
   const [busy, setBusy] = useState(false);
-  const handKey = shown ? `${shown.id}:${shown.picks.length}:${shown.boutsUsed}:${shown.day}:${today}` : "";
+  const handKey = shown ? `${shown.id}:${shown.picks.length}:${shown.lifetimeBouts}:${today}` : "";
   useEffect(() => {
     if (!shown) return;
     let live = true;
@@ -59,8 +62,7 @@ export function CardScreen() {
   const me = useMemo(() => (shown ? rivalInfo(core, core.snapshotOf(shown)) : null), [core, shown?.id, shown?.picks.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const rivals = useMemo(() => (hand ?? []).map((s) => rivalInfo(core, s)), [hand, core]);
   if (!rec || !shown || !me) return null;
-  const left = core.boutsLeft(shown, today);
-  const scale = Math.max(10, me.str, me.agi, me.spd, ...rivals.flatMap((r) => [r.str, r.agi, r.spd]));
+  const scale = Math.max(10, me.str, me.agi, me.spd, me.tou, me.pre, ...rivals.flatMap((r) => [r.str, r.agi, r.spd, r.tou, r.pre]));
   const held = (me.snap.perks.find((p) => perkKind(p) === "weapon") ?? null) as HeldId | null;
 
   const fight = async (): Promise<void> => {
@@ -87,7 +89,7 @@ export function CardScreen() {
           <span className={common.kicker}>{UI.card.title}</span>
           <h1 className={common.h1}>{UI.card.heading}</h1>
         </div>
-        <Sticker tone="hazard" tilt={2}>{UI.boutsLeft(left)}</Sticker>
+        <div className={css.energy}><EnergyMeter rec={shown} compact /></div>
       </header>
       <main className={`${common.body} ${css.layout}`}>
         <aside className={css.me}>
@@ -99,6 +101,7 @@ export function CardScreen() {
             </div>
             <div className={css.meNums}>
               <span>STR <b>{me.str}</b></span><span>AGI <b>{me.agi}</b></span><span>SPD <b>{me.spd}</b></span>
+              <span>TOU <b>{me.tou}</b></span><span>PRE <b>{me.pre}</b></span>
             </div>
           </Panel>
           <Panel tone="dark" flush className={css.meStage}>
@@ -121,6 +124,8 @@ export function CardScreen() {
                   <MiniStat stat="strength" value={r.str} max={scale} />
                   <MiniStat stat="agility" value={r.agi} max={scale} />
                   <MiniStat stat="speed" value={r.spd} max={scale} />
+                  <MiniStat stat="toughness" value={r.tou} max={scale} />
+                  <MiniStat stat="precision" value={r.pre} max={scale} />
                 </span>
                 <span className={css.counts}>
                   <span className={css.count} aria-label={`${r.weapons} ${UI.card.weapons}`}><WeaponGlyph />{r.weapons}</span>
@@ -152,6 +157,8 @@ export function CardScreen() {
               <CompareStat label="STR" stat="strength" mine={me.str} theirs={pick.str} max={scale} />
               <CompareStat label="AGI" stat="agility" mine={me.agi} theirs={pick.agi} max={scale} />
               <CompareStat label="SPD" stat="speed" mine={me.spd} theirs={pick.spd} max={scale} />
+              <CompareStat label="TOU" stat="toughness" mine={me.tou} theirs={pick.tou} max={scale} />
+              <CompareStat label="PRE" stat="precision" mine={me.pre} theirs={pick.pre} max={scale} />
               <CompareStat label={UI.card.weapons} mine={me.weapons} theirs={pick.weapons} max={Math.max(1, me.weapons, pick.weapons)} />
               <CompareStat label={UI.card.skills} mine={me.skills} theirs={pick.skills} max={Math.max(1, me.skills, pick.skills)} />
             </div>

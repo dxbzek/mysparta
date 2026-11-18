@@ -18,6 +18,9 @@ import { afterPick, xpForBout, xpToNext } from "./progress/xp";
 import { simulateFight } from "./sim/simulate";
 export { SIM_VERSION } from "./sim/version";
 export { ENERGY_COST, ENERGY_MAX, ENERGY_REFILL_MS } from "./progress/energy";
+/** For the save migration to schema 4 (apps/web state/migrations.ts): the kit an old save holds. */
+export { LEGACY_NEW_STAT_POINTS, legacyBase, legacyKit, sixStatsOf } from "./progress/legacy";
+export type { LegacyKit } from "./progress/legacy";
 import { canonical } from "./canonical";
 
 export const content: ContentTables = { weapons: WEAPONS, skills: SKILLS, companions: COMPANIONS, shields: SHIELDS };

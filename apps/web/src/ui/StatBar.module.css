@@ -32,6 +32,8 @@
 .strength { background-color: var(--c-stat-strength); }
 .agility { background-color: var(--c-stat-agility); }
 .speed { background-color: var(--c-stat-speed); }
+.toughness { background-color: var(--c-stat-toughness); }
+.precision { background-color: var(--c-stat-precision); }
 .icon {
   display: grid;
   place-items: center;

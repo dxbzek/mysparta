@@ -43,7 +43,8 @@ export const UI = {
   maxHp: "Max HP",
   hp: "HP",
   xp: "XP",
-  boutsLeft: (n: number) => `${plural(n, "bout", "bouts")} left`,
+  /** The energy bar (content v3). */
+  energy: { label: "Energy", full: "Full", next: (clock: string) => `+1 in ${clock}` },
 
   create: {
     heading: "New scrapper",
@@ -93,7 +94,7 @@ export const UI = {
     starting: "Starting the bout",
     refused: {
       "level-up-waiting": "A level-up is waiting. Take it first.",
-      "no-bouts": "No bouts left tonight.",
+      "no-energy": "Out of energy. A point comes back every 20 minutes.",
       "unwatched-bout": "Your last bout has not been watched yet.",
     },
   },
@@ -307,8 +308,11 @@ export const LOCKER_WORDS: LockerText = {
   xp: UI.xp,
   maxHp: UI.maxHp,
   levelUp: `${NAV.levelUp}!`,
-  fight: (n) => `${NAV.fight} (${plural(n, "bout", "bouts")} left)`,
-  done: (backIn) => `Done for tonight. Back in ${backIn}.`,
+  fight: () => NAV.fight,
+  done: (backIn) => `Out of energy. +1 in ${backIn}.`,
+  energy: UI.energy.label,
+  energyFull: UI.energy.full,
+  energyNext: UI.energy.next,
   kit: NAV.kit,
   seeAll: "See all",
   more: (n) => `+${n}`,

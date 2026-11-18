@@ -27,9 +27,9 @@ export function BoutScreen({ id }: { id: string }) {
     const xpToNext = core.xpToNext(bout.snapshotA.level);
     const xpAfter = bout.before.xp + bout.xp;
     const levelUp = xpAfter >= xpToNext;
-    const left = rec ? core.boutsLeft(rec, clock.today()) : 0;
+    const left = rec ? core.energyNow(rec, clock.now()) : 0;
     return { won, line: resultLine(bout.lineId, won, bout.snapshotA.name, bout.snapshotB.name), xpBefore: bout.before.xp, xpAfter,
-      xpToNext, levelUp, boutsLeft: levelUp ? 0 : left };
+      xpToNext, levelUp, energy: levelUp ? 0 : left };
   }, [bout?.id, rec?.id, core, clock]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onSettings = useCallback((patch: Partial<Settings>) => void actions.setSettings(patch).catch((e: Error) => toast(e.message)), [actions, toast]);

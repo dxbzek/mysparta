@@ -8,7 +8,7 @@ import { hrefOf, parseRoute } from "../../src/app/router";
 import type { Route } from "../../src/app/router";
 import { memGame, playUntilLevelUp, rival } from "../state/helpers";
 
-const at = (hash: string, doc: Parameters<typeof guard>[1], today: string): string => hrefOf(guard(parseRoute(hash), doc, today));
+const at = (hash: string, doc: Parameters<typeof guard>[1], now: number): string => hrefOf(guard(parseRoute(hash), doc, now));
 
 describe("router", () => {
   it("parses and prints every route", () => {
@@ -25,7 +25,7 @@ describe("router", () => {
 describe("guards", () => {
   it("an empty save only shows Create", async () => {
     const g = await memGame();
-    const today = g.clock.today();
+    const today = g.clock.now();
     for (const h of ["#/", "#/locker", "#/card", "#/bout/x", "#/levelup", "#/kit", "#/bouts", "#/inventory"]) expect(at(h, g.store.doc, today)).toBe("#/create");
     expect(at("#/settings", g.store.doc, today)).toBe("#/settings");
     expect(at("#/sandbox", g.store.doc, today)).toBe("#/sandbox");
@@ -36,7 +36,7 @@ describe("guards", () => {
     const c = await g.actions.create("Tug", 0, 0);
     if (!c.ok) throw new Error(c.error);
     await playUntilLevelUp(g, c.value.id);
-    const today = g.clock.today();
+    const today = g.clock.now();
     const doc = g.store.doc;
     expect(at("#/card", doc, today)).toBe("#/locker");
     expect(at("#/bout/x", doc, today)).toBe("#/locker");
@@ -54,9 +54,9 @@ describe("guards", () => {
     const c = await g.actions.create("Tug", 0, 0);
     if (!c.ok) throw new Error(c.error);
     await playUntilLevelUp(g, c.value.id);
-    const noGate = (r: Route): Route => (r.name === "card" ? r : guard(r, g.store.doc, g.clock.today()));
+    const noGate = (r: Route): Route => (r.name === "card" ? r : guard(r, g.store.doc, g.clock.now()));
     expect(hrefOf(noGate({ name: "card" }))).toBe("#/card");
-    expect(at("#/card", g.store.doc, g.clock.today())).not.toBe("#/card");
+    expect(at("#/card", g.store.doc, g.clock.now())).not.toBe("#/card");
   });
 
   it("the unwatched bout can be watched; the Card waits until it is", async () => {
@@ -65,7 +65,7 @@ describe("guards", () => {
     if (!c.ok) throw new Error(c.error);
     const r = await g.actions.startBout(c.value.id, await rival(g, c.value.id));
     if (!r.ok) throw new Error(r.error);
-    const today = g.clock.today();
+    const today = g.clock.now();
     expect(at(`#/bout/${r.value.id}`, g.store.doc, today)).toBe(`#/bout/${r.value.id}`);
     expect(at("#/card", g.store.doc, today)).toBe("#/locker");
     expect(at("#/levelup", g.store.doc, today)).toBe("#/locker");
@@ -86,11 +86,11 @@ describe("guards", () => {
       if (!r.ok) break;
       await g.actions.markWatched(r.value.id);
     }
-    expect(at("#/card", g.store.doc, g.clock.today())).toBe("#/locker");
+    expect(at("#/card", g.store.doc, g.clock.now())).toBe("#/locker");
     await g.actions.create("Marla", 0, 0);
-    expect(at("#/create", g.store.doc, g.clock.today())).toBe("#/create");
+    expect(at("#/create", g.store.doc, g.clock.now())).toBe("#/create");
     await g.actions.create("Tug", 0, 0);
-    expect(at("#/create", g.store.doc, g.clock.today())).toBe("#/locker");
-    expect(at("#/", g.store.doc, g.clock.today())).toBe("#/locker");
+    expect(at("#/create", g.store.doc, g.clock.now())).toBe("#/locker");
+    expect(at("#/", g.store.doc, g.clock.now())).toBe("#/locker");
   });
 });

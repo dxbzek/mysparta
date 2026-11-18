@@ -34,9 +34,9 @@ const EVERYTHING_B: readonly PerkId[] = [...WEAPON_IDS, ...SKILL_IDS, "boar", "c
 /** A hand-built snapshot. Stats grow with the level so a level-30 sandbox is not made of paper. */
 export function sandboxSnapshot(id: string, name: string, level: number, perks: readonly PerkId[], lookSeed: number): FighterSnapshot {
   const per = 2 + Math.floor((level - 1) / 2);
-  const points: Record<StatKey, number> = { health: per + 2, strength: per + 1, agility: per, speed: per };
+  const points: Record<StatKey, number> = { health: per + 2, strength: per + 1, agility: per, speed: per, toughness: per, precision: per };
   return { id, name, look: api.rollLook(lookSeed, 0, 0), level, perks: [...perks], rulesVersion: 1,
-    stats: { points, mult: { health: 100, strength: 100, agility: 100, speed: 100 } } };
+    stats: { points, mult: { health: 100, strength: 100, agility: 100, speed: 100, toughness: 100, precision: 100 } } };
 }
 
 function Side({ title, picked, onToggle, onAll, onNone }: { title: string; picked: readonly PerkId[]; onToggle(id: PerkId): void; onAll(): void; onNone(): void }) {

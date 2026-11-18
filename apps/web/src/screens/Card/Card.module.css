@@ -36,6 +36,8 @@
 }
 .meNums {
   display: grid;
+  grid-template-columns: repeat(2, auto);
+  column-gap: 8px;
   gap: 1px;
   font: 900 14px / 1.1 var(--font-display);
   letter-spacing: 0.04em;
@@ -45,6 +47,11 @@
 .meNums b {
   color: var(--t-on-dark);
   font-size: 16px;
+}
+/* the energy bar in the header (content v3), in place of the "N bouts left" sticker */
+.energy {
+  min-width: 132px;
+  max-width: 180px;
 }
 .meStage {
   display: none;

@@ -4,12 +4,14 @@
  * ids (a perk the game no longer has) warn and are dropped: they never throw.
  */
 import { LOOK_SPACE, isPerkId } from "@rankzero/core";
+import type { StatKey } from "@rankzero/core";
 import type { BoutLog, FighterSnapshot, KitBase, Look, PerkId, ScrapperRecord, StatBlock } from "@rankzero/core";
 import type { BoutRecord, SaveDoc, Settings } from "../contracts";
 
 /** 2 since CONTRACT_REV 4: `settings.isVip` (migration 1 to 2 in migrations.ts). 3 since
- *  CONTRACT_REV 5: a scrapper's carried kit, `ScrapperRecord.base` (migration 2 to 3). */
-export const SCHEMA_VERSION = 3 as const;
+ *  CONTRACT_REV 5: a scrapper's carried kit, `ScrapperRecord.base` (migration 2 to 3). 4 since
+ *  CONTRACT_REV 6: energy in place of the daily bout cap, six stats (migration 3 to 4). */
+export const SCHEMA_VERSION = 4 as const;
 /** Scrappers on one save. A fourth needs one retired first. */
 export const SLOT_LIMIT = 3;
 /** History: the last 50 bouts keep their logs, the last 200 are kept as summaries. */
@@ -48,6 +50,22 @@ const isStr = (v: unknown): v is string => typeof v === "string";
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const isDay = (v: unknown): v is string => isStr(v) && DAY.test(v);
 
+/** The six stats a stored stat block must hold (schema 4). */
+const STAT_KEYS: readonly StatKey[] = ["health", "strength", "agility", "speed", "toughness", "precision"];
+function checkStats(v: unknown): StatBlock | null {
+  if (!isObj(v)) return null;
+  const pts = v.points;
+  const mult = v.mult;
+  if (!isObj(pts) || !isObj(mult) || !STAT_KEYS.every((k) => isInt(pts[k]) && isInt(mult[k]))) return null;
+  const points = {} as Record<StatKey, number>;
+  const mults = {} as Record<StatKey, number>;
+  for (const k of STAT_KEYS) {
+    points[k] = pts[k] as number;
+    mults[k] = mult[k] as number;
+  }
+  return { points, mult: mults };
+}
+
 class Bad extends Error {}
 const need = (ok: boolean, what: string): void => {
   if (!ok) throw new Bad(what);
@@ -69,11 +87,9 @@ function checkSettings(v: unknown, warn: (w: string) => void): Settings {
 
 /** A carried kit (`ScrapperRecord.base`), or null when it is not one. Unknown perk ids are left out. */
 export function checkBase(v: unknown, picks: number, warn: (w: string) => void): KitBase | null {
-  if (!isObj(v) || !isNat(v.picks) || v.picks > picks || !isNat(v.starts) || !Array.isArray(v.perks) || !isObj(v.stats)) return null;
-  const pts = v.stats.points;
-  const mult = v.stats.mult;
-  const keys = ["health", "strength", "agility", "speed"] as const;
-  if (!isObj(pts) || !isObj(mult) || !keys.every((k) => isInt(pts[k]) && isInt(mult[k]))) return null;
+  if (!isObj(v) || !isNat(v.picks) || v.picks > picks || !isNat(v.starts) || !Array.isArray(v.perks)) return null;
+  const stats = checkStats(v.stats);
+  if (stats === null) return null;
   const perks: PerkId[] = [];
   let starts = v.starts;
   (v.perks as unknown[]).forEach((p, i) => {
@@ -84,10 +100,6 @@ export function checkBase(v: unknown, picks: number, warn: (w: string) => void):
     }
   });
   if (perks.length === 0 || starts < 1) return null;
-  const stats: StatBlock = {
-    points: { health: pts.health as number, strength: pts.strength as number, agility: pts.agility as number, speed: pts.speed as number },
-    mult: { health: mult.health as number, strength: mult.strength as number, agility: mult.agility as number, speed: mult.speed as number },
-  };
   return { picks: v.picks, starts, perks, stats };
 }
 
@@ -100,12 +112,13 @@ function checkRecord(v: unknown, where: string, warn: (w: string) => void = () =
   need(isInt(r.lookSalt) && isInt(r.colourSalt), `${where}: salts`);
   need(Array.isArray(r.picks) && (r.picks as unknown[]).every((p) => p === "L" || p === "R"), `${where}: picks`);
   need(isNat(r.xp), `${where}: xp`);
-  need(isDay(r.createdDay) && isDay(r.day), `${where}: days`);
-  need(isNat(r.boutsUsed) && isNat(r.lifetimeBouts), `${where}: counts`);
+  need(isDay(r.createdDay), `${where}: days`);
+  need(isNat(r.lifetimeBouts), `${where}: counts`);
+  need(isNat(r.energy) && isNat(r.energyAt), `${where}: energy`);
   const rec: ScrapperRecord = { id: r.id as string, name: r.name as string, seed: r.seed as number, lookSalt: r.lookSalt as number,
     colourSalt: r.colourSalt as number, picks: [...(r.picks as ("L" | "R")[])], xp: r.xp as number,
-    createdDay: r.createdDay as string, day: r.day as string, boutsUsed: r.boutsUsed as number,
-    lifetimeBouts: r.lifetimeBouts as number };
+    createdDay: r.createdDay as string, lifetimeBouts: r.lifetimeBouts as number,
+    energy: r.energy as number, energyAt: r.energyAt as number };
   if (r.base !== undefined) {
     const base = checkBase(r.base, rec.picks.length, warn);
     if (base !== null) rec.base = base;
@@ -129,12 +142,8 @@ function checkLook(v: unknown): Look | null {
 function checkSnapshot(v: unknown, warn: (w: string) => void): { snap: FighterSnapshot; dropped: number } | null {
   if (!isObj(v)) return null;
   const look = checkLook(v.look);
-  const stats = v.stats;
-  if (!isStr(v.id) || !isStr(v.name) || !isNat(v.level) || look === null || !isObj(stats)) return null;
-  const pts = stats.points;
-  const mult = stats.mult;
-  const keys = ["health", "strength", "agility", "speed"] as const;
-  if (!isObj(pts) || !isObj(mult) || !keys.every((k) => isInt(pts[k]) && isInt(mult[k]))) return null;
+  const stats = checkStats(v.stats);
+  if (!isStr(v.id) || !isStr(v.name) || !isNat(v.level) || look === null || stats === null) return null;
   const raw = Array.isArray(v.perks) ? (v.perks as unknown[]) : [];
   const perks: PerkId[] = [];
   let dropped = 0;
@@ -145,9 +154,7 @@ function checkSnapshot(v: unknown, warn: (w: string) => void): { snap: FighterSn
       warn(`unknown perk id ${JSON.stringify(p)} in a stored bout: left out`);
     }
   }
-  const points = { health: pts.health as number, strength: pts.strength as number, agility: pts.agility as number, speed: pts.speed as number };
-  const mults = { health: mult.health as number, strength: mult.strength as number, agility: mult.agility as number, speed: mult.speed as number };
-  return { snap: { id: v.id, name: v.name, look, level: v.level, stats: { points, mult: mults }, perks, rulesVersion: 1 }, dropped };
+  return { snap: { id: v.id, name: v.name, look, level: v.level, stats, perks, rulesVersion: 1 }, dropped };
 }
 
 function checkBout(v: unknown, warn: (w: string) => void): BoutRecord | null {
@@ -158,7 +165,7 @@ function checkBout(v: unknown, warn: (w: string) => void): BoutRecord | null {
   const before = v.before;
   if (a === null || b === null || !isStr(v.id) || !isNat(v.at) || !isInt(v.seed) || !isStr(v.fighterId)) return null;
   if (!isObj(res) || (res.winner !== "a" && res.winner !== "b") || (res.reason !== "ko" && res.reason !== "cap")) return null;
-  if (!isObj(before) || !isNat(before.xp) || !isNat(before.boutsUsed)) return null;
+  if (!isObj(before) || !isNat(before.xp) || !isNat(before.energy) || !isNat(before.energyAt)) return null;
   if (v.xp !== 1 && v.xp !== 2) return null;
   const hp = isObj(res.hpPct) ? res.hpPct : {};
   const rec: BoutRecord = {
@@ -167,7 +174,7 @@ function checkBout(v: unknown, warn: (w: string) => void): BoutRecord | null {
       hpPct: { a: isNat(hp.a) ? hp.a : 0, b: isNat(hp.b) ? hp.b : 0 } },
     role: v.role === "defender" ? "defender" : "attacker", fighterId: v.fighterId, xp: v.xp,
     lineId: isNat(v.lineId) ? v.lineId : 0, watched: v.watched === true,
-    before: { xp: before.xp, boutsUsed: before.boutsUsed },
+    before: { xp: before.xp, energy: before.energy, energyAt: before.energyAt },
   };
   // A log that names a perk we dropped cannot be played safely: keep the row, drop the log.
   // So is a log written before content v2 (log version 1: the door, not the shields).

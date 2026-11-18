@@ -46,6 +46,7 @@ export const STAT_SCALE = 16;
 
 const STATS: readonly { key: StatKey; short: string }[] = [
   { key: "strength", short: "STR" }, { key: "agility", short: "AGI" }, { key: "speed", short: "SPD" },
+  { key: "toughness", short: "TOU" }, { key: "precision", short: "PRE" },
 ];
 
 /** The card facts from a snapshot and the bout's actors. Pure. */

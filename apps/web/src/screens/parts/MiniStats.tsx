@@ -1,11 +1,10 @@
 /** Compact stat rows for the rival cards and the face-off sheet: icon, name in words, bar, number. */
 import type { StatKey } from "@rankzero/core";
 import { rig } from "../../seams/rig";
-import { STAT_NAME } from "../../text/stats";
+import { STAT_NAME, STAT_SHORT } from "../../text/stats";
 import { SvgArtView } from "../../ui/SvgArt";
 import css from "./mini.module.css";
 
-const short: Readonly<Record<StatKey, string>> = { health: "HP", strength: "STR", agility: "AGI", speed: "SPD" };
 
 export function StatIconDot({ stat, size = 18 }: { stat: StatKey; size?: number }) {
   return <span className={`${css.dot} ${css[stat]}`} style={{ width: size, height: size }}><SvgArtView art={rig.icon(`stat:${stat}`)} size={Math.round(size * 0.7)} /></span>;
@@ -16,7 +15,7 @@ export function MiniStat({ stat, value, max }: { stat: StatKey; value: number; m
   return (
     <div className={css.mini} role="group" aria-label={`${STAT_NAME[stat]} ${value}`}>
       <StatIconDot stat={stat} />
-      <span className={css.miniName} aria-hidden="true">{short[stat]}</span>
+      <span className={css.miniName} aria-hidden="true">{STAT_SHORT[stat]}</span>
       <span className={css.track} aria-hidden="true"><span className={`${css.fill} ${css[`f-${stat}`]}`} style={{ width: `${(pct * 100).toFixed(1)}%` }} /></span>
       <span className={css.miniValue} aria-hidden="true">{value}</span>
     </div>

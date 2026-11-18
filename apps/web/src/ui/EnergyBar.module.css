@@ -1,0 +1,63 @@
+/* The energy bar: cells of hazard yellow under the ink line, the house's hard shadow. */
+.bar {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  grid-template-areas: "bolt name cells count" "next next next next";
+  align-items: center;
+  column-gap: 6px;
+  row-gap: 4px;
+  font: 800 13px / 1 var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.paper { color: var(--c-ink); }
+.dark { color: var(--t-on-dark-hazard); }
+
+.bolt {
+  grid-area: bolt;
+  display: inline-flex;
+  color: var(--c-hazard);
+  filter: drop-shadow(1px 1px 0 var(--c-ink));
+}
+.name { grid-area: name; }
+.cells {
+  grid-area: cells;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+  min-width: 96px;
+}
+.cell {
+  height: 14px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 2px;
+  background: var(--c-xp-back);
+  transform: skewX(-12deg);
+}
+.on {
+  background: var(--tex-halftone), var(--c-hazard);
+  box-shadow: 1px 2px 0 var(--c-ink);
+}
+.count {
+  grid-area: count;
+  font-variant-numeric: tabular-nums;
+}
+.next {
+  grid-area: next;
+  justify-self: end;
+  font-weight: 700;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.full { opacity: 0.8; }
+
+/* compact: one row, for the Tonight's Card header */
+.compact {
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: "bolt cells count" "next next next";
+}
+.compact .name { display: none; }
+.compact .cells { min-width: 72px; gap: 2px; }
+.compact .cell { height: 11px; }

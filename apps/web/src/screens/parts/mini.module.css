@@ -10,6 +10,8 @@
 .strength { box-shadow: inset 0 0 0 2px var(--c-stat-strength); }
 .agility { box-shadow: inset 0 0 0 2px var(--c-stat-agility); }
 .speed { box-shadow: inset 0 0 0 2px var(--c-stat-speed); }
+.toughness { box-shadow: inset 0 0 0 2px var(--c-stat-toughness); }
+.precision { box-shadow: inset 0 0 0 2px var(--c-stat-precision); }
 
 .mini {
   display: grid;
@@ -47,6 +49,8 @@
 .f-strength { background-color: var(--c-stat-strength); }
 .f-agility { background-color: var(--c-stat-agility); }
 .f-speed { background-color: var(--c-stat-speed); }
+.f-toughness { background-color: var(--c-stat-toughness); }
+.f-precision { background-color: var(--c-stat-precision); }
 .fHp { background-color: var(--c-hp); }
 
 .compare {

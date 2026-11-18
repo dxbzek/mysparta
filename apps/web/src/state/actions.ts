@@ -6,12 +6,12 @@
  *   - three active scrappers; a name used by an ACTIVE scrapper is refused; a retired name makes
  *     a new level-1 scrapper with the same seed; create never writes over a scrapper;
  *   - one bout at a time: no bout starts while any bout is unwatched;
- *   - no bout starts while a level-up waits, or with no bouts left today;
+ *   - no bout starts while a level-up waits, or with no energy (content v3: a bout costs 1);
  *   - the bout is decided and saved when it starts; the screens show the `before` values until
  *     it is watched or skipped.
  */
 import { REALM_SALT, api } from "@rankzero/core";
-import type { CoreApi, DayKey, FighterSnapshot, Pick as Side2, ScrapperRecord } from "@rankzero/core";
+import type { CoreApi, FighterSnapshot, Pick as Side2, ScrapperRecord } from "@rankzero/core";
 import type { BoutRecord, Clock, GameActions, Result, SaveDoc, Settings } from "../contracts";
 import { decodeSave, encodeSave } from "./saveCode";
 import { SLOT_LIMIT, emptyDoc, trimHistory } from "./schema";
@@ -60,18 +60,15 @@ export function unwatchedOf(doc: SaveDoc, id?: string): BoutRecord | undefined {
   return doc.history.find((b) => !b.watched && (id === undefined || b.fighterId === id));
 }
 
-export function usedToday(rec: ScrapperRecord, today: DayKey): number {
-  return rec.day < today ? 0 : rec.boutsUsed;
-}
-
 /**
- * The record as the screens must show it: while its last bout is unwatched, the XP and the bouts
- * used are the values from before that bout (brief 3.11 B, 3.14).
+ * The record as the screens must show it: while its last bout is unwatched, the XP and the energy
+ * are the values from before that bout (brief 3.11 B, 3.14).
  */
 export function shownRecord(doc: SaveDoc, rec: ScrapperRecord): ScrapperRecord {
   const b = unwatchedOf(doc, rec.id);
   if (!b) return rec;
-  return { ...rec, xp: b.before.xp, boutsUsed: b.before.boutsUsed, lifetimeBouts: Math.max(0, rec.lifetimeBouts - 1) };
+  return { ...rec, xp: b.before.xp, energy: b.before.energy, energyAt: b.before.energyAt,
+    lifetimeBouts: Math.max(0, rec.lifetimeBouts - 1) };
 }
 
 /** Line id for the one-line result text: a pure function of the bout seed. */
@@ -97,6 +94,7 @@ export function createGameActions(deps: ActionDeps): AppActions {
       const checked = core.checkName(name);
       if (!checked.ok) return Promise.resolve(fail("bad-name" as const));
       const today = clock.today();
+      const nowMs = clock.now();
       return store.commit<Result<ScrapperRecord, "bad-name" | "name-taken" | "no-slot">>((doc) => {
         if (doc.fighters.some((f) => sameName(f.name, checked.name))) return { doc: null, value: fail("name-taken" as const) };
         if (doc.fighters.length >= SLOT_LIMIT) return { doc: null, value: fail("no-slot" as const) };
@@ -106,7 +104,7 @@ export function createGameActions(deps: ActionDeps): AppActions {
           if (i > 20) throw new Error("create: could not make a fresh id");
           id = newId(clock.now() + i + 1);
         }
-        const rec = core.createRecord({ id, name: checked.name, realmSalt: realm, lookSalt, colourSalt, today });
+        const rec = core.createRecord({ id, name: checked.name, realmSalt: realm, lookSalt, colourSalt, today, nowMs });
         return { doc: { ...doc, fighters: [...doc.fighters, rec], activeId: rec.id }, value: ok(rec) };
       });
     },
@@ -116,14 +114,13 @@ export function createGameActions(deps: ActionDeps): AppActions {
     },
 
     startBout(id: string, opponent: FighterSnapshot) {
-      const today = clock.today();
       const at = clock.now();
-      return store.commit((doc): { doc: SaveDoc | null; value: Result<BoutRecord, "level-up-waiting" | "no-bouts" | "unwatched-bout"> } => {
+      return store.commit((doc): { doc: SaveDoc | null; value: Result<BoutRecord, "level-up-waiting" | "no-energy" | "unwatched-bout"> } => {
         const rec = find(doc, id);
         if (!rec) throw new Error(`startBout: no scrapper ${id}`);
         if (unwatchedOf(doc)) return { doc: null, value: fail("unwatched-bout") };
         if (core.sheetOf(rec).levelUpWaiting) return { doc: null, value: fail("level-up-waiting") };
-        if (core.boutsLeft(rec, today) <= 0) return { doc: null, value: fail("no-bouts") };
+        if (core.energyNow(rec, at) <= 0) return { doc: null, value: fail("no-energy") };
         const me = core.snapshotOf(rec);
         const seed = core.boutSeed(rec.id, opponent.id, rec.lifetimeBouts);
         const log = core.simulateFight(seed, me, opponent, 1);
@@ -135,9 +132,9 @@ export function createGameActions(deps: ActionDeps): AppActions {
         const bout: BoutRecord = {
           id: boutId, at, seed, rulesVersion: 1, logVersion: 2, snapshotA: me, snapshotB: opponent,
           result: log.result, role: "attacker", fighterId: rec.id, xp, lineId: lineIdFor(seed), watched: false,
-          before: { xp: rec.xp, boutsUsed: usedToday(rec, today) }, log,
+          before: { xp: rec.xp, energy: rec.energy, energyAt: rec.energyAt }, log,
         };
-        const next = core.afterBout(rec, xp, today);
+        const next = core.afterBout(rec, xp, at);
         return { doc: { ...put(doc, next), history: trimHistory([bout, ...doc.history]) }, value: ok(bout) };
       });
     },

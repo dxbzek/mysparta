@@ -13,7 +13,7 @@ function row(over: Partial<BoutRecord>): BoutRecord {
   const log = api.simulateFight(77, l1Pipe, l1Knife, 1);
   return { id: "b1", at: 5, seed: 77, rulesVersion: 1, logVersion: 2, snapshotA: l1Pipe, snapshotB: l1Knife,
     result: log.result, role: "attacker", fighterId: "f1", xp: 2, lineId: 0, watched: true,
-    before: { xp: 0, boutsUsed: 0 }, ...over };
+    before: { xp: 0, energy: 6, energyAt: 0 }, ...over };
 }
 
 describe("replayLog", () => {

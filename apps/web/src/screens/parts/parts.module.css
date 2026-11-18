@@ -154,6 +154,8 @@
 .stat-strength { box-shadow: inset 0 0 0 4px var(--c-stat-strength), var(--shadow-hard-sm); }
 .stat-agility { box-shadow: inset 0 0 0 4px var(--c-stat-agility), var(--shadow-hard-sm); }
 .stat-speed { box-shadow: inset 0 0 0 4px var(--c-stat-speed), var(--shadow-hard-sm); }
+.stat-toughness { box-shadow: inset 0 0 0 4px var(--c-stat-toughness), var(--shadow-hard-sm); }
+.stat-precision { box-shadow: inset 0 0 0 4px var(--c-stat-precision), var(--shadow-hard-sm); }
 
 .face {
   display: flex;

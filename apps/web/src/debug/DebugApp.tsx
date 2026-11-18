@@ -87,7 +87,7 @@ function DebugBout({ route }: { route: Extract<DebugRoute, { page: "bout" }> }) 
   const onHandle = useCallback((h: FightHandle | null) => setHandle(h), []);
   if (typeof bout === "string") return <p style={{ padding: 16 }}>{bout}</p>;
   const won = bout.log.result.winner === "a";
-  const result: ResultCardData = { won, line: won ? `${bout.a.name} folded ${bout.b.name} like a deckchair.` : `${bout.a.name} went looking for a fight and found a better one.`, xpBefore: 3, xpAfter: won ? 5 : 4, xpToNext: 8, levelUp: false, boutsLeft: 5 };
+  const result: ResultCardData = { won, line: won ? `${bout.a.name} folded ${bout.b.name} like a deckchair.` : `${bout.a.name} went looking for a fight and found a better one.`, xpBefore: 3, xpAfter: won ? 5 : 4, xpToNext: 8, levelUp: false, energy: 5 };
   return (
     <RigGate>
     <FightScreen
@@ -110,7 +110,7 @@ function DebugBout({ route }: { route: Extract<DebugRoute, { page: "bout" }> }) 
 
 /** Fixture props for the Locker mock. Kept here so the screenshot never depends on a save. */
 export function lockerMockProps(over: { levelUp?: boolean; done?: boolean } = {}): LockerViewProps {
-  const primary: LockerPrimary = over.levelUp ? { kind: "levelup" } : over.done ? { kind: "done", backIn: "5 h 12 min" } : { kind: "fight", boutsLeft: 4 };
+  const primary: LockerPrimary = over.levelUp ? { kind: "levelup" } : over.done ? { kind: "done", backIn: "12:04" } : { kind: "fight", energy: 4 };
   return {
     roster: [
       { id: "r1", name: l10Raccoon.name, look: l10Raccoon.look },
@@ -126,9 +126,10 @@ export function lockerMockProps(over: { levelUp?: boolean; done?: boolean } = {}
     xp: 5,
     xpToNext: 8,
     maxHp: 98,
-    stats: { health: 7, strength: 11, agility: 6, speed: 4 },
+    stats: { health: 7, strength: 11, agility: 6, speed: 4, toughness: 5, precision: 3 },
     statScale: 16,
     primary,
+    energy: { value: over.done ? 0 : 4, max: 6, nextMs: 12 * 60_000 + 4_000 },
     kit: [...l10Raccoon.perks, "padding", "tarp", "pipe", "whistle"],
     bouts: [
       { id: "b1", won: true, opponent: "Wren", line: "Old Roy folded Wren like a deckchair.", xp: 2 },

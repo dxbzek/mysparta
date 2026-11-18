@@ -1,7 +1,7 @@
 /**
- * Local days. The bout cap resets at local midnight on the device, and the day key is
- * "YYYY-MM-DD" in local time. The clock is injected (contract `Clock`) so tests, and the dev
- * entry's `?shift=` switch, can move the day.
+ * The clock and local days. Energy refills with the clock's time (content v3); the day key
+ * ("YYYY-MM-DD", local time) still dates the History groups and draws Tonight's Card. The clock is
+ * injected (contract `Clock`) so tests, and the dev entry's `?shift=` switch, can move the time.
  */
 import type { DayKey } from "@rankzero/core";
 import type { Clock } from "../contracts";
@@ -24,18 +24,3 @@ export function fixedClock(start: number): Clock & { set(ms: number): void; add(
   return { now: () => t, today: () => dayKeyOf(t), set: (ms) => { t = ms; }, add: (ms) => { t += ms; } };
 }
 
-/** Milliseconds from `ms` to the next local midnight. */
-export function msToMidnight(ms: number): number {
-  const d = new Date(ms);
-  const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0);
-  return Math.max(0, next.getTime() - ms);
-}
-
-/** "5 h 12 min", "12 min", "1 min". Rounded up, so it never says 0 while bouts are still locked. */
-export function countdown(ms: number): string {
-  const mins = Math.max(1, Math.ceil(ms / 60000));
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if (h === 0) return `${m} min`;
-  return m === 0 ? `${h} h` : `${h} h ${m} min`;
-}

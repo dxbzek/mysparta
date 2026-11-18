@@ -52,6 +52,8 @@
   --c-stat-strength: #d3261a;
   --c-stat-agility: #7a4cd0;
   --c-stat-speed: #2a8fd4;
+  --c-stat-toughness: #d9741c;   /* content v3: rust orange, a cracked stone */
+  --c-stat-precision: #c93a8a;   /* content v3: target pink */
 
   /* ---------------------------------------------------------------- rarity (always with the word) */
   --c-rarity-common: #8e8a82;

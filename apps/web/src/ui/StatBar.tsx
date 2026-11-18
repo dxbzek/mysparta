@@ -12,6 +12,8 @@ export const STAT_LABEL: Readonly<Record<StatKey, string>> = {
   strength: "Strength",
   agility: "Agility",
   speed: "Speed",
+  toughness: "Toughness",
+  precision: "Precision",
 };
 
 export interface StatBarProps {

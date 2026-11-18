@@ -107,6 +107,8 @@ function selfColour(ref: IconRef): string {
   if (ref === "stat:strength") return ICON.strength;
   if (ref === "stat:agility") return ICON.agility;
   if (ref === "stat:speed") return ICON.speed;
+  if (ref === "stat:toughness") return ICON.toughness;
+  if (ref === "stat:precision") return ICON.precision;
   return ICON.ui;
 }
 const ICON_COLOURS: SlotColours = { skin: "#F0A462", hair: "#2A160A", palette: { top: "#C35E26", bottom: "#6A5240", shoes: "#3E2A1C", accent: "#B0582A" } };

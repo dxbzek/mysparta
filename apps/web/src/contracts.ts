@@ -16,12 +16,18 @@ export interface Settings { sound: boolean; speed: 1 | 2 | 3; reducedMotion: "sy
 export interface BoutRecord { id: string; at: number; seed: number; rulesVersion: 1; logVersion: 1 | 2;
   snapshotA: FighterSnapshot; snapshotB: FighterSnapshot; result: BoutResult;
   role: "attacker" | "defender"; fighterId: string; xp: 1 | 2; lineId: number;
-  watched: boolean; before: { xp: number; boutsUsed: number };   // the UI shows these until watched
+  watched: boolean;
+  /** The XP and the energy from before the bout: the UI shows these until it is watched (schema 4:
+   *  energy in place of the bouts used today). */
+  before: { xp: number; energy: number; energyAt: number };
   log?: BoutLog }                                                // kept for the last 50
 /** Schema version 2 (CONTRACT_REV 4): `settings.isVip` added; migration 1 to 2 sets it false.
  *  Schema version 3 (CONTRACT_REV 5): a scrapper may carry an earlier build's kit
  *  (`ScrapperRecord.base`); migration 2 to 3 pins it from the scrapper's last stored bout. */
-export interface SaveDoc { schemaVersion: 3; rev: number; updatedAt: number; settings: Settings;
+/** Schema version 4 (CONTRACT_REV 6): energy in place of the daily bout cap, six stats; migration
+ *  3 to 4 fills every bar, carries every kit with Toughness and Precision added (docs/RULES.md,
+ *  "Old saves"). */
+export interface SaveDoc { schemaVersion: 4; rev: number; updatedAt: number; settings: Settings;
 
   activeId: string | null;                                       // the scrapper shown in the Locker
   fighters: ScrapperRecord[]; retired: ScrapperRecord[]; history: BoutRecord[] }
@@ -30,14 +36,14 @@ export type LoadResult = { state: "empty" } | { state: "ok"; doc: SaveDoc }
 export type WriteResult = { ok: true; rev: number } | { ok: false; why: "stale" | "backup-failed" | "io" };
 export interface SaveStore { load(): Promise<LoadResult>; write(doc: SaveDoc, expectedRev: number): Promise<WriteResult> }
 export interface OpponentSource { hand(rec: ScrapperRecord, today: DayKey): Promise<FighterSnapshot[]> }
-export interface Clock { now(): number; today(): DayKey }        // injected, so tests can move the day
+export interface Clock { now(): number; today(): DayKey }        // injected, so tests can move the time
 
 export interface GameActions {
   create(name: string, lookSalt: number, colourSalt: number):
     Promise<Result<ScrapperRecord, "bad-name" | "name-taken" /* by an ACTIVE scrapper only */ | "no-slot">>;
   select(id: string): Promise<void>;                             // sets SaveDoc.activeId
   startBout(id: string, opponent: FighterSnapshot):
-    Promise<Result<BoutRecord, "level-up-waiting" | "no-bouts" | "unwatched-bout">>;
+    Promise<Result<BoutRecord, "level-up-waiting" | "no-energy" | "unwatched-bout">>;
   markWatched(boutId: string): Promise<void>;
   takeLevelUp(id: string, pick: Pick): Promise<Result<void, "nothing-waiting">>;
   retire(id: string, typedName: string): Promise<Result<void, "name-mismatch">>;
@@ -48,7 +54,9 @@ export interface GameActions {
 
 // The seam between the fight screen and the app.
 export interface ResultCardData { won: boolean; line: string; xpBefore: number; xpAfter: number;
-  xpToNext: number; levelUp: boolean; boutsLeft: number }
+  xpToNext: number; levelUp: boolean;
+  /** Energy left after the bout (content v3): "Next bout" shows while it is above 0. */
+  energy: number }
 export interface FightScreenProps { log: BoutLog; a: FighterSnapshot; b: FighterSnapshot;
   mode: "live" | "replay"; settings: Settings; onSettings(patch: Partial<Settings>): void;
   onFinished(how: "watched" | "skipped"): void;

@@ -17,7 +17,7 @@ import { useDoc, useGame } from "../../app/context";
 import type { KitTab } from "../../app/router";
 import { shownRecord } from "../../state/actions";
 import { NAMES } from "../../text/names";
-import { DERIVED_CAP, DERIVED_KEYS, DERIVED_LINE, DERIVED_NAME, HOW_BOUTS_WORK, STAT_KEYS, STAT_LINE } from "../../text/stats";
+import { DERIVED_CAP, DERIVED_KEYS, DERIVED_LINE, DERIVED_NAME, DERIVED_POINTS, HOW_BOUTS_WORK, STAT_KEYS, STAT_LINE } from "../../text/stats";
 import { LOCKER_WORDS, UI } from "../../text/ui";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
@@ -217,7 +217,7 @@ function StatsTabView({ rec }: { rec: ScrapperRecord }) {
             return (
               <div key={k} className={css.dv}>
                 <dt className={css.dvName}>{DERIVED_NAME[k]}</dt>
-                <dd className={css.dvValue}>{sheet.derived[k]}{k === "aim" || k === "pierce" ? "" : "%"}</dd>
+                <dd className={css.dvValue}>{sheet.derived[k]}{DERIVED_POINTS.has(k) ? "" : "%"}</dd>
                 <dd className={css.dvLine}>{DERIVED_LINE[k]}{cap !== null ? <span className={css.dvCap}> ({UI.kit.cap(cap)})</span> : null}</dd>
               </div>
             );

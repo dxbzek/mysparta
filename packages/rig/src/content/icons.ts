@@ -288,7 +288,7 @@ export const CONTENT_UI_ICONS: Record<`ui:${ContentUi}`, IconArt> = {
 
 // ----------------------------------------- redraws of the gate's stat and control icons
 /**
- * The 4 stat icons and the 8 playback controls, redrawn to the same standard. The contract's
+ * The 6 stat icons and the 8 playback controls, redrawn to the same standard. The contract's
  * `ContentPack.icons` has no `stat:*` or gate `ui:*` keys, so these are NOT in the content pack:
  * they are offered to the rig lane to replace `ICON_STATS` / `ICON_UI` in `gate/icons.ts`.
  * Each stat keeps its own shape and colour ("self": health green, strength red, agility purple,
@@ -301,6 +301,11 @@ export const STAT_ICONS_REDRAW: Record<`stat:${StatKey}`, IconArt> = {
     inkOf([[[6.4, 13.6], [9.6, 12.4], [12.4, 13.4]], [[14.6, 3.6], [15, 6.2]], [[17, 3.4], [17.2, 6.0]]], 0.9)] },
   "stat:agility": { shapes: [solid([feather], "self"), inkOf([[[5.2, 19.4], [11, 12], [18.4, 5]]], 1.0)] },
   "stat:speed": { shapes: [solid([[[2.6, 4.6], [8.6, 4.6], [14.8, 12], [8.6, 19.4], [2.6, 19.4], [8.8, 12]], [[10.6, 4.6], [16.6, 4.6], [22.2, 12], [16.6, 19.4], [10.6, 19.4], [16.4, 12]]], "self")] },
+  // content v3: Toughness a cracked block of stone, Precision a target with its crosshair
+  "stat:toughness": { shapes: [solid([[[3.6, 10.4], [7.2, 5.2], [13, 3.8], [18.8, 5.6], [21, 11.2], [19.8, 17.2], [14.2, 20.2], [7.2, 19.8], [3.2, 15.6]]], "self"),
+    inkOf([[[9.2, 5], [11.2, 9.8], [9.6, 13.8]], [[15.2, 12.4], [17.8, 16]]], 0.9)] },
+  "stat:precision": { shapes: [solid([circ(12, 12, 8.2, 28)], "self"), flat([circ(12, 12, 4.9, 24)], "white"), flat([circ(12, 12, 2.3, 16)], "self"),
+    inkOf([[[12, 1.4], [12, 6.4]], [[12, 17.6], [12, 22.6]], [[1.4, 12], [6.4, 12]], [[17.6, 12], [22.6, 12]]], 1.1)] },
 };
 const tri = (x0: number, x1: number, y0: number, y1: number): Pt[] => [[x0, y0], [x1, (y0 + y1) / 2], [x0, y1]];
 const speaker: Pt[] = [[2.8, 8.6], [7.2, 8.6], [12.6, 3.8], [12.6, 20.2], [7.2, 15.4], [2.8, 15.4]];

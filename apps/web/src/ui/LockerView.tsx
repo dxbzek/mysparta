@@ -4,11 +4,13 @@
  * save. A change to this view is a request to the fight-screen lane.
  *
  * Phone, top to bottom: header (roster + settings), hero (240 px mini stage, name sticker, level,
- * XP bar), stats, ONE primary button, kit strip (6 icons then "+N"), last 3 bouts, tab bar.
+ * XP bar), stats, the energy bar (content v3), ONE primary button, kit strip (6 icons then "+N"),
+ * last 3 bouts, tab bar.
  */
 import type { CompanionId, HeldId, Look, PerkId, StatKey } from "@rankzero/core";
 import { ActorStage } from "./ActorStage";
 import { Button } from "./Button";
+import { EnergyBar, clockOf } from "./EnergyBar";
 import { Panel } from "./Panel";
 import { PerkIcon } from "./PerkIcon";
 import { Portrait } from "./Portrait";
@@ -22,14 +24,18 @@ export type LockerTab = "home" | "kit" | "inventory" | "history";
 export const MAIN_TABS: readonly LockerTab[] = ["home", "kit", "inventory", "history"];
 export type LockerPrimary =
   | { kind: "levelup" }
-  | { kind: "fight"; boutsLeft: number }
+  | { kind: "fight"; energy: number }
+  /** Out of energy: `backIn` is the countdown to the next point ("12:04"). */
   | { kind: "done"; backIn: string };
+/** The energy bar's numbers (content v3). */
+export interface LockerEnergy { value: number; max: number; nextMs: number | null }
 
 export interface LockerBout { id: string; won: boolean; opponent: string; line: string; xp: number }
 
 export interface LockerText {
   settings: string; addScrapper: string; level(n: number): string; xp: string; maxHp: string;
-  levelUp: string; fight(boutsLeft: number): string; done(backIn: string): string;
+  levelUp: string; fight(energy: number): string; done(backIn: string): string;
+  energy: string; energyFull: string; energyNext(clock: string): string;
   kit: string; seeAll: string; more(n: number): string; lastBouts: string; allBouts: string; noBouts: string;
   win: string; loss: string; replay(opponent: string): string; xpGained(n: number): string;
   tabs: Record<LockerTab, string>; hero(name: string): string;
@@ -43,8 +49,11 @@ export const LOCKER_TEXT: LockerText = {
   xp: "XP",
   maxHp: "Max HP",
   levelUp: "Level up!",
-  fight: (n) => `Fight (${n} ${n === 1 ? "bout" : "bouts"} left)`,
-  done: (backIn) => `Done for tonight. Back in ${backIn}.`,
+  fight: () => "Fight",
+  done: (backIn) => `Out of energy. +1 in ${backIn}.`,
+  energy: "Energy",
+  energyFull: "Full",
+  energyNext: (c) => `+1 in ${c}`,
   kit: "Kit",
   seeAll: "See all",
   more: (n) => `+${n}`,
@@ -71,11 +80,12 @@ export interface LockerViewProps {
   xp: number;
   xpToNext: number;
   maxHp: number;
-  /** All four stats (review r2: Health is a level-up pick, so the home screen shows it too). */
+  /** All six stats (review r2: Health is a level-up pick, so the home screen shows it too). */
   stats: Readonly<Record<StatKey, number>>;
   /** The value that fills a stat bar; the app lane picks it (for example the roster's highest). */
   statScale: number;
   primary: LockerPrimary;
+  energy: LockerEnergy;
   kit: readonly PerkId[];
   bouts: readonly LockerBout[];
   tab: LockerTab;
@@ -96,6 +106,7 @@ export interface LockerViewProps {
 }
 
 const KIT_SHOWN = 6;
+export { clockOf };
 
 export function LockerView(p: LockerViewProps) {
   const t = p.text ?? LOCKER_TEXT;
@@ -144,13 +155,20 @@ export function LockerView(p: LockerViewProps) {
           <StatBar stat="strength" value={p.stats.strength} max={p.statScale} />
           <StatBar stat="agility" value={p.stats.agility} max={p.statScale} />
           <StatBar stat="speed" value={p.stats.speed} max={p.statScale} />
+          <StatBar stat="toughness" value={p.stats.toughness} max={p.statScale} />
+          <StatBar stat="precision" value={p.stats.precision} max={p.statScale} />
+        </Panel>
+
+        <Panel tone="raised" className={css.energy} aria-label={t.energy}>
+          <EnergyBar value={p.energy.value} max={p.energy.max} nextMs={p.energy.nextMs} label={t.energy}
+            text={{ full: t.energyFull, next: t.energyNext }} />
         </Panel>
 
         {p.primary.kind === "done" ? (
           <Panel tone="raised"><p className={css.doneNote}>{t.done(p.primary.backIn)}</p></Panel>
         ) : (
           <Button variant="primary" onClick={p.onPrimary} data-primary={p.primary.kind}>
-            {p.primary.kind === "levelup" ? t.levelUp : t.fight(p.primary.boutsLeft)}
+            {p.primary.kind === "levelup" ? t.levelUp : t.fight(p.primary.energy)}
           </Button>
         )}
 

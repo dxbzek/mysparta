@@ -1,5 +1,5 @@
 /**
- * Gate icons in a 24-unit box: the four stats (each in its own colour, slot "self", with its own
+ * Gate icons in a 24-unit box: the six stats (each in its own colour, slot "self", with its own
  * shape so colour is never the only signal) and the eight playback controls. Flat shapes with
  * the ink outline the SVG side adds; checked by eye at 28 and 44 px on the A1 sheet.
  */
@@ -12,6 +12,7 @@ const heart: Pt[] = [...quad([12, 20.5], [3, 14], [4.2, 8]), ...quad([4.2, 8], [
   ...quad([12, 7.6], [18, 3.6], [19.8, 8]).slice(1), ...quad([19.8, 8], [21, 14], [12, 20.5]).slice(1, -1)];
 const fist: Pt[] = [[5, 9], [8, 6.2], [17.4, 6], [19.6, 8.4], [19.6, 15.6], [17, 19], [9, 19], [5.6, 16.4]];
 const feather: Pt[] = [[4.5, 20.5], [6, 15], [10, 8.6], [15.6, 4.2], [20, 3.6], [19.4, 8], [16, 13.6], [10.6, 17.6]];
+const rock: Pt[] = [[3.8, 10.6], [7.4, 5.4], [13, 4], [18.6, 5.8], [20.8, 11.2], [19.6, 17], [14.2, 20], [7.4, 19.6], [3.4, 15.6]];
 const chevrons = (x: number): Pt[] => [[x, 5], [x + 5, 5], [x + 11, 12], [x + 5, 19], [x, 19], [x + 6, 12]];
 
 const ICON_STATS: Record<`stat:${StatKey}`, IconArt> = {
@@ -20,6 +21,13 @@ const ICON_STATS: Record<`stat:${StatKey}`, IconArt> = {
     { d: dPoly([[5.4, 12], [12.4, 11.4], [13.4, 13.4], [6, 15]]), slot: "self" }] },
   "stat:agility": { shapes: [{ d: dPoly(feather), slot: "self" }, { d: dPoly(inkLine([[5.4, 19.6], [11, 12], [18.6, 5]], 0.9)), slot: "ink" }] },
   "stat:speed": { shapes: [{ d: dPolys([chevrons(2), chevrons(10)]), slot: "self" }] },
+  // content v3: Toughness a cracked block of stone, Precision a target with its crosshair
+  "stat:toughness": { shapes: [{ d: dPoly(rock), slot: "self" }, { d: dPolys([inkLine([[9.2, 5.2], [11.2, 9.8], [9.6, 13.6]], 0.9, false),
+    inkLine([[15.2, 12.4], [17.6, 15.8]], 0.9, false)]), slot: "ink" }] },
+  "stat:precision": { shapes: [{ d: dPoly(ellipsePoly(12, 12, 8.2, 8.2, 28)), slot: "self" }, { d: dPoly(ellipsePoly(12, 12, 4.9, 4.9, 24)), slot: "white" },
+    { d: dPoly(ellipsePoly(12, 12, 2.3, 2.3, 16)), slot: "self" },
+    { d: dPolys([inkLine([[12, 1.4], [12, 6.4]], 1.1, false), inkLine([[12, 17.6], [12, 22.6]], 1.1, false), inkLine([[1.4, 12], [6.4, 12]], 1.1, false),
+      inkLine([[17.6, 12], [22.6, 12]], 1.1, false)]), slot: "ink" }] },
 };
 
 const tri = (x0: number, x1: number, y0: number, y1: number): Pt[] => [[x0, y0], [x1, (y0 + y1) / 2], [x0, y1]];

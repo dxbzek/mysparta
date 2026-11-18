@@ -38,7 +38,7 @@ export function ResultCard({ resultIn, data, winnerName, onAction, doneLabel = "
   const pct = data.xpToNext > 0 ? Math.min(1, xpNow / data.xpToNext) : 1;
   const buttons: { a: ResultAction; label: string }[] = [];
   if (data.levelUp) buttons.push({ a: "levelup", label: "Level up!" });
-  if (data.boutsLeft > 0) buttons.push({ a: "next", label: "Next bout" });
+  if (data.energy > 0) buttons.push({ a: "next", label: "Next bout" });
   buttons.push({ a: "replay", label: "Replay" }, { a: "locker", label: "Locker" });
   return (
     <section className={css.result} style={style} aria-label="Result">
