@@ -27,7 +27,7 @@ function found(level: number, n: number): { name: string; log: BoutLog; a: Fight
   const b = rivalSnapshot(REALM_SALT, level, 2 * n + 1);
   return { name: `level ${level} n ${n}`, log: simulateFight(combineSeed("find-bout", n), a, b, 1), a, b };
 }
-const BOUTS = [found(30, 70), found(10, 124), found(30, 74), found(30, 181), found(30, 50), found(30, 67)];
+const BOUTS = [found(30, 1), found(30, 0), found(30, 9), found(30, 14), found(30, 6), found(30, 20)];
 const players = new Map<string, StagePlayer>();
 const playerOf = (b: (typeof BOUTS)[number]): StagePlayer => {
   let p = players.get(b.name);

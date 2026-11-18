@@ -70,8 +70,8 @@ const WIDE: readonly [number, number][] = [...BOUTS, [30, 6], [10, 9], [10, 8], 
  *  Air Horn that scares a pet off (n 29); under sim version 8 they are n 257 (b0 slams a0, five
  *  pets on stage, three run clear) and n 116 (two pets scared off). The sweep of every level-30
  *  bout with a Body Slam at a fighter and pets on stage is in open-defects.test.ts. */
-const SLAM: [number, number] = [30, 257];
-const HORN: [number, number] = [30, 116];
+const SLAM: [number, number] = [30, 103];
+const HORN: [number, number] = [30, 77];
 
 const box = (p: StagePlayer, a: FrameActor, t: number) => drawnBox(rig, poseAt(rig, p.tracks.byId.get(a.id)!, t), a.dress, a.place);
 const view = (p: StagePlayer, t: number, canvas = PHONE) => { const c = cameraAt(p.tracks, t, canvas, false); return { x0: c.x0, x1: c.x0 + canvas.w / c.k }; };

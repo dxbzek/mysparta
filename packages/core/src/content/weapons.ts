@@ -35,7 +35,7 @@ const ROWS: Readonly<Record<HeldId, Row>> = {
   "monkey-wrench":   row(135,  13,  2,    0,  10,   10,    0,    0,   0,   60,    5),
   "pickaxe":         row(150,  19,  4,    0, 100,  -10,  -10,    0, -10,   10,   10),
   "rebar":           row(160,  23,  5,   20, -10,    5,  -15,    0,   0,   10,   10),
-  "screwdrivers":    row( 70,   7,  3,   10,   0,    5,    5,    0,  10,   45,    5),
+  "screwdrivers":    row( 70,   8,  3,   10,   0,    5,    5,    0,  16,   45,    5),
   "garden-shears":   row( 75,   8,  4,   15,   0,    5,    0,    5,  20,   10,   15),
   "stop-sign":       row(175,  23,  3,  -15,   0,   10,    0,    0,   5,   10,    5),
   "boomerang":       row( 75,   6,  4,   -5,   0,   -5,   10,    0,  15,   10,   10),
