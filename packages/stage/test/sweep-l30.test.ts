@@ -105,8 +105,10 @@ function slingLosses(p: StagePlayer): string[] {
 }
 
 const found = { frame: [] as string[], owner: [] as string[], sling: [] as string[], slings: 0 };
-beforeAll(() => {
+beforeAll(async () => {
   for (let n = 0; n < BOUTS; n++) {
+    // (yield to the event loop now and then: a 60 s synchronous block times out vitest's worker RPC)
+    if (n % 10 === 0) await new Promise((r) => setTimeout(r, 0));
     const a = rivalSnapshot(REALM_SALT, 30, 2 * n);
     const b = rivalSnapshot(REALM_SALT, 30, 2 * n + 1);
     const log = simulateFight(combineSeed("find-bout", n), a, b, 1);
