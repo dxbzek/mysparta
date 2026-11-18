@@ -656,6 +656,52 @@ Open, not decided here:
 - Shields (Bin Lid, Skateboard) show in about 22% of their owner's level-30 bouts.
 - For the stage: a foot slides in a flinch or in footwork in some level-30 bouts (open-defects.test.ts lists them).
 
+### Content v3, batch 1: energy and six stats (18 November 2026)
+
+Owner amendment 13.9 (the Stats and Energy parts), built first of content v3 by 13.15. Each rule is written above where it applies (sections 1 to 5).
+
+**What changed, and why:**
+
+- **Energy in place of the daily cap** (section 4): a bar of 6, a bout costs 1, a point every 20 minutes, a new scrapper starts full, a clock moved back refills nothing, no paid refills. The owner: "I mean energy to match since we cannot do like 6x a day only".
+- **Two new stats** (section 1): Toughness (soak and grip) and Precision (Aim and Crit). The starting budget is 20; the four old stats are dealt exactly as before, so every name keeps its Health, Strength, Agility and Speed, and Toughness + Precision is 6. Stat cards, the perk card's +1 and splits draw from the six.
+- **Soak starts at Toughness 6.** A soak of 1 on every level-1 scrapper (`floor(Toughness / 2)`) took a fifth off the small hits of Darts, Broom and Pocket Knife: the level-1 starting weapons spread 40 points (17 with no soak). `floor(Toughness / 4)` still spread 28. Starting at 6 leaves level 1 to the grip and lets soak grow with the stat cards.
+- **Aim and Crit come from Precision.** The flat base of 5 and 5 became -2 + 2 x Precision and -5 + 3 x Precision. With 3 Aim per point, the Aim of a level-30 kit (about 18) cut the misses Stubborn needs: it showed in 31.5% of its owner's level-30 bouts.
+- **The stat card and the perk card's +1 moved.** Over six stats the old growth (+3 from the 7th stat card, +4 from the 21st) let always-stat win 59.9% at level 20 and 61.7% at level 30. Now +3 from the 9th, no +4. The perk card's +1 on the first two level-ups and the 17th to 22nd card became the first level-up and the 18th to 22nd: with the old window always-perk won 56.2% at level 20.
+- **Sim version 8.** The golden digests changed, and the stage tests that pin find-bout cases were moved to new cases with the same checks.
+
+| Row | Number | Was | Now | Why |
+|---|---|---|---|---|
+| Broom | Dmg | 6 | 7 | 41.6% as a level-1 start (floor 42) once grip took points off its disarm |
+| Pipe | Dmg | 13 | 14 | 42.4% as a start, the spread at 19.9 points (limit 18) |
+| Frying Pan | Dmg | 11 | 12 | 43.1% as a start, the new floor of the spread |
+| Wok | Block | 30 | 26 | 63.3% as a start (limit 63); still the highest Block of any weapon |
+| Bike Chain | Aim | 30 | 25 | 62.2% as a start; Dmg 10 instead left it at 47.3% with-and-without at level 30 |
+| Rubber Chicken | Dmg | 5 | 6 | 45.3% with-and-without at level 30: soak eats its many small hits |
+| Body Slam | turn time | + 100 | + 40 | 45.8 to 46.9% at level 30 with base 19 to 26; a cheaper slam gave 51.6% (more weight made it worse, 45.9%) |
+| Flurry | Combo | 28 | 32 | showed in 38.7% of its owner's level-30 bouts (test line 40%) |
+| Snatch | weight | 16 | 22 | fired in 31.5% of its owner's level-30 bouts |
+
+**Value of the stats** (a rival against a copy of itself with more points in one stat, sides swapped, 2,000 bouts; +1 at level 1, +2 at level 10, +4 at level 30): Health 57.4 / 60.8 / 63.6%, Strength 56.3 / 57.9 / 60.0%, Agility 55.6 / 58.5 / 59.2%, Speed 48.2 / 55.0 / 57.3%, Toughness 52.3 / 53.0 / 54.5%, Precision 52.8 / 53.5 / 53.8%. The new two are worth a little less than the old four per point, about Speed's level; the old four under sim version 7 measured the same way: Health 56.5 / 60.3 / 61.8%, Speed 48.7 / 55.5 / 54.8%.
+
+**Results** (sim version 7 / now; full gate sample):
+
+| | Before | Now |
+|---|---|---|
+| Always the perk card, win %, levels 5 / 10 / 20 / 30 | 51.1 / 50.0 / 51.4 / 46.6 | 49.9 / 50.5 / 54.0 / 53.1 |
+| Always the stat card, the same | 47.0 / 52.7 / 54.0 / 49.3 | 47.9 / 47.9 / 52.9 / 46.5 |
+| Level-1 start spread, starts with 300+ bouts | 15.1 points (44.9% Pipe to 60.0% Cricket Bat) | 14.7 points (46.1% Pocket Knife to 60.8% Monkey Wrench) |
+| The same by starting skill | 14.6 points (Tarp 44.2% to Pitcher 58.8%) | 16.4 points (Bare Knuckle 42.5% to Pitcher 58.9%) |
+| Median turns, levels 2, 3, 5, 10, 30 | 12, 12, 13, 14, 18 | 12, 12, 13, 14, 18 |
+| Lowest skill show rate, level 10 / level 30 | 44.8% / 34.4% | 42.6% Anticipation / 34.0% Stubborn |
+| Heavy Hands: owner bouts with its tag (the booster test's sample) | 62.1% | 57.2% |
+
+Gate (`pnpm balance`, full sample, levels 2, 3, 5, 10 and 30): PASS, no limit broken. Nearest to a limit: with-and-without at level 30, Screwdrivers 47.3%, Knuckle Dusters 47.5%, Frying Pan 47.7%, Rubber Chicken 47.8% (line 47%); level-up policy always-perk 54.0% at level 20 and always-stat 46.5% at level 30 (band 45 to 55).
+
+Open, not decided here:
+- Heavy Hands shows in 57% of its owner's bouts in the booster test's sample (720 rivals); its line was lowered from 60% to 55%, still "most bouts". Letting it skip the tag wait put the level-30 tag median at 10 (limit 9).
+- Toughness and Precision are worth a little less per point than Health, Strength and Agility (table above). Raising them further moved the level-1 spread or the miss-based skills.
+- For the stage, found while re-pinning: at level 30 a blow at a snared pet takes a fighter out of the frame in 18 of 400 bouts, and a shield slung for a Move loses its weapon in the crossfade in 33 of 400 (scan in the content v3 handoff); not pinned as open defects yet.
+
 ### Old saves (round-2 close, 18 November 2026)
 
 A save stores a scrapper's seed and picks, never its kit: the kit is walked again from them under the tables of the build that reads the save. The start pass, the pet pass and the round-2 passes changed the start perks, the card offers, the rerolls and the weapon cap, so an old save's picks walked into a different kit: tested on saves made by the builds of 15 November (sim version 3) and 16 November (sim version 4), a scrapper lost two weapons and gained others it never took, another gained a skill. Nothing in a save said which build wrote it.
@@ -667,3 +713,9 @@ What cannot be carried:
 - The cards a carried level-up offered are not stored anywhere: the Route list shows only the level-ups walked after the carried kit, and its Start row shows the carried start perks (one for a save from before round 2, which had no starting skill; such a scrapper does not get one).
 - A perk id the game no longer has is left out of a carried kit, with a warning.
 - How many stat cards and perk cards a carried kit took is read off it (its perks past the start ones were perk cards, the rest of its level-ups stat or split cards); the growing stat card and the late perk card's +1 count from there.
+
+**Schema 4** (content v3, contract rev 7). A save of schema 3 (or older, after the step above) loads with:
+- **Energy:** every scrapper, active or retired, gets a full bar (6, timed from 0, so its first bout starts the refill); the day and the bouts used that day are dropped. A stored bout's "before" values hold a full bar.
+- **Its kit, carried whole:** the schema-3 build walked a kit over four stats, and today's Route draws its stat cards from six, which moves every later draw of the Route stream, so the same picks would walk into another kit. Each scrapper gets the kit that build walked (a frozen copy of its walk, `progress/legacy.ts`, from its carried kit when it had one) as its carried kit, covering all its picks. Later level-ups walk on from it under today's tables.
+- **Its stats, made six with the power kept:** each old stat keeps its multiplier and gives up half (rounded down) of the points it gained after level 1 (its level-1 points are the ones today's deal gives the same name). Toughness and Precision get 3 points each, plus the given-up points shared between them (Toughness takes the odd one). The total is the old total plus the 6 points the starting budget grew by, so an old level-1 scrapper is exactly a scrapper of today. Why half: an old stat card always landed in one of the four old stats, the strongest per point; with the 3 + 3 alone an old kit beat the pool of its level 57% of the time at level 10 and 67% at level 30. With half moved it is 47.8% and 50.4%, where the same picks walked today stand (47.9% and 51.3%; 49.2% and 50.2% at level 1). Measured over 1,500 random-pick kits per level against the pool.
+- **Stored bouts** keep their snapshots with Toughness and Precision at 0: those fights had none.
