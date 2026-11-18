@@ -28,7 +28,8 @@
  *      -2 and Crit -5), a starting budget of 20 with Toughness + Precision 6, stat cards and stat
  *      bonuses drawn from six stats, stat card +3 from the 9th (was +3 from the 7th, +4 from the
  *      21st), perk card +1 on the first level-up and the 18th to 22nd card (was the first two and
- *      the 17th to 22nd), Snatch weight 22, Broom Dmg 7, Pipe Dmg 14, Bike Chain Dmg 10, Wok Block
- *      26 (docs/RULES.md section 9).
+ *      the 17th to 22nd), Snatch weight 22, Flurry Combo 32, Body Slam time +40 (was +100), Broom
+ *      Dmg 7, Pipe Dmg 14, Frying Pan Dmg 12, Rubber Chicken Dmg 6, Bike Chain Aim 25, Wok Block 26
+ *      (docs/RULES.md section 9).
  */
 export const SIM_VERSION = 8;
