@@ -8,12 +8,15 @@
  * What it does, from a clean browser:
  *   1. create "Marla" and walk to the first bout, counting taps (6 at most) and the waits the
  *      game forces on the way (reveal, sheets, routes; 6 s at most in total);
- *   2. spend all 8 day-one bouts (skip each to the end), take every level-up;
+ *   2. spend the full energy bar, 6 bouts (skip each to the end), take every level-up; the
+ *      Locker then shows "Out of energy" with the countdown to the next point;
  *   3. the first time a level-up waits, type #/card and #/bout/x: both must land on the Locker;
- *   4. reload and read the save from IndexedDB: 0 bouts left, the level matches the XP earned,
- *      at least 2 level-ups, the Kit screen shows the kit the Route picks give;
- *   5. move the clock a day on (?shift=1): 6 bouts; start a bout, reload mid-bout: the Locker
- *      shows "Your last bout finished" and the old XP until it is skipped;
+ *   4. reload and read the save from IndexedDB: energy 0, the level matches the XP earned,
+ *      at least 2 level-ups, the Kit screen shows the kit the Route picks give; #/card goes
+ *      back to the Locker with no energy;
+ *   5. move the clock 21 minutes on (?shift=): one point back; then 2 hours on: a full bar of 6;
+ *      start a bout, reload mid-bout: the Locker shows "Your last bout finished" and the old XP
+ *      and the old energy until it is skipped (content v3: energy in place of the daily cap);
  *   6. make three scrappers, see the fourth refused, retire one and see it kept in the save;
  *   7. check an old-build storage key planted at the start is still there, unchanged.
  * Exit code 1 on any failed check.
@@ -137,8 +140,9 @@ async function main() {
       check(page.url().endsWith("#/create"), "an empty save opens Create", page.url());
       await page.locator("#rz-name").fill("Marla");
       const reveal = await tapThen(button("Step into the Yard"), button("To the Locker"));
-      await tapThen(button("To the Locker"), button("Fight (8 bouts left)"));
-      await tapThen(button("Fight (8 bouts left)"), page.locator("button[aria-label$='Open the face-off.']").first());
+      await tapThen(button("To the Locker"), button("Fight"));
+      check(await page.locator("[aria-label^='Energy: 6 of 6. Full']").count() > 0, "a new scrapper starts with a full energy bar", await page.locator("[aria-label^='Energy:']").first().getAttribute("aria-label"));
+      await tapThen(button("Fight"), page.locator("button[aria-label$='Open the face-off.']").first());
       await tapThen(page.locator("button[aria-label$='Open the face-off.']").first(), page.getByRole("dialog", { name: "Face-off" }).getByRole("button", { name: "Fight", exact: true }));
       await tapThen(page.getByRole("dialog", { name: "Face-off" }).getByRole("button", { name: "Fight", exact: true }), page.locator("[data-phase]"));
       check(taps <= 6, "the first bout runs within 6 taps", `${taps} taps`);
@@ -197,6 +201,7 @@ async function main() {
           continue;
         }
         if (/#\/card$/.test(url)) {
+          if (bouts === 0) check(await page.locator("[aria-label^='Energy: 6 of 6.']").count() > 0, "Tonight's Card shows the energy bar");
           const rival = page.locator("button[aria-label$='Open the face-off.']").nth(bouts % 6);
           await rival.waitFor();
           await rival.click();
@@ -206,29 +211,30 @@ async function main() {
         }
         if (/#\/locker$/.test(url)) {
           // the Locker draws its one primary control a moment after the route changes
-          await page.getByText(/Done for tonight|^Fight \(|^Level up!$/).first().waitFor();
-          const done = page.getByText(/Done for tonight\. Back in \d+ (h|min)/);
+          await page.getByText(/Out of energy|^Fight$|^Level up!$/).first().waitFor();
+          const done = page.getByText(/Out of energy\. \+1 in \d+:\d\d\./);
           if (await done.count()) break;
           const lvl = button("Level up!");
           if (await lvl.count()) { await lvl.click(); await page.waitForURL(/#\/levelup$/); continue; }
-          const fight = page.getByRole("button", { name: /^Fight \(\d+ bouts? left\)$/ });
+          const fight = button("Fight");
           await fight.click();
           await page.waitForURL(/#\/card$/);
           continue;
         }
         await page.waitForTimeout(300);
       }
-      check(bouts === 8, "all 8 day-one bouts were played", `${bouts}`);
+      check(bouts === 6, "the full energy bar played 6 bouts", `${bouts}`);
       check(gateChecked, "a level-up waited at least once (gate checked)");
       check(levelUps >= 2, "at least 2 level-ups were taken", `${levelUps}`);
-      check(await page.getByText(/Done for tonight\. Back in \d+ (h|min)/).count() > 0, "the Locker shows the done-for-tonight countdown");
+      check(await page.getByText(/Out of energy\. \+1 in 1?\d:\d\d\./).count() > 0, "the Locker shows out of energy and the countdown to the next point");
+      check(await page.locator("[aria-label^='Energy: 0 of 6.']").count() > 0, "the energy bar is empty");
 
       // ---------------------------------------------------------------- 4. reload, read the save
       await page.reload();
       await settle(page);
       const { doc, keys } = await readSave(page);
       const rec = doc?.fighters?.[0];
-      check(rec && rec.boutsUsed === 8, "the save holds 8 bouts used today", rec ? `${rec.boutsUsed}` : "no scrapper");
+      check(rec && rec.energy === 0 && rec.energyAt > 0 && rec.boutsUsed === undefined, "the save holds energy 0 and the refill time", rec ? `energy ${rec.energy}, at ${rec.energyAt}` : "no scrapper");
       const earned = (doc?.history ?? []).filter((b) => b.fighterId === rec?.id).reduce((s, b) => s + b.xp, 0);
       let spent = 0;
       for (let l = 1; l <= (rec?.picks.length ?? 0); l++) spent += xpToNext(l);
@@ -236,7 +242,10 @@ async function main() {
       check(rec && rec.picks.length === levelUps, "every level-up taken is a Route pick in the save", `${rec?.picks.join("")}`);
       check((doc?.history ?? []).every((b) => b.watched), "every bout is marked watched");
       check(keys.every((k) => k.startsWith("rankzero.")), "every storage key has the rankzero. prefix", keys.join(", "));
-      check(await page.getByText(/Done for tonight/).count() > 0, "after a reload the Locker still shows done for tonight");
+      check(await page.getByText(/Out of energy/).count() > 0, "after a reload the Locker still shows out of energy");
+      await page.evaluate(() => { location.hash = "#/card"; });
+      await page.waitForTimeout(400);
+      check(page.url().endsWith("#/locker"), "with no energy #/card returns to the Locker", page.url());
       // the Level path shows every level; the Kit holds the two starting perks (a weapon and a skill,
       // round 2) plus every perk card taken
       await page.evaluate(() => { location.hash = "#/kit/route"; });
@@ -253,9 +262,13 @@ async function main() {
       check(kitCount === 2 + takenPerks && kitRows === kitCount, "the Kit is the two starting perks plus every perk card taken on the Route", `${kitCount} perks, ${takenPerks} perk cards taken`);
 
       // ---------------------------------------------------------------- 5. next day, reload mid-bout
-      await page.goto(`${app.url}${ENTRY}?shift=1#/locker`);
+      // ?shift= moves the device clock by days: 0.015 days is 21.6 minutes, 0.1 days 2.4 hours
+      await page.goto(`${app.url}${ENTRY}?shift=0.015#/locker`);
       await settle(page);
-      check(await button("Fight (6 bouts left)").count() > 0, "past midnight the scrapper has 6 bouts", await page.locator("main button").first().textContent());
+      check(await page.locator("[aria-label^='Energy: 1 of 6.']").count() > 0, "21 minutes later one energy point is back", await page.locator("[aria-label^='Energy:']").first().getAttribute("aria-label"));
+      await page.goto(`${app.url}${ENTRY}?shift=0.1#/locker`);
+      await settle(page);
+      check(await page.locator("[aria-label^='Energy: 6 of 6. Full']").count() > 0, "two hours later the bar is full again", await page.locator("[aria-label^='Energy:']").first().getAttribute("aria-label"));
       const xpBefore = (await readSave(page)).doc.fighters[0].xp;
       const lvlNow = button("Level up!");
       if (await lvlNow.count()) {
@@ -264,12 +277,12 @@ async function main() {
         await button("Take it").click();
         await button("Back to the Locker").click().catch(() => undefined);
       }
-      await button("Fight (6 bouts left)").click();
+      await button("Fight").click();
       await page.locator("button[aria-label$='Open the face-off.']").first().click();
       await page.getByRole("dialog", { name: "Face-off" }).getByRole("button", { name: "Fight", exact: true }).click();
       await page.waitForURL(/#\/bout\//);
       await page.waitForTimeout(600);
-      await page.goto(`${app.url}${ENTRY}?shift=1#/locker`);
+      await page.goto(`${app.url}${ENTRY}?shift=0.1#/locker`);
       await settle(page);
       const pending = page.getByRole("dialog", { name: "Your last bout finished" });
       check(await pending.isVisible(), "a reload mid-bout shows \"Your last bout finished\"");
@@ -277,14 +290,14 @@ async function main() {
       const shownXp = await page.locator("[role=progressbar][aria-label=XP]").first().getAttribute("aria-valuenow");
       const xpNow = saved.fighters[0].xp;
       check(Number(shownXp) === xpNow - saved.history[0].xp || Number(shownXp) === saved.history[0].before.xp, "the Locker holds the old XP until the bout is watched", `shown ${shownXp}, saved ${xpNow}, before ${saved.history[0].before.xp}`);
-      check(await button("Fight (6 bouts left)").count() > 0, "the Locker holds the old bouts-left until the bout is watched");
+      check(await page.locator("[aria-label^='Energy: 6 of 6.']").count() > 0, "the Locker holds the old energy until the bout is watched", await page.locator("[aria-label^='Energy:']").first().getAttribute("aria-label"));
       await pending.getByRole("button", { name: "Watch" }).click();
       await page.waitForURL(/#\/bout\//);
       await page.getByRole("button", { name: "Skip to the end" }).click();
       await page.getByRole("region", { name: "Result" }).waitFor();
       await page.getByRole("region", { name: "Result" }).getByRole("button", { name: "Locker", exact: true }).click();
       await page.waitForTimeout(300);
-      check(await button("Fight (5 bouts left)").count() + await button("Level up!").count() > 0, "after watching, the Locker shows the new values");
+      check(await page.locator("[aria-label^='Energy: 5 of 6. +1 in']").count() > 0 && await button("Fight").count() + await button("Level up!").count() > 0, "after watching, the Locker shows the new values (energy 5 and its countdown)", await page.locator("[aria-label^='Energy:']").first().getAttribute("aria-label"));
       void xpBefore;
 
       // ---------------------------------------------------------------- 6. three slots, retire

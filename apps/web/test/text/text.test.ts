@@ -10,11 +10,11 @@ import { LOCKER_WORDS, NAV, UI } from "../../src/text/ui";
 
 describe("stats words", () => {
   it("names and explains every stat and every derived value", () => {
-    for (const k of ["health", "strength", "agility", "speed"] as const) {
+    for (const k of ["health", "strength", "agility", "speed", "toughness", "precision"] as const) {
       expect(STAT_NAME[k].length).toBeGreaterThan(2);
       expect(STAT_LINE[k].length).toBeGreaterThan(10);
     }
-    expect(DERIVED_KEYS).toHaveLength(10);
+    expect(DERIVED_KEYS).toHaveLength(12);
     for (const k of DERIVED_KEYS) {
       expect(DERIVED_NAME[k]).toMatch(/^[A-Z][a-z]+$/);
       expect(DERIVED_LINE[k]).toMatch(/\.$/);
@@ -51,8 +51,10 @@ describe("plain labels", () => {
     expect(UI.card.heading).toBe("Pick a rival");
     expect(UI.card.title).toBe("Tonight's Card");
     expect(LOCKER_WORDS.levelUp).toBe("Level up!");
-    expect(LOCKER_WORDS.fight(4)).toBe("Fight (4 bouts left)");
-    expect(LOCKER_WORDS.fight(1)).toBe("Fight (1 bout left)");
+    // content v3: the energy bar beside it says how many bouts are left
+    expect(LOCKER_WORDS.fight(4)).toBe("Fight");
+    expect(UI.energy).toMatchObject({ label: "Energy", full: "Full" });
+    expect(UI.energy.next("12:04")).toBe("+1 in 12:04");
   });
 
   it("no screen types a navigation label itself: tabs, headings and buttons come from text/ui.ts", () => {

@@ -6,12 +6,14 @@ All rule maths is whole numbers. Division rounds down. A chance is a whole perce
 
 ## 1. Stats
 
-A scrapper has four stats: Health, Strength, Agility and Speed. Each has points and a multiplier (a whole percent, 100 at the start). The value used everywhere is `floor(points x multiplier / 100)`.
+A scrapper has six stats: Health, Strength, Agility, Speed, Toughness and Precision (the last two since content v3). Each has points and a multiplier (a whole percent, 100 at the start). The value used everywhere is `floor(points x multiplier / 100)`. A stat a stored snapshot does not hold (a bout fought before content v3) counts 0.
 
 - **Health** sets max HP: `54 + 7 x Health` (the level adds nothing since the pet pass), then the companion cost is taken off: `floor(maxHP x (100 - cost) / 100)`. Never below 1.
 - **Strength** adds melee damage, more for heavier weapons.
 - **Agility** adds to Evade against a slower-footed attacker, adds to Combo, and adds to thrown damage.
 - **Speed** sets how much time a turn costs and who acts first.
+- **Toughness** takes a flat **soak** off every hit of a swing or a throw, `floor((Toughness - 3) / 3)` (never below 0: 1 at Toughness 6, 2 at 9, 3 at 12), after Armor and never below 1; and a **grip** of 1 point per Toughness point off an attacker's disarm chance and shield knock-off chance (section 5d). A Move's hit is not soaked. Companions have none.
+- **Precision** adds 2 Aim and 3 Crit per point (the base Aim is -2 and the base Crit -5, so the average starting Precision of 3 gives Aim 4 and Crit 4, about the old flat 5 and 5).
 
 Fight values, all whole percents. A held weapon adds its numbers to the base; skills add theirs. The cap applies to the final chance of a roll, after the attacker's Aim or Pierce is taken off.
 
@@ -19,21 +21,23 @@ Fight values, all whole percents. A held weapon adds its numbers to the base; sk
 |---|---|---|---|
 | Evade | 10 | dodge a swing | 80 |
 | Block | 5 | stop a swing | 75 |
-| Aim | 5 | taken off the target's Evade | none |
+| Aim | -2, plus 2 x Precision | taken off the target's Evade | none |
 | Pierce | 0 | taken off the target's Block | none |
 | Intercept | 0 | hit the attacker first as it comes in | 75 |
 | Riposte | 0 | hit back after being attacked | 80 |
 | Combo | 0 | swing again | 80 |
 | Disarm | 3 | knock the target's weapon away on a landed hit | 80 |
-| Crit | 5 | x1.5 damage | 60 |
+| Crit | -5, plus 3 x Precision | x1.5 damage | 60 |
 | Armor | 0 | share of melee damage removed | 60 |
+| Soak | `floor((Toughness - 3) / 3)`, never below 0 | HP taken off every hit of a swing or a throw, never below 1 | none |
+| Grip | 1 x Toughness | points taken off an attacker's disarm and shield knock-off chances | none |
 
 ## 2. Making a scrapper
 
 - **Name.** Trimmed, inner spaces collapsed to one, then 3 to 14 characters of letters, digits, spaces and hyphens. The display keeps the player's capitals.
 - **The name is the seed.** `seed = FNV-1a(realmSalt + ":" + lowercased cleaned name)`. The same name gives the same scrapper on every device: stats, starting perk, look and Route.
 - **Look.** Shapes (build, head, hair, face, top, bottom, shoes, accessory) come from `(seed, lookSalt)`; colours (skin, hair colour, palette) from `(seed, colourSalt)`. The two reroll buttons each add 1 to one salt.
-- **Stats.** Every stat starts at 2. Then 6 points are dealt one at a time, each to a random stat that is still below 5. Total 14. Level-1 HP is 68 to 89.
+- **Stats.** Every stat starts at 2. Then 6 points are dealt one at a time, each to a random one of Health, Strength, Agility and Speed that is still below 5, from the same stream and in the same order as before content v3, so a name keeps the four stats it was born with; then 2 points to Toughness or Precision. Total 20 (14 over four stats before content v3), every stat 2 to 5, Toughness + Precision always 6. Level-1 HP is 68 to 89.
 - **Starting perks.** Two. First one roll from the perk pool (section 3), rolled again until it is a weapon (any rarity, by the pool's weights). Every scrapper starts armed: a pet, a skill or a booster as the starting perk decided level-1 bouts by the name alone (8% to 98% wins), and left skill owners unarmed at level 3. Then a skill, from a stream of its own (`(seed, "start2")`, so every name keeps its weapon), rolled again until it is a skill that fits a kit of that weapon (section 3) and is not a booster, Snatch or Knock Loose (as starts they won 78% and about 90% of level-1 bouts: a level-1 kit has one weapon, and a disarm leaves fists for the rest of the bout), Quick Swap or Firm Grip (with one weapon and the sure first draw Quick Swap never showed at level 1, and Firm Grip in 20% of its owner's bouts). With the weapon alone every level-1 bout had no skill at all (round 2, section 9).
 - **Random name.** A first part (120 of our own) and a second part (60 of our own), joined by a space. Every such name passes the name check.
 
@@ -42,8 +46,8 @@ Fight values, all whole percents. A held weapon adds its numbers to the base; sk
 **XP.** A win gives 2, a loss 1. A win over a rival two or more levels below gives 1 (no rival on the card can be, today). XP needed for the next level: `2 + level + floor(level / 2)`: 3, 5, 6, 8, 9, 11, 12, 14, 15, 17 for levels 1 to 10, and 32 at level 20. Extra XP carries over. A level-up is waiting while the XP held is at least the XP needed; taking it removes that much XP and adds one pick.
 
 **The two cards.** Each level-up offers a stat card and a perk card, in a random left-right order.
-- Stat card: +2 points in one random stat; +3 from the kit's 7th stat card taken, +4 from its 21st (round 2, second pass: with +2 on every card a player who always took the stat card won 36% at level 10 and 24% at level 30). The amount counts the kit's own stat cards, so it lifts the kit that takes them and not every rival of its level.
-- Perk card: one roll from the perk pool. The perk card of a level-up to level 2 or 3, and the kit's 17th to 22nd perk card taken, also gives +1 point in one random stat, shown on the card (round 2: a player who always took the perk card won 41% at level 10 and 28% at level 30; section 9). If that perk is not allowed it is rolled again, up to 5 more times; only when all 6 rolls fail does the card become a split: +1 point in each of two different random stats. (With no reroll, 18% of perk cards were splits at level 10 and 38% at level 30; under 12% at level 30 with 3 rerolls, and 5 rerolls keep it there under the weapon cap of round 2.) The weapon share of a perk card's category roll falls with the weapons the kit owns (round 2): 44 with 0 to 2 weapons, 30 with 3, 15 with 4, none with 5. The other shares stay, so the roll is out of 56 plus the weapon share.
+- Stat card: +2 points in one random stat of the six; +3 from the kit's 9th stat card taken (content v3; it was +3 from the 7th and +4 from the 21st over four stats; round 2, second pass: with +2 on every card a player who always took the stat card won 36% at level 10 and 24% at level 30). The amount counts the kit's own stat cards, so it lifts the kit that takes them and not every rival of its level.
+- Perk card: one roll from the perk pool. The perk card of the level-up to level 2, and the kit's 18th to 22nd perk card taken, also gives +1 point in one random stat of the six, shown on the card (content v3; it was levels 2 and 3 and the 17th to 22nd card) (round 2: a player who always took the perk card won 41% at level 10 and 28% at level 30; section 9). If that perk is not allowed it is rolled again, up to 5 more times; only when all 6 rolls fail does the card become a split: +1 point in each of two different random stats of the six. (With no reroll, 18% of perk cards were splits at level 10 and 38% at level 30; under 12% at level 30 with 3 rerolls, and 5 rerolls keep it there under the weapon cap of round 2.) The weapon share of a perk card's category roll falls with the weapons the kit owns (round 2): 44 with 0 to 2 weapons, 30 with 3, 15 with 4, none with 5. The other shares stay, so the roll is out of 56 plus the weapon share.
 
 **The perk pool.** A category roll out of 100 (for a kit with 2 weapons or fewer; see the perk card above): weapon 0 to 43, skill 44 to 89, shield 90 to 95, companion 96 to 99 (content v2). Then one item inside the category, by weight:
 
@@ -69,11 +73,11 @@ Companions use their own weights: Raccoon 90, Goose 5, Boar 5, Stray Dog 30, Cro
 
 **The Route** is a pure function of the seed and the list of picks. The cards of level-up k are drawn from a stream seeded with `(seed, "route", k, picks so far)`, and checked against the kit those picks built. Nothing is stored but the picks. The same picks always give the same later cards. (A rules change that changes the cards, like the pet pass, changes the kit of an existing scrapper on its next walk.)
 
-## 4. Bouts per day and rivals
+## 4. Energy and rivals
 
-- 6 bouts a day per scrapper, 8 on the day it was made. The day key (`YYYY-MM-DD`, local) is passed in by the app; the core never reads a clock. A stored day older than today means a full day. A clock that moves back resets nothing.
+- **Energy** (content v3, owner amendment 13.9; it replaced the daily cap of 6 bouts, 8 on the creation day). Each scrapper has a bar of 6 points. A bout costs 1. One point comes back every 20 minutes, so an empty bar is full again in 2 hours. A new scrapper starts full. There are no paid refills and no ads. The time is the app's injected clock in ms; the core never reads a clock. A record holds `energy`, the points at time `energyAt`; points come back at `energyAt + k x 20 min`. From a full bar the first bout starts the timer; mid-refill the time already earned towards the next point is kept. A clock that reads earlier than `energyAt` (moved back) refills nothing, and `energyAt` never moves back, so setting the clock back and forth makes no points. The Locker and Tonight's Card show the bar with a countdown to the next point.
 - **Rivals.** `rivalSeed = hash(realmSalt, "rival", level, index)`. A rival is made from that seed by the same code as a player's scrapper, named from our lists, and levelled by walking its own Route: it takes the perk card (or the split that replaced it) 65% of the time. A level N rival has N - 1 picks. There are 240 rivals per level.
-- **Tonight's Card.** 6 different rivals at the scrapper's level, drawn from `hash(seed, dayKey, bouts used today)`, so it changes after every bout and at day rollover. At levels 1 to 3 the last card is an easy rival: the same rival, armed, its own id, with 3 stat points fewer, each taken from its highest stat (the first in the order Health, Strength, Agility, Speed on a tie), never below 2. A random scrapper beats it about two times in three (round 2). It replaced 2 unarmed cards (the pet pass's rivals with their weapons left at home), which a random scrapper beat 96% of the time, in fist fights shown right after the rule that every scrapper starts with a weapon.
+- **Tonight's Card.** 6 different rivals at the scrapper's level, drawn from `hash(seed, dayKey, lifetime bouts)` (bouts used today before content v3), so it changes after every bout and at day rollover. At levels 1 to 3 the last card is an easy rival: the same rival, armed, its own id, with 3 stat points fewer, each taken from its highest stat (the first in the order Health, Strength, Agility, Speed on a tie), never below 2. A random scrapper beats it about two times in three (round 2). It replaced 2 unarmed cards (the pet pass's rivals with their weapons left at home), which a random scrapper beat 96% of the time, in fist fights shown right after the rule that every scrapper starts with a weapon.
 - **Bout seed** = `hash(fighter id, opponent id, the fighter's lifetime bout count)`.
 
 ## 5. The fight
@@ -123,9 +127,10 @@ c. **Damage.**
    - `damage = floor(floor(raw x roll(85..115) / 100) x multiplier / 100)`. The multiplier is 100 plus the skill bonuses plus a carried shield's `damage` (a minus), doubled by Haymaker. A companion's multiplier is 100 plus its owner's Pet Lover bonus.
    - Crit (chance Crit, Haymaker +15, cap 60): `floor(damage x 3 / 2)`.
    - Armor: `damage - floor(damage x Armor / 100)`. Never below 1.
+   - Soak (content v3): the defender's soak (Toughness, section 1) is taken off, after Armor, on a swing and on a throw. Never below 1.
    - At Strength 3 with the first table: fists 7, Pocket Knife 8, Pipe 13, Hand Axe 19, Sledgehammer 36 (raw values).
 
-d. **Disarm.** On a landed hit against a held weapon: chance = attacker Disarm, cut to 40% of itself (rounded down) when the defender's bag holds no weapon (the last weapon is held harder, round 2, second pass; a Body Slam still knocks it off). The weapon falls and is gone. Firm Grip resists 80% of the time (60% before round 2) and the disarm is written as resisted. A defender with a shield also loses it on a separate roll, on every swing that is not evaded: chance `floor(min(attacker Disarm, 80) x knock / 100)`, with the shield's own `knock` (the Car Door's 33 is the old one third). The shield lands on the floor and every number it gave ends. Neither roll is made when the hit already knocked the defender out.
+d. **Disarm.** On a landed hit against a held weapon: chance = attacker Disarm (capped at 80), cut to 40% of itself (rounded down) when the defender's bag holds no weapon, then minus the defender's grip (Toughness, content v3) (the last weapon is held harder, round 2, second pass; a Body Slam still knocks it off). The weapon falls and is gone. Firm Grip resists 80% of the time (60% before round 2) and the disarm is written as resisted. A defender with a shield also loses it on a separate roll, on every swing that is not evaded: chance `floor(min(attacker Disarm, 80) x knock / 100)` minus the defender's grip (never below 0), with the shield's own `knock` (the Car Door's 33 is the old one third). The shield lands on the floor and every number it gave ends. Neither roll is made when the hit already knocked the defender out.
 
 e. **Combo.** Chance `Combo + Agility`, capped at 80 first, then halved after each success (80, 40, 20). At most 3 extra swings. Stubborn rolls before the combo roll: after a swing that was evaded or blocked, 95% to swing again at once, once per turn, and that extra swing can start a combo. The swings stop when the target falls.
 
@@ -138,7 +143,7 @@ A Crow flies: no intercept and no riposte against its attacks. An Alley Cat's at
 ### Throws
 
 - Thrown `raw = base + floor((Strength + 2 x Agility) x (base + 4) / 36)`, then `x roll(95..125) / 100` and the multiplier.
-- Evade and Block against a throw are halved; a shield's `thrownBlock` is added after the halving (cap 75). No intercept, no riposte. Armor does not apply. A throw can crit and disarm, and can combo while the weapon stays in the hand.
+- Evade and Block against a throw are halved; a shield's `thrownBlock` is added after the halving (cap 75). No intercept, no riposte. Armor does not apply; soak does. A throw can crit and disarm, and can combo while the weapon stays in the hand.
 - Trick Shot: after a Thrown weapon lands (the weapon stays in the hand), 50% that it bounces on, once a turn: one more throw at a random standing enemy, written as a combo throw with the Trick Shot proc. The combo rolls go on after it.
 
 ### Companions
@@ -181,9 +186,9 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Weapon | Rarity | Tags | Clip | Tempo | Dmg | Reach | Draw | Aim | Pierce | Block | Evade | Riposte | Combo | Disarm | Crit |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Fists | - | - | punch | 100 | 5 | 0 | - | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| Pipe | Common | - | swing | 110 | 13 | 1 | 5 | 0 | 0 | 12 | 0 | 5 | 0 | 10 | 10 |
+| Pipe | Common | - | swing | 110 | 14 | 1 | 5 | 0 | 0 | 12 | 0 | 5 | 0 | 10 | 10 |
 | Pocket Knife | Common | Light, Blade | flick | 60 | 7 | 0 | 5 | 25 | 0 | 0 | 5 | 0 | 35 | 0 | 15 |
-| Broom | Common | Pole | thrust | 100 | 6 | 3 | 4 | 0 | 0 | 20 | 5 | 28 | 10 | 15 | 5 |
+| Broom | Common | Pole | thrust | 100 | 7 | 3 | 4 | 0 | 0 | 20 | 5 | 28 | 10 | 15 | 5 |
 | Machete | Common | Blade | swing | 115 | 13 | 1 | 5 | 5 | 0 | 5 | 0 | 5 | 5 | 5 | 30 |
 | Hand Axe | Common | Heavy, Blade | swing | 130 | 17 | 1 | 4 | 0 | 15 | -5 | 0 | 0 | 0 | 5 | 15 |
 | Bat | Uncommon | - | swing | 120 | 12 | 2 | 5 | 0 | 10 | 5 | 0 | 18 | 0 | 5 | 15 |
@@ -193,7 +198,7 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Shovel | Uncommon | Heavy, Pole | smash | 150 | 16 | 2 | 3 | 0 | 10 | 18 | -5 | 5 | -10 | 10 | 5 |
 | Sledgehammer | Uncommon | Heavy | smash | 160 | 34 | 1 | 5 | -20 | 30 | -20 | -20 | -20 | -40 | 10 | 10 |
 | Darts | Uncommon | Thrown, Light | throw | 45 | 3 | - | 5 | 0 | 0 | -5 | 12 | 0 | 30 | 0 | 5 |
-| Bike Chain | Rare | Pole | swing | 140 | 11 | 4 | 5 | 30 | -10 | -15 | 20 | -5 | 30 | 25 | 0 |
+| Bike Chain | Rare | Pole | swing | 140 | 10 | 4 | 5 | 30 | -10 | -15 | 20 | -5 | 30 | 25 | 0 |
 | Monkey Wrench | Rare | Heavy | swing | 135 | 13 | 1 | 2 | 0 | 10 | 10 | 0 | 0 | 0 | 60 | 5 |
 | Pickaxe | Rare | Heavy | smash | 150 | 19 | 2 | 4 | 0 | 100 | -10 | -10 | 0 | -10 | 10 | 10 |
 | Rebar | Rare | Heavy | swing | 160 | 23 | 2 | 5 | 20 | -10 | 5 | -15 | 0 | 0 | 10 | 10 |
@@ -214,7 +219,7 @@ A weapon's numbers add to the scrapper's base values while it is held. Fists are
 | Hockey Stick | Uncommon | Pole | swing | 125 | 10 | 2 | 3 | 5 | 0 | 10 | 5 | 10 | 10 | 30 | 5 |
 | Folding Chair | Uncommon | Heavy | smash | 160 | 22 | 1 | 4 | -10 | 15 | 20 | -10 | 0 | -15 | 15 | 5 |
 | Cricket Bat | Rare | Heavy | swing | 160 | 17 | 2 | 4 | 5 | 10 | 12 | 0 | 20 | 0 | 10 | 15 |
-| Wok | Rare | Heavy | swing | 135 | 16 | 1 | 4 | 0 | 10 | 30 | 0 | 20 | -10 | 10 | 10 |
+| Wok | Rare | Heavy | swing | 135 | 16 | 1 | 4 | 0 | 10 | 26 | 0 | 20 | -10 | 10 | 10 |
 | Plunger | Mythic | Light | thrust | 90 | 7 | 2 | 7 | 40 | 40 | 0 | 10 | 20 | 30 | 70 | 10 |
 | Plastic Bottle | Common | Thrown, Light | throw | 75 | 6 | - | 5 | 5 | 0 | 0 | 10 | 0 | 15 | 0 | 5 |
 | Rubber Ball | Common | Thrown, Light | throw | 85 | 6 | - | 5 | 10 | 30 | 0 | 5 | 0 | 25 | 0 | 5 |
@@ -255,7 +260,7 @@ A shield is carried on the back arm while the front hand keeps its weapon. At mo
 | Sharpening Stone | passive | Uncommon | melee damage with a Blade weapon +40%; offered only with a Blade weapon |
 | Bare Knuckle | passive | Uncommon | opens the bout with fists (no draw in its first turn that is not a Move) and draws with `S / (S + 12)`; damage with fists +200%, Combo +20 while unarmed |
 | Payback | passive | Uncommon | Riposte +25 |
-| Flurry | passive | Uncommon | Combo +28 |
+| Flurry | passive | Uncommon | Combo +32 |
 | Firm Grip | passive | Uncommon | 80% to resist a disarm or a Snatch; swap chance 15% instead of 30% (this wins over Quick Swap's 50%) |
 | Head Start | passive | Uncommon | start clock -150 |
 | Sharp Eye | passive | Uncommon | Aim +16, Pierce +16 |
@@ -279,7 +284,7 @@ A shield is carried on the back arm while the front hand keeps its weapon. At mo
 | Tarp | Uncommon | 5 | 1 | an enemy that is not snared | 20% of a turn | snares a random free enemy companion if there is one, otherwise the scrapper |
 | Whistle | Uncommon | 20 | 2 | an own companion standing and below 90% HP | 10 | heals it by 60% of its max HP and it acts next |
 | Firecrackers | Rare | 4 | 2 | always | 50% of a turn | `roll(12..20)` to the enemy scrapper, 40% of max HP to each enemy companion; no evade, block or Armor |
-| Snatch | Rare | 16 | 1 | own hands empty, the enemy scrapper holds a weapon | 0 | takes that weapon into the hand |
+| Snatch | Rare | 22 | 1 | own hands empty, the enemy scrapper holds a weapon | 0 | takes that weapon into the hand |
 | Air Horn | Rare | 8 | 1 | an enemy stands | 20 | each enemy companion has 50% to run off; the enemy scrapper's clock +40, or +60 when it has no standing companion |
 | Body Slam | Epic | 12 | 1 | own hands empty | one turn + 100 | `floor((19 + 4 x Strength) x roll(85..115) / 100)` to a random enemy, Armor applies; no evade, block or intercept; knocks off its weapon (Firm Grip can hold on) and its shield |
 | Sand in the Eyes | Uncommon | 4 | 1 | the enemy scrapper stands and has no sand yet | 30% of a turn | the enemy scrapper's Aim -25 for the rest of the bout |

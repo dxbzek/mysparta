@@ -31,7 +31,7 @@ const ROWS: Readonly<Record<HeldId, Row>> = {
   "shovel":          row(150,  16,  3,    0,  10,   18,   -5,    5, -10,   10,    5),
   "sledgehammer":    row(160,  34,  5,  -20,  30,  -20,  -20,  -20, -40,   10,   10),
   "darts":           row( 45,   3,  5,    0,   0,   -5,   12,    0,  30,    0,    5),
-  "bike-chain":      row(140,  10,  5,   30, -10,  -15,   20,   -5,  30,   25,    0),
+  "bike-chain":      row(140,  11,  5,   25, -10,  -15,   20,   -5,  30,   25,    0),
   "monkey-wrench":   row(135,  13,  2,    0,  10,   10,    0,    0,   0,   60,    5),
   "pickaxe":         row(150,  19,  4,    0, 100,  -10,  -10,    0, -10,   10,   10),
   "rebar":           row(160,  23,  5,   20, -10,    5,  -15,    0,   0,   10,   10),
@@ -44,11 +44,11 @@ const ROWS: Readonly<Record<HeldId, Row>> = {
   "umbrella":        row( 50,   4,  6,   40,   0,  -30,   45,   40,  40,  -20,    0),
   "pool-cue":        row( 95,   7,  6,   20,   0,   10,   10,   10,  22,   10,   10),
   "bricks":          row(100,  13,  6,  -10,   0,  -10,    0,    0,   0,   20,   15),
-  "rubber-chicken":  row( 90,   5,  7,   35, 100,  -20,    0,   60,  70,    0,    0),
+  "rubber-chicken":  row( 90,   6,  7,   35, 100,  -20,    0,   60,  70,    0,    0),
   "lawn-flamingo":   row(120,  13,  7,   20,   0,    0,   30,   30,  20,   30,   35),
   // content v2, melee. Roles: parry pan, quick club, long crit swing, hooking stick, blocking
   // chair, heavy hitter with a riposte, blocking heavy pan, joke disarmer.
-  "frying-pan":      row(105,  11,  5,    0,   0,   22,    0,   28,  -5,    5,    5),
+  "frying-pan":      row(105,  12,  5,    0,   0,   22,    0,   28,  -5,    5,    5),
   "tyre-iron":       row(100,  12,  5,    5,  15,    5,    0,    0,   5,   10,   15),
   "golf-club":       row(125,  15,  4,    5,   0,    0,    0,    5,   0,    5,   30),
   "hockey-stick":    row(125,  10,  3,    5,   0,   10,    5,   10,  10,   30,    5),
