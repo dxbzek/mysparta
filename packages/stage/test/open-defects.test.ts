@@ -128,8 +128,9 @@ describe("stage defects from the round-2 sim (versions 4 to 6)", () => {
   });
 
   // sim version 8 (content v3)
-  for (const [level, n, what] of [[10, 11, "flinch"], [30, 3, "flinch"], [30, 6, "flinch"], [30, 8, "flinch"],
-    [30, 37, "flinch"], [30, 1, "footwork"], [30, 14, "footwork"], [30, 29, "footwork"], [30, 58, "footwork"]] as const) {
+  // sim version 9 (content v3 batch 2)
+  for (const [level, n, what] of [[10, 3, "flinch"], [30, 19, "flinch"], [30, 23, "flinch"], [30, 30, "flinch"],
+    [30, 35, "flinch"], [30, 26, "footwork"], [30, 52, "footwork"], [30, 58, "footwork"], [30, 81, "footwork"]] as const) {
     it.fails(`no foot slides in a ${what} in find-bout level ${level} n ${n}`, () => {
       const p = foundPlayer(level, n);
       const bad = what === "flinch" ? slides(p, FULL, 1, { only: new Set(["hit-light", "hit-heavy"]) }) : slides(p, FULL);
@@ -151,7 +152,7 @@ describe("stage defects from the round-2 sim (versions 4 to 6)", () => {
     expect(out).toEqual([]);
   });
 
-  for (const n of [76, 84]) {
+  for (const n of [76, 100]) {
     it(`after a Body Slam no pet passes a fighter in find-bout level 30 n ${n} (sim version 8; n 70 ran through both under sim version 7)`, () => {
       const f = found30(n);
       expect(hasSlamWithPets(f)).toBe(true);

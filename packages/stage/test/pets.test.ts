@@ -120,7 +120,8 @@ describe("a pet's dodge hop stays in view (verifier, 15 Nov 2026: level 3 n 5, t
     // pose reached past the frame, which was set by the pets' idle reach (now PET_FRAME_REACH), and a
     // pet hit during its hop was knocked out of it (a pet's knockback now stops at the frame). A scan
     // of 600 find-bout bouts at levels 3 to 10 (34 hops) finds none out of frame.
-    for (const [level, k] of [[5, 20], [6, 73], [8, 3], [8, 37], [8, 76], [8, 95], [8, 117], [10, 36], [10, 45], [10, 84], [10, 97]] as const) {
+    // sim version 9 (content v3 batch 2): level-10 bouts with pet hops
+    for (const [level, k] of [[10, 13], [10, 17], [10, 36], [10, 37], [10, 39], [10, 48], [10, 55], [10, 81], [10, 89], [10, 91], [10, 98]] as const) {
     const a = rivalSnapshot(REALM_SALT, level, 2 * k);
     const b = rivalSnapshot(REALM_SALT, level, 2 * k + 1);
     const log = simulateFight(combineSeed("find-bout", k), a, b, 1);

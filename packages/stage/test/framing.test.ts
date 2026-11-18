@@ -59,7 +59,7 @@ function bout(level: number, n: number) {
  *  (Grapple, Sand, Taunt, a car door against a pallet), level 3 n 1 and level 30 n 0 (a Grapple
  *  and an Air Horn) as they stand, n 37 (Air Horn, Taunt, four pets), n 76 (Body Slam, Whistle,
  *  Air Horn, five pets). */
-const BOUTS: readonly [number, number][] = [[30, 11], [3, 1], [30, 0], [30, 37], [30, 76]];
+const BOUTS: readonly [number, number][] = [[30, 11], [3, 1], [30, 0], [30, 8], [30, 76]];
 /** More bouts where a long weapon goes for a pet (the fix pass's own scan of 45 bouts: a fighter
  *  backed to the frame's edge, level 30 n 6, level 10 n 9; and level 10 n 8, where the pet's give
  *  of ground was laid from its mark, not from where it had run to, and the attacker stood in its
@@ -70,8 +70,8 @@ const WIDE: readonly [number, number][] = [...BOUTS, [30, 6], [10, 9], [10, 8], 
  *  Air Horn that scares a pet off (n 29); under sim version 8 they are n 257 (b0 slams a0, five
  *  pets on stage, three run clear) and n 116 (two pets scared off). The sweep of every level-30
  *  bout with a Body Slam at a fighter and pets on stage is in open-defects.test.ts. */
-const SLAM: [number, number] = [30, 103];
-const HORN: [number, number] = [30, 77];
+const SLAM: [number, number] = [30, 76];
+const HORN: [number, number] = [30, 222];
 
 const box = (p: StagePlayer, a: FrameActor, t: number) => drawnBox(rig, poseAt(rig, p.tracks.byId.get(a.id)!, t), a.dress, a.place);
 const view = (p: StagePlayer, t: number, canvas = PHONE) => { const c = cameraAt(p.tracks, t, canvas, false); return { x0: c.x0, x1: c.x0 + canvas.w / c.k }; };
@@ -235,7 +235,8 @@ describe("review round 2: framing and skill effects on the phone", () => {
 
   it("a pet's tag never lands on a standing fighter's body", () => {
     let seen = 0;
-    for (const [level, n] of [...BOUTS, HORN]) {
+    // (sim version 9: more pet scenes, so the labels of scared and tagged pets are seen often enough)
+    for (const [level, n] of [...BOUTS, HORN, [30, 77], [30, 15], [30, 116]] as [number, number][]) {
       const { p } = bout(level, n);
       const spots = birthsFor(p.tracks, PHONE, false);
       for (const [idx, g] of p.tracks.tags.entries()) {
@@ -258,7 +259,7 @@ describe("review round 2: framing and skill effects on the phone", () => {
   });
 
   it("at 2x and 3x the clock plays every Move at 1x, and everything else at the speed", () => {
-    const { log, p } = bout(30, 37);
+    const { log, p } = bout(30, 8);
     const holds = p.timeline.holds ?? [];
     log.steps.forEach((s, i) => {
       if (s.t !== "move") return;
@@ -401,7 +402,7 @@ describe("review round 2: framing and skill effects on the phone", () => {
   });
 
   it("the Taunt's anger mark is drawn on the head the pose has, not on the standing head", () => {
-    const { p } = bout(30, 37);
+    const { p } = bout(30, 8);
     const sig = p.tracks.sigs.find((g) => g.kind === "angry")!;
     expect(sig).toBeDefined();
     const t = (sig.from + sig.to) / 2;
