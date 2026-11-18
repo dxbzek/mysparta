@@ -11,7 +11,7 @@
  *     it is watched or skipped.
  */
 import { REALM_SALT, api } from "@rankzero/core";
-import type { CoreApi, FighterSnapshot, Loadout, Pick as Side2, ScrapperRecord } from "@rankzero/core";
+import type { CoreApi, FighterSnapshot, Loadout, Pick as Side2, ScrapperRecord, TalentBlock, TalentId } from "@rankzero/core";
 import type { BoutRecord, Clock, GameActions, Result, SaveDoc, Settings } from "../contracts";
 import { decodeSave, encodeSave } from "./saveCode";
 import { SLOT_LIMIT, emptyDoc, trimHistory } from "./schema";
@@ -162,6 +162,28 @@ export function createGameActions(deps: ActionDeps): AppActions {
         const rec = find(doc, id);
         if (!rec) return { doc: null, value: fail("no-scrapper" as const) };
         return { doc: put(doc, core.withLoadout(rec, loadout)), value: ok(undefined) };
+      });
+    },
+
+    spendTalent(id: string, talent: TalentId) {
+      return store.commit<Result<void, "no-scrapper" | TalentBlock>>((doc) => {
+        const rec = find(doc, id);
+        if (!rec) return { doc: null, value: fail("no-scrapper" as const) };
+        const why = core.talentBlock(rec, talent);
+        if (why !== null) return { doc: null, value: fail(why) };
+        return { doc: put(doc, core.spendTalent(rec, talent)), value: ok(undefined) };
+      });
+    },
+
+    respecTalents(id: string) {
+      const today = clock.today();
+      return store.commit<Result<void, "no-scrapper" | "used-today" | "nothing-spent">>((doc) => {
+        const rec = find(doc, id);
+        if (!rec) return { doc: null, value: fail("no-scrapper" as const) };
+        if (!core.canRespec(rec, today)) {
+          return { doc: null, value: fail(core.sheetOf(rec).talents.spent === 0 ? "nothing-spent" as const : "used-today" as const) };
+        }
+        return { doc: put(doc, core.respecTalents(rec, today)), value: ok(undefined) };
       });
     },
 

@@ -3,7 +3,8 @@
  * first schema of this build; version 2 (CONTRACT_REV 4) adds `settings.isVip`; version 3
  * (CONTRACT_REV 5) carries an earlier build's kit (`ScrapperRecord.base`, see `pinKits`);
  * version 4 (CONTRACT_REV 7, content v3) has energy in place of the daily bout cap and six stats
- * (see `toEnergyAndSixStats`).
+ * (see `toEnergyAndSixStats`); version 5 (CONTRACT_REV 8) the loadout (`toLoadout`); version 6
+ * (CONTRACT_REV 9) the talent tree (`toTalents`).
  *
  * A document from a NEWER build (a higher version than this code knows) is not understood: it is
  * reported as corrupt, so its bytes are kept, never replaced as if the save were empty.
@@ -30,7 +31,23 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   3: (doc) => toEnergyAndSixStats(doc),
   /** 4 to 5: every scrapper keeps its kit (no gear cards behind it) and gets the default loadout. */
   4: (doc) => toLoadout(doc),
+  /** 5 to 6: an empty talent tree for every scrapper: the points its level earns wait unspent. */
+  5: (doc) => toTalents(doc),
 };
+
+/**
+ * Schema 5 to 6 (content v3, batch 3, plan 13.11). Talent points come with levels (1 at level 3 and
+ * 1 every 3 levels after) and are never stored, so a scrapper of an old save already holds the
+ * points its level earns. Each one, active or retired, gets an empty tree (`talents: { ranks: {} }`,
+ * no respec used): every point waits unspent, and the Locker and the Kit show the talent-point
+ * prompt until they are spent. Its kit, picks and loadout stay as they were. Stored bouts are kept.
+ */
+export function toTalents(doc: Obj): Obj {
+  const lift = (r: unknown): unknown => (isObj(r) && r.talents === undefined ? { ...r, talents: { ranks: {} } } : r);
+  return { ...doc,
+    fighters: Array.isArray(doc.fighters) ? doc.fighters.map(lift) : doc.fighters,
+    retired: Array.isArray(doc.retired) ? doc.retired.map(lift) : doc.retired };
+}
 
 /**
  * Schema 4 to 5 (content v3, batch 2). Gear cards came onto the Route: walked today, an old save's

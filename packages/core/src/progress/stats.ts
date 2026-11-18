@@ -72,21 +72,13 @@ export function effectiveOf(s: StatBlock | StatsDraft): Record<StatKey, number> 
 }
 
 /** Sum of the companion HP costs of a perk list, in whole percent. Second Bowl (talent) takes its
- *  share off the cost of every companion but the costliest (each rounded down). */
+ *  share off the cost of every companion (each rounded down). */
 export function companionCostPct(perks: readonly PerkId[], talents?: TalentRanks): number {
-  const costs: number[] = [];
+  const cut = Math.min(100, (talents?.["second-bowl"] ?? 0) * tn("second-bowl", "petCost"));
+  let total = 0;
   for (const p of perks) {
     const c = (COMPANIONS as Record<string, { hpCostPct: number } | undefined>)[p];
-    if (c !== undefined) costs.push(c.hpCostPct);
-  }
-  const cut = Math.min(100, (talents?.["second-bowl"] ?? 0) * tn("second-bowl", "extraPetCost"));
-  if (cut === 0 || costs.length < 2) return costs.reduce((x, y) => x + y, 0);
-  const top = Math.max(...costs);
-  let total = top;
-  let skipped = false;
-  for (const c of costs) {
-    if (c === top && !skipped) { skipped = true; continue; }
-    total += Math.floor((c * (100 - cut)) / 100);
+    if (c !== undefined) total += cut === 0 ? c.hpCostPct : Math.floor((c.hpCostPct * (100 - cut)) / 100);
   }
   return total;
 }

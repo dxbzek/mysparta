@@ -2,7 +2,7 @@
  * FROZEN CONTRACT (work package 0). The web app: saves, actions, and the seam between the fight
  * screen and the screens around it. Storage names use the prefix `rankzero.`.
  */
-import type { BoutLog, BoutResult, DayKey, FighterSnapshot, Loadout, Pick, ScrapperRecord } from "@rankzero/core";
+import type { BoutLog, BoutResult, DayKey, FighterSnapshot, Loadout, Pick, ScrapperRecord, TalentBlock, TalentId } from "@rankzero/core";
 
 export type Result<T, E extends string> = { ok: true; value: T } | { ok: false; error: E };
 /** CONTRACT_REV 4: `speed` 3 is a VIP perk; `isVip` says whether this save has it (false until the
@@ -29,7 +29,7 @@ export interface BoutRecord { id: string; at: number; seed: number; rulesVersion
  *  "Old saves"). */
 /** Schema version 5 (CONTRACT_REV 8): the loadout and body equipment; migration 4 to 5 gives every
  *  scrapper the default loadout and `gearFrom` (docs/RULES.md, "Old saves"). */
-export interface SaveDoc { schemaVersion: 5; rev: number; updatedAt: number; settings: Settings;
+export interface SaveDoc { schemaVersion: 6; rev: number; updatedAt: number; settings: Settings;
 
   activeId: string | null;                                       // the scrapper shown in the Locker
   fighters: ScrapperRecord[]; retired: ScrapperRecord[]; history: BoutRecord[] }
@@ -50,6 +50,10 @@ export interface GameActions {
   takeLevelUp(id: string, pick: Pick): Promise<Result<void, "nothing-waiting">>;
   /** Stores what the scrapper takes into a bout (CONTRACT_REV 8), cleaned against what it owns. */
   setLoadout(id: string, loadout: Loadout): Promise<Result<void, "no-scrapper">>;
+  /** One more rank of a talent node (CONTRACT_REV 9), when the tree's rules allow it. */
+  spendTalent(id: string, talent: TalentId): Promise<Result<void, "no-scrapper" | TalentBlock>>;
+  /** Today's free respec: every talent point back to unspent (CONTRACT_REV 9). */
+  respecTalents(id: string): Promise<Result<void, "no-scrapper" | "used-today" | "nothing-spent">>;
   retire(id: string, typedName: string): Promise<Result<void, "name-mismatch">>;
   setSettings(patch: Partial<Settings>): Promise<void>;
   exportCode(): Promise<string>;

@@ -63,7 +63,7 @@ export function talentLine(c: ContentTables, id: TalentId, rank = 1): string {
     case "good-boy": return `Your pets have ${n("petHp")}% more HP.`;
     case "sharp-teeth": return `Your pets deal ${n("petDmg")}% more damage.`;
     case "quick-paws": return `Your pets' Evade +${n("petEvade")}.`;
-    case "second-bowl": return `Every pet but your costliest costs ${Math.min(100, n("extraPetCost"))}% less of your max HP.`;
+    case "second-bowl": return `Your pets cost ${Math.min(100, n("petCost"))}% less of your max HP.`;
     case "guard-dog": return `A swing or throw at you goes to one of your standing pets ${n("guard")}% of the time.`;
     case "loyal-pack": return "Once a bout, a hit that would knock you out while a pet of yours stands leaves you at 1 HP.";
     case "thick-skin": return `Toughness +${n("toughness")}.`;

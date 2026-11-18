@@ -29,7 +29,7 @@
  * Pack       petHp        % added to the HP of the owner's companions
  *            petDmg       % added to the damage multiplier of the owner's companions
  *            petEvade     Evade added to the owner's companions
- *            extraPetCost % taken off the max HP cost of every companion but the costliest
+ *            petCost      % taken off the max HP cost of every companion (each rounded down)
  *            guard        % that a swing or throw aimed at the owner goes to a standing companion
  *            loyal        capstone: once a bout, a hit that would knock the owner out while a
  *                         companion of its side stands leaves it at 1 HP
@@ -49,7 +49,7 @@ const PER: Readonly<Record<TalentId, Readonly<Record<string, number>>>> = {
   // Brawler: fists, Strength, combos, knockdowns
   "iron-knuckles": { fistDmg: 40 },
   "gym-rat": { strength: 1 },
-  "follow-through": { combo: 4 },
+  "follow-through": { combo: 3 },
   "stagger": { stagger: 20 },
   "bruiser": { crit: 3 },
   "knockdown": { knockClock: 40 },
@@ -59,7 +59,7 @@ const PER: Readonly<Record<TalentId, Readonly<Record<string, number>>>> = {
   "hook": { disarm: 5 },
   "fast-swap": { swapTime: -10 },
   "weapon-master": { block: 5 },
-  "fresh-steel": { freshDmg: 40 },
+  "fresh-steel": { freshDmg: 30 },
   // Thrower: throwing chance and damage, ricochets, catching
   "strong-arm": { thrownDmg: 10 },
   "sidearm": { throwChance: 5 },
@@ -68,15 +68,15 @@ const PER: Readonly<Record<TalentId, Readonly<Record<string, number>>>> = {
   "quick-catch": { catch: 25 },
   "bullseye": { thrownCrit: 20, critTo: 200 },
   // Pack: pet HP and damage, the second pet, pets that guard their owner
-  "good-boy": { petHp: 15 },
-  "sharp-teeth": { petDmg: 15 },
-  "quick-paws": { petEvade: 6 },
-  "second-bowl": { extraPetCost: 50 },
+  "good-boy": { petHp: 25 },
+  "sharp-teeth": { petDmg: 25 },
+  "quick-paws": { petEvade: 10 },
+  "second-bowl": { petCost: 25 },
   "guard-dog": { guard: 12 },
   "loyal-pack": { loyal: 1 },
   // Iron Wall: shields, Toughness, blocks, riposte after a block
-  "thick-skin": { toughness: 1 },
-  "brace": { block: 3 },
+  "thick-skin": { toughness: 2 },
+  "brace": { block: 4 },
   "shield-strap": { knockCut: 15 },
   "counter": { blockRiposte: 10 },
   "turtle": { armor: 4 },

@@ -3,8 +3,8 @@
  * history limits. A document that fails the shape check is CORRUPT, never empty. Unknown content
  * ids (a perk the game no longer has) warn and are dropped: they never throw.
  */
-import { GEAR_SLOTS, LOOK_SPACE, isCompanionId, isGearId, isPerkId, isShieldId, isWeaponId } from "@rankzero/core";
-import type { StatKey } from "@rankzero/core";
+import { GEAR_SLOTS, LOOK_SPACE, isCompanionId, isGearId, isPerkId, isShieldId, isTalentId, isWeaponId } from "@rankzero/core";
+import type { StatKey, TalentId, TalentPicks, TalentRanks } from "@rankzero/core";
 import type { BoutLog, CompanionId, FighterSnapshot, GearId, GearSlot, KitBase, Loadout, Look, PerkId, ScrapperRecord, StatBlock,
   WeaponId } from "@rankzero/core";
 import type { BoutRecord, SaveDoc, Settings } from "../contracts";
@@ -13,8 +13,9 @@ import type { BoutRecord, SaveDoc, Settings } from "../contracts";
  *  CONTRACT_REV 5: a scrapper's carried kit, `ScrapperRecord.base` (migration 2 to 3). 4 since
  *  CONTRACT_REV 7: energy in place of the daily bout cap, six stats (migration 3 to 4). 5 since
  *  CONTRACT_REV 8: the loadout and body equipment (`ScrapperRecord.loadout`, `gearFrom`; migration
- *  4 to 5). */
-export const SCHEMA_VERSION = 5 as const;
+ *  4 to 5). 6 since CONTRACT_REV 9: the talent tree (`ScrapperRecord.talents`, `FighterSnapshot.talents`;
+ *  migration 5 to 6). */
+export const SCHEMA_VERSION = 6 as const;
 /** Scrappers on one save. A fourth needs one retired first. */
 export const SLOT_LIMIT = 3;
 /** History: the last 50 bouts keep their logs, the last 200 are kept as summaries. */
@@ -122,6 +123,25 @@ export function checkLoadout(v: unknown, warn: (w: string) => void): Loadout | n
   return { weapons, shield, pets, gear };
 }
 
+/** Stored talent ranks: whole numbers of 1 or more under known ids (an unknown id warns and is
+ *  left out). The tree's own rules (tiers, max ranks, points earned) are applied when it is read,
+ *  by the core (`talentsOf`). */
+export function checkRanks(v: unknown, warn: (w: string) => void): TalentRanks {
+  const out: Partial<Record<TalentId, number>> = {};
+  if (!isObj(v)) return out;
+  for (const [k, n] of Object.entries(v)) {
+    if (!isTalentId(k)) { warn(`unknown talent ${JSON.stringify(k)}: left out`); continue; }
+    if (isNat(n) && n >= 1) out[k] = n;
+  }
+  return out;
+}
+function checkTalents(v: unknown, warn: (w: string) => void): TalentPicks | null {
+  if (!isObj(v)) return null;
+  const picks: TalentPicks = { ranks: checkRanks(v.ranks, warn) };
+  if (isDay(v.respecDay)) picks.respecDay = v.respecDay;
+  return picks;
+}
+
 function checkRecord(v: unknown, where: string, warn: (w: string) => void = () => undefined): ScrapperRecord {
   need(isObj(v), `${where}: not an object`);
   const r = v as Obj;
@@ -149,6 +169,11 @@ function checkRecord(v: unknown, where: string, warn: (w: string) => void = () =
     else warn(`${where}: its loadout could not be read: the default one is used`);
   }
   if (isNat(r.gearFrom) && r.gearFrom <= rec.picks.length) rec.gearFrom = r.gearFrom;
+  if (r.talents !== undefined) {
+    const t = checkTalents(r.talents, warn);
+    if (t !== null) rec.talents = t;
+    else warn(`${where}: its talents could not be read: every point is unspent`);
+  }
   return rec;
 }
 
@@ -179,7 +204,10 @@ function checkSnapshot(v: unknown, warn: (w: string) => void): { snap: FighterSn
       warn(`unknown perk id ${JSON.stringify(p)} in a stored bout: left out`);
     }
   }
-  return { snap: { id: v.id, name: v.name, look, level: v.level, stats, perks, rulesVersion: 1 }, dropped };
+  const snap: FighterSnapshot = { id: v.id, name: v.name, look, level: v.level, stats, perks, rulesVersion: 1 };
+  // (the talent ranks the bout read, content v3 batch 3: a replay played again from its seed needs them)
+  if (v.talents !== undefined) snap.talents = checkRanks(v.talents, warn);
+  return { snap, dropped };
 }
 
 function checkBout(v: unknown, warn: (w: string) => void): BoutRecord | null {
