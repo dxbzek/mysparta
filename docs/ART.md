@@ -369,6 +369,22 @@ shutter with a stencilled 0, chain-link fences with four crowd heads that bob on
 ring, a puddle). All static shapes are generated once from a seed into path strings. Any new
 arena keeps the floor line and the home marks.
 
+## Gear (content v3, batch 2)
+
+`content/gear.ts`: the 30 pieces of body equipment (plan 13.12) and their icons. Each piece is a
+list of `Shape`s on the scrapper's own bones, drawn in the look parts' sampler space (`hd` for the
+head, `tr` for the trunk, `fk` for the feet, limb frames for arms and legs) at the z of the part it
+covers plus a little, so it turns and bends with that part: hats over the hair (z 44.5), vests and
+jackets over the top (torso z 31.6) with sleeves on the arm bones, pads and shin guards on the shin
+bones, boots on the foot bones (rain boots rise over the shin). `GearArt` may hide look parts (a
+full-face helmet hides the hair, face and accessory; footwear hides the shoes) and repaint them
+(`hands` for gloves, `arms` for sleeves, `bottom` for trousers), so a glove follows every finger.
+Real objects' own colours (style FIXED: yellow, denim, rubber, green, leather, khaki, suede, visor);
+a dark object (a visor, rubber) gets a light detail so it reads on the night arenas. Icons: a
+stitched cloth tag in the rarity tone, the object as one bold silhouette with its teal shadow.
+`pnpm gear-sheet` draws all 30 worn, facing both ways at 2x and at fight size, with the 28 and
+44 px icons. Open it after every change.
+
 ## Checking art
 
 - `pnpm sheet --mode a1 | joints | keys | frames | onion | video | use | all` and

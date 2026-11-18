@@ -49,6 +49,8 @@ Fight values, all whole percents. A held weapon adds its numbers to the base; sk
 - Stat card: +2 points in one random stat of the six; +3 from the kit's 9th stat card taken (content v3; it was +3 from the 7th and +4 from the 21st over four stats; round 2, second pass: with +2 on every card a player who always took the stat card won 36% at level 10 and 24% at level 30). The amount counts the kit's own stat cards, so it lifts the kit that takes them and not every rival of its level.
 - Perk card: one roll from the perk pool. The perk card of the level-up to level 2, and the kit's 18th to 22nd perk card taken, also gives +1 point in one random stat of the six, shown on the card (content v3; it was levels 2 and 3 and the 17th to 22nd card) (round 2: a player who always took the perk card won 41% at level 10 and 28% at level 30; section 9). If that perk is not allowed it is rolled again, up to 5 more times; only when all 6 rolls fail does the card become a split: +1 point in each of two different random stats of the six. (With no reroll, 18% of perk cards were splits at level 10 and 38% at level 30; under 12% at level 30 with 3 rerolls, and 5 rerolls keep it there under the weapon cap of round 2.) The weapon share of a perk card's category roll falls with the weapons the kit owns (round 2): 44 with 0 to 2 weapons, 30 with 3, 15 with 4, none with 5. The other shares stay, so the roll is out of 56 plus the weapon share.
 
+**Gear cards** (content v3, batch 2). From the level-up at pick index `gearFrom` on (0 for a scrapper of this build; the save migration sets it for an old one, section "Old saves"), the perk card is a gear card 14% of the time: a roll on a stream of its own, `(seed, "gear", level-up, picks so far)`, then one piece of gear by the rarity weights below, rolled again up to 5 more times while it is owned. It takes the place of the perk card (or the split) and always carries +1 point in one random stat of the six (a piece of gear is a small bonus; the perk card it replaces is worth about a stat card). It counts as a perk card. The stat card and the left-right order of the level-up stay as they were, so a walk with no gear card is the walk of batch 1. Gear is not on the category roll below.
+
 **The perk pool.** A category roll out of 100 (for a kit with 2 weapons or fewer; see the perk card above): weapon 0 to 43, skill 44 to 89, shield 90 to 95, companion 96 to 99 (content v2). Then one item inside the category, by weight:
 
 | Rarity | Weight |
@@ -72,6 +74,18 @@ Companions use their own weights: Raccoon 90, Goose 5, Boar 5, Stray Dog 30, Cro
 - it is Bare Knuckle and 3 or more weapons are owned (round 2: fists were 5% of swings at level 30).
 
 **The Route** is a pure function of the seed and the list of picks. The cards of level-up k are drawn from a stream seeded with `(seed, "route", k, picks so far)`, and checked against the kit those picks built. Nothing is stored but the picks. The same picks always give the same later cards. (A rules change that changes the cards, like the pet pass, changes the kit of an existing scrapper on its next walk.)
+
+## 3b. The loadout (content v3, batch 2)
+
+What a scrapper takes into a bout, chosen on the Kit screen (the Bag and Gear tabs) and stored as `ScrapperRecord.loadout`:
+- **The bag:** which owned weapons go in, up to 5, at least 1 while it owns any. The draw order inside a bout stays random from the bag (section 5).
+- **The shield:** the one it owns, or none.
+- **The pets:** any of the ones it owns (a second Raccoon is a second choice). A pet left at home costs no max HP.
+- **The gear:** one piece per slot (head, body, hands, legs, feet), or nothing.
+
+A bout's snapshot holds every skill owned and only what the loadout takes, with the worn gear's stat points added to its stats (the sim never adds them again, like a booster's). A stored loadout is read against what is owned: a weapon, shield, pet or piece of gear not owned is left out, the bag is cut to 5 in the order given, and an empty bag gets the first weapon of the default loadout. After a level-up a new weapon joins the bag while it holds fewer than 5, a new shield is carried when none is, a new pet comes along, and a new piece of gear is worn in an empty slot.
+
+**The default loadout** (every rival; a scrapper with none stored; an old save after the migration): every weapon owned, the rarest first when there are more than 5 (in the order owned), the shield owned, every pet owned, and in each slot the rarest piece owned (the first owned on a tie).
 
 ## 4. Energy and rivals
 
@@ -242,6 +256,45 @@ A shield is carried on the back arm while the front hand keeps its weapon. At mo
 | Ironing Board | Rare | +14 | +30 | 0 | 0 | -10% | 0 | 40 | long: the best cover against a throw |
 | Skateboard | Rare | +10 | 0 | 0 | +30 | 0 | 0 | 50 | small block, then the answer |
 | Riot Shield | Epic | +38 | +10 | +5 | 0 | -15% | +10% | 30 | the biggest cover |
+
+## 6c. Body equipment (content v3, batch 2)
+
+Thirty pieces, six per slot, kept to 30 on purpose. Each is drawn on the fighter on the bones of its slot (docs/ART.md, "Gear"). One small bonus each, sometimes a small cost. Stat points go into the bout's snapshot; every other number is a fight rule while it is worn (gear is never knocked off). The sim has no hit places: a crit is a clean blow to the head, so head gear that guards against head hits acts on crits taken. Rarity weights as for perks (section 3).
+
+| Gear | Slot | Rarity | Bonus | Cost |
+|---|---|---|---|---|
+| Bandana | head | Common | Precision +2 | |
+| Beanie | head | Common | Health +1 | |
+| Hard Hat | head | Uncommon | Armor +10 | |
+| Goggles | head | Uncommon | Aim +6, and Sand in the Eyes takes no Aim | |
+| Welding Mask | head | Rare | a crit taken hits x1.20, not x1.5 | Aim -3 |
+| Motorbike Helmet | head | Epic | Toughness +12 against crits (its soak on a crit is `floor((Toughness + 12 - 3) / 3)`) | Speed -1 |
+| Work Vest | body | Common | Toughness +2 | |
+| Hi-Vis Vest | body | Common | Evade +15 against a companion's swing | |
+| Padded Jacket | body | Uncommon | soak +1 on every swing or throw taken | |
+| Leather Jacket | body | Uncommon | Riposte +12 | |
+| Hockey Chest Pad | body | Rare | Block +10 | |
+| Tyre-Rubber Vest | body | Epic | Armor +15 | Speed -1 |
+| Work Gloves | hands | Common | Grip +10 (off an attacker's disarm and shield knock-off chances) | |
+| Taped Fists | hands | Common | damage with fists +60% | |
+| Rubber Gloves | hands | Uncommon | 75% to keep the weapon when a Snatch takes it (roll on the `disarm` stream, after Firm Grip; no tag) | |
+| Fingerless Gloves | hands | Uncommon | Combo +9 | |
+| Oven Mitts | hands | Rare | Block +20 against a throw (after the halving) | Combo -4 |
+| Welding Gloves | hands | Epic | Strength +3 | Precision -1 |
+| Ripped Jeans | legs | Common | Agility +2 | |
+| Cargo Pants | legs | Common | the empty-hand draw is `S / (S + 3)` (not with Quick Swap or Bare Knuckle), Health +1 | |
+| Knee Pads | legs | Uncommon | a Body Slam or Grapple hit taken loses 8 HP (never below 1) | |
+| Track Pants | legs | Uncommon | Speed +2 | |
+| Magazine Shin Guards | legs | Rare | every companion hit taken loses 4 HP (never below 1) | |
+| Overalls | legs | Epic | Toughness +4 | |
+| Sneakers | feet | Common | Evade +7 | |
+| Flip-Flops | feet | Common | Speed +3 | Evade -6 |
+| Rain Boots | feet | Uncommon | a Tarp holds 2 skipped turns fewer (at least 1) | |
+| Skate Shoes | feet | Uncommon | Intercept +12 | |
+| Steel-Toe Boots | feet | Rare | Disarm +12 | |
+| Slippers | feet | Epic | start clock -100 | |
+
+The spec's example was "Motorbike Helmet: Toughness +3 against hits to the head, Speed -1". With crits as the head hits, +3 Toughness is +1 soak on a crit, and the helmet won 46.8 to 49% with-and-without in the first quick run (line 47%), so it is +12. Gear writes no skill tag: it shows on the fighter instead.
 
 ## 7. Skills
 

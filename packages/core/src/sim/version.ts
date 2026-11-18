@@ -31,5 +31,8 @@
  *      the 17th to 22nd), Snatch weight 22, Flurry Combo 32, Body Slam time +40 (was +100), Broom
  *      Dmg 7, Pipe Dmg 14, Frying Pan Dmg 12, Rubber Chicken Dmg 6, Bike Chain Aim 25, Wok Block 26
  *      (docs/RULES.md section 9).
+ *   9: content v3, batch 2 (18 November 2026): body equipment (30 pieces, docs/RULES.md 6c) worn by
+ *      rivals and by the loadout, gear cards on the Route (14% of perk cards, each with +1 stat
+ *      point), rivals take the default loadout.
  */
-export const SIM_VERSION = 8;
+export const SIM_VERSION = 9;
