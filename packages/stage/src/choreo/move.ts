@@ -288,9 +288,12 @@ function tarp(b: Builder, step: MoveStep, i: number, s: number, c: number): Plac
   let arc = 12;
   while (arc < most && !clears(arc)) arc += 4;
   arc = Math.min(arc, most);
-
+  // a camera too close for an arc over a raised weapon: it flies behind the fighters instead
+  const behind = !clears(arc);
   b.fx.push({ fx: "tarp", from: t.release, to: landing, x: x1, y: spot.y, facing: spot.facing, under: target,
-    seed: b.opts.cosmeticSeed + i, contact: null, fly: { x0: t.hand.x, y0, ms: MOVE.tarpFlightMs, arc, dy: -above }, size: ts.size });
+    seed: b.opts.cosmeticSeed + i, contact: null, fly: { x0: t.hand.x, y0, ms: MOVE.tarpFlightMs, arc, dy: -above }, size: ts.size,
+    ...(behind ? { behind: true } : {}) });
+
   b.tarpLanding = { target, at: landing, dx };
   b.moveCue(c, i, "tarp", "act");            // the tarp shaken out
   b.moveCue(landing, i, "tarp", "effect");   // its hem slaps the floor round the target (the drawn drop ends here)

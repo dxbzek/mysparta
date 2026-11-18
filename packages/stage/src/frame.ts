@@ -35,7 +35,9 @@ export interface FrameProp { item: PropId; x: number; y: number; rot: number; fa
   squash?: number; floorY?: number }
 /** `under`: a tarp lying over a pet is drawn with that pet (right after it, in its depth order), so
  *  a fighter in front of the pet stays in front of its tarp too (pets never cover fighters). */
-export interface FrameFx { fx: FxKind; progress: number; at: Place; seed: number; under?: ActorId; size?: FxSize }
+export interface FrameFx { fx: FxKind; progress: number; at: Place; seed: number; under?: ActorId; size?: FxSize;
+  /** Drawn behind every actor (draw.ts), not over them. */
+  behind?: boolean }
 export interface FrameText { text: string; x: number; y: number; size: number; colour: string; ink: string; alpha: number;
   kind: "number" | "tag" | "banner" | "sticker"; icon?: PerkId;
   /** A banner held in the top band of the view (`TagItem.band`). */
@@ -223,7 +225,9 @@ export function frameAt(tr: Tracks, t: number): Frame {
       }
     }
     if (!mapped && (e.p0 !== undefined || e.p1 !== undefined)) progress = (e.p0 ?? 0) + ((e.p1 ?? 1) - (e.p0 ?? 0)) * progress;
-    fx.push({ fx: e.fx, progress, at: { x, y, facing }, seed: e.seed, ...(under !== undefined ? { under } : {}), ...(e.size !== undefined ? { size: e.size } : {}) });
+    fx.push({ fx: e.fx, progress, at: { x, y, facing }, seed: e.seed, ...(under !== undefined ? { under } : {}), ...(e.size !== undefined ? { size: e.size } : {}),
+      ...(e.behind === true && !landed ? { behind: true } : {}) });
+
     if (e.key !== undefined && e.contact !== null) present.push({ key: e.key, contact: e.contact });
   }
 

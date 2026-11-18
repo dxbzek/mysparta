@@ -75,6 +75,9 @@ export interface FxItem { fx: FxKind; from: number; to: number; x: number; y: nu
   /** The first `ms` of its life draw the progress from `p0` to `p1` once, before its loop starts (a
    *  tarp's slump to its low shape, then the heave on a loop). */
   lead?: { ms: number; p0: number; p1: number };
+  /** In flight it is drawn behind every actor (a thrown tarp that cannot arc over a raised weapon). */
+  behind?: boolean;
+
 
   /** The progress range drawn over the life of the effect (default 0 to 1): the lit crackers in the
    *  hand draw only the start of the crackers effect, their pops the rest. */

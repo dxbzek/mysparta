@@ -205,6 +205,7 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
     c.restore();
   }
   for (const s of f.auras) auraBehind(env, s);
+  for (const e of f.fx) if (e.behind === true) rig.drawFx(env, e.fx, e.progress, e.at, e.seed, e.size);
   for (const a of f.actors) {
     // under a tarp only the sheet shows: the body, what it holds and what hangs on it are under it
     if (a.covered !== true) {
@@ -222,7 +223,8 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
     c.restore();
   }
   for (const e of f.fx) {
-    if (e.fx === "tape" || e.under !== undefined) continue;
+    if (e.fx === "tape" || e.under !== undefined || e.behind === true) continue;
+
     const big = (BIG_FX as Partial<Record<string, number>>)[e.fx];
     if (big !== undefined && cam) {
       // bigger, bolder contact bursts (owner: "have some energy")
