@@ -87,6 +87,57 @@ A bout's snapshot holds every skill owned and only what the loadout takes, with 
 
 **The default loadout** (every rival; a scrapper with none stored; an old save after the migration): every weapon owned, the rarest first when there are more than 5 (in the order owned), the shield owned, every pet owned, and in each slot the rarest piece owned (the first owned on a tie).
 
+## 3c. The talent tree (content v3, batch 3)
+
+Owner amendment 13.11. The two-card level-up and the Route stay; talents come on top.
+
+**Points.** A scrapper earns 1 talent point at level 3 and 1 more every 3 levels after: `points = 0` below level 3, else `1 + floor((level - 3) / 3)` (1 at level 3, 2 at 6, 6 at 18, 10 at 30). Points are never stored: a record holds only the ranks spent (`ScrapperRecord.talents.ranks`) and the day of its last free respec. Unspent points are the points earned minus the ranks spent.
+
+**The tree.** Five branches of six nodes. In each branch: two nodes of tier 1, two of tier 2, one of tier 3, then the capstone (tier 4). A node of a tier opens when the branch's lower tiers hold enough points: tier 2 needs 2, tier 3 needs 4, the capstone 5. Nodes take 1 to 3 ranks (a capstone 1); one point buys one rank, and each rank gives the node's number once more. So the first capstone comes at the 6th point (level 18), and 10 points (level 30) never buy two.
+
+**Spending and the respec.** A rank can be spent when the node is not full, its tier is open and a point is unspent. One free respec a day: every point back to unspent; the day (the app's `DayKey`, never a clock in the core) is kept, and a second respec that day is refused. A stored tree is read against these rules: an unknown node, a rank that is not a whole number from 1 to the node's max, or a node of a tier that is not open is dropped; while more ranks are stored than points earned, one rank comes off the node of the highest tier (the last in the tree's order on a tie).
+
+**In a bout.** The bout's snapshot carries the ranks (`FighterSnapshot.talents`). Gym Rat's Strength and Thick Skin's Toughness are added to the snapshot's stats when it is made, like gear, and the sim never adds them again. Every other node is a fight rule. Only the capstones write a tag on stage (a rule tag, like Parry's; Loyal Pack with Last Stand).
+
+**Rivals** spend their points by one fixed rule: every point down one branch, in the branch's order (one rank in each of its five nodes in tier order, the capstone, then a second rank in each node that takes one, then a third). The branch is one draw from `(rival seed, "talents")`, weighted by how well each branch fits what the rival takes into the bout: Brawler 1 (2 with Bare Knuckle), Arsenal 1 with one melee weapon and 2 with more, Thrower 3 with a Thrown weapon or Pitcher, Junk Collector or Trick Shot (else never), Pack 3 with a pet (else never), Iron Wall 3 with a shield (else 1). The balance tool's level-up policy players spend theirs by the same rule.
+
+Numbers are per rank; a node at rank r gives r times each.
+
+| Branch | Tier | Node | Ranks | Per rank |
+|---|---|---|---|---|
+| Brawler | 1 | Iron Knuckles | 3 | damage with fists +40% |
+| Brawler | 1 | Gym Rat | 3 | Strength +1 (in the snapshot's stats) |
+| Brawler | 2 | Follow-Through | 3 | Combo +3 |
+| Brawler | 2 | Stagger | 2 | a crit its owner lands on a scrapper that still stands adds 20 beats to that scrapper's clock |
+| Brawler | 3 | Bruiser | 2 | Crit +3 |
+| Brawler | cap | **Knockdown** | 1 | once a turn, the first combo swing (not a Stubborn swing) that lands is a crit and adds 40 beats to the target's clock |
+| Arsenal | 1 | Weapon Care | 3 | damage of a melee swing with a held weapon +4% |
+| Arsenal | 1 | Quick Hands | 3 | the slack of the empty-hand draw -1 (never below 1; not with Quick Swap or Bare Knuckle) and swap chance +5 (with any of 30, Quick Swap's 50, Firm Grip's 15) |
+| Arsenal | 2 | Hook | 3 | Disarm +5 |
+| Arsenal | 2 | Fast Swap | 2 | a turn in which its owner drew or swapped costs 10% less time (after Quick Swap's cut) |
+| Arsenal | 3 | Weapon Master | 2 | Block +5 while a weapon is held |
+| Arsenal | cap | **Fresh Steel** | 1 | the first swing with a weapon just drawn or swapped in (not a throw) has damage +30% and cannot be blocked |
+| Thrower | 1 | Strong Arm | 3 | damage of a throw +10% |
+| Thrower | 1 | Sidearm | 3 | the chance a melee weapon is thrown +5 (with any base: 20, 5, Pitcher's or Junk Collector's) |
+| Thrower | 2 | Dead Eye | 3 | Aim +8 on a throw (before the halving) |
+| Thrower | 2 | Bank Shot | 2 | a landed throw of a weapon that stays in the hand bounces on to a random standing enemy 15% of the time, once a turn; added to Trick Shot's 50 (its tag only when Trick Shot is owned) |
+| Thrower | 3 | Quick Catch | 2 | a thrown melee weapon that would be gone goes back into the bag 25% of the time (after Pitcher and Junk Collector, on the `throw` stream, no tag) |
+| Thrower | cap | **Bullseye** | 1 | Crit +20 on a throw, and a thrown crit hits x2, not x1.5 (the Welding Mask's cut still comes off) |
+| Pack | 1 | Good Boy | 3 | its companions' HP +25% (added to Pet Lover's 30, after the level scaling) |
+| Pack | 1 | Sharp Teeth | 3 | its companions' damage multiplier +25 (no Pet Lover tag) |
+| Pack | 2 | Quick Paws | 3 | its companions' Evade +10 |
+| Pack | 2 | Second Bowl | 2 | every companion costs 25% less of the owner's max HP (each cost rounded down) |
+| Pack | 3 | Guard Dog | 2 | when the owner is picked as a target (a turn, a pet's bite, a bounce), 12% to send it to one of the owner's standing companions instead (two more numbers on the `target` stream, only then) |
+| Pack | cap | **Loyal Pack** | 1 | once a bout, a hit or a Move that would leave the owner at 0 HP while a companion of its side stands leaves it at 1 (after Last Stand, which saves first) |
+| Iron Wall | 1 | Thick Skin | 3 | Toughness +2 (in the snapshot's stats) |
+| Iron Wall | 1 | Brace | 3 | Block +4 |
+| Iron Wall | 2 | Shield Strap | 2 | 15 points off a shield knock-off chance against the owner (after the grip, never below 0) |
+| Iron Wall | 2 | Counter | 3 | after a block in an attack, Riposte +10 for the riposte that ends it (cap 80; with Parry the higher of the two) |
+| Iron Wall | 3 | Turtle | 2 | Armor +4 |
+| Iron Wall | cap | **Unbreakable** | 1 | after a block in an attack, the riposte is sure and cannot be evaded or blocked |
+
+Fresh Steel, Knockdown and Unbreakable roll every number as usual and only then change the outcome, so no stream moves for a bout that does not own them.
+
 ## 4. Energy and rivals
 
 - **Energy** (content v3, owner amendment 13.9; it replaced the daily cap of 6 bouts, 8 on the creation day). Each scrapper has a bar of 6 points. A bout costs 1. One point comes back every 20 minutes, so an empty bar is full again in 2 hours. A new scrapper starts full. There are no paid refills and no ads. The time is the app's injected clock in ms; the core never reads a clock. A record holds `energy`, the points at time `energyAt`; points come back at `energyAt + k x 20 min`. From a full bar the first bout starts the timer; mid-refill the time already earned towards the next point is kept. A clock that reads earlier than `energyAt` (moved back) refills nothing, and `energyAt` never moves back, so setting the clock back and forth makes no points. The Locker and Tonight's Card show the bar with a countdown to the next point.

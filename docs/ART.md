@@ -385,6 +385,14 @@ stitched cloth tag in the rarity tone, the object as one bold silhouette with it
 `pnpm gear-sheet` draws all 30 worn, facing both ways at 2x and at fight size, with the 28 and
 44 px icons. Open it after every change.
 
+## Talents (content v3, batch 3)
+
+The talent tree (plan 13.11) is drawn in the same style 13 as the rest: one scrolling page of asphalt panels with halftone dots and the sodium lamp glow from the top, a panel per branch, its six nodes in their tiers, joined by thick ink lines. Each branch has one colour, taken from the rig's own icon tones: Brawler sign red, Arsenal lamp steel, Thrower safety orange, Pack boot green, Iron Wall denim (`--c-branch-*` in tokens.css, `BRANCH_TONE` in the rig).
+- **Icons** (`talent:<id>` in `contentPack.icons`, `packages/rig/src/content/icons.ts`): a node is a hex nut, the yard's own hardware, stamped in its branch colour round a dark face; a capstone is a jagged yellow burst. The pictogram is the skill pictogram nearest to what the node does (a fist for Iron Knuckles, the dumbbell for Gym Rat, the falling body for Knockdown) or one drawn for it (a target for Bullseye, fangs, a dog bowl, a shell, a shield with a star), grown to fill the face like a stamp. No emoji, no font glyphs.
+- **States**: locked (a flat dark silhouette on the locked asphalt, a padlock disc, the tier tape says how many points open it, the lines to it dashed and dark); open (a hazard-yellow ring that pulses slowly while a point waits; the pulse is off under reduced motion); ranked (the branch-colour ring, the rank pips filled yellow); full (a yellow ring on a warm disc; a full capstone glows like a Mythic). Names sit on paper tape under each node.
+- **The Level path** is a tree too: a wooden trunk down the middle of an asphalt panel, a tape knot per level, the card taken on a lit yellow limb to the left, the card left behind on a dashed dead limb to the right, greyed. A level that gave a talent point wears a small orange hex tag.
+- **On stage** a capstone that fires shows its tag like a skill's: its name and its icon.
+
 ## Checking art
 
 - `pnpm sheet --mode a1 | joints | keys | frames | onion | video | use | all` and
