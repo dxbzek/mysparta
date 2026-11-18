@@ -117,8 +117,8 @@ export interface TalentMeta { branch: TalentBranch; tier: 0 | 1 | 2 | 3; max: 1 
 export interface TalentDef extends TalentMeta { id: TalentId; per: Readonly<Record<string, number>> }
 export const TALENT_TIER_NEED = [0, 2, 4, 5] as const;
 export const TALENT_META: Readonly<Record<TalentId, TalentMeta>> = {
-  "iron-knuckles":  { branch: "brawler",   tier: 0, max: 3 },
   "gym-rat":        { branch: "brawler",   tier: 0, max: 3 },
+  "iron-knuckles":  { branch: "brawler",   tier: 0, max: 3 },
   "follow-through": { branch: "brawler",   tier: 1, max: 3 },
   "stagger":        { branch: "brawler",   tier: 1, max: 2 },
   "bruiser":        { branch: "brawler",   tier: 2, max: 2 },

@@ -802,7 +802,7 @@ export class Builder {
     // 400 bouts). The view always holds the scrappers' home room (camera.homeSpan `must`), so a place
     // up to `FRAMING.viewMin` from its far end, less the body's half width, is always in it.
     const view = this.viewBounds(owner, [stopX - facing * FRAMING.viewBody * drawnScale(this, p.actor)]);
-    const x = Math.min(STAGE_W - lo, view.x1, Math.max(lo, view.x0, want));
+    const x = Math.min(STAGE_W - lo, view.x1 - FRAMING.ownerSlack, Math.max(lo, view.x0 + FRAMING.ownerSlack, want));
 
     const way = planWay(this, owner, x - o.x, 0, false, start);
     if (way.kind === "still") return null;

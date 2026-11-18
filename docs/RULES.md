@@ -105,8 +105,8 @@ Numbers are per rank; a node at rank r gives r times each.
 
 | Branch | Tier | Node | Ranks | Per rank |
 |---|---|---|---|---|
-| Brawler | 1 | Iron Knuckles | 3 | damage with fists +40% |
 | Brawler | 1 | Gym Rat | 3 | Strength +1 (in the snapshot's stats) |
+| Brawler | 1 | Iron Knuckles | 3 | damage with fists +40% |
 | Brawler | 2 | Follow-Through | 3 | Combo +3 |
 | Brawler | 2 | Stagger | 2 | a crit its owner lands on a scrapper that still stands adds 20 beats to that scrapper's clock |
 | Brawler | 3 | Bruiser | 2 | Crit +3 |

@@ -155,8 +155,8 @@ describe("the tree: five branches of six nodes", () => {
 
 describe("rivals spend their points by a fixed rule", () => {
   it("every point down one branch that fits what the rival takes into the bout, in the branch's order", () => {
-    expect(branchOrder("brawler")).toEqual(["iron-knuckles", "gym-rat", "follow-through", "stagger", "bruiser", "knockdown",
-      "iron-knuckles", "gym-rat", "follow-through", "stagger", "bruiser", "iron-knuckles", "gym-rat", "follow-through"]);
+    expect(branchOrder("brawler")).toEqual(["gym-rat", "iron-knuckles", "follow-through", "stagger", "bruiser", "knockdown",
+      "gym-rat", "iron-knuckles", "follow-through", "stagger", "bruiser", "gym-rat", "iron-knuckles", "follow-through"]);
     expect(branchBuild("pack", 6)).toEqual({ "good-boy": 1, "sharp-teeth": 1, "quick-paws": 1, "second-bowl": 1, "guard-dog": 1, "loyal-pack": 1 });
     expect(branchFit("pack", ["pipe"])).toBe(0);
     expect(branchFit("pack", ["pipe", "raccoon"])).toBe(3);

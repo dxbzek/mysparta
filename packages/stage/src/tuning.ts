@@ -80,7 +80,10 @@ export const FRAMING = { inset: 22, giveMin: 2,
    *  shows 240 x 390 / 467 = 200. */
   viewMin: 200,
   /** Half a body kept inside that view round a scrapper's place (`CAMERA.excursion` and a margin). */
-  viewBody: 18 } as const;
+  viewBody: 18,
+  /** More room kept inside that view for an owner who steps back past his pinned pet: the view the
+   *  camera settles on later can sit a few units off the one known when he steps. */
+  ownerSlack: 10 } as const;
 
 /** Hit-stop at the moment of contact, by kind of hit. */
 export const HIT_STOP = { plain: 60, crit: 110, knockout: 220 } as const;
