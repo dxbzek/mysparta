@@ -270,6 +270,25 @@ export class Builder {
     return { x0: Math.max(0, this.bounds.x0 + k), x1: Math.min(STAGE_W, this.bounds.x1 - k) };
   }
 
+  /** The floor x a scrapper's place keeps inside so that it is in view on the narrowest canvas
+   *  (`FRAMING.viewMin` units across): within that width of the far end of the home room, with
+   *  `CAMERA.excursion` of its body round it. Wider than `frameBounds`: a step out to here is in
+   *  the frame (camera.frameSpan follows it) on every canvas. */
+  viewBounds(id: ActorId, also: readonly number[] = []): { x0: number; x1: number } {
+    const s = homeSpan(this);
+    const m = s.must ?? { x0: s.x0, x1: s.x1 };
+    // (and the places other scrappers have stepped to so far, with their room, and `also`)
+    let x0 = Math.min(m.x0, ...also);
+    let x1 = Math.max(m.x1, ...also);
+    for (const tr of this.actors) {
+      if (tr.rig !== "scrapper" || tr.id === id) continue;
+      const k = FRAMING.viewBody * drawnScale(this, tr.id);
+      for (const mv of tr.moves) { x0 = Math.min(x0, mv.x1 - k); x1 = Math.max(x1, mv.x1 + k); }
+    }
+    const r = FRAMING.viewBody * drawnScale(this, id);
+    return { x0: Math.max(0, x1 - FRAMING.viewMin + r), x1: Math.min(STAGE_W, x0 + FRAMING.viewMin - r) };
+  }
+
   /** The pose an actor has at `t`, from what is scheduled so far. */
   poseAt(id: ActorId, t: number): Pose {
     const tr = this.track(id);
@@ -771,7 +790,12 @@ export class Builder {
     const far = (pet.facing === facing ? ttr.reach.front : ttr.reach.back);
     const past = pet.x + facing * (far + SCRAPPER_REACH.front * drawnScale(this, owner) + BODY_GAP.petClear);
     const want = facing === 1 ? Math.max(stopX + gap, past) : Math.min(stopX - gap, past);
-    const x = Math.min(STAGE_W - lo, Math.max(lo, want));
+    // and never past what the narrowest canvas shows (content v3 batch 2: at level 30 the owner of a
+    // snared pet stepped up to 90 units past his mark, past the tall phone's 200-unit view, in 18 of
+    // 400 bouts). The view always holds the scrappers' home room (camera.homeSpan `must`), so a place
+    // up to `FRAMING.viewMin` from its far end, less the body's half width, is always in it.
+    const view = this.viewBounds(owner, [stopX - facing * FRAMING.viewBody * drawnScale(this, p.actor)]);
+    const x = Math.min(STAGE_W - lo, view.x1, Math.max(lo, view.x0, want));
 
     const way = planWay(this, owner, x - o.x, 0, false, start);
     if (way.kind === "still") return null;

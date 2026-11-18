@@ -5,7 +5,7 @@ import { skillTag } from "../effects";
 import type { Builder } from "../timeline";
 import { OUTCOME } from "../tuning";
 import type { Placed } from "./index";
-import { dropOnFloor } from "./props";
+import { dropOnFloor, slungAt } from "./props";
 
 /** When the steps that follow a hit happen: just after its contact. */
 export function afterHit(b: Builder): number {
@@ -17,7 +17,7 @@ export function disarm(b: Builder, step: StepOf<"disarm">, i: number): Placed {
   if (!b.has(step.target)) return { at, apply: at };
   skillTag(b, step.procs, at);
   if (step.resisted === true) return { at, apply: at };
-  const landed = dropOnFloor(b, i, step.target, step.weapon, at, OUTCOME.disarmMs, "pop");
+  const landed = dropOnFloor(b, i, step.target, step.weapon, at, OUTCOME.disarmMs, "pop", slungAt(b, step.target, step.weapon, at));
   b.setHeld(step.target, at, "fists");
   b.heldNow.set(step.target, "fists");
   if (b.cursor < at + 200) b.cursor = at + 200;

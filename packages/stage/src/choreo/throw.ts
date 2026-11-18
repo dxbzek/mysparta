@@ -34,7 +34,7 @@ export function throwStep(b: Builder, step: StepOf<"throw">, i: number): Placed 
   b.face(step.actor, s, facing);
   const dress = b.dress(step.actor, weapon);
   // the clip: wind-up to the release, then the recoil
-  b.play(step.actor, clip, s, { rate: strike / strikeIn, until: release });
+  b.play(step.actor, clip, s, { rate: strike / strikeIn, until: release }).throws = true;
   const rest = info.durationMs - strike;
   const restMs = combo ? BEAT.comboMs - BEAT.comboStrikeMs : rest;
   b.play(step.actor, clip, release, { c0: strike, rate: restMs > 0 ? rest / restMs : 1, until: release + Math.max(1, restMs) });

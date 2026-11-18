@@ -126,13 +126,16 @@ export function frameAt(tr: Tracks, t: number): Frame {
       // (but a swing that starts inside it, as it ends, has its weapon in hand: round-2 close, an
       // intercept's pitchfork thrust right after an Air Horn was drawn with fists, the pitchfork on
       // the back)
-      const swinging = seg !== null && seg.aim !== undefined && seg.from > g.from;
+      // (a throw's wind-up too: content v3 batch 2, the item flew from the hand off the back)
+      const swinging = seg !== null && (seg.aim !== undefined || seg.throws === true) && seg.from > g.from;
 
 
       // (two slings may overlap, a Move right after a Move: what the first put aside stays there)
       slung ??= [];
       if (g.shield && dress.shield !== null) { slung.push(dress.shield); dress.shield = null; }
-      if (g.held && !swinging && dress.held !== null && dress.held !== "fists") { slung.push(dress.held); dress.held = "fists"; }
+      // (only the weapon it put aside: a swap in the crossfade draws the new one into the hand, and
+      // the old one leaves from the back, choreo/props.ts slungAt)
+      if (g.held && !swinging && dress.held !== null && dress.held !== "fists" && (g.item === undefined || g.item === dress.held)) { slung.push(dress.held); dress.held = "fists"; }
     }
     const fa: FrameActor = { id: a.id, rig: a.rig, clip: seg === null ? "idle" : seg.clip,
       clipT: seg === null ? t + a.phase : clipTime(seg, t), place: { x: p.x, y: p.y, facing: p.facing }, floorY: p.floorY,

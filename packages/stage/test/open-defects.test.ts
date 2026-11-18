@@ -28,6 +28,9 @@
  *     the scene (lib/slam.ts): 30 crossings in 11 of 19 bouts before, none after. Pinned on level 30
  *     n 76 and 84 under sim version 8 (n 70 and 84 under version 7). Passing behind
  *     its own standing owner, as when it steps out to meet an attacker or bites, is the design.
+ *  5. FIXED (content v3, batch 2). A blow at a snared pet pushed a fighter out of the frame, and a
+ *     shield slung for a Move lost its weapon in the crossfade (18 and 35 of 400 level-30 bouts under
+ *     sim version 8). Swept over all 400 in sweep-l30.test.ts.
  */
 import { describe, expect, it } from "vitest";
 import type { ActorId, ActorInit, BoutLog, CompanionId, FighterSnapshot, Step } from "@rankzero/core";

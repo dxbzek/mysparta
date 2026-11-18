@@ -51,6 +51,7 @@ import type { Sig, SigKind } from "../model";
 import type { Builder, SwingPlan } from "../timeline";
 import { drawnBox } from "../bounds";
 import { clearLanding } from "./fall";
+import { slungAt } from "./props";
 import { inFrameDx, tarpSize } from "./snare";
 import { CAMERA, homeSpan } from "../camera";
 import { BEAT, MOVE } from "../tuning";
@@ -93,7 +94,7 @@ export function sling(b: Builder, id: ActorId, from: number, to: number, twoHand
   const held = b.heldNow.get(id) ?? "fists";
   const meta = held === "fists" ? undefined : WEAPON_META[held];
   const twoHand = twoHandToo && meta !== undefined && meta.hands === 2 && meta.pair !== true;
-  if (shield || twoHand) b.slings.push({ actor: id, from, to, shield, held: twoHand });
+  if (shield || twoHand) b.slings.push({ actor: id, from, to, shield, held: twoHand, ...(twoHand ? { item: held } : {}) });
 }
 
 /** A skill's own picture (sigs.ts paints it): from, to, and what it needs. */
@@ -350,7 +351,8 @@ function snatch(b: Builder, step: MoveStep, i: number, s: number, c: number): Pl
   // the robbed hand shows: the target's shield goes on its back for the moment of the snatch
   sling(b, target, at - 260, at + MOVE.snatchJumpMs + 160, false);
   if (step.taken !== undefined) {
-    const from = b.handAt(target, at);
+    // (from the back when it is still slung there after the target's own Move: props.slungAt)
+    const from = slungAt(b, target, step.taken, at) ?? b.handAt(target, at);
     const to = b.handAt(step.actor, at + MOVE.snatchJumpMs);
     const path = makePath("pop", from.x, from.y, to.x, to.y, sw.facing, MOVE.snatchJumpMs, from.rot);
     b.flights.push({ item: step.taken, from: at, to: at + MOVE.snatchJumpMs, path: { ...path, arc: 22, spin: 0 }, after: "held" });

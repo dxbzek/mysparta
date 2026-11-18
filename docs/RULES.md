@@ -700,7 +700,7 @@ Gate (`pnpm balance`, full sample, levels 2, 3, 5, 10 and 30): PASS, no limit br
 Open, not decided here:
 - Heavy Hands shows in 57% of its owner's bouts in the booster test's sample (720 rivals); its line was lowered from 60% to 55%, still "most bouts". Letting it skip the tag wait put the level-30 tag median at 10 (limit 9).
 - Toughness and Precision are worth a little less per point than Health, Strength and Agility (table above). Raising them further moved the level-1 spread or the miss-based skills.
-- For the stage, found while re-pinning: at level 30 a blow at a snared pet takes a fighter out of the frame in 18 of 400 bouts, and a shield slung for a Move loses its weapon in the crossfade in 33 of 400 (scan in the content v3 handoff); not pinned as open defects yet.
+- For the stage, found while re-pinning: at level 30 a blow at a snared pet took a fighter out of the frame in 18 of 400 bouts, and a shield slung for a Move lost its weapon in the crossfade in 33 of 400. Both fixed in content v3 batch 2; the stage test `sweep-l30` checks all 400 bouts.
 
 ### Old saves (round-2 close, 18 November 2026)
 

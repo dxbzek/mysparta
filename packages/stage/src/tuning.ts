@@ -75,7 +75,12 @@ export const FOOTWORK = {
 export const FRAMING = { inset: 22, giveMin: 2,
   /** A dodge's hop back may land nearer the frame's edge (its back foot at the edge, not its body
    *  half width in): only a hop that would carry the place itself past this is a slip instead. */
-  hopInset: 2 } as const;
+  hopInset: 2,
+  /** The narrowest canvas the app gives the stage, in stage units across: the 390 x 467 phone
+   *  shows 240 x 390 / 467 = 200. */
+  viewMin: 200,
+  /** Half a body kept inside that view round a scrapper's place (`CAMERA.excursion` and a margin). */
+  viewBody: 18 } as const;
 
 /** Hit-stop at the moment of contact, by kind of hit. */
 export const HIT_STOP = { plain: 60, crit: 110, knockout: 220 } as const;

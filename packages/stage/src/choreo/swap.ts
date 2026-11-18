@@ -1,7 +1,7 @@
 /** Swap: the old weapon is dropped (250 ms, one bounce, it stays on the floor), then the new one
  *  is drawn. */
 import type { StepOf } from "@rankzero/core";
-import { dropOnFloor } from "./props";
+import { dropOnFloor, slungAt } from "./props";
 import type { Builder } from "../timeline";
 import { OUTCOME } from "../tuning";
 import type { Placed } from "./index";
@@ -9,7 +9,7 @@ import type { Placed } from "./index";
 export function swap(b: Builder, step: StepOf<"swap">, i: number): Placed {
   const s = b.cursor;
   const tr = b.track(step.actor);
-  dropOnFloor(b, i, step.actor, step.dropped, s, OUTCOME.swapDropMs, "drop");
+  dropOnFloor(b, i, step.actor, step.dropped, s, OUTCOME.swapDropMs, "drop", slungAt(b, step.actor, step.dropped, s));
   b.setHeld(step.actor, s, "fists");
   const d = s + OUTCOME.swapDropMs;
   const dur = b.info(tr.rig, "draw").durationMs;

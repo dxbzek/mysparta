@@ -10,7 +10,8 @@ import type { FlightPath } from "../flight";
 import { makePath } from "../flight";
 import { STAGE_W } from "../layout";
 import type { Builder } from "../timeline";
-import { FLOOR, OUTCOME } from "../tuning";
+import { BLEND, FLOOR, OUTCOME } from "../tuning";
+import { shieldAt } from "../track";
 
 /** Turns a path's start angle so the item ends lying flat: a weapon along the floor (a multiple
  *  of 180 degrees), a shield with its long side along the floor (the wider of its two square
@@ -56,6 +57,25 @@ export function floorSpot(b: Builder, owner: ActorId, at: number, back: number, 
   }
   const clamped = want < 14 ? 14 : want > 346 ? 346 : want;
   return { x: clamped, y, facing: p.facing };
+}
+
+/**
+ * Where a weapon slung on its owner's back for a Move is drawn at `t` (draw.ts drawSlung: the same
+ * spot and turn), or undefined when it is not slung then. A weapon swapped or knocked away while it
+ * is on the back (the sling holds through the crossfade after the Move, frame.ts) leaves from there,
+ * not from the empty hand (content v3 batch 2: at level 30 it vanished off the back in 35 of 400
+ * bouts).
+ */
+export function slungAt(b: Builder, owner: ActorId, item: PropId, t: number): { x: number; y: number; rot: number } | undefined {
+  if (!b.has(owner)) return undefined;
+  const tr = b.track(owner);
+  if (tr.rig !== "scrapper") return undefined;
+  const on = b.slings.filter((g) => g.actor === owner && t >= g.from && t < g.to + BLEND.maxMs);
+  if (!on.some((g) => g.held && g.item === item)) return undefined;
+  const k = on.some((g) => g.shield) && shieldAt(tr, t) !== null ? 1 : 0;
+  const p = b.place(owner, t);
+  const s = tr.scale > 0 ? tr.scale : 1;
+  return { x: p.x - p.facing * (6 + 3 * k) * s, y: p.y - (58 - 6 * k) * s, rot: k === 0 ? 100 : 128 };
 }
 
 /**

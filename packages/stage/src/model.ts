@@ -18,6 +18,9 @@ export interface Seg {
   flinchOf?: number;
   /** The contact this segment strikes at, for the swing that makes it. */
   strikes?: number;
+  /** A throw's wind-up: the item is in the hand until the release (frame.ts: a weapon slung for a
+   *  Move comes back to the hand for it). */
+  throws?: true;
   /** Counted in `Timeline.busy`. Idle-like holds are not. */
   busy: boolean;
 }
@@ -127,7 +130,9 @@ export type SigKind = MoveId | "haymaker-swing" | "angry" | "proc";
 
 /** A shield or a two-hand item put aside while its owner does a Move, so the gesture reads (it
  *  hung on the arm in front of the chest and hid the Taunt's fist pump and the Whistle). */
-export interface Sling { actor: ActorId; from: number; to: number; shield: boolean; held: boolean }
+/** `item`: the two-hand weapon put on the back when `held` (only that one is slung: a weapon drawn
+ *  while the sling holds is in the hand). */
+export interface Sling { actor: ActorId; from: number; to: number; shield: boolean; held: boolean; item?: HeldId }
 
 /** A thing in the air: thrown, knocked off, dropped, snatched. */
 export interface FlightItem { item: PropId; from: number; to: number; path: FlightPath;
