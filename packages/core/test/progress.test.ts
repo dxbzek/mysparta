@@ -1,6 +1,7 @@
 /**
  * Creation, the Route, XP, the daily rules, rivals and the perk pool (work package 1).
  */
+import { isGearId } from "../src/contracts/ids";
 import { describe, expect, it } from "vitest";
 import type { Pick as Side2, ScrapperRecord } from "../src/contracts/fighter";
 import type { PerkId } from "../src/contracts/ids";
@@ -165,7 +166,7 @@ describe("the Route", () => {
           perks.push(card.perk);
           // Round 2: some perk cards carry +1 point in a stat (content v3: the first level-up, and
           // the 18th to the 22nd perk card taken).
-          expect(card.plus !== undefined, `level ${n.level}`).toBe(perkCardPlus(n.level, perkCards));
+          expect(card.plus !== undefined, `level ${n.level}`).toBe(isGearId(card.perk) || perkCardPlus(n.level, perkCards));
           perkCards += 1;
           if (card.plus !== undefined) points += 1;
         }

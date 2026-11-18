@@ -2,6 +2,7 @@
  * Round-2 sim review (16 November 2026): skill effects that show, a level-1 kit with a skill, Moves
  * after the opening, once-a-bout number tags, booster tags, the weapon cap and the easier Snatch.
  */
+import { isGearId } from "../src/contracts/ids";
 import { describe, expect, it } from "vitest";
 import type { MoveId, PerkId, SkillId } from "../src/contracts/ids";
 import { MOVE_IDS, REALM_SALT, perkKind } from "../src/contracts/ids";
@@ -273,7 +274,8 @@ describe("the perk card is not the losing card", () => {
       for (const n of kit.nodes) {
         const card = n.taken === "L" ? n.left : n.right;
         if (card.kind !== "perk") continue;
-        expect(card.plus !== undefined, `level ${n.level}`).toBe(perkCardPlus(n.level, taken));
+        // (a gear card always carries +1, content v3 batch 2)
+        expect(card.plus !== undefined, `level ${n.level}`).toBe(isGearId(card.perk) || perkCardPlus(n.level, taken));
         taken += 1;
         if (card.plus !== undefined) plus += 1;
       }
