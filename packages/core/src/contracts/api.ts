@@ -4,7 +4,7 @@
  * Every function is pure: the same inputs give the same output on every engine.
  */
 import type { CompanionDef, ShieldDef, SkillDef, WeaponDef } from "./content";
-import type { DayKey, FighterSnapshot, KitBase, Look, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
+import type { DayKey, TimeMs, FighterSnapshot, KitBase, Look, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
   SnapshotSheet } from "./fighter";
 import type { CompanionId, HeldId, PerkId, ShieldId, SkillId } from "./ids";
 import type { BoutLog } from "./log";
@@ -31,8 +31,9 @@ export interface CoreApi {
   fighterSeed(realmSalt: string, name: string): number;
   /** Shapes come from (seed, lookSalt), colours from (seed, colourSalt). */
   rollLook(seed: number, lookSalt: number, colourSalt: number): Look;
+  /** A new scrapper starts with a full energy bar, timed from `nowMs`. */
   createRecord(a: { id: string; name: string; realmSalt: string; lookSalt: number; colourSalt: number;
-                    today: DayKey }): ScrapperRecord;
+                    today: DayKey; nowMs: TimeMs }): ScrapperRecord;
   sheetOf(rec: ScrapperRecord): ScrapperSheet;
   snapshotOf(rec: ScrapperRecord): FighterSnapshot;
   /** Max HP, effective stats, derived values and companion cost of any snapshot: a rival on
@@ -47,12 +48,16 @@ export interface CoreApi {
   route(rec: ScrapperRecord): RouteNode[];
   xpToNext(level: number): number;
   xpForBout(won: boolean, ownLevel: number, oppLevel: number): 1 | 2;
-  /** 6, or 8 on the creation day, minus the bouts used today. A day key older than `today` means a full day. */
-  boutsLeft(rec: ScrapperRecord, today: DayKey): number;
-  afterBout(rec: ScrapperRecord, xp: 1 | 2, today: DayKey): ScrapperRecord;
+  /** Energy now (content v3, in place of the daily bout cap): the stored points plus one per
+   *  ENERGY_REFILL_MS since `energyAt`, at most ENERGY_MAX. A clock behind `energyAt` refills nothing. */
+  energyNow(rec: ScrapperRecord, nowMs: TimeMs): number;
+  /** Milliseconds until the next energy point, or null when the bar is full. */
+  energyNextMs(rec: ScrapperRecord, nowMs: TimeMs): number | null;
+  /** Spends one energy point, counts the bout and adds its XP. */
+  afterBout(rec: ScrapperRecord, xp: 1 | 2, nowMs: TimeMs): ScrapperRecord;
   afterPick(rec: ScrapperRecord, pick: Pick): ScrapperRecord;
   rivalSnapshot(realmSalt: string, level: number, index: number): FighterSnapshot;
-  /** 6 rivals at the scrapper's level. At levels 1 to 3 the last one is an easy rival: armed, 3 stat
+  /** 6 rivals at the scrapper's level, drawn from (seed, today, lifetime bouts). At levels 1 to 3 the last one is an easy rival: armed, 3 stat
    *  points fewer (round 2; it replaced 2 unarmed rivals, which were 96% free wins). */
   tonightsCard(rec: ScrapperRecord, realmSalt: string, today: DayKey): FighterSnapshot[];
   /** Every perk any of these records has owned. For the "Found N of 92" list. */

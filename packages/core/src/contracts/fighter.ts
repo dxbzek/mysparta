@@ -3,7 +3,9 @@
  */
 import type { PerkId } from "./ids";
 
-export type StatKey = "health" | "strength" | "agility" | "speed";
+/** Six since content v3 (CONTRACT_REV 6): Toughness (a flat cut of every hit taken, and a firmer
+ *  hold on the weapon and the shield) and Precision (Aim and Crit). */
+export type StatKey = "health" | "strength" | "agility" | "speed" | "toughness" | "precision";
 export interface StatBlock {
   points: Readonly<Record<StatKey, number>>;
   /** Whole percent, 100 at the start. effective stat = floor(points x mult / 100). */
@@ -24,6 +26,8 @@ export type Look = { readonly [K in keyof typeof LOOK_SPACE]: number };
 export type Pick = "L" | "R";
 /** "YYYY-MM-DD" in local time. Always passed in by the caller; the core never reads a clock. */
 export type DayKey = string;
+/** A time in ms since 1970, from the app's injected `Clock`. The core never reads a clock. */
+export type TimeMs = number;
 
 /**
  * A kit carried over from an earlier build (CONTRACT_REV 5, save schema 3). The kit is walked from
@@ -45,13 +49,20 @@ export interface ScrapperRecord {
   picks: Pick[];                                          // level = 1 + picks.length
   xp: number;                                             // XP inside the current level; a level-up
                                                           // is waiting while xp >= xpToNext(level)
-  createdDay: DayKey; day: DayKey; boutsUsed: number; lifetimeBouts: number;
+  createdDay: DayKey; lifetimeBouts: number;
+  /** Energy (CONTRACT_REV 6, in place of the daily bout cap): the points held at `energyAt`, 0 to
+   *  ENERGY_MAX. One point comes back every ENERGY_REFILL_MS after `energyAt` (docs/RULES.md 4). */
+  energy: number; energyAt: TimeMs;
   base?: KitBase;
 }
 
 /** Whole percentages. See the derived-values table of the rules. */
 export interface DerivedValues { evade: number; block: number; aim: number; pierce: number;
-  intercept: number; riposte: number; combo: number; disarm: number; crit: number; armor: number }
+  intercept: number; riposte: number; combo: number; disarm: number; crit: number; armor: number;
+  /** Toughness (CONTRACT_REV 6): HP taken off every hit of a swing or a throw (never below 1), and
+   *  points taken off an attacker's disarm and shield knock-off chances. Aim and Crit already
+   *  hold Precision. */
+  soak: number; grip: number }
 /** Everything the screens show about one scrapper. Never stored. */
 export interface ScrapperSheet {
   level: number; xp: number; xpToNext: number; levelUpWaiting: boolean;

@@ -1,0 +1,3885 @@
+{
+ "about": "The walk of the sim-version-7 build (74fc265), recorded by that build: the kit a save of schema 3 or older holds.",
+ "cases": [
+  {
+   "seed": 1112801026,
+   "picks": "",
+   "perks": [
+    "sledgehammer",
+    "parry"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 3,
+     "agility": 2,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "sledgehammer",
+   "startSkill": "parry",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 1112801026,
+   "picks": "L",
+   "perks": [
+    "sledgehammer",
+    "parry",
+    "snatch"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 4,
+     "agility": 2,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "sledgehammer",
+   "startSkill": "parry",
+   "statCards": 0,
+   "perkCards": 1
+  },
+  {
+   "seed": 1112801026,
+   "picks": "LRRL",
+   "perks": [
+    "sledgehammer",
+    "parry",
+    "snatch",
+    "light-feet"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 5,
+     "agility": 8,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "sledgehammer",
+   "startSkill": "parry",
+   "statCards": 2,
+   "perkCards": 2
+  },
+  {
+   "seed": 1112801026,
+   "picks": "LRRLRLLLLLRL",
+   "perks": [
+    "sledgehammer",
+    "parry",
+    "snatch",
+    "light-feet",
+    "pocket-knife",
+    "bin-lid"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 10,
+     "agility": 13,
+     "speed": 7
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "sledgehammer",
+   "startSkill": "parry",
+   "statCards": 8,
+   "perkCards": 4
+  },
+  {
+   "seed": 1112801026,
+   "picks": "LRRLRLLLLLRLLLLLRRRRLLRRLRLLR",
+   "perks": [
+    "sledgehammer",
+    "parry",
+    "snatch",
+    "light-feet",
+    "pocket-knife",
+    "bin-lid",
+    "bare-knuckle",
+    "rubber-ball",
+    "golf-club",
+    "padding",
+    "anticipation",
+    "trick-shot",
+    "frying-pan",
+    "firm-grip",
+    "flurry"
+   ],
+   "stats": {
+    "points": {
+     "health": 12,
+     "strength": 22,
+     "agility": 16,
+     "speed": 10
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "sledgehammer",
+   "startSkill": "parry",
+   "statCards": 16,
+   "perkCards": 13
+  },
+  {
+   "seed": 3192975519,
+   "picks": "",
+   "perks": [
+    "frying-pan",
+    "payback"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 3,
+     "agility": 4,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "frying-pan",
+   "startSkill": "payback",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 3192975519,
+   "picks": "L",
+   "perks": [
+    "frying-pan",
+    "payback"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 3,
+     "agility": 4,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "frying-pan",
+   "startSkill": "payback",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 3192975519,
+   "picks": "LRRL",
+   "perks": [
+    "frying-pan",
+    "payback",
+    "fast-twitch"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 3,
+     "agility": 6,
+     "speed": 8
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "frying-pan",
+   "startSkill": "payback",
+   "statCards": 3,
+   "perkCards": 1
+  },
+  {
+   "seed": 3192975519,
+   "picks": "LRRLLLRLRRLL",
+   "perks": [
+    "frying-pan",
+    "payback",
+    "fast-twitch",
+    "paint-can",
+    "machete",
+    "grapple",
+    "firm-grip",
+    "sand-in-the-eyes",
+    "hockey-stick"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 5,
+     "agility": 6,
+     "speed": 10
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "frying-pan",
+   "startSkill": "payback",
+   "statCards": 5,
+   "perkCards": 7
+  },
+  {
+   "seed": 3192975519,
+   "picks": "LRRLLLRLRRLLRLLLLRLLLLLRLRRLL",
+   "perks": [
+    "frying-pan",
+    "payback",
+    "fast-twitch",
+    "paint-can",
+    "machete",
+    "grapple",
+    "firm-grip",
+    "sand-in-the-eyes",
+    "hockey-stick",
+    "bin-lid",
+    "junk-collector",
+    "plastic-bottle",
+    "haymaker",
+    "padding",
+    "heavy-hands",
+    "flurry"
+   ],
+   "stats": {
+    "points": {
+     "health": 14,
+     "strength": 13,
+     "agility": 12,
+     "speed": 19
+    },
+    "mult": {
+     "health": 100,
+     "strength": 150,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "frying-pan",
+   "startSkill": "payback",
+   "statCards": 15,
+   "perkCards": 14
+  },
+  {
+   "seed": 4064439268,
+   "picks": "",
+   "perks": [
+    "pocket-knife",
+    "sharp-eye"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 2,
+     "agility": 5,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "pocket-knife",
+   "startSkill": "sharp-eye",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 4064439268,
+   "picks": "R",
+   "perks": [
+    "pocket-knife",
+    "sharp-eye"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 2,
+     "agility": 7,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "pocket-knife",
+   "startSkill": "sharp-eye",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 4064439268,
+   "picks": "RLLL",
+   "perks": [
+    "pocket-knife",
+    "sharp-eye",
+    "pitchfork"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 4,
+     "agility": 7,
+     "speed": 6
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "pocket-knife",
+   "startSkill": "sharp-eye",
+   "statCards": 3,
+   "perkCards": 1
+  },
+  {
+   "seed": 4064439268,
+   "picks": "RLLLRLLRRLRL",
+   "perks": [
+    "pocket-knife",
+    "sharp-eye",
+    "pitchfork",
+    "pickaxe",
+    "tyre-iron",
+    "plastic-bottle"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 8,
+     "agility": 10,
+     "speed": 8
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "pocket-knife",
+   "startSkill": "sharp-eye",
+   "statCards": 8,
+   "perkCards": 4
+  },
+  {
+   "seed": 4064439268,
+   "picks": "RLLLRLLRRLRLLRLRRLRRRRRLRLLLL",
+   "perks": [
+    "pocket-knife",
+    "sharp-eye",
+    "pitchfork",
+    "pickaxe",
+    "tyre-iron",
+    "plastic-bottle",
+    "fast-twitch",
+    "skateboard",
+    "junk-collector",
+    "quick-swap"
+   ],
+   "stats": {
+    "points": {
+     "health": 19,
+     "strength": 17,
+     "agility": 19,
+     "speed": 20
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "pocket-knife",
+   "startSkill": "sharp-eye",
+   "statCards": 21,
+   "perkCards": 8
+  },
+  {
+   "seed": 3997078529,
+   "picks": "",
+   "perks": [
+    "broom",
+    "flurry"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 5,
+     "agility": 3,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "broom",
+   "startSkill": "flurry",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 3997078529,
+   "picks": "L",
+   "perks": [
+    "broom",
+    "flurry",
+    "stray-dog"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 5,
+     "agility": 4,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "broom",
+   "startSkill": "flurry",
+   "statCards": 0,
+   "perkCards": 1
+  },
+  {
+   "seed": 3997078529,
+   "picks": "LRRL",
+   "perks": [
+    "broom",
+    "flurry",
+    "stray-dog",
+    "big-heart",
+    "frying-pan",
+    "bin-lid"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 5,
+     "agility": 4,
+     "speed": 3
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "broom",
+   "startSkill": "flurry",
+   "statCards": 0,
+   "perkCards": 4
+  },
+  {
+   "seed": 3997078529,
+   "picks": "LRRLRLLRRRLL",
+   "perks": [
+    "broom",
+    "flurry",
+    "stray-dog",
+    "big-heart",
+    "frying-pan",
+    "bin-lid",
+    "bare-knuckle",
+    "hand-axe",
+    "pocket-knife",
+    "tyre-iron"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 7,
+     "agility": 6,
+     "speed": 7
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "broom",
+   "startSkill": "flurry",
+   "statCards": 4,
+   "perkCards": 8
+  },
+  {
+   "seed": 3997078529,
+   "picks": "LRRLRLLRRRLLRLLLRRRLRLLRRRLLR",
+   "perks": [
+    "broom",
+    "flurry",
+    "stray-dog",
+    "big-heart",
+    "frying-pan",
+    "bin-lid",
+    "bare-knuckle",
+    "hand-axe",
+    "pocket-knife",
+    "tyre-iron",
+    "parry",
+    "padding",
+    "anticipation",
+    "plate-vest",
+    "snatch",
+    "tarp",
+    "firm-grip"
+   ],
+   "stats": {
+    "points": {
+     "health": 9,
+     "strength": 16,
+     "agility": 9,
+     "speed": 20
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 100,
+     "speed": 85
+    }
+   },
+   "startPerk": "broom",
+   "startSkill": "flurry",
+   "statCards": 14,
+   "perkCards": 15
+  },
+  {
+   "seed": 1380696462,
+   "picks": "",
+   "perks": [
+    "tyre-iron",
+    "anticipation"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 3,
+     "agility": 4,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "tyre-iron",
+   "startSkill": "anticipation",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 1380696462,
+   "picks": "R",
+   "perks": [
+    "tyre-iron",
+    "anticipation"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 3,
+     "agility": 4,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "tyre-iron",
+   "startSkill": "anticipation",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 1380696462,
+   "picks": "RRLR",
+   "perks": [
+    "tyre-iron",
+    "anticipation",
+    "quick-swap",
+    "hand-axe"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 3,
+     "agility": 7,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "tyre-iron",
+   "startSkill": "anticipation",
+   "statCards": 2,
+   "perkCards": 2
+  },
+  {
+   "seed": 1380696462,
+   "picks": "RRLRRRLLLRLR",
+   "perks": [
+    "tyre-iron",
+    "anticipation",
+    "quick-swap",
+    "hand-axe",
+    "pocket-knife",
+    "raccoon",
+    "air-horn",
+    "big-heart"
+   ],
+   "stats": {
+    "points": {
+     "health": 11,
+     "strength": 3,
+     "agility": 7,
+     "speed": 8
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "tyre-iron",
+   "startSkill": "anticipation",
+   "statCards": 6,
+   "perkCards": 6
+  },
+  {
+   "seed": 1380696462,
+   "picks": "RRLRRRLLLRLRLRRLRRRLRRLRLRLLL",
+   "perks": [
+    "tyre-iron",
+    "anticipation",
+    "quick-swap",
+    "hand-axe",
+    "pocket-knife",
+    "raccoon",
+    "air-horn",
+    "big-heart",
+    "padding",
+    "shovel",
+    "tarp",
+    "frying-pan",
+    "parry",
+    "bin-lid",
+    "head-start",
+    "light-feet",
+    "sand-in-the-eyes",
+    "payback",
+    "stray-dog"
+   ],
+   "stats": {
+    "points": {
+     "health": 17,
+     "strength": 6,
+     "agility": 15,
+     "speed": 12
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "tyre-iron",
+   "startSkill": "anticipation",
+   "statCards": 12,
+   "perkCards": 17
+  },
+  {
+   "seed": 3462418475,
+   "picks": "",
+   "perks": [
+    "pocket-knife",
+    "head-start"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 5,
+     "agility": 4,
+     "speed": 2
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "pocket-knife",
+   "startSkill": "head-start",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 3462418475,
+   "picks": "L",
+   "perks": [
+    "pocket-knife",
+    "head-start"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 5,
+     "agility": 4,
+     "speed": 2
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "pocket-knife",
+   "startSkill": "head-start",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 3462418475,
+   "picks": "LRRL",
+   "perks": [
+    "pocket-knife",
+    "head-start",
+    "cricket-bat",
+    "light-feet"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 5,
+     "agility": 8,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "pocket-knife",
+   "startSkill": "head-start",
+   "statCards": 2,
+   "perkCards": 2
+  },
+  {
+   "seed": 3462418475,
+   "picks": "LRRLLRLRLRLR",
+   "perks": [
+    "pocket-knife",
+    "head-start",
+    "cricket-bat",
+    "light-feet",
+    "hand-axe",
+    "payback",
+    "pipe",
+    "quick-swap"
+   ],
+   "stats": {
+    "points": {
+     "health": 7,
+     "strength": 7,
+     "agility": 10,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "pocket-knife",
+   "startSkill": "head-start",
+   "statCards": 6,
+   "perkCards": 6
+  },
+  {
+   "seed": 3462418475,
+   "picks": "LRRLLRLRLRLRRRLRRLRRLLRLRLRLR",
+   "perks": [
+    "pocket-knife",
+    "head-start",
+    "cricket-bat",
+    "light-feet",
+    "hand-axe",
+    "payback",
+    "pipe",
+    "quick-swap",
+    "padding",
+    "raccoon",
+    "haymaker",
+    "ironing-board",
+    "rubber-ball",
+    "tarp"
+   ],
+   "stats": {
+    "points": {
+     "health": 16,
+     "strength": 16,
+     "agility": 22,
+     "speed": 8
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "pocket-knife",
+   "startSkill": "head-start",
+   "statCards": 17,
+   "perkCards": 12
+  },
+  {
+   "seed": 39018096,
+   "picks": "",
+   "perks": [
+    "knuckle-dusters",
+    "padding"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 4,
+     "agility": 4,
+     "speed": 2
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "knuckle-dusters",
+   "startSkill": "padding",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 39018096,
+   "picks": "R",
+   "perks": [
+    "knuckle-dusters",
+    "padding",
+    "rubber-ball"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 4,
+     "agility": 5,
+     "speed": 2
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "knuckle-dusters",
+   "startSkill": "padding",
+   "statCards": 0,
+   "perkCards": 1
+  },
+  {
+   "seed": 39018096,
+   "picks": "RRLR",
+   "perks": [
+    "knuckle-dusters",
+    "padding",
+    "rubber-ball",
+    "fast-twitch",
+    "energy-drink"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 4,
+     "agility": 5,
+     "speed": 8
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "knuckle-dusters",
+   "startSkill": "padding",
+   "statCards": 1,
+   "perkCards": 3
+  },
+  {
+   "seed": 39018096,
+   "picks": "RRLRLRRLRLLL",
+   "perks": [
+    "knuckle-dusters",
+    "padding",
+    "rubber-ball",
+    "fast-twitch",
+    "energy-drink",
+    "grapple",
+    "anticipation",
+    "paint-can",
+    "tyre-iron",
+    "sharp-eye",
+    "frying-pan",
+    "firm-grip"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 4,
+     "agility": 7,
+     "speed": 8
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "knuckle-dusters",
+   "startSkill": "padding",
+   "statCards": 2,
+   "perkCards": 10
+  },
+  {
+   "seed": 39018096,
+   "picks": "RRLRLRRLRLLLRRRLRRLRLLLRRRRRL",
+   "perks": [
+    "knuckle-dusters",
+    "padding",
+    "rubber-ball",
+    "fast-twitch",
+    "energy-drink",
+    "grapple",
+    "anticipation",
+    "paint-can",
+    "tyre-iron",
+    "sharp-eye",
+    "frying-pan",
+    "firm-grip",
+    "stubborn",
+    "ironing-board",
+    "raccoon",
+    "trick-shot",
+    "snatch",
+    "firecrackers",
+    "quick-swap",
+    "haymaker"
+   ],
+   "stats": {
+    "points": {
+     "health": 7,
+     "strength": 13,
+     "agility": 15,
+     "speed": 12
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "knuckle-dusters",
+   "startSkill": "padding",
+   "statCards": 10,
+   "perkCards": 18
+  },
+  {
+   "seed": 240099261,
+   "picks": "",
+   "perks": [
+    "sledgehammer",
+    "sharp-eye"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 3,
+     "agility": 5,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "sledgehammer",
+   "startSkill": "sharp-eye",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 240099261,
+   "picks": "L",
+   "perks": [
+    "sledgehammer",
+    "sharp-eye"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 3,
+     "agility": 5,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "sledgehammer",
+   "startSkill": "sharp-eye",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 240099261,
+   "picks": "LRLR",
+   "perks": [
+    "sledgehammer",
+    "sharp-eye",
+    "pipe",
+    "tyre-iron",
+    "bike-chain"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 3,
+     "agility": 5,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "sledgehammer",
+   "startSkill": "sharp-eye",
+   "statCards": 1,
+   "perkCards": 3
+  },
+  {
+   "seed": 240099261,
+   "picks": "LRLRRLRLLRRL",
+   "perks": [
+    "sledgehammer",
+    "sharp-eye",
+    "pipe",
+    "tyre-iron",
+    "bike-chain",
+    "raccoon",
+    "head-start",
+    "car-door",
+    "payback",
+    "padding"
+   ],
+   "stats": {
+    "points": {
+     "health": 9,
+     "strength": 3,
+     "agility": 5,
+     "speed": 6
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "sledgehammer",
+   "startSkill": "sharp-eye",
+   "statCards": 4,
+   "perkCards": 8
+  },
+  {
+   "seed": 240099261,
+   "picks": "LRLRRLRLLRRLRRRRLLLLRRRRLLRRL",
+   "perks": [
+    "sledgehammer",
+    "sharp-eye",
+    "pipe",
+    "tyre-iron",
+    "bike-chain",
+    "raccoon",
+    "head-start",
+    "car-door",
+    "payback",
+    "padding",
+    "bat",
+    "heavy-hands",
+    "whistle",
+    "tarp",
+    "anticipation",
+    "sand-in-the-eyes",
+    "parry",
+    "quick-swap",
+    "stray-dog"
+   ],
+   "stats": {
+    "points": {
+     "health": 18,
+     "strength": 11,
+     "agility": 10,
+     "speed": 9
+    },
+    "mult": {
+     "health": 100,
+     "strength": 150,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "sledgehammer",
+   "startSkill": "sharp-eye",
+   "statCards": 12,
+   "perkCards": 17
+  },
+  {
+   "seed": 3527008186,
+   "picks": "",
+   "perks": [
+    "machete",
+    "flurry"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 3,
+     "agility": 4,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "machete",
+   "startSkill": "flurry",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 3527008186,
+   "picks": "R",
+   "perks": [
+    "machete",
+    "flurry",
+    "big-heart"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 3,
+     "agility": 5,
+     "speed": 5
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "machete",
+   "startSkill": "flurry",
+   "statCards": 0,
+   "perkCards": 1
+  },
+  {
+   "seed": 3527008186,
+   "picks": "RRLL",
+   "perks": [
+    "machete",
+    "flurry",
+    "big-heart",
+    "pipe"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 3,
+     "agility": 5,
+     "speed": 7
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "machete",
+   "startSkill": "flurry",
+   "statCards": 2,
+   "perkCards": 2
+  },
+  {
+   "seed": 3527008186,
+   "picks": "RRLLLRLRRRRL",
+   "perks": [
+    "machete",
+    "flurry",
+    "big-heart",
+    "pipe",
+    "padding",
+    "energy-drink",
+    "rubber-ball",
+    "pocket-knife"
+   ],
+   "stats": {
+    "points": {
+     "health": 10,
+     "strength": 5,
+     "agility": 7,
+     "speed": 7
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "machete",
+   "startSkill": "flurry",
+   "statCards": 6,
+   "perkCards": 6
+  },
+  {
+   "seed": 3527008186,
+   "picks": "RRLLLRLRRRRLRRRLRLLRLLLLLLRLL",
+   "perks": [
+    "machete",
+    "flurry",
+    "big-heart",
+    "pipe",
+    "padding",
+    "energy-drink",
+    "rubber-ball",
+    "pocket-knife",
+    "pitchfork",
+    "raccoon",
+    "sand-in-the-eyes",
+    "firecrackers",
+    "head-start"
+   ],
+   "stats": {
+    "points": {
+     "health": 25,
+     "strength": 5,
+     "agility": 25,
+     "speed": 10
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "machete",
+   "startSkill": "flurry",
+   "statCards": 18,
+   "perkCards": 11
+  },
+  {
+   "seed": 3459647447,
+   "picks": "",
+   "perks": [
+    "shovel",
+    "firecrackers"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 2,
+     "agility": 5,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "shovel",
+   "startSkill": "firecrackers",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 3459647447,
+   "picks": "R",
+   "perks": [
+    "shovel",
+    "firecrackers"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 2,
+     "agility": 5,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "shovel",
+   "startSkill": "firecrackers",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 3459647447,
+   "picks": "RLLR",
+   "perks": [
+    "shovel",
+    "firecrackers",
+    "folding-chair"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 2,
+     "agility": 6,
+     "speed": 8
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "shovel",
+   "startSkill": "firecrackers",
+   "statCards": 3,
+   "perkCards": 1
+  },
+  {
+   "seed": 3459647447,
+   "picks": "RLLRRLRRRRRL",
+   "perks": [
+    "shovel",
+    "firecrackers",
+    "folding-chair",
+    "big-heart",
+    "rubber-ball",
+    "payback"
+   ],
+   "stats": {
+    "points": {
+     "health": 7,
+     "strength": 8,
+     "agility": 9,
+     "speed": 11
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "shovel",
+   "startSkill": "firecrackers",
+   "statCards": 8,
+   "perkCards": 4
+  },
+  {
+   "seed": 3459647447,
+   "picks": "RLLRRLRRRRRLRRRRRRLRRRLRRLRRR",
+   "perks": [
+    "shovel",
+    "firecrackers",
+    "folding-chair",
+    "big-heart",
+    "rubber-ball",
+    "payback",
+    "paint-can",
+    "head-start",
+    "pitchfork",
+    "snatch",
+    "quick-swap",
+    "second-wind",
+    "raccoon"
+   ],
+   "stats": {
+    "points": {
+     "health": 19,
+     "strength": 14,
+     "agility": 15,
+     "speed": 17
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "shovel",
+   "startSkill": "firecrackers",
+   "statCards": 18,
+   "perkCards": 11
+  },
+  {
+   "seed": 2647432047,
+   "picks": "",
+   "perks": [
+    "golf-club",
+    "tarp"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 4,
+     "agility": 4,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "golf-club",
+   "startSkill": "tarp",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 2647432047,
+   "picks": "R",
+   "perks": [
+    "golf-club",
+    "tarp",
+    "quick-swap"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 5,
+     "agility": 4,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "golf-club",
+   "startSkill": "tarp",
+   "statCards": 0,
+   "perkCards": 1
+  },
+  {
+   "seed": 2647432047,
+   "picks": "RRLR",
+   "perks": [
+    "golf-club",
+    "tarp",
+    "quick-swap",
+    "hand-axe",
+    "parry"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 7,
+     "agility": 4,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "golf-club",
+   "startSkill": "tarp",
+   "statCards": 1,
+   "perkCards": 3
+  },
+  {
+   "seed": 2647432047,
+   "picks": "RRLRLLRLRRRR",
+   "perks": [
+    "golf-club",
+    "tarp",
+    "quick-swap",
+    "hand-axe",
+    "parry",
+    "crowbar",
+    "flurry",
+    "heavy-hands",
+    "head-start",
+    "payback",
+    "firm-grip"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 11,
+     "agility": 4,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 150,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "golf-club",
+   "startSkill": "tarp",
+   "statCards": 3,
+   "perkCards": 9
+  },
+  {
+   "seed": 2647432047,
+   "picks": "RRLRLLRLRRRRRRLLRRLRRLLLRRRRL",
+   "perks": [
+    "golf-club",
+    "tarp",
+    "quick-swap",
+    "hand-axe",
+    "parry",
+    "crowbar",
+    "flurry",
+    "heavy-hands",
+    "head-start",
+    "payback",
+    "firm-grip",
+    "car-door",
+    "taunt",
+    "tyre-iron",
+    "folding-chair",
+    "padding",
+    "raccoon",
+    "energy-drink"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 21,
+     "agility": 4,
+     "speed": 20
+    },
+    "mult": {
+     "health": 100,
+     "strength": 150,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "golf-club",
+   "startSkill": "tarp",
+   "statCards": 12,
+   "perkCards": 16
+  },
+  {
+   "seed": 3520649652,
+   "picks": "",
+   "perks": [
+    "frying-pan",
+    "sharp-eye"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 3,
+     "agility": 3,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "frying-pan",
+   "startSkill": "sharp-eye",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 3520649652,
+   "picks": "R",
+   "perks": [
+    "frying-pan",
+    "sharp-eye",
+    "light-feet"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 4,
+     "agility": 5,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "frying-pan",
+   "startSkill": "sharp-eye",
+   "statCards": 0,
+   "perkCards": 1
+  },
+  {
+   "seed": 3520649652,
+   "picks": "RRRL",
+   "perks": [
+    "frying-pan",
+    "sharp-eye",
+    "light-feet",
+    "pipe"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 6,
+     "agility": 7,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "frying-pan",
+   "startSkill": "sharp-eye",
+   "statCards": 2,
+   "perkCards": 2
+  },
+  {
+   "seed": 3520649652,
+   "picks": "RRRLRLRLRRLR",
+   "perks": [
+    "frying-pan",
+    "sharp-eye",
+    "light-feet",
+    "pipe",
+    "pocket-knife",
+    "payback",
+    "folding-chair"
+   ],
+   "stats": {
+    "points": {
+     "health": 8,
+     "strength": 8,
+     "agility": 9,
+     "speed": 7
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "frying-pan",
+   "startSkill": "sharp-eye",
+   "statCards": 7,
+   "perkCards": 5
+  },
+  {
+   "seed": 3520649652,
+   "picks": "RRRLRLRLRRLRLRLLLRLRLRRRLLLRR",
+   "perks": [
+    "frying-pan",
+    "sharp-eye",
+    "light-feet",
+    "pipe",
+    "pocket-knife",
+    "payback",
+    "folding-chair",
+    "head-start",
+    "big-heart",
+    "padding",
+    "energy-drink",
+    "broom",
+    "quick-swap",
+    "anticipation"
+   ],
+   "stats": {
+    "points": {
+     "health": 16,
+     "strength": 14,
+     "agility": 21,
+     "speed": 13
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "frying-pan",
+   "startSkill": "sharp-eye",
+   "statCards": 17,
+   "perkCards": 12
+  },
+  {
+   "seed": 1305753681,
+   "picks": "",
+   "perks": [
+    "broom",
+    "anticipation"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 4,
+     "agility": 2,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "broom",
+   "startSkill": "anticipation",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 1305753681,
+   "picks": "L",
+   "perks": [
+    "broom",
+    "anticipation"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 4,
+     "agility": 4,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "broom",
+   "startSkill": "anticipation",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 1305753681,
+   "picks": "LRLL",
+   "perks": [
+    "broom",
+    "anticipation",
+    "pocket-knife",
+    "quick-swap"
+   ],
+   "stats": {
+    "points": {
+     "health": 7,
+     "strength": 4,
+     "agility": 4,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "broom",
+   "startSkill": "anticipation",
+   "statCards": 2,
+   "perkCards": 2
+  },
+  {
+   "seed": 1305753681,
+   "picks": "LRLLLLRLLRRR",
+   "perks": [
+    "broom",
+    "anticipation",
+    "pocket-knife",
+    "quick-swap",
+    "machete",
+    "fast-twitch",
+    "parry",
+    "wooden-pallet",
+    "cricket-bat"
+   ],
+   "stats": {
+    "points": {
+     "health": 9,
+     "strength": 4,
+     "agility": 4,
+     "speed": 11
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "broom",
+   "startSkill": "anticipation",
+   "statCards": 5,
+   "perkCards": 7
+  },
+  {
+   "seed": 1305753681,
+   "picks": "LRLLLLRLLRRRRLLLLRLRLRLLRLRRL",
+   "perks": [
+    "broom",
+    "anticipation",
+    "pocket-knife",
+    "quick-swap",
+    "machete",
+    "fast-twitch",
+    "parry",
+    "wooden-pallet",
+    "cricket-bat",
+    "sharpening-stone",
+    "taunt",
+    "frying-pan",
+    "stubborn",
+    "heavy-hands",
+    "raccoon"
+   ],
+   "stats": {
+    "points": {
+     "health": 18,
+     "strength": 12,
+     "agility": 15,
+     "speed": 17
+    },
+    "mult": {
+     "health": 100,
+     "strength": 150,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "broom",
+   "startSkill": "anticipation",
+   "statCards": 16,
+   "perkCards": 13
+  },
+  {
+   "seed": 2984338910,
+   "picks": "",
+   "perks": [
+    "paint-can",
+    "head-start"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 4,
+     "agility": 3,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "paint-can",
+   "startSkill": "head-start",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 2984338910,
+   "picks": "L",
+   "perks": [
+    "paint-can",
+    "head-start",
+    "knuckle-dusters"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 4,
+     "agility": 3,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "paint-can",
+   "startSkill": "head-start",
+   "statCards": 0,
+   "perkCards": 1
+  },
+  {
+   "seed": 2984338910,
+   "picks": "LRLR",
+   "perks": [
+    "paint-can",
+    "head-start",
+    "knuckle-dusters",
+    "pipe",
+    "firm-grip"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 4,
+     "agility": 3,
+     "speed": 7
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "paint-can",
+   "startSkill": "head-start",
+   "statCards": 1,
+   "perkCards": 3
+  },
+  {
+   "seed": 2984338910,
+   "picks": "LRLRLLLLLLLR",
+   "perks": [
+    "paint-can",
+    "head-start",
+    "knuckle-dusters",
+    "pipe",
+    "firm-grip",
+    "taunt",
+    "heavy-hands",
+    "crow"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 8,
+     "agility": 5,
+     "speed": 11
+    },
+    "mult": {
+     "health": 100,
+     "strength": 150,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "paint-can",
+   "startSkill": "head-start",
+   "statCards": 6,
+   "perkCards": 6
+  },
+  {
+   "seed": 2984338910,
+   "picks": "LRLRLLLLLLLRRRRRRRRLRLLLLRRLR",
+   "perks": [
+    "paint-can",
+    "head-start",
+    "knuckle-dusters",
+    "pipe",
+    "firm-grip",
+    "taunt",
+    "heavy-hands",
+    "crow",
+    "bin-lid",
+    "junk-collector",
+    "anticipation",
+    "raccoon",
+    "plastic-bottle",
+    "traffic-cone",
+    "fast-twitch",
+    "quick-swap",
+    "stubborn",
+    "raccoon"
+   ],
+   "stats": {
+    "points": {
+     "health": 14,
+     "strength": 14,
+     "agility": 5,
+     "speed": 20
+    },
+    "mult": {
+     "health": 100,
+     "strength": 150,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "paint-can",
+   "startSkill": "head-start",
+   "statCards": 13,
+   "perkCards": 16
+  },
+  {
+   "seed": 2916978171,
+   "picks": "",
+   "perks": [
+    "plastic-bottle",
+    "padding"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 3,
+     "agility": 4,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "padding",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 2916978171,
+   "picks": "L",
+   "perks": [
+    "plastic-bottle",
+    "padding"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 3,
+     "agility": 4,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "padding",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 2916978171,
+   "picks": "LLRL",
+   "perks": [
+    "plastic-bottle",
+    "padding",
+    "traffic-cone"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 5,
+     "agility": 6,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "padding",
+   "statCards": 3,
+   "perkCards": 1
+  },
+  {
+   "seed": 2916978171,
+   "picks": "LLRLRLLRRRLR",
+   "perks": [
+    "plastic-bottle",
+    "padding",
+    "traffic-cone",
+    "quick-swap",
+    "bike-chain",
+    "stray-dog"
+   ],
+   "stats": {
+    "points": {
+     "health": 7,
+     "strength": 7,
+     "agility": 13,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "padding",
+   "statCards": 8,
+   "perkCards": 4
+  },
+  {
+   "seed": 2916978171,
+   "picks": "LLRLRLLRRRLRLRRRRRRRLRRLRRLLL",
+   "perks": [
+    "plastic-bottle",
+    "padding",
+    "traffic-cone",
+    "quick-swap",
+    "bike-chain",
+    "stray-dog",
+    "light-feet",
+    "hand-axe",
+    "frying-pan",
+    "whistle",
+    "energy-drink",
+    "anticipation",
+    "bin-lid",
+    "payback",
+    "sharp-eye",
+    "stubborn",
+    "firm-grip"
+   ],
+   "stats": {
+    "points": {
+     "health": 13,
+     "strength": 13,
+     "agility": 21,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "padding",
+   "statCards": 14,
+   "perkCards": 15
+  },
+  {
+   "seed": 1642247872,
+   "picks": "",
+   "perks": [
+    "machete",
+    "haymaker"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 5,
+     "agility": 5,
+     "speed": 2
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "machete",
+   "startSkill": "haymaker",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 1642247872,
+   "picks": "L",
+   "perks": [
+    "machete",
+    "haymaker"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 5,
+     "agility": 5,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "machete",
+   "startSkill": "haymaker",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 1642247872,
+   "picks": "LRLR",
+   "perks": [
+    "machete",
+    "haymaker",
+    "anticipation"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 5,
+     "agility": 9,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "machete",
+   "startSkill": "haymaker",
+   "statCards": 3,
+   "perkCards": 1
+  },
+  {
+   "seed": 1642247872,
+   "picks": "LRLRRLLRRLRR",
+   "perks": [
+    "machete",
+    "haymaker",
+    "anticipation",
+    "taunt",
+    "pocket-knife",
+    "junk-collector",
+    "light-feet"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 12,
+     "agility": 13,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "machete",
+   "startSkill": "haymaker",
+   "statCards": 7,
+   "perkCards": 5
+  },
+  {
+   "seed": 1642247872,
+   "picks": "LRLRRLLRRLRRLRRRRRRLLLRRRLLRR",
+   "perks": [
+    "machete",
+    "haymaker",
+    "anticipation",
+    "taunt",
+    "pocket-knife",
+    "junk-collector",
+    "light-feet",
+    "frying-pan",
+    "broom",
+    "pipe",
+    "payback",
+    "bin-lid",
+    "sand-in-the-eyes",
+    "sharpening-stone",
+    "firm-grip",
+    "plate-vest"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 18,
+     "agility": 16,
+     "speed": 16
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 85
+    }
+   },
+   "startPerk": "machete",
+   "startSkill": "haymaker",
+   "statCards": 15,
+   "perkCards": 14
+  },
+  {
+   "seed": 1843741709,
+   "picks": "",
+   "perks": [
+    "plastic-bottle",
+    "energy-drink"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 5,
+     "agility": 3,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "energy-drink",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 1843741709,
+   "picks": "R",
+   "perks": [
+    "plastic-bottle",
+    "energy-drink"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 7,
+     "agility": 3,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "energy-drink",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 1843741709,
+   "picks": "RLRL",
+   "perks": [
+    "plastic-bottle",
+    "energy-drink",
+    "parry",
+    "ironing-board",
+    "tyre-iron"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 7,
+     "agility": 3,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "energy-drink",
+   "statCards": 1,
+   "perkCards": 3
+  },
+  {
+   "seed": 1843741709,
+   "picks": "RLRLLRRLRRRL",
+   "perks": [
+    "plastic-bottle",
+    "energy-drink",
+    "parry",
+    "ironing-board",
+    "tyre-iron",
+    "pipe",
+    "fast-twitch",
+    "taunt",
+    "rubber-ball"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 9,
+     "agility": 5,
+     "speed": 9
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "energy-drink",
+   "statCards": 5,
+   "perkCards": 7
+  },
+  {
+   "seed": 1843741709,
+   "picks": "RLRLLRRLRRRLLLLLRLRLLRLRRRRRL",
+   "perks": [
+    "plastic-bottle",
+    "energy-drink",
+    "parry",
+    "ironing-board",
+    "tyre-iron",
+    "pipe",
+    "fast-twitch",
+    "taunt",
+    "rubber-ball",
+    "quick-swap",
+    "firm-grip",
+    "frying-pan",
+    "stubborn",
+    "padding",
+    "junk-collector"
+   ],
+   "stats": {
+    "points": {
+     "health": 11,
+     "strength": 18,
+     "agility": 19,
+     "speed": 12
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "energy-drink",
+   "statCards": 16,
+   "perkCards": 13
+  },
+  {
+   "seed": 1909012490,
+   "picks": "",
+   "perks": [
+    "darts",
+    "anticipation"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 3,
+     "agility": 4,
+     "speed": 2
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "darts",
+   "startSkill": "anticipation",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 1909012490,
+   "picks": "L",
+   "perks": [
+    "darts",
+    "anticipation",
+    "light-feet"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 3,
+     "agility": 7,
+     "speed": 2
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "darts",
+   "startSkill": "anticipation",
+   "statCards": 0,
+   "perkCards": 1
+  },
+  {
+   "seed": 1909012490,
+   "picks": "LLLL",
+   "perks": [
+    "darts",
+    "anticipation",
+    "light-feet",
+    "boomerang",
+    "parry"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 5,
+     "agility": 7,
+     "speed": 2
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "darts",
+   "startSkill": "anticipation",
+   "statCards": 1,
+   "perkCards": 3
+  },
+  {
+   "seed": 1909012490,
+   "picks": "LLLLLLRRLRLR",
+   "perks": [
+    "darts",
+    "anticipation",
+    "light-feet",
+    "boomerang",
+    "parry",
+    "rebar"
+   ],
+   "stats": {
+    "points": {
+     "health": 12,
+     "strength": 5,
+     "agility": 11,
+     "speed": 7
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "darts",
+   "startSkill": "anticipation",
+   "statCards": 8,
+   "perkCards": 4
+  },
+  {
+   "seed": 1909012490,
+   "picks": "LLLLLLRRLRLRLLRRLRLRLLLLLLRRR",
+   "perks": [
+    "darts",
+    "anticipation",
+    "light-feet",
+    "boomerang",
+    "parry",
+    "rebar",
+    "knuckle-dusters",
+    "firm-grip",
+    "pitcher",
+    "energy-drink",
+    "padding",
+    "knock-loose",
+    "flurry",
+    "head-start",
+    "crow",
+    "raccoon",
+    "pet-lover"
+   ],
+   "stats": {
+    "points": {
+     "health": 12,
+     "strength": 11,
+     "agility": 20,
+     "speed": 10
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "darts",
+   "startSkill": "anticipation",
+   "statCards": 14,
+   "perkCards": 15
+  },
+  {
+   "seed": 1842064423,
+   "picks": "",
+   "perks": [
+    "plastic-bottle",
+    "padding"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 3,
+     "agility": 5,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "padding",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 1842064423,
+   "picks": "L",
+   "perks": [
+    "plastic-bottle",
+    "padding"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 5,
+     "agility": 5,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "padding",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 1842064423,
+   "picks": "LLLR",
+   "perks": [
+    "plastic-bottle",
+    "padding",
+    "firm-grip",
+    "wooden-pallet"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 5,
+     "agility": 5,
+     "speed": 6
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "padding",
+   "statCards": 2,
+   "perkCards": 2
+  },
+  {
+   "seed": 1842064423,
+   "picks": "LLLRRRRRRLLL",
+   "perks": [
+    "plastic-bottle",
+    "padding",
+    "firm-grip",
+    "wooden-pallet",
+    "pipe",
+    "fast-twitch",
+    "frying-pan",
+    "hand-axe"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 5,
+     "agility": 5,
+     "speed": 13
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "padding",
+   "statCards": 6,
+   "perkCards": 6
+  },
+  {
+   "seed": 1842064423,
+   "picks": "LLLRRRRRRLLLLRRLRRRLLLRRRLRRL",
+   "perks": [
+    "plastic-bottle",
+    "padding",
+    "firm-grip",
+    "wooden-pallet",
+    "pipe",
+    "fast-twitch",
+    "frying-pan",
+    "hand-axe",
+    "tyre",
+    "quick-swap",
+    "alley-cat",
+    "payback",
+    "tarp",
+    "raccoon",
+    "anticipation",
+    "knock-loose"
+   ],
+   "stats": {
+    "points": {
+     "health": 18,
+     "strength": 11,
+     "agility": 11,
+     "speed": 16
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "padding",
+   "statCards": 15,
+   "perkCards": 14
+  },
+  {
+   "seed": 2713218668,
+   "picks": "",
+   "perks": [
+    "pipe",
+    "anticipation"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 5,
+     "agility": 3,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "pipe",
+   "startSkill": "anticipation",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 2713218668,
+   "picks": "L",
+   "perks": [
+    "pipe",
+    "anticipation"
+   ],
+   "stats": {
+    "points": {
+     "health": 2,
+     "strength": 7,
+     "agility": 3,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "pipe",
+   "startSkill": "anticipation",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 2713218668,
+   "picks": "LLRL",
+   "perks": [
+    "pipe",
+    "anticipation",
+    "padding",
+    "bare-knuckle",
+    "hockey-stick"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 7,
+     "agility": 3,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "pipe",
+   "startSkill": "anticipation",
+   "statCards": 1,
+   "perkCards": 3
+  },
+  {
+   "seed": 2713218668,
+   "picks": "LLRLRRLRLRRR",
+   "perks": [
+    "pipe",
+    "anticipation",
+    "padding",
+    "bare-knuckle",
+    "hockey-stick",
+    "raccoon",
+    "light-feet",
+    "shovel",
+    "knuckle-dusters"
+   ],
+   "stats": {
+    "points": {
+     "health": 7,
+     "strength": 7,
+     "agility": 7,
+     "speed": 6
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "pipe",
+   "startSkill": "anticipation",
+   "statCards": 5,
+   "perkCards": 7
+  },
+  {
+   "seed": 2713218668,
+   "picks": "LLRLRRLRLRRRRRRLLRRRLRRLRRRLR",
+   "perks": [
+    "pipe",
+    "anticipation",
+    "padding",
+    "bare-knuckle",
+    "hockey-stick",
+    "raccoon",
+    "light-feet",
+    "shovel",
+    "knuckle-dusters",
+    "head-start",
+    "taunt",
+    "payback",
+    "parry",
+    "air-horn",
+    "pitchfork",
+    "flurry",
+    "haymaker",
+    "wooden-pallet"
+   ],
+   "stats": {
+    "points": {
+     "health": 19,
+     "strength": 10,
+     "agility": 12,
+     "speed": 9
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 100
+    }
+   },
+   "startPerk": "pipe",
+   "startSkill": "anticipation",
+   "statCards": 13,
+   "perkCards": 16
+  },
+  {
+   "seed": 2645857929,
+   "picks": "",
+   "perks": [
+    "hand-axe",
+    "haymaker"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 2,
+     "agility": 5,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "hand-axe",
+   "startSkill": "haymaker",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 2645857929,
+   "picks": "R",
+   "perks": [
+    "hand-axe",
+    "haymaker",
+    "padding"
+   ],
+   "stats": {
+    "points": {
+     "health": 3,
+     "strength": 3,
+     "agility": 5,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "hand-axe",
+   "startSkill": "haymaker",
+   "statCards": 0,
+   "perkCards": 1
+  },
+  {
+   "seed": 2645857929,
+   "picks": "RRRR",
+   "perks": [
+    "hand-axe",
+    "haymaker",
+    "padding",
+    "fast-twitch",
+    "bare-knuckle"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 3,
+     "agility": 6,
+     "speed": 7
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "hand-axe",
+   "startSkill": "haymaker",
+   "statCards": 1,
+   "perkCards": 3
+  },
+  {
+   "seed": 2645857929,
+   "picks": "RRRRLLLRRRLR",
+   "perks": [
+    "hand-axe",
+    "haymaker",
+    "padding",
+    "fast-twitch",
+    "bare-knuckle",
+    "wooden-pallet",
+    "broom",
+    "plastic-bottle"
+   ],
+   "stats": {
+    "points": {
+     "health": 7,
+     "strength": 9,
+     "agility": 6,
+     "speed": 9
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "hand-axe",
+   "startSkill": "haymaker",
+   "statCards": 6,
+   "perkCards": 6
+  },
+  {
+   "seed": 2645857929,
+   "picks": "RRRRLLLRRRLRLRLLRLRLLLRRRLLLL",
+   "perks": [
+    "hand-axe",
+    "haymaker",
+    "padding",
+    "fast-twitch",
+    "bare-knuckle",
+    "wooden-pallet",
+    "broom",
+    "plastic-bottle",
+    "sharpening-stone",
+    "stray-dog",
+    "crowbar",
+    "sand-in-the-eyes",
+    "anticipation",
+    "light-feet",
+    "quick-swap",
+    "firm-grip"
+   ],
+   "stats": {
+    "points": {
+     "health": 22,
+     "strength": 18,
+     "agility": 11,
+     "speed": 9
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 145,
+     "speed": 140
+    }
+   },
+   "startPerk": "hand-axe",
+   "startSkill": "haymaker",
+   "statCards": 15,
+   "perkCards": 14
+  },
+  {
+   "seed": 2176907926,
+   "picks": "",
+   "perks": [
+    "crowbar",
+    "anticipation"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 2,
+     "agility": 4,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "crowbar",
+   "startSkill": "anticipation",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 2176907926,
+   "picks": "L",
+   "perks": [
+    "crowbar",
+    "anticipation"
+   ],
+   "stats": {
+    "points": {
+     "health": 7,
+     "strength": 2,
+     "agility": 4,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "crowbar",
+   "startSkill": "anticipation",
+   "statCards": 1,
+   "perkCards": 0
+  },
+  {
+   "seed": 2176907926,
+   "picks": "LLRR",
+   "perks": [
+    "crowbar",
+    "anticipation",
+    "raccoon"
+   ],
+   "stats": {
+    "points": {
+     "health": 11,
+     "strength": 2,
+     "agility": 4,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "crowbar",
+   "startSkill": "anticipation",
+   "statCards": 3,
+   "perkCards": 1
+  },
+  {
+   "seed": 2176907926,
+   "picks": "LLRRRLRRRRLR",
+   "perks": [
+    "crowbar",
+    "anticipation",
+    "raccoon",
+    "wooden-pallet",
+    "pipe",
+    "crow",
+    "hand-axe"
+   ],
+   "stats": {
+    "points": {
+     "health": 11,
+     "strength": 2,
+     "agility": 11,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "crowbar",
+   "startSkill": "anticipation",
+   "statCards": 7,
+   "perkCards": 5
+  },
+  {
+   "seed": 2176907926,
+   "picks": "LLRRRLRRRRLRRLLRLRRRRLRRLLRRL",
+   "perks": [
+    "crowbar",
+    "anticipation",
+    "raccoon",
+    "wooden-pallet",
+    "pipe",
+    "crow",
+    "hand-axe",
+    "big-heart",
+    "padding",
+    "machete",
+    "payback",
+    "energy-drink",
+    "raccoon",
+    "plastic-bottle"
+   ],
+   "stats": {
+    "points": {
+     "health": 19,
+     "strength": 8,
+     "agility": 18,
+     "speed": 15
+    },
+    "mult": {
+     "health": 135,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "crowbar",
+   "startSkill": "anticipation",
+   "statCards": 16,
+   "perkCards": 12
+  },
+  {
+   "seed": 2111197875,
+   "picks": "",
+   "perks": [
+    "golf-club",
+    "stubborn"
+   ],
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 3,
+     "agility": 2,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "golf-club",
+   "startSkill": "stubborn",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 2111197875,
+   "picks": "L",
+   "perks": [
+    "golf-club",
+    "stubborn",
+    "raccoon"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 3,
+     "agility": 2,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "golf-club",
+   "startSkill": "stubborn",
+   "statCards": 0,
+   "perkCards": 1
+  },
+  {
+   "seed": 2111197875,
+   "picks": "LRRL",
+   "perks": [
+    "golf-club",
+    "stubborn",
+    "raccoon",
+    "hand-axe",
+    "fast-twitch"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 3,
+     "agility": 2,
+     "speed": 10
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "golf-club",
+   "startSkill": "stubborn",
+   "statCards": 1,
+   "perkCards": 3
+  },
+  {
+   "seed": 2111197875,
+   "picks": "LRRLLLLLLRRL",
+   "perks": [
+    "golf-club",
+    "stubborn",
+    "raccoon",
+    "hand-axe",
+    "fast-twitch",
+    "slippery",
+    "frying-pan",
+    "sharp-eye",
+    "plastic-bottle"
+   ],
+   "stats": {
+    "points": {
+     "health": 8,
+     "strength": 5,
+     "agility": 4,
+     "speed": 12
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "golf-club",
+   "startSkill": "stubborn",
+   "statCards": 5,
+   "perkCards": 7
+  },
+  {
+   "seed": 2111197875,
+   "picks": "LRRLLLLLLRRLRLRRRLLLRRLRLLRRL",
+   "perks": [
+    "golf-club",
+    "stubborn",
+    "raccoon",
+    "hand-axe",
+    "fast-twitch",
+    "slippery",
+    "frying-pan",
+    "sharp-eye",
+    "plastic-bottle",
+    "whistle",
+    "bin-lid",
+    "stray-dog",
+    "pipe",
+    "head-start",
+    "flurry",
+    "air-horn"
+   ],
+   "stats": {
+    "points": {
+     "health": 14,
+     "strength": 14,
+     "agility": 7,
+     "speed": 23
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "golf-club",
+   "startSkill": "stubborn",
+   "statCards": 15,
+   "perkCards": 14
+  },
+  {
+   "seed": 2982661624,
+   "picks": "",
+   "perks": [
+    "plastic-bottle",
+    "parry"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 2,
+     "agility": 5,
+     "speed": 2
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "parry",
+   "statCards": 0,
+   "perkCards": 0
+  },
+  {
+   "seed": 2982661624,
+   "picks": "L",
+   "perks": [
+    "plastic-bottle",
+    "parry",
+    "pitcher"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 2,
+     "agility": 5,
+     "speed": 2
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "parry",
+   "statCards": 0,
+   "perkCards": 1
+  },
+  {
+   "seed": 2982661624,
+   "picks": "LRRL",
+   "perks": [
+    "plastic-bottle",
+    "parry",
+    "pitcher"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 6,
+     "agility": 5,
+     "speed": 4
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "parry",
+   "statCards": 3,
+   "perkCards": 1
+  },
+  {
+   "seed": 2982661624,
+   "picks": "LRRLRLRLRRLL",
+   "perks": [
+    "plastic-bottle",
+    "parry",
+    "pitcher",
+    "anticipation",
+    "car-door",
+    "bare-knuckle",
+    "machete"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 10,
+     "agility": 7,
+     "speed": 7
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "parry",
+   "statCards": 7,
+   "perkCards": 5
+  },
+  {
+   "seed": 2982661624,
+   "picks": "LRRLRLRLRRLLLRRRLRRRRRRLLLRLR",
+   "perks": [
+    "plastic-bottle",
+    "parry",
+    "pitcher",
+    "anticipation",
+    "car-door",
+    "bare-knuckle",
+    "machete",
+    "fast-twitch",
+    "tyre-iron",
+    "folding-chair",
+    "sand-in-the-eyes",
+    "darts",
+    "sharpening-stone",
+    "head-start",
+    "quick-swap",
+    "haymaker"
+   ],
+   "stats": {
+    "points": {
+     "health": 12,
+     "strength": 16,
+     "agility": 13,
+     "speed": 16
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "plastic-bottle",
+   "startSkill": "parry",
+   "statCards": 15,
+   "perkCards": 14
+  },
+  {
+   "seed": 77777,
+   "picks": "LRL",
+   "base": {
+    "picks": 3,
+    "starts": 1,
+    "perks": [
+     "pipe",
+     "padding",
+     "bat"
+    ],
+    "stats": {
+     "points": {
+      "health": 6,
+      "strength": 4,
+      "agility": 3,
+      "speed": 3
+     },
+     "mult": {
+      "health": 100,
+      "strength": 100,
+      "agility": 100,
+      "speed": 100
+     }
+    }
+   },
+   "perks": [
+    "pipe",
+    "padding",
+    "bat"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 4,
+     "agility": 3,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "pipe",
+   "startSkill": "pipe",
+   "statCards": 1,
+   "perkCards": 2
+  },
+  {
+   "seed": 77777,
+   "picks": "LRLR",
+   "base": {
+    "picks": 3,
+    "starts": 1,
+    "perks": [
+     "pipe",
+     "padding",
+     "bat"
+    ],
+    "stats": {
+     "points": {
+      "health": 6,
+      "strength": 4,
+      "agility": 3,
+      "speed": 3
+     },
+     "mult": {
+      "health": 100,
+      "strength": 100,
+      "agility": 100,
+      "speed": 100
+     }
+    }
+   },
+   "perks": [
+    "pipe",
+    "padding",
+    "bat",
+    "machete"
+   ],
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 4,
+     "agility": 3,
+     "speed": 3
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "startPerk": "pipe",
+   "startSkill": "pipe",
+   "statCards": 1,
+   "perkCards": 3
+  },
+  {
+   "seed": 77777,
+   "picks": "LRLRRLLRRL",
+   "base": {
+    "picks": 3,
+    "starts": 1,
+    "perks": [
+     "pipe",
+     "padding",
+     "bat"
+    ],
+    "stats": {
+     "points": {
+      "health": 6,
+      "strength": 4,
+      "agility": 3,
+      "speed": 3
+     },
+     "mult": {
+      "health": 100,
+      "strength": 100,
+      "agility": 100,
+      "speed": 100
+     }
+    }
+   },
+   "perks": [
+    "pipe",
+    "padding",
+    "bat",
+    "machete",
+    "fast-twitch",
+    "quick-swap",
+    "sharp-eye"
+   ],
+   "stats": {
+    "points": {
+     "health": 8,
+     "strength": 4,
+     "agility": 3,
+     "speed": 10
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "pipe",
+   "startSkill": "pipe",
+   "statCards": 4,
+   "perkCards": 6
+  },
+  {
+   "seed": 77777,
+   "picks": "LRLRRLLRRLRLRLLRLRRL",
+   "base": {
+    "picks": 3,
+    "starts": 1,
+    "perks": [
+     "pipe",
+     "padding",
+     "bat"
+    ],
+    "stats": {
+     "points": {
+      "health": 6,
+      "strength": 4,
+      "agility": 3,
+      "speed": 3
+     },
+     "mult": {
+      "health": 100,
+      "strength": 100,
+      "agility": 100,
+      "speed": 100
+     }
+    }
+   },
+   "perks": [
+    "pipe",
+    "padding",
+    "bat",
+    "machete",
+    "fast-twitch",
+    "quick-swap",
+    "sharp-eye",
+    "pocket-knife",
+    "hockey-stick",
+    "stray-dog",
+    "anticipation",
+    "payback",
+    "boar",
+    "bin-lid",
+    "parry"
+   ],
+   "stats": {
+    "points": {
+     "health": 8,
+     "strength": 6,
+     "agility": 3,
+     "speed": 12
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 140
+    }
+   },
+   "startPerk": "pipe",
+   "startSkill": "pipe",
+   "statCards": 6,
+   "perkCards": 14
+  }
+ ]
+}

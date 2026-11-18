@@ -20,9 +20,11 @@ import { perkCardPlus, statCardAmount, walk } from "../src/progress/route";
 import { cardIndices } from "../src/progress/rivals";
 
 const DAY = "2026-11-14";
+/** 14 Nov 2026, 10:00 UTC. */
+const NOW = Date.UTC(2026, 10, 14, 10, 0, 0);
 const skillOf = (p: string): SkillDef | undefined => (SKILLS as Record<string, SkillDef | undefined>)[p];
 function rec(name: string, picks: Side2[] = [], extra: Partial<ScrapperRecord> = {}): ScrapperRecord {
-  return { ...api.createRecord({ id: `id-${name}`, name, realmSalt: REALM_SALT, lookSalt: 0, colourSalt: 0, today: DAY }),
+  return { ...api.createRecord({ id: `id-${name}`, name, realmSalt: REALM_SALT, lookSalt: 0, colourSalt: 0, today: DAY, nowMs: NOW }),
     picks, ...extra };
 }
 function randomPicks(rng: ReturnType<typeof makeRng>, n: number): Side2[] {
@@ -115,8 +117,8 @@ describe("xp and level-ups", () => {
   it("waits for a level-up, carries extra XP and ignores a pick with nothing waiting", () => {
     let r = rec("Marla");
     expect(api.afterPick(r, "L")).toBe(r);
-    r = api.afterBout(r, 2, DAY);
-    r = api.afterBout(r, 2, DAY);
+    r = api.afterBout(r, 2, NOW);
+    r = api.afterBout(r, 2, NOW);
     expect(api.sheetOf(r).levelUpWaiting).toBe(true);
     r = api.afterPick(r, "R");
     expect(r.picks).toEqual(["R"]);
@@ -125,21 +127,6 @@ describe("xp and level-ups", () => {
   });
 });
 
-describe("bouts per day", () => {
-  it("gives 8 on the creation day, 6 on later days, and resets only forward", () => {
-    let r = rec("Dez");
-    expect(api.boutsLeft(r, DAY)).toBe(8);
-    for (let i = 0; i < 8; i++) r = api.afterBout(r, 1, DAY);
-    expect(api.boutsLeft(r, DAY)).toBe(0);
-    expect(api.boutsLeft(r, "2026-11-15")).toBe(6);
-    expect(api.boutsLeft(r, "2026-11-13")).toBe(0);
-    r = api.afterBout(r, 1, "2026-11-15");
-    expect(r.day).toBe("2026-11-15");
-    expect(api.boutsLeft(r, "2026-11-15")).toBe(5);
-    expect(api.boutsLeft(r, DAY)).toBe(5);
-    expect(r.lifetimeBouts).toBe(9);
-  });
-});
 
 describe("the Route", () => {
   it("is identical when recomputed from seed and picks, for 1,000 scrappers", () => {
@@ -303,7 +290,7 @@ describe("rivals", () => {
     expect(new Set(a.map((s) => s.id)).size).toBe(6);
     for (const s of a) expect(s.level).toBe(1);
     expect(api.tonightsCard(r, REALM_SALT, DAY)).toEqual(a);
-    r = api.afterBout(r, 1, DAY);
+    r = api.afterBout(r, 1, NOW);
     expect(cardIndices(r, REALM_SALT, DAY)).not.toEqual(cardIndices(rec("Marla"), REALM_SALT, DAY));
   });
   it("at levels 1 to 3 holds one easy rival, armed, in the last place; every rival owns a weapon", () => {
@@ -341,7 +328,8 @@ describe("found perks and sheets", () => {
     const base = 54 + 7 * 5;
     expect(maxHpOf(5, 10, 44)).toBe(Math.floor((base * 56) / 100));
     const s = api.snapshotSheet({ id: "x", name: "X", look: api.rollLook(1, 0, 0), level: 10, rulesVersion: 1,
-      stats: { points: { health: 5, strength: 5, agility: 5, speed: 5 }, mult: { health: 100, strength: 100, agility: 100, speed: 100 } },
+      stats: { points: { health: 5, strength: 5, agility: 5, speed: 5, toughness: 3, precision: 3 },
+        mult: { health: 100, strength: 100, agility: 100, speed: 100, toughness: 100, precision: 100 } },
       perks: ["raccoon", "raccoon", "boar"] });
     expect(s.companionCostPct).toBe(44);
     expect(s.maxHp).toBe(Math.floor((base * 56) / 100));

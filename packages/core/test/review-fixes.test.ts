@@ -167,7 +167,7 @@ describe("Draw weights (finding 50)", () => {
 
 /** Level-1 bouts of random rivals, scored by each side's starting weapon. */
 function rec(name: string, picks: Side2[]): ScrapperRecord {
-  return { ...api.createRecord({ id: `id-${name}`, name, realmSalt: REALM_SALT, lookSalt: 0, colourSalt: 0, today: "2026-11-15" }), picks };
+  return { ...api.createRecord({ id: `id-${name}`, name, realmSalt: REALM_SALT, lookSalt: 0, colourSalt: 0, today: "2026-11-15", nowMs: 0 }), picks };
 }
 
 function startTable(n: number): Map<string, { w: number; n: number }> {

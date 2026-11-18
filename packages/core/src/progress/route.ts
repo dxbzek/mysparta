@@ -69,18 +69,19 @@ export function statCardAmount(statCards: number): number {
  *  `statCards` stat cards and `perkCards` perk cards. */
 function nodeCards(seed: number, k: number, prefix: string, owned: readonly PerkId[], statCards: number, perkCards: number): { left: RouteCard; right: RouteCard } {
   const rng = makeRng(combineSeed(seed, "route", k, prefix));
-  const stat: RouteCard = { kind: "stat", stat: STAT_KEYS[rng.int(4)]!, amount: statCardAmount(statCards) };
+  const n = STAT_KEYS.length;
+  const stat: RouteCard = { kind: "stat", stat: STAT_KEYS[rng.int(n)]!, amount: statCardAmount(statCards) };
   let perkCard: RouteCard | null = null;
   for (let i = 0; i <= PERK_REROLLS && perkCard === null; i++) {
     // The weapon share falls as the kit's weapons grow, to none at 5 (round-2 review).
     const rolled = rollPerk(rng, weaponShare(owned));
     if (!allowed(rolled, owned, rng)) continue;
     // Some perk cards also carry +1 point in a random stat (see `perkCardPlus`).
-    perkCard = perkCardPlus(k + 2, perkCards) ? { kind: "perk", perk: rolled, plus: STAT_KEYS[rng.int(4)]! } : { kind: "perk", perk: rolled };
+    perkCard = perkCardPlus(k + 2, perkCards) ? { kind: "perk", perk: rolled, plus: STAT_KEYS[rng.int(n)]! } : { kind: "perk", perk: rolled };
   }
   if (perkCard === null) {
-    const first = rng.int(4);
-    const second = (first + 1 + rng.int(3)) % 4;
+    const first = rng.int(n);
+    const second = (first + 1 + rng.int(n - 1)) % n;
     perkCard = { kind: "split", stats: [STAT_KEYS[first]!, STAT_KEYS[second]!] as [StatKey, StatKey] };
   }
   return rng.int(2) === 0 ? { left: stat, right: perkCard } : { left: perkCard, right: stat };

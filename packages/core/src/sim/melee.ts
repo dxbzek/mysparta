@@ -54,12 +54,14 @@ export function rawDamage(att: Actor, thrown: boolean): number {
 
 /**
  * The whole-number damage chain: floor(floor(raw x roll / 100) x mult / 100), then the crit
- * (x3/2, rounded down), then Armor (melee only), never below 1.
+ * (x3/2, rounded down), then Armor (melee only), then the defender's soak (Toughness), never
+ * below 1.
  */
-export function damageOf(raw: number, variance: number, mult: number, crit: boolean, armor: number | null): number {
+export function damageOf(raw: number, variance: number, mult: number, crit: boolean, armor: number | null, soak = 0): number {
   let d = Math.floor((Math.floor((raw * variance) / 100) * mult) / 100);
   if (crit) d = Math.floor((d * 3) / 2);
-  if (armor !== null) return armored(d, armor);
+  if (armor !== null) d = armored(d, armor);
+  if (soak > 0) d -= soak;
   return d < 1 ? 1 : d;
 }
 
@@ -122,17 +124,19 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   const crit = b.r.hit.int(100) < critChance;
   const raw = rawDamage(att, thrown);
   const mult = damageMult(att, thrown, boosted);
-  const armor = thrown ? null : valuesOf(def).armor;
-  const full = damageOf(raw, variance, mult, crit, armor);
+  const dv = valuesOf(def);
+  const armor = thrown ? null : dv.armor;
+  const soak = dv.soak;
+  const full = damageOf(raw, variance, mult, crit, armor, soak);
   // Number skills show where they changed the damage (no random number: the same hit, re-counted).
   const big = crit || boosted;
   const left = allowance(b, def, big);
   const cut = (d: number): number => (left === Infinity ? d : Math.max(1, Math.min(d, left)));
   const skill = damageSkill(att, thrown);
-  if (skill !== null && cut(damageOf(raw, variance, damageMult(att, thrown, boosted, true), crit, armor)) !== cut(full)) {
+  if (skill !== null && cut(damageOf(raw, variance, damageMult(att, thrown, boosted, true), crit, armor, soak)) !== cut(full)) {
     procs.push(proc(skill === "pet-lover" ? scrapperOfSide(b, att.side) : att, skill));
   }
-  if (armor !== null) armorProcs(def, armor, (a) => cut(damageOf(raw, variance, mult, crit, a)), cut(full), procs);
+  if (armor !== null) armorProcs(def, armor, (a) => cut(damageOf(raw, variance, mult, crit, a, soak)), cut(full), procs);
   boosterProcs(b, att, def, "hit", procs);
   // Light Feet's Agility also adds to Thrown damage: it may name itself on its owner's landed throw.
   if (thrown && att.scrapper && att.skills.has("light-feet")) procs.push(proc(att, "light-feet"));

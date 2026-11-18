@@ -8,7 +8,6 @@ import { START_EACH, STAT_KEYS } from "./stats";
 import { combineSeed, makeRng } from "../prng";
 import { randomName, rollLook } from "./create";
 import { walk, walkWith } from "./route";
-import { boutsUsedToday } from "./daily";
 import { levelOf } from "./xp";
 
 /** A rival takes the perk card (or the split that replaced it) 65% of the time. */
@@ -54,7 +53,9 @@ export function rivalSnapshot(realmSalt: string, level: number, index: number): 
 /** The pool index of each card of Tonight's Card, before snapshots are made. */
 export function cardIndices(rec: ScrapperRecord, realmSalt: string, today: DayKey): number[] {
   const level = levelOf(rec);
-  const rng = makeRng(combineSeed(rec.seed, today, boutsUsedToday(rec, today)));
+  // (the daily bout count that drew it before energy is gone: the lifetime count changes after
+  // every bout just the same)
+  const rng = makeRng(combineSeed(rec.seed, today, rec.lifetimeBouts));
   const used = new Set<number>();
   const draw = (): number => {
     for (;;) {
@@ -82,7 +83,8 @@ export function easyRival(realmSalt: string, level: number, index: number): Figh
   return { ...s, id: `rival:${realmSalt}:${s.level}:easy:${index}`, stats: { points, mult: { ...s.stats.mult } } };
 }
 
-/** Six rivals at the scrapper's level, redrawn after every bout and at day rollover. At levels 1
+/** Six rivals at the scrapper's level, redrawn after every bout and at day rollover (drawn from
+ *  hash(seed, today, lifetime bouts)). At levels 1
  *  to 3 the last FAIR_EASY of them are easy rivals (see `easyRival`). */
 export function tonightsCard(rec: ScrapperRecord, realmSalt: string, today: DayKey): FighterSnapshot[] {
   const level = levelOf(rec);

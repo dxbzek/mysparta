@@ -8,36 +8,55 @@ import { combineSeed, makeRng } from "../prng";
 import { COMPANIONS } from "../content/companions";
 import { sk } from "../content/skills";
 
-export const STAT_KEYS: readonly StatKey[] = ["health", "strength", "agility", "speed"];
+/** The six stats, in the order the screens and the Route use (content v3 added the last two). */
+export const STAT_KEYS: readonly StatKey[] = ["health", "strength", "agility", "speed", "toughness", "precision"];
 export const START_EACH = 2;
-export const START_DEALT = 6;
+/** Points dealt on top of START_EACH: a starting budget of 20 (14 with four stats before content v3). */
+export const START_DEALT = 8;
 export const START_MAX = 5;
+/** A multiplier block of 100 for every stat. */
+export function plainMult(): Record<StatKey, number> {
+  return { health: 100, strength: 100, agility: 100, speed: 100, toughness: 100, precision: 100 };
+}
 
 /** Mutable copy used while a kit is built. */
 export interface StatsDraft { points: Record<StatKey, number>; mult: Record<StatKey, number> }
 
 export function draftOf(s: StatBlock): StatsDraft {
-  return { points: { ...s.points }, mult: { ...s.mult } };
+  const points = { ...s.points } as Record<StatKey, number>;
+  const mult = { ...s.mult } as Record<StatKey, number>;
+  for (const k of STAT_KEYS) {
+    if (typeof points[k] !== "number") points[k] = 0;
+    if (typeof mult[k] !== "number") mult[k] = 100;
+  }
+  return { points, mult };
 }
 export function freeze(d: StatsDraft): StatBlock {
   return { points: { ...d.points }, mult: { ...d.mult } };
 }
 
-/** Every stat starts at 2, then 6 points go one at a time to a random stat still below 5. */
+/** Every stat starts at 2, then 8 points go one at a time to a random stat still below 5. */
 export function startStats(seed: number): StatsDraft {
   const rng = makeRng(combineSeed(seed, "stats"));
-  const points: Record<StatKey, number> = { health: START_EACH, strength: START_EACH, agility: START_EACH, speed: START_EACH };
+  const points: Record<StatKey, number> = { health: START_EACH, strength: START_EACH, agility: START_EACH, speed: START_EACH,
+    toughness: START_EACH, precision: START_EACH };
   for (let i = 0; i < START_DEALT; i++) {
     const open = STAT_KEYS.filter((k) => points[k] < START_MAX);
     const k = open[rng.int(open.length)]!;
     points[k] += 1;
   }
-  return { points, mult: { health: 100, strength: 100, agility: 100, speed: 100 } };
+  return { points, mult: plainMult() };
 }
 
+/** floor(points x multiplier / 100) per stat. A stat a block does not hold (a snapshot stored
+ *  before content v3 has no Toughness or Precision) counts 0. */
 export function effectiveOf(s: StatBlock | StatsDraft): Record<StatKey, number> {
   const out = {} as Record<StatKey, number>;
-  for (const k of STAT_KEYS) out[k] = Math.floor((s.points[k] * s.mult[k]) / 100);
+  for (const k of STAT_KEYS) {
+    const p = s.points[k];
+    const m = s.mult[k];
+    out[k] = typeof p === "number" && typeof m === "number" ? Math.floor((p * m) / 100) : 0;
+  }
   return out;
 }
 

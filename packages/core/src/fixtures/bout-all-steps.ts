@@ -27,13 +27,13 @@ import type { FighterSnapshot } from "../contracts/fighter";
 import type { BagItem, BoutLog } from "../contracts/log";
 import type { MoveId, WeaponId } from "../contracts/ids";
 
-const PLAIN = { health: 100, strength: 100, agility: 100, speed: 100 } as const;
+const PLAIN = { health: 100, strength: 100, agility: 100, speed: 100, toughness: 100, precision: 100 } as const;
 
 export const allStepsA: FighterSnapshot = {
   id: "fixture:all-steps-a", name: "Junkyard Lil",
   look: { build: 2, head: 0, hair: 3, face: 2, top: 4, bottom: 1, shoes: 2, accessory: 3, skin: 4, hairColor: 1, palette: 2 },
   level: 20,
-  stats: { points: { health: 14, strength: 9, agility: 11, speed: 8 }, mult: PLAIN },
+  stats: { points: { health: 14, strength: 9, agility: 11, speed: 8, toughness: 3, precision: 3 }, mult: PLAIN },
   perks: ["bat", "darts", "hand-axe", "car-door", "pitcher", "stubborn", "haymaker", "energy-drink",
     "tarp", "whistle", "snatch", "body-slam", "raccoon", "goose"],
   rulesVersion: 1,
@@ -43,7 +43,7 @@ export const allStepsB: FighterSnapshot = {
   id: "fixture:all-steps-b", name: "Big Dermot",
   look: { build: 1, head: 5, hair: 8, face: 4, top: 0, bottom: 3, shoes: 0, accessory: 0, skin: 7, hairColor: 4, palette: 10 },
   level: 20,
-  stats: { points: { health: 22, strength: 8, agility: 10, speed: 7 }, mult: PLAIN },
+  stats: { points: { health: 22, strength: 8, agility: 10, speed: 7, toughness: 3, precision: 3 }, mult: PLAIN },
   perks: ["broom", "monkey-wrench", "pocket-knife", "bin-lid", "firm-grip", "payback", "anticipation",
     "last-stand", "tarp", "firecrackers", "air-horn", "sand-in-the-eyes", "taunt", "second-wind", "grapple",
     "boar", "raccoon"],

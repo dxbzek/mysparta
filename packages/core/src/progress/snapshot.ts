@@ -18,7 +18,8 @@ export function snapshotSheet(s: FighterSnapshot): SnapshotSheet {
   return {
     maxHp: maxHpOf(effective.health, s.level, cost),
     effective,
-    derived: combatValues(skills, "fists", s.perks.find((p): p is ShieldId => isShieldId(p)) ?? null),
+    derived: combatValues(skills, "fists", s.perks.find((p): p is ShieldId => isShieldId(p)) ?? null, effective.toughness,
+      effective.precision),
     companionCostPct: cost,
   };
 }

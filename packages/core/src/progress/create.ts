@@ -2,12 +2,13 @@
  * Creating a scrapper (work package 1): name clean-up, the seed, the look, the starting perk, the
  * record. The name is the seed: the same cleaned name gives the same scrapper on any device.
  */
-import type { DayKey, Look, ScrapperRecord } from "../contracts/fighter";
+import type { DayKey, Look, ScrapperRecord, TimeMs } from "../contracts/fighter";
 import { LOOK_SPACE } from "../contracts/fighter";
 import type { PerkId } from "../contracts/ids";
 import { combineSeed, hashString, makeRng } from "../prng";
 import { FIRST_PARTS, SECOND_PARTS } from "../content/names";
 import { rollPerk, startSkillable, startable } from "./perks";
+import { ENERGY_MAX } from "./energy";
 
 export const NAME_MIN = 3;
 export const NAME_MAX = 14;
@@ -72,12 +73,14 @@ export function randomName(n: number): string {
 }
 
 export function createRecord(a: { id: string; name: string; realmSalt: string; lookSalt: number; colourSalt: number;
-  today: DayKey }): ScrapperRecord {
+  today: DayKey; nowMs: TimeMs }): ScrapperRecord {
   const name = cleanName(a.name);
   return {
     id: a.id, name, seed: fighterSeed(a.realmSalt, name),
     lookSalt: a.lookSalt, colourSalt: a.colourSalt,
     picks: [], xp: 0,
-    createdDay: a.today, day: a.today, boutsUsed: 0, lifetimeBouts: 0,
+    createdDay: a.today, lifetimeBouts: 0,
+    // A new scrapper starts with a full bar.
+    energy: ENERGY_MAX, energyAt: Number.isFinite(a.nowMs) ? Math.floor(a.nowMs) : 0,
   };
 }

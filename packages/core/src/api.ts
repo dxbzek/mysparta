@@ -10,13 +10,14 @@ import { SKILLS } from "./content/skills";
 import { WEAPONS } from "./content/weapons";
 import { SHIELDS } from "./content/shields";
 import { checkName, createRecord, fighterSeed, randomName, rollLook } from "./progress/create";
-import { afterBout, boutsLeft } from "./progress/daily";
+import { afterBout, energyNextMs, energyNow } from "./progress/energy";
 import { routeNode, walk } from "./progress/route";
 import { rivalSnapshot, tonightsCard } from "./progress/rivals";
 import { foundPerks, sheetOf, snapshotOf, snapshotSheet } from "./progress/snapshot";
 import { afterPick, xpForBout, xpToNext } from "./progress/xp";
 import { simulateFight } from "./sim/simulate";
 export { SIM_VERSION } from "./sim/version";
+export { ENERGY_COST, ENERGY_MAX, ENERGY_REFILL_MS } from "./progress/energy";
 import { canonical } from "./canonical";
 
 export const content: ContentTables = { weapons: WEAPONS, skills: SKILLS, companions: COMPANIONS, shields: SHIELDS };
@@ -44,7 +45,8 @@ export const api: CoreApi = {
   route,
   xpToNext,
   xpForBout,
-  boutsLeft,
+  energyNow,
+  energyNextMs,
   afterBout,
   afterPick,
   rivalSnapshot,
@@ -57,6 +59,6 @@ export const api: CoreApi = {
 
 export {
   canonical, checkName, randomName, fighterSeed, rollLook, createRecord, sheetOf, snapshotOf, snapshotSheet,
-  routeNode, xpToNext, xpForBout, boutsLeft, afterBout, afterPick, rivalSnapshot, tonightsCard, foundPerks,
+  routeNode, xpToNext, xpForBout, energyNow, energyNextMs, afterBout, afterPick, rivalSnapshot, tonightsCard, foundPerks,
   simulateFight,
 };

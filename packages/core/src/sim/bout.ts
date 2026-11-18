@@ -332,11 +332,13 @@ export function tryDisarm(b: Bout, att: Actor, def: Actor, cause: "hit" | "slam"
     // The last weapon is held harder: with no weapon left in the bag the chance is cut.
     const last = !b.bag[def.side].some((it) => it.k === "weapon");
     const cut = (c: number): number => (last ? Math.floor((c * LAST_WEAPON_DISARM_PCT) / 100) : c);
-    const chance = cut(Math.min(valuesOf(att).disarm, CAP.disarm));
+    // Toughness: the defender's grip takes points off the chance (content v3).
+    const grip = valuesOf(def).grip;
+    const chance = cut(Math.min(valuesOf(att).disarm, CAP.disarm)) - grip;
     const r = b.r.disarm.int(100);
     if (!(r < chance)) return;
     if (att.skills.has("knock-loose")) {
-      const without = cut(Math.min(valuesOf(att).disarm - sk("knock-loose", "disarm"), CAP.disarm));
+      const without = cut(Math.min(valuesOf(att).disarm - sk("knock-loose", "disarm"), CAP.disarm)) - grip;
       if (due(b, att, "knock-loose", r >= (without < 0 ? 0 : without))) procs.push(proc(att, "knock-loose"));
     }
   }
@@ -356,16 +358,18 @@ export function tryDisarm(b: Bout, att: Actor, def: Actor, cause: "hit" | "slam"
 }
 
 /** The chance a swing that was not evaded knocks this shield off: its `knock` percent of the
- *  attacker's capped Disarm, rounded down. */
-export function knockChance(att: Actor, shield: ShieldId): number {
-  return Math.floor((Math.min(valuesOf(att).disarm, CAP.disarm) * shieldNumbers(shield).knock) / 100);
+ *  attacker's capped Disarm, rounded down, minus the defender's grip (Toughness, content v3). */
+export function knockChance(att: Actor, shield: ShieldId, def?: Actor): number {
+  const c = Math.floor((Math.min(valuesOf(att).disarm, CAP.disarm) * shieldNumbers(shield).knock) / 100)
+    - (def === undefined ? 0 : valuesOf(def).grip);
+  return c < 0 ? 0 : c;
 }
 
 /** The shield roll on a swing that was not evaded. A slam always knocks it off. */
 export function tryShield(b: Bout, att: Actor, def: Actor, cause: "hit" | "slam"): void {
   const shield = def.shield;
   if (shield === null) return;
-  if (cause === "hit" && !(b.r.disarm.int(100) < knockChance(att, shield))) return;
+  if (cause === "hit" && !(b.r.disarm.int(100) < knockChance(att, shield, def))) return;
   def.shield = null;
   emit(b, { t: "shieldOff", turn: b.turn, actor: att.id, target: def.id, shield, cause });
 }
