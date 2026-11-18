@@ -44,8 +44,9 @@ export function LockerScreen() {
     if (!rec) return null;
     const shown = shownRecord(doc, rec);
     const sheet = core.sheetOf(shown);
-    const held = (sheet.perks.find((p) => perkKind(p) === "weapon") ?? null) as HeldId | null;
-    const companions = sheet.perks.filter((p) => perkKind(p) === "companion") as ("raccoon" | "goose" | "boar")[];
+    // (what it takes into a bout: the loadout's first weapon, its pets, shield and gear)
+    const held = (sheet.loadout.weapons[0] ?? null) as HeldId | null;
+    const companions = sheet.loadout.pets;
     const bouts = doc.history.filter((b) => b.fighterId === rec.id && b.watched).slice(0, 3).map((b) => {
       const won = b.result.winner === "a";
       return { id: b.id, won, opponent: b.snapshotB.name, line: resultLine(b.lineId, won, b.snapshotA.name, b.snapshotB.name), xp: b.xp };
@@ -76,6 +77,8 @@ export function LockerScreen() {
         look={view.sheet.look}
         held={view.held}
         companions={view.companions}
+        shield={view.sheet.loadout.shield}
+        gear={view.sheet.loadout.gear}
         xp={view.sheet.xp}
         xpToNext={view.sheet.xpToNext}
         maxHp={view.sheet.maxHp}

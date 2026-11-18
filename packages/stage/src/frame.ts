@@ -112,6 +112,7 @@ export function frameAt(tr: Tracks, t: number): Frame {
     const dress: Dress = { held: a.rig === "scrapper" ? heldAt(a, t) : null, shield: a.rig === "scrapper" ? shieldAt(a, t) : null,
       scale: a.scale };
     if (a.look !== undefined) dress.look = a.look;
+    if (a.gear !== undefined && Object.keys(a.gear).length > 0) dress.gear = a.gear;
     if (white.has(a.id)) dress.tint = "white";
     if (seg?.lead !== undefined) dress.lead = seg.lead;
     // (the whistle is drawn by its signature, sigs.ts, small and in the mouth: the rig's prop art

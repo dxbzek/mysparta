@@ -42,8 +42,8 @@ import common from "../common.module.css";
 import css from "./Inventory.module.css";
 
 export type InventoryFilter = "all" | PerkKind;
-export const FILTERS: readonly InventoryFilter[] = ["all", "weapon", "skill", "companion", "shield"];
-const KINDS: readonly PerkKind[] = ["weapon", "skill", "companion", "shield"];
+export const FILTERS: readonly InventoryFilter[] = ["all", "weapon", "skill", "companion", "shield", "gear"];
+const KINDS: readonly PerkKind[] = ["weapon", "skill", "companion", "shield", "gear"];
 const RARITY_RANK: Readonly<Record<Rarity, number>> = { common: 0, uncommon: 1, rare: 2, epic: 3, mythic: 4 };
 
 /** Every perk, sorted by rarity (Common first) then name. */

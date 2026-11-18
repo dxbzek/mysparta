@@ -3,7 +3,7 @@
  * times. `frame.ts` reads it at any `t` (a pure function) and `draw.ts` paints a frame.
  * Nothing in here is mutated after `buildTimeline` returns.
  */
-import type { ActorId, BagItem, CompanionId, HeldId, Look, MoveId, PerkId, PropId, ShieldId, Side, SkillId } from "@rankzero/core";
+import type { ActorId, BagItem, CompanionId, GearId, GearSlot, HeldId, Look, MoveId, PerkId, PropId, ShieldId, Side, SkillId } from "@rankzero/core";
 import type { Aim, FxKind, FxSize, MoveProp, RigId } from "@rankzero/rig";
 import type { Cue, EffectKey, Timeline } from "./contracts";
 import type { FlightPath } from "./flight";
@@ -42,6 +42,8 @@ export interface ShieldChange { from: number; shield: ShieldId | null }
 
 export interface ActorTrack {
   id: ActorId; side: Side; rig: RigId; kind: "scrapper" | CompanionId; maxHp: number;
+  /** The body equipment a scrapper wears (content v3 batch 2), from its snapshot: drawn only. */
+  gear?: Partial<Record<GearSlot, GearId>>;
   look?: Look; scale: number; home: { x: number; y: number }; homeFacing: 1 | -1;
   /** Idle loop phase, so no two actors breathe together. */
   phase: number;

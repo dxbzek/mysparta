@@ -2,7 +2,7 @@
  * FROZEN CONTRACT (work package 0). The web app: saves, actions, and the seam between the fight
  * screen and the screens around it. Storage names use the prefix `rankzero.`.
  */
-import type { BoutLog, BoutResult, DayKey, FighterSnapshot, Pick, ScrapperRecord } from "@rankzero/core";
+import type { BoutLog, BoutResult, DayKey, FighterSnapshot, Loadout, Pick, ScrapperRecord } from "@rankzero/core";
 
 export type Result<T, E extends string> = { ok: true; value: T } | { ok: false; error: E };
 /** CONTRACT_REV 4: `speed` 3 is a VIP perk; `isVip` says whether this save has it (false until the
@@ -27,7 +27,9 @@ export interface BoutRecord { id: string; at: number; seed: number; rulesVersion
 /** Schema version 4 (CONTRACT_REV 7): energy in place of the daily bout cap, six stats; migration
  *  3 to 4 fills every bar, carries every kit with Toughness and Precision added (docs/RULES.md,
  *  "Old saves"). */
-export interface SaveDoc { schemaVersion: 4; rev: number; updatedAt: number; settings: Settings;
+/** Schema version 5 (CONTRACT_REV 8): the loadout and body equipment; migration 4 to 5 gives every
+ *  scrapper the default loadout and `gearFrom` (docs/RULES.md, "Old saves"). */
+export interface SaveDoc { schemaVersion: 5; rev: number; updatedAt: number; settings: Settings;
 
   activeId: string | null;                                       // the scrapper shown in the Locker
   fighters: ScrapperRecord[]; retired: ScrapperRecord[]; history: BoutRecord[] }
@@ -46,6 +48,8 @@ export interface GameActions {
     Promise<Result<BoutRecord, "level-up-waiting" | "no-energy" | "unwatched-bout">>;
   markWatched(boutId: string): Promise<void>;
   takeLevelUp(id: string, pick: Pick): Promise<Result<void, "nothing-waiting">>;
+  /** Stores what the scrapper takes into a bout (CONTRACT_REV 8), cleaned against what it owns. */
+  setLoadout(id: string, loadout: Loadout): Promise<Result<void, "no-scrapper">>;
   retire(id: string, typedName: string): Promise<Result<void, "name-mismatch">>;
   setSettings(patch: Partial<Settings>): Promise<void>;
   exportCode(): Promise<string>;

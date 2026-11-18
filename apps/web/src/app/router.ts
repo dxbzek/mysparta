@@ -2,7 +2,7 @@
  * Hash routes (they work on GitHub Pages and on a LAN preview). `#/debug/...` belongs to the
  * fight-screen lane's debug pages and is mounted by main.tsx before the app sees it.
  */
-export type KitTab = "kit" | "route" | "stats";
+export type KitTab = "kit" | "loadout" | "gear" | "route" | "stats";
 
 export type Route =
   | { name: "home" }                    // #/            Create when the save is empty, else the Locker
@@ -33,7 +33,7 @@ export function parseRoute(hash: string): Route {
     case "bouts": return { name: "bouts" };
     case "inventory": return { name: "inventory" };
     case "sandbox": return { name: "sandbox" };
-    case "kit": return { name: "kit", tab: b === "route" || b === "stats" ? b : "kit" };
+    case "kit": return { name: "kit", tab: b === "route" || b === "stats" || b === "loadout" || b === "gear" ? b : "kit" };
     case "bout": return b ? { name: "bout", id: b } : { name: "unknown", hash };
     case "replay": return b ? { name: "replay", id: b } : { name: "unknown", hash };
     default: return { name: "unknown", hash };

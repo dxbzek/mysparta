@@ -11,7 +11,7 @@
  *     it is watched or skipped.
  */
 import { REALM_SALT, api } from "@rankzero/core";
-import type { CoreApi, FighterSnapshot, Pick as Side2, ScrapperRecord } from "@rankzero/core";
+import type { CoreApi, FighterSnapshot, Loadout, Pick as Side2, ScrapperRecord } from "@rankzero/core";
 import type { BoutRecord, Clock, GameActions, Result, SaveDoc, Settings } from "../contracts";
 import { decodeSave, encodeSave } from "./saveCode";
 import { SLOT_LIMIT, emptyDoc, trimHistory } from "./schema";
@@ -154,6 +154,14 @@ export function createGameActions(deps: ActionDeps): AppActions {
         const next = core.afterPick(rec, pick);
         if (next === rec || next.picks.length === rec.picks.length) return { doc: null, value: fail("nothing-waiting" as const) };
         return { doc: put(doc, next), value: ok(undefined) };
+      });
+    },
+
+    setLoadout(id: string, loadout: Loadout) {
+      return store.commit<Result<void, "no-scrapper">>((doc) => {
+        const rec = find(doc, id);
+        if (!rec) return { doc: null, value: fail("no-scrapper" as const) };
+        return { doc: put(doc, core.withLoadout(rec, loadout)), value: ok(undefined) };
       });
     },
 

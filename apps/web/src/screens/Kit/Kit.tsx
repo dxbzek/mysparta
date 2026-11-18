@@ -31,18 +31,19 @@ import { TabBar } from "../../ui/TabBar";
 import { tabRoute } from "../Locker/Locker";
 import { BackGlyph, HeartGlyph } from "../parts/Glyphs";
 import { PerkDetail, PerkRow } from "../parts/Perk";
+import { GearTabView, LoadoutTabView } from "./Loadout";
 import { RouteCardChip } from "../parts/RouteCard";
 import common from "../common.module.css";
 import css from "./Kit.module.css";
 
-const TABS: readonly KitTab[] = ["kit", "route", "stats"];
+const TABS: readonly KitTab[] = ["kit", "loadout", "gear", "route", "stats"];
 
 export function KitScreen({ tab }: { tab: KitTab }) {
   const { core, go } = useGame();
   const doc = useDoc();
   const rec = activeRecord(doc);
   const shown = rec ? shownRecord(doc, rec) : null;
-  const sheet = useMemo(() => (shown ? core.sheetOf(shown) : null), [core, shown?.id, shown?.picks.length, shown?.xp]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sheet = useMemo(() => (shown ? core.sheetOf(shown) : null), [core, shown?.id, shown?.picks.length, shown?.xp, JSON.stringify(shown?.loadout)]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!rec || !shown || !sheet) return null;
   return (
     <div className={`${common.screen} ${common.wide}`}>
@@ -63,6 +64,8 @@ export function KitScreen({ tab }: { tab: KitTab }) {
       </div>
       <main className={common.body} role="tabpanel">
         {tab === "kit" ? <KitTabView rec={shown} perks={sheet.perks} /> : null}
+        {tab === "loadout" ? <LoadoutTabView rec={shown} /> : null}
+        {tab === "gear" ? <GearTabView rec={shown} /> : null}
         {tab === "route" ? <RouteTabView rec={shown} /> : null}
         {tab === "stats" ? <StatsTabView rec={shown} /> : null}
       </main>
@@ -84,6 +87,7 @@ function KitTabView({ rec, perks }: { rec: ScrapperRecord; perks: PerkId[] }) {
     { title: UI.kit.skills, empty: UI.kit.emptyFor.skill, ids: perks.filter((p) => perkKind(p) === "skill") },
     { title: UI.kit.pets, empty: UI.kit.emptyFor.companion, ids: perks.filter((p) => perkKind(p) === "companion") },
     { title: UI.kit.shields, empty: UI.kit.emptyFor.shield, ids: perks.filter((p) => perkKind(p) === "shield") },
+    { title: UI.kit.gear, empty: UI.kit.emptyFor.gear, ids: perks.filter((p) => perkKind(p) === "gear") },
   ];
   return (
     <>

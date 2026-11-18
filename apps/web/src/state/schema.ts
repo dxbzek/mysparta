@@ -3,15 +3,18 @@
  * history limits. A document that fails the shape check is CORRUPT, never empty. Unknown content
  * ids (a perk the game no longer has) warn and are dropped: they never throw.
  */
-import { LOOK_SPACE, isPerkId } from "@rankzero/core";
+import { GEAR_SLOTS, LOOK_SPACE, isCompanionId, isGearId, isPerkId, isShieldId, isWeaponId } from "@rankzero/core";
 import type { StatKey } from "@rankzero/core";
-import type { BoutLog, FighterSnapshot, KitBase, Look, PerkId, ScrapperRecord, StatBlock } from "@rankzero/core";
+import type { BoutLog, CompanionId, FighterSnapshot, GearId, GearSlot, KitBase, Loadout, Look, PerkId, ScrapperRecord, StatBlock,
+  WeaponId } from "@rankzero/core";
 import type { BoutRecord, SaveDoc, Settings } from "../contracts";
 
 /** 2 since CONTRACT_REV 4: `settings.isVip` (migration 1 to 2 in migrations.ts). 3 since
  *  CONTRACT_REV 5: a scrapper's carried kit, `ScrapperRecord.base` (migration 2 to 3). 4 since
- *  CONTRACT_REV 7: energy in place of the daily bout cap, six stats (migration 3 to 4). */
-export const SCHEMA_VERSION = 4 as const;
+ *  CONTRACT_REV 7: energy in place of the daily bout cap, six stats (migration 3 to 4). 5 since
+ *  CONTRACT_REV 8: the loadout and body equipment (`ScrapperRecord.loadout`, `gearFrom`; migration
+ *  4 to 5). */
+export const SCHEMA_VERSION = 5 as const;
 /** Scrappers on one save. A fourth needs one retired first. */
 export const SLOT_LIMIT = 3;
 /** History: the last 50 bouts keep their logs, the last 200 are kept as summaries. */
@@ -103,6 +106,22 @@ export function checkBase(v: unknown, picks: number, warn: (w: string) => void):
   return { picks: v.picks, starts, perks, stats };
 }
 
+/** A stored loadout's shape (ids it does not know are left out; what it does not own is left out
+ *  when it is read, `loadoutOf`), or null when it is not one. */
+export function checkLoadout(v: unknown, warn: (w: string) => void): Loadout | null {
+  if (!isObj(v) || !Array.isArray(v.weapons) || !Array.isArray(v.pets) || !isObj(v.gear)) return null;
+  const weapons = (v.weapons as unknown[]).filter((w): w is WeaponId => isStr(w) && isWeaponId(w));
+  const pets = (v.pets as unknown[]).filter((p): p is CompanionId => isStr(p) && isCompanionId(p));
+  const shield = isStr(v.shield) && isShieldId(v.shield) ? v.shield : null;
+  const gear: Partial<Record<GearSlot, GearId>> = {};
+  for (const slot of GEAR_SLOTS) {
+    const g = (v.gear as Obj)[slot];
+    if (isStr(g) && isGearId(g)) gear[slot] = g;
+    else if (g !== undefined) warn(`unknown gear ${JSON.stringify(g)} in a loadout: left out`);
+  }
+  return { weapons, shield, pets, gear };
+}
+
 function checkRecord(v: unknown, where: string, warn: (w: string) => void = () => undefined): ScrapperRecord {
   need(isObj(v), `${where}: not an object`);
   const r = v as Obj;
@@ -124,6 +143,12 @@ function checkRecord(v: unknown, where: string, warn: (w: string) => void = () =
     if (base !== null) rec.base = base;
     else warn(`${where}: its carried kit could not be read: walked from its picks`);
   }
+  if (r.loadout !== undefined) {
+    const l = checkLoadout(r.loadout, warn);
+    if (l !== null) rec.loadout = l;
+    else warn(`${where}: its loadout could not be read: the default one is used`);
+  }
+  if (isNat(r.gearFrom) && r.gearFrom <= rec.picks.length) rec.gearFrom = r.gearFrom;
   return rec;
 }
 

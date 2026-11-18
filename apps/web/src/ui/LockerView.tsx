@@ -7,7 +7,7 @@
  * XP bar), stats, the energy bar (content v3), ONE primary button, kit strip (6 icons then "+N"),
  * last 3 bouts, tab bar.
  */
-import type { CompanionId, HeldId, Look, PerkId, StatKey } from "@rankzero/core";
+import type { CompanionId, GearId, GearSlot, HeldId, Look, PerkId, ShieldId, StatKey } from "@rankzero/core";
 import { ActorStage } from "./ActorStage";
 import { Button } from "./Button";
 import { EnergyBar, clockOf } from "./EnergyBar";
@@ -77,6 +77,9 @@ export interface LockerViewProps {
   look: Look;
   held?: HeldId | null;
   companions?: readonly CompanionId[];
+  /** The loadout's shield and gear (content v3 batch 2), drawn on the hero. */
+  shield?: ShieldId | null;
+  gear?: Partial<Record<GearSlot, GearId>>;
   xp: number;
   xpToNext: number;
   maxHp: number;
@@ -131,7 +134,7 @@ export function LockerView(p: LockerViewProps) {
       <main className={css.body}>
         <Panel tone="dark" flush className={css.hero}>
           <div className={css.heroStage}>
-            <ActorStage look={p.look} held={p.held ?? null} companions={p.companions ?? []} height={234} floorAt={0.78} label={t.hero(p.name)} t={p.heroT} clip={p.heroClip ?? "flick"} restMs={2600} />
+            <ActorStage look={p.look} held={p.held ?? null} companions={p.companions ?? []} shield={p.shield ?? null} {...(p.gear !== undefined ? { gear: p.gear } : {})} height={234} floorAt={0.78} label={t.hero(p.name)} t={p.heroT} clip={p.heroClip ?? "flick"} restMs={2600} />
           </div>
           <div className={css.heroTop}>
             <Sticker tilt={-2}>{p.name}</Sticker>

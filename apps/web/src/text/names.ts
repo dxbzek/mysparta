@@ -105,6 +105,17 @@ export const NAMES: Readonly<Record<PerkId | "fists", string>> = {
   "ironing-board": "Ironing Board",
   skateboard: "Skateboard",
   "riot-shield": "Riot Shield",
+  // body equipment (content v3, batch 2)
+  bandana: "Bandana", beanie: "Beanie", "hard-hat": "Hard Hat", goggles: "Goggles", "welding-mask": "Welding Mask",
+  "motorbike-helmet": "Motorbike Helmet",
+  "work-vest": "Work Vest", "hi-vis-vest": "Hi-Vis Vest", "padded-jacket": "Padded Jacket", "leather-jacket": "Leather Jacket",
+  "hockey-chest-pad": "Hockey Chest Pad", "tyre-rubber-vest": "Tyre-Rubber Vest",
+  "work-gloves": "Work Gloves", "taped-fists": "Taped Fists", "rubber-gloves": "Rubber Gloves", "fingerless-gloves": "Fingerless Gloves",
+  "oven-mitts": "Oven Mitts", "welding-gloves": "Welding Gloves",
+  "ripped-jeans": "Ripped Jeans", "cargo-pants": "Cargo Pants", "knee-pads": "Knee Pads", "track-pants": "Track Pants",
+  "magazine-shin-guards": "Magazine Shin Guards", overalls: "Overalls",
+  sneakers: "Sneakers", "flip-flops": "Flip-Flops", "rain-boots": "Rain Boots", "skate-shoes": "Skate Shoes",
+  "steel-toe-boots": "Steel-Toe Boots", slippers: "Slippers",
 };
 
 /** A name for an id read from a save that may be unknown: warns once and falls back. */

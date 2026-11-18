@@ -11,8 +11,8 @@
  *  - The moment of contact is one value; every contact effect is scheduled from it (effects.ts).
  *  - One actor at a time: the next actor starts when the last one's dash back is 60% done.
  */
-import type { ActorId, ActorInit, BagItem, BoutLog, FighterSnapshot, HeldId, MoveId, ShieldId, Side, Step } from "@rankzero/core";
-import { WEAPON_META, isScrapper, killStep as findKillStep, scrapperOf, sideOf } from "@rankzero/core";
+import type { ActorId, ActorInit, BagItem, BoutLog, FighterSnapshot, GearId, GearSlot, HeldId, MoveId, ShieldId, Side, Step } from "@rankzero/core";
+import { GEAR_META, WEAPON_META, isGearId, isScrapper, killStep as findKillStep, scrapperOf, sideOf } from "@rankzero/core";
 import type { Aim, ClipInfo, Dress, Pose, Rig, RigId } from "@rankzero/rig";
 import { strikeTime } from "@rankzero/rig";
 import type { ContactMark, Cue, EffectKey, MoveBeat, PlayerOpts, SfxFamily, SfxItem, SfxOn } from "./contracts";
@@ -33,6 +33,13 @@ import { dispatch } from "./choreo/index";
 
 
 /** Test hooks. Never set by the host: a planted fault for the controls of ground rule 13. */
+/** The gear a snapshot wears, by slot (its perks hold only what its loadout wears). */
+function wornOf(perks: readonly string[]): Partial<Record<GearSlot, GearId>> {
+  const out: Partial<Record<GearSlot, GearId>> = {};
+  for (const p of perks) if (isGearId(p)) out[GEAR_META[p].slot] = p;
+  return out;
+}
+
 export interface Internal {
   /** Shift one contact effect's start by `ms` (all contacts, or only `contact`). */
   shiftEffect?: { key: EffectKey; ms: number; contact?: number };
@@ -144,7 +151,7 @@ export class Builder {
       const home = internal.pets?.marks[a.id] ?? marks.get(a.id) ?? HOME;
       const tr: ActorTrack = {
         id: a.id, side, rig: a.kind as RigId, kind: a.kind, maxHp: a.maxHp,
-        ...(isScrapper(a.id) ? { look: snaps[side].look } : {}),
+        ...(isScrapper(a.id) ? { look: snaps[side].look, gear: wornOf(snaps[side].perks) } : {}),
         scale: scaleOf(a), home, homeFacing: homeFacing(side), reach: reachFor(a.kind), attacks: [],
         phase: (n * IDLE.phaseStepMs + ((opts.cosmeticSeed >>> 0) % 997)) % 1200,
         segs: [], moves: [], facings: [], helds: [], shields: [], initialShield: a.kind === "scrapper" ? log.init.shield[side] : null,

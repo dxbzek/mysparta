@@ -8,14 +8,15 @@
  * line "No Blade weapon yet." when a perk waits on something the scrapper does not own.
  */
 import { RARITY_OF, WEAPON_META, api, perkKind } from "@rankzero/core";
-import type { CompanionId, ContentTables, PerkId, Rarity, ShieldId, ShieldNumbers, SkillId, WeaponId, WeaponNumbers } from "@rankzero/core";
+import type { CompanionId, ContentTables, GearId, GearKey, GearNumbers, GearSlot, PerkId, Rarity, ShieldId, ShieldNumbers, SkillId, WeaponId,
+  WeaponNumbers } from "@rankzero/core";
 import { NAMES } from "./names";
 
 export const RARITY_WORD: Readonly<Record<Rarity, string>> = {
   common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic", mythic: "Mythic",
 };
 
-export type PerkKindWord = "Weapon" | "Booster" | "Passive" | "Move" | "Pet" | "Shield";
+export type PerkKindWord = "Weapon" | "Booster" | "Passive" | "Move" | "Pet" | "Shield" | "Gear";
 
 export interface PerkText { name: string; kind: PerkKindWord; rarity: Rarity; rarityWord: string; effect: string; costs: string[] }
 
@@ -120,8 +121,45 @@ function shieldText(n: ShieldNumbers): { effect: string; costs: string[] } {
   return { effect, costs };
 }
 
+/** Where a piece of gear is worn, in words. */
+export const SLOT_WORD: Readonly<Record<GearSlot, string>> = { head: "head", torso: "body", hands: "hands", legs: "legs", feet: "feet" };
+const STAT_POINT: Readonly<Partial<Record<GearKey, string>>> = { health: "Health", strength: "Strength", agility: "Agility", speed: "Speed",
+  toughness: "Toughness", precision: "Precision", evade: "Evade", block: "Block", aim: "Aim", pierce: "Pierce", intercept: "Intercept",
+  riposte: "Riposte", combo: "Combo", disarm: "Disarm", crit: "Crit", armor: "Armor", grip: "Grip" };
+/** One gear number in words, from the table (content v3 batch 2). A minus is a cost. */
+export function gearLine(key: GearKey, v: number): string {
+  const label = STAT_POINT[key];
+  if (label !== undefined) return `${label} ${sign(v)}`;
+  switch (key) {
+    case "soak": return `every swing or throw taken loses ${v} HP`;
+    case "headTough": return `Toughness ${sign(v)} against crits (clean blows to the head)`;
+    case "critCut": return `crits taken hit x${((150 - v) / 100).toFixed(2).replace(/0$/, "")}, not x1.5`;
+    case "sandProof": return "Sand in the Eyes takes no Aim";
+    case "petEvade": return `Evade ${sign(v)} against pets`;
+    case "fistDmg": return `fists hit ${v}% harder`;
+    case "snatchResist": return `${v}% to keep the weapon when it is snatched`;
+    case "thrownBlock": return `Block ${sign(v)} against a throw`;
+    case "moveSoak": return `Body Slam and Grapple hits taken lose ${v} HP`;
+    case "drawEase": return `empty hands draw sooner (Draw S out of S + ${6 - v}, not S + 6)`;
+    case "petSoak": return `pet bites taken lose ${v} HP`;
+    case "snareCut": return `a tarp holds ${v === 1 ? "1 turn" : `${v} turns`} less`;
+    case "startClock": return v < 0 ? `starts ${-v} beats early` : `starts ${v} beats late`;
+    default: return `${key} ${sign(v)}`;
+  }
+}
+/** A gear card: where it is worn, its bonus, and its cost (any minus). */
+export function gearText(n: GearNumbers, slot: GearSlot): { effect: string; costs: string[] } {
+  const rows = (Object.entries(n) as [GearKey, number][]).filter(([, v]) => v !== 0);
+  const plus = rows.filter(([k, v]) => v > 0 || k === "startClock");
+  const minus = rows.filter(([k, v]) => v < 0 && k !== "startClock");
+  const words = plus.map(([k, v]) => gearLine(k, v));
+  const effect = `Worn on the ${SLOT_WORD[slot]}: ${words.join(", ")}.`;
+  return { effect: effect.charAt(0).toUpperCase() + effect.slice(1), costs: minus.map(([k, v]) => gearLine(k, v)) };
+}
+
 export function perkKindWord(id: PerkId, c: ContentTables = api.content): PerkKindWord {
   const k = perkKind(id);
+  if (k === "gear") return "Gear";
   if (k === "weapon") return "Weapon";
   if (k === "companion") return "Pet";
   if (k === "shield") return "Shield";
@@ -144,6 +182,11 @@ export function perkText(id: PerkId, c: ContentTables = api.content): PerkText {
     const sh = c.shields[id as ShieldId];
     if (!sh) return { ...base, effect: "Unknown shield.", costs: [] };
     return { ...base, ...shieldText(sh.tiers[0]) };
+  }
+  if (k === "gear") {
+    const g = c.gear[id as GearId];
+    if (!g) return { ...base, effect: "Unknown gear.", costs: [] };
+    return { ...base, ...gearText(g.tiers[0], g.slot) };
   }
   const s = c.skills[id as SkillId];
   const line = SKILL_LINES[id as SkillId];
@@ -206,6 +249,12 @@ export function perkNumbers(id: PerkId, c: ContentTables = api.content): { label
     if (n.tempo !== 0) rows.push({ label: "Turn time", value: `+${n.tempo}%` });
     rows.push({ label: "Knocked off", value: `${n.knock}% of Disarm` });
     return rows;
+  }
+  if (k === "gear") {
+    const g = c.gear[id as GearId];
+    if (!g) return [];
+    return [{ label: "Worn on", value: SLOT_WORD[g.slot] },
+      ...(Object.entries(g.tiers[0]) as [GearKey, number][]).filter(([, v]) => v !== 0).map(([k, v]) => ({ label: v < 0 && k !== "startClock" ? "Cost" : "Bonus", value: gearLine(k, v) }))];
   }
   const s = c.skills[id as SkillId];
   if (!s?.move) return [];
@@ -287,6 +336,13 @@ export function shortEffect(id: PerkId, c: ContentTables = api.content): string 
     const n = sh.tiers[0];
     const tail = n.damage < 0 ? `, own damage ${n.damage}%` : n.tempo > 0 ? `, turns +${n.tempo}% longer` : n.riposte > 0 ? `, Riposte +${n.riposte}` : n.armor > 0 ? `, Armor +${n.armor}` : "";
     return `Block +${n.block}${tail}`;
+  }
+  if (k === "gear") {
+    const g = c.gear[id as GearId];
+    if (!g) return "Unknown gear";
+    const t = gearText(g.tiers[0], g.slot);
+    const bonus = t.effect.replace(/^Worn on the [a-z]+: /, "").replace(/\.$/, "");
+    return t.costs.length > 0 ? `${bonus}; ${t.costs[0]}` : bonus;
   }
   const s = c.skills[id as SkillId];
   const line = SKILL_SHORT[id as SkillId];

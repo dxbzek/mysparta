@@ -29,7 +29,7 @@ export function LevelUpScreen() {
   const doc = useDoc();
   const live = activeRecord(doc);
   // The offer is frozen when the screen opens, so the cards stay put after the pick is saved.
-  const [offer, setOffer] = useState<Offer | null>(() => (live ? { rec: live, ...core.routeNode(live.seed, live.picks, live.base) } : null));
+  const [offer, setOffer] = useState<Offer | null>(() => (live ? { rec: live, ...core.routeNode(live.seed, live.picks, live.base, live.gearFrom) } : null));
   const [sel, setSel] = useState<Side2 | null>(null);
   const [taken, setTaken] = useState<Side2 | null>(null);
   const [busy, setBusy] = useState(false);
@@ -64,7 +64,7 @@ export function LevelUpScreen() {
     }
   };
   const next = (): void => {
-    setOffer({ rec: live, ...core.routeNode(live.seed, live.picks, live.base) });
+    setOffer({ rec: live, ...core.routeNode(live.seed, live.picks, live.base, live.gearFrom) });
     setSel(null);
     setTaken(null);
   };

@@ -8,7 +8,7 @@
  * A document from a NEWER build (a higher version than this code knows) is not understood: it is
  * reported as corrupt, so its bytes are kept, never replaced as if the save were empty.
  */
-import { ENERGY_MAX, legacyBase, legacyKit, sixStatsOf } from "@rankzero/core";
+import { ENERGY_MAX, api, legacyBase, legacyKit, sixStatsOf } from "@rankzero/core";
 import type { KitBase, ScrapperRecord, StatBlock } from "@rankzero/core";
 import { SCHEMA_VERSION, checkDoc } from "./schema";
 import type { CheckResult } from "./schema";
@@ -28,7 +28,33 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   2: (doc) => pinKits(doc),
   /** 3 to 4: a full energy bar for every scrapper, and every kit carried with six stats. */
   3: (doc) => toEnergyAndSixStats(doc),
+  /** 4 to 5: every scrapper keeps its kit (no gear cards behind it) and gets the default loadout. */
+  4: (doc) => toLoadout(doc),
 };
+
+/**
+ * Schema 4 to 5 (content v3, batch 2). Gear cards came onto the Route: walked today, an old save's
+ * picks would meet a gear card where it took another card. Each scrapper, active or retired, gets
+ * `gearFrom` = the picks it has taken (no gear card before it, so its kit walks as the schema-4
+ * build walked it) and the sim's own loadout of that kit (`defaultLoadout`: every weapon it owns up
+ * to 5, the rarest first, its shield, its pets; it owns no gear). Stored bouts are kept as they are.
+ * A record this step cannot read is left as it is, for the check to report.
+ */
+export function toLoadout(doc: Obj): Obj {
+  const lift = (r: unknown): unknown => {
+    if (!isObj(r) || typeof r.seed !== "number" || !Array.isArray(r.picks) || r.loadout !== undefined) return r;
+    const out: Obj = { ...r, gearFrom: r.picks.length };
+    try {
+      out.loadout = api.loadoutOf(out as unknown as ScrapperRecord);
+    } catch {
+      return out;
+    }
+    return out;
+  };
+  return { ...doc,
+    fighters: Array.isArray(doc.fighters) ? doc.fighters.map(lift) : doc.fighters,
+    retired: Array.isArray(doc.retired) ? doc.retired.map(lift) : doc.retired };
+}
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
