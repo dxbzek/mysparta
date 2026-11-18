@@ -16,7 +16,8 @@
  * each cue at its `at` (scaled by --speed; at 2x and 3x a Move's hold, `Timeline.holds` via
  * `window.__rz.holds`, plays at 1x as the fight clock plays it). The mix is checked: every impact cue at or after its
  * contact, no two impact cues within 60 ms, every impact sound found in the mixed track within 30 ms
- * of its contact (matched on the audio, not read off the cue list), the peak below clipping, and
+ * of its contact (a check of where the cues put each sound in the mix, not of the live player or the
+ * picture; a match on the edge of the search window fails), the peak below clipping, and
  * the longest silence.
  * An agent cannot hear: a person must still listen (brief 3.13).
  *
@@ -209,11 +210,17 @@ async function mixCues({ cues, contacts, durationMs, speed, holds = [] }) {
     spans.push([at, at + len]);
     if (IMPACT.has(c.family)) placed.push({ c, sprite, from, len });
   }
-  // The sync check, measured on the mixed track itself (sound review, owner on the recorded fight:
-  // "the sound effects are off timing"): each impact sound is found in the mix by matching its
-  // sprite's first 60 ms against the track from 80 ms before to 150 ms after its contact, and its
-  // onset (the first sample at 15% of the sprite's peak) must be within 30 ms of the contact.
+  // The placement check, on the mixed track (round-2 close: this was reported as "sync measured on
+  // the mix", but the mix places each sprite at its own cue, so finding the sprite again only
+  // re-reads cue.at - contact.at plus the sprite's onset; it says nothing about the live player,
+  // whose timing is the cue scheduler's, apps/web/test/audio/schedule.test.ts, nor about what the
+  // picture shows, which only decoding the recorded audio against the frames can tell). Each
+  // impact sound is found by matching its sprite's first 60 ms against the track from 80 ms before
+  // to 150 ms after its contact; its onset must be within 30 ms of the contact. A best match on the
+  // edge of that window is a failure (the sound is outside it, the match is something else), and
+  // a sprite too short to match is counted, not skipped silently.
   const offsets = [];
+  let unmatched = 0;
   for (const { c, sprite, from, len } of placed) {
     const mark = contacts.find((m) => m.step === c.step);
     if (!mark) continue;
@@ -222,7 +229,7 @@ async function mixCues({ cues, contacts, durationMs, speed, holds = [] }) {
     let on = 0;
     while (on < len && Math.abs(sprite[from + on] ?? 0) <= 0.15 * pk) on++;
     const L = Math.min(len - on, Math.round(0.06 * RATE));
-    if (L < 100) continue;
+    if (L < 100) { unmatched++; problems.push(`impact sound at ${Math.round(c.at)} ms: its sprite is too short to find in the mix`); continue; }
     const contact = Math.round((realOf(mark.at, speed, holds) / 1000) * RATE);
     let best = -Infinity, bestAt = 0, tn = 0;
     for (let i = 0; i < L; i++) tn += sprite[from + on + i] ** 2;
@@ -235,10 +242,13 @@ async function mixCues({ cues, contacts, durationMs, speed, holds = [] }) {
     }
     const ms = ((bestAt - contact) / RATE) * 1000;
     offsets.push(ms);
+    if (ms <= -79 || ms >= 149) problems.push(`impact sound at ${Math.round(c.at)} ms: best match on the edge of the search window (${Math.round(ms)} ms), so not found near its contact`);
     if (Math.abs(ms) > 30) problems.push(`impact sound at ${Math.round(c.at)} ms starts ${Math.round(ms)} ms from its contact (measured on the mix)`);
   }
   const abs = offsets.map(Math.abs).sort((p, q) => p - q);
-  const sync = { impacts: offsets.length, medianMs: abs.length ? Number(abs[abs.length >> 1].toFixed(1)) : null, worstMs: abs.length ? Number(abs[abs.length - 1].toFixed(1)) : null };
+  const sync = { checks: "cue placement in the mix only: not the live player, not the picture", impacts: offsets.length, unmatched,
+    medianMs: abs.length ? Number(abs[abs.length >> 1].toFixed(1)) : null, worstMs: abs.length ? Number(abs[abs.length - 1].toFixed(1)) : null };
+
   let peak = 0;
   let clippedSamples = 0;
   for (const v of out) { const a = Math.abs(v); if (a > peak) peak = a; if (a >= 1) clippedSamples++; }
