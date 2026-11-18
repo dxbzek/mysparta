@@ -3,7 +3,7 @@
  */
 import type { PerkId } from "./ids";
 
-/** Six since content v3 (CONTRACT_REV 6): Toughness (a flat cut of every hit taken, and a firmer
+/** Six since content v3 (CONTRACT_REV 7): Toughness (a flat cut of every hit taken, and a firmer
  *  hold on the weapon and the shield) and Precision (Aim and Crit). */
 export type StatKey = "health" | "strength" | "agility" | "speed" | "toughness" | "precision";
 export interface StatBlock {
@@ -50,7 +50,7 @@ export interface ScrapperRecord {
   xp: number;                                             // XP inside the current level; a level-up
                                                           // is waiting while xp >= xpToNext(level)
   createdDay: DayKey; lifetimeBouts: number;
-  /** Energy (CONTRACT_REV 6, in place of the daily bout cap): the points held at `energyAt`, 0 to
+  /** Energy (CONTRACT_REV 7, in place of the daily bout cap): the points held at `energyAt`, 0 to
    *  ENERGY_MAX. One point comes back every ENERGY_REFILL_MS after `energyAt` (docs/RULES.md 4). */
   energy: number; energyAt: TimeMs;
   base?: KitBase;
@@ -59,7 +59,7 @@ export interface ScrapperRecord {
 /** Whole percentages. See the derived-values table of the rules. */
 export interface DerivedValues { evade: number; block: number; aim: number; pierce: number;
   intercept: number; riposte: number; combo: number; disarm: number; crit: number; armor: number;
-  /** Toughness (CONTRACT_REV 6): HP taken off every hit of a swing or a throw (never below 1), and
+  /** Toughness (CONTRACT_REV 7): HP taken off every hit of a swing or a throw (never below 1), and
    *  points taken off an attacker's disarm and shield knock-off chances. Aim and Crit already
    *  hold Precision. */
   soak: number; grip: number }
