@@ -12,7 +12,9 @@ export const LOG_VERSION = 2 as const;
  *  `FightClock.speed` are 1 | 2 | 3, `Settings.isVip` gates 3x, and the save is schema version 2. */
 /** 5: old saves keep their kit (round-2 close): `ScrapperRecord.base` (a `KitBase`), `routeNode`
  *  takes it, and the save is schema version 3. */
-export const CONTRACT_REV = 5;
+/** 6: a fighter's tarp shows the head (owner, 18 Nov 2026): rig `FxSize.neck`. */
+export const CONTRACT_REV = 6;
+
 
 export const REALM_SALT = "yard-1";
 /** Rivals in the pool at each level, index 0 to 239. */
