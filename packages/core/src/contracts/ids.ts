@@ -12,11 +12,12 @@ export const LOG_VERSION = 2 as const;
  *  `FightClock.speed` are 1 | 2 | 3, `Settings.isVip` gates 3x, and the save is schema version 2. */
 /** 5: old saves keep their kit (round-2 close): `ScrapperRecord.base` (a `KitBase`), `routeNode`
  *  takes it, and the save is schema version 3. */
-/** 6: content v3, batch 1 (plan 13.9, 13.15): energy in place of the daily bout cap
+/** 6: a fighter's tarp shows the head (owner, 18 Nov 2026): rig `FxSize.neck`. */
+/** 7: content v3, batch 1 (plan 13.9, 13.15): energy in place of the daily bout cap
  *  (`ScrapperRecord.energy`/`energyAt`, `CoreApi.energyNow`/`energyNextMs`, `afterBout` and
  *  `createRecord` take ms), six stats (`StatKey` adds toughness and precision, `DerivedValues`
  *  adds soak and grip), and the save is schema version 4. */
-export const CONTRACT_REV = 6;
+export const CONTRACT_REV = 7;
 
 export const REALM_SALT = "yard-1";
 /** Rivals in the pool at each level, index 0 to 239. */

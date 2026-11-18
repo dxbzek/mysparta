@@ -2,7 +2,7 @@
  * The migration table. Each entry lifts a document from version N to N + 1. Version 1 is the
  * first schema of this build; version 2 (CONTRACT_REV 4) adds `settings.isVip`; version 3
  * (CONTRACT_REV 5) carries an earlier build's kit (`ScrapperRecord.base`, see `pinKits`);
- * version 4 (CONTRACT_REV 6, content v3) has energy in place of the daily bout cap and six stats
+ * version 4 (CONTRACT_REV 7, content v3) has energy in place of the daily bout cap and six stats
  * (see `toEnergyAndSixStats`).
  *
  * A document from a NEWER build (a higher version than this code knows) is not understood: it is

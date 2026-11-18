@@ -50,7 +50,10 @@ const FIGHTER_TARP = { w: 84, h: 92 };
 /** Tarp: a blue poly tarp (round 2, 16 Nov 2026: in the wall teal it vanished into the arena),
  *  3:1 or more on every arena floor, dark folds down the drape, the crown lit by the lamp, a dark
  *  hem with steel eyelets, pegged down on the hem. `size`: the body it covers (`TARP`). */
-export const tarp: FxDraw = (env, progress, at, seed, size) => drape(env, progress, at, seed, size ?? FIGHTER_TARP);
+export const tarp: FxDraw = (env, progress, at, seed, size) => {
+  if (size?.neck !== undefined) shoulderDrape(env, progress, at, seed, { w: size.w, h: size.h, neck: size.neck });
+  else drape(env, progress, at, seed, size ?? FIGHTER_TARP);
+};
 
 /** How far the drawn tarp reaches each side of its centre once pegged down, for a body `w` across
  *  (the stage keeps it inside the frame): the sheet, its spread hem and the pegs on it. */
@@ -88,6 +91,112 @@ function flying(env: DrawEnv, u: number, at: { x: number; y: number }, s: number
   paint(env, dPolys([inkLine(mid, 0.8)]), ALLEY.tarpFold, 0);
   paint(env, dPoly([...bottom.map(([x, y]) => [x, y - 1.8] as Pt), ...bottom.slice().reverse()]), ALLEY.tarpHem, 0);
   for (const i of [1, 5, 9]) { const q = bottom[i]!; paint(env, dPoly(ellipsePoly(q[0], q[1] - 0.9, 0.8, 0.8, 8)), FX.spark, 0.4); }
+}
+
+/** How far the drawn shoulder drape reaches each side of its centre once pegged, for a fighter's
+ *  sheet `w` across (the stage keeps it inside the frame). */
+export function drapeHalf(w: number): number {
+  return w / 2 + 6 + 5 + 1;
+}
+
+/**
+ * The tarp over a fighter (owner, 18 Nov 2026: "show the head"): it hangs from the shoulders, the
+ * head and the hands at the face above it, and falls over the body to a hem spread on the floor,
+ * pegged at both ends. Phases as `TARP`: in flight the folded sheet; in the drop the drape itself
+ * falls from over the head straight onto the shoulders, its hem touching the floor at `land`; then
+ * the shoulders slump a little; the heave is a small wriggle from side to side; off, it slides off
+ * along the floor, crumples and fades. `size.neck` is where it hangs from, `size.w` the hem's width.
+ */
+function shoulderDrape(env: DrawEnv, progress: number, at: { x: number; y: number; facing: 1 | -1 }, seed: number,
+  size: { w: number; h: number; neck: number }): void {
+  const c = env.ctx;
+  const s = qs(seed);
+  const W0 = size.w / 2 + 6;
+  if (progress < TARP.fly) { flying(env, progress / TARP.fly, at, s, W0); return; }
+  c.translate(at.x, at.y);
+  const ease = (u: number): number => 1 - (1 - u) * (1 - u);
+  let neck = size.neck;   // the collar's height over the floor
+  let lift = 0;           // how far the whole drape is still over its place
+  let spread = 3;
+  let sway = 0;
+  let slide = 0;
+  let crumple = 0;
+  let pegs = false;
+  let alpha = 1;
+  if (progress < TARP.land) {
+    const d = (progress - TARP.fly) / (TARP.land - TARP.fly);
+    lift = (1 - d * d) * (size.h - size.neck + 12);
+    spread = 1 + 2 * d;
+  } else if (progress < TARP.slump) {
+    const d = (progress - TARP.land) / (TARP.slump - TARP.land);
+    neck = size.neck - 3 * ease(d);
+    spread = 3 + 2 * d;
+  } else if (progress <= TARP.heave) {
+    const d = (progress - TARP.slump) / (TARP.heave - TARP.slump);
+    neck = size.neck - 3 + Math.sin(d * Math.PI * 4) * 0.8;
+    sway = Math.sin(d * Math.PI * 2) * 1.6;
+    spread = 5;
+    pegs = true;
+  } else {
+    const d = (progress - TARP.heave) / (1 - TARP.heave);
+    neck = (size.neck - 3) * (1 - 0.8 * ease(d));
+    slide = at.facing * ease(d) * (size.w / 2 + 6) * 0.8;
+    crumple = d;
+    spread = 5;
+    alpha = d < 0.45 ? 1 : 1 - (d - 0.45) / 0.55;
+  }
+  if (alpha <= 0) return;
+  c.globalAlpha = alpha;
+  c.translate(slide, -lift);
+  const sw = size.w * 0.3 + 4;   // half the width across the shoulders
+  const W = W0 + spread;         // half the hem's width
+  // the collar dips at the neck and the sheet slopes off the shoulders, then hangs to the hem
+  const top: Pt[] = [];
+  for (let i = 0; i <= 8; i++) {
+    const u = -1 + (2 * i) / 8;
+    const x = u * sw + sway * (1 - Math.abs(u));
+    const slope = Math.abs(u) < 0.3 ? 1.5 : 1.5 - (Math.abs(u) - 0.3) * 11;
+    top.push([x, -neck - slope + (hash01(s, i) - 0.5) * 1.2 + crumple * hash01(s, i + 5) * 4]);
+  }
+  const side = (dir: 1 | -1): Pt[] => {
+    const out: Pt[] = [];
+    for (let k = 1; k <= 6; k++) {
+      const v = k / 6;
+      const y = -neck + 8 + (neck - 8) * v;
+      const x = dir * (sw + (W - sw) * Math.pow(v, 1.6)) + Math.sin(v * 5 + s + dir) * 1.1;
+      out.push([x, Math.min(0, y)]);
+    }
+    return out;
+  };
+  const hem: Pt[] = [];
+  for (let i = 12; i >= 0; i--) hem.push([-W + (2 * W * i) / 12, 0.6 - hash01(s, i + 20) * 1.6]);
+  const right = side(1);
+  const left = side(-1).reverse();
+  paint(env, dPoly([...top, ...right, ...hem, ...left]), ALLEY.tarp);
+  // folds: from the shoulders and the chest down to the hem
+  const folds: Pt[][] = [];
+  for (const f of [-0.6, -0.1, 0.45]) {
+    const x0 = f * sw;
+    const x1 = f * W;
+    folds.push([[x0 - 0.9, -neck + 6], [x0 + 1.2, -neck + 6], [x1 + 2.6, -2], [x1 - 2.2, -1.5]]);
+  }
+  paint(env, dPolys(folds), ALLEY.tarpFold, 0);
+  // the collar's edge, dark, and the hem band with its eyelets
+  paint(env, dPolys([inkLine(top, 1.1)]), ALLEY.tarpHem, 0);
+  const band: Pt[] = hem.map((h) => [h[0], h[1] - 2.4] as Pt).reverse();
+  paint(env, dPoly([...band, ...hem]), ALLEY.tarpHem, 0);
+  for (let i = 2; i <= 10; i += 4) { const h = hem[i]!; paint(env, dPoly(ellipsePoly(h[0], h[1] - 1.2, 0.8, 0.8, 8)), FX.spark, 0.4); }
+  // the shoulders catch the lamp
+  paint(env, dPolys([inkLine([[-sw * 0.8, -neck + 2.5], [-sw * 0.15, -neck - 0.6]], 1.2)]), LAMP, 0);
+  if (pegs) {
+    for (const dir of [-1, 1] as const) {
+      const hx = dir * (W - 1.5);
+      paint(env, dPolys([inkLine([[hx, -3.6], [hx - dir * 3.2, -2.2]], 0.6)]), INK, 0);
+      paint(env, dPoly([[hx - 1.2, -5.4], [hx + 1.2, -5.4], [hx + 0.4, 1.4], [hx - 0.4, 1.4]]), ALLEY.tarpHem, 0.5);
+      paint(env, dPoly(ellipsePoly(hx, -1.2, 1.3, 0.9, 8)), FX.spark, 0.4);
+    }
+  }
+  c.globalAlpha = 1;
 }
 
 function drape(env: DrawEnv, progress: number, at: { x: number; y: number; facing: 1 | -1 }, seed: number, size: { w: number; h: number }): void {

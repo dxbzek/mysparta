@@ -138,8 +138,17 @@ export function frameAt(tr: Tracks, t: number): Frame {
       clipT: seg === null ? t + a.phase : clipTime(seg, t), place: { x: p.x, y: p.y, facing: p.facing }, floorY: p.floorY,
       dress, seg, nudges: p.nudges, attacking: a.attacks.some((w) => t >= w.from && t < w.to) };
     if (seg?.aim !== undefined) fa.aim = seg.aim;
-    if (a.covered?.some((w) => t >= w.from && t < w.to) === true) fa.covered = true;
-    if (slung !== undefined && slung.length > 0) fa.slung = slung;
+    if (a.covered?.some((w) => t >= w.from && t < w.to) === true) {
+      // a pet is hidden under its tarp; a fighter shows its head and hands over the sheet that hangs
+      // from its shoulders (owner, 18 Nov 2026: "show the head"), and what it holds or carries is
+      // under the sheet
+      if (a.rig === "scrapper") {
+        fa.dress = { ...fa.dress, held: "fists", shield: null };
+        delete fa.slung;
+      } else fa.covered = true;
+    }
+
+    if (slung !== undefined && slung.length > 0 && !(a.rig === "scrapper" && a.covered?.some((w) => t >= w.from && t < w.to) === true)) fa.slung = slung;
     actors.push(fa);
   }
   actors.sort(byDepth);

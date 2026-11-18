@@ -24,7 +24,7 @@ export interface BoutRecord { id: string; at: number; seed: number; rulesVersion
 /** Schema version 2 (CONTRACT_REV 4): `settings.isVip` added; migration 1 to 2 sets it false.
  *  Schema version 3 (CONTRACT_REV 5): a scrapper may carry an earlier build's kit
  *  (`ScrapperRecord.base`); migration 2 to 3 pins it from the scrapper's last stored bout. */
-/** Schema version 4 (CONTRACT_REV 6): energy in place of the daily bout cap, six stats; migration
+/** Schema version 4 (CONTRACT_REV 7): energy in place of the daily bout cap, six stats; migration
  *  3 to 4 fills every bar, carries every kit with Toughness and Precision added (docs/RULES.md,
  *  "Old saves"). */
 export interface SaveDoc { schemaVersion: 4; rev: number; updatedAt: number; settings: Settings;

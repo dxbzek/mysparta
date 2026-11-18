@@ -235,8 +235,11 @@ export type FxKind = "burst" | "dust" | "spark" | "whoosh" | "tarp" | "tape" | "
   | "rings" /* Whistle, Air Horn */ | "plus" /* heal */ | "trail" /* Haymaker swing */;
 /** `progress` runs from 0 to 1 over the life of the effect. `seed` picks its cosmetic variation. */
 /** `size`: the drawn size of the body an effect covers (the tarp over a pet), `w` across and `h`
- *  above the floor line; without it the effect is drawn at a fighter's size. */
-export interface FxSize { w: number; h: number }
+ *  above the floor line; without it the effect is drawn at a fighter's size. `neck` (CONTRACT_REV
+ *  6): the tarp over a fighter hangs from this height over the floor line, across the shoulders,
+ *  so the head shows above it; without it the sheet covers the whole body (a pet). */
+export interface FxSize { w: number; h: number; neck?: number }
+
 export type FxDraw = (env: DrawEnv, progress: number, at: Place, seed: number, size?: FxSize) => void;
 /** One arena: the back wall layer and the floor layer of the 360 x 240 stage, with its own small
  *  crowd on the back layer. `crowdBounce` runs from 0 to 1 (0 = the crowd stands still).

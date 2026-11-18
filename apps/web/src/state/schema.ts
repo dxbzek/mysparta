@@ -10,7 +10,7 @@ import type { BoutRecord, SaveDoc, Settings } from "../contracts";
 
 /** 2 since CONTRACT_REV 4: `settings.isVip` (migration 1 to 2 in migrations.ts). 3 since
  *  CONTRACT_REV 5: a scrapper's carried kit, `ScrapperRecord.base` (migration 2 to 3). 4 since
- *  CONTRACT_REV 6: energy in place of the daily bout cap, six stats (migration 3 to 4). */
+ *  CONTRACT_REV 7: energy in place of the daily bout cap, six stats (migration 3 to 4). */
 export const SCHEMA_VERSION = 4 as const;
 /** Scrappers on one save. A fourth needs one retired first. */
 export const SLOT_LIMIT = 3;

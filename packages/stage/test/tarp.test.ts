@@ -13,12 +13,12 @@ import { describe, expect, it } from "vitest";
 import type { BoutLog, FighterSnapshot } from "@rankzero/core";
 import { REALM_SALT, combineSeed, rivalSnapshot, simulateFight } from "@rankzero/core";
 import { contentPack, createRig, gatePack } from "@rankzero/rig";
-import { TARP, tarpHalf as rigHalf, tarpLow, tarpSlide as rigSlide } from "../../rig/src/content/fx";
-import { drawnBox } from "../src/bounds";
+import { TARP, drapeHalf as rigDrapeHalf, tarpHalf as rigHalf, tarpLow, tarpSlide as rigSlide } from "../../rig/src/content/fx";
+import { drawnBox, topPoint } from "../src/bounds";
 import { homeSpan } from "../src/camera";
 import type { StagePlayer } from "../src/createFightPlayer";
 import { MOVE } from "../src/tuning";
-import { tarpHalf, tarpSlide } from "../src/choreo/snare";
+import { drapeHalf, tarpHalf, tarpSlide } from "../src/choreo/snare";
 import { playerFor } from "./lib/setup";
 
 const FULL = createRig(gatePack, contentPack);
@@ -54,6 +54,8 @@ describe("the tarp drawing and the stage agree", () => {
     for (const w of [20, 40, 90]) {
       expect(tarpHalf(w)).toBeCloseTo(rigHalf(w), 9);
       expect(tarpSlide(w)).toBeCloseTo(rigSlide(w), 9);
+      expect(drapeHalf(w)).toBeCloseTo(rigDrapeHalf(w), 9);
+
     }
   });
 });
@@ -81,8 +83,26 @@ describe("the tarp on built bouts (real art)", () => {
           const f = p.frame(t);
           const sheet = f.fx.find((e) => e.fx === "tarp" && e.under === s.target);
           expect(sheet, `${b.name}: a sheet over ${s.target} at ${t}`).toBeDefined();
-          expect(tarpLow(sheet!.size!.w, sheet!.size!.h)).toBeLessThanOrEqual(0.4 * sheet!.size!.w + 1e-9);
-          expect(f.actors.find((a) => a.id === s.target)?.covered, `${b.name}: ${s.target} hidden at ${t}`).toBe(true);
+          const who = f.actors.find((a) => a.id === s.target)!;
+          // its hem on the target's floor line
+          expect(Math.abs(sheet!.at.y - who.floorY), `${b.name}: hem on the floor at ${t}`).toBeLessThan(0.5);
+          if (who.rig === "scrapper") {
+            // a fighter: the sheet hangs from under the chin, the whole head above it, nothing held
+            // or carried shows (owner, 18 Nov 2026: "show the head")
+            const neck = sheet!.size!.neck!;
+            expect(neck, `${b.name}: a neckline at ${t}`).toBeGreaterThan(20);
+            const pose = FULL.samplePose(who.rig, who.clip, who.clipT, who.aim);
+            const top = topPoint(FULL, pose, who.dress, who.place).y;
+            const head = FULL.hitPoint("scrapper", who.dress, "head");
+            const chin = top + 2 * (head.y - topPoint(FULL, FULL.samplePose("scrapper", "idle", 0), who.dress, { x: 0, y: 0, facing: 1 }).y);
+            expect(chin, `${b.name}: the chin at ${t} over the collar`).toBeLessThanOrEqual(who.floorY - neck + 4.01);
+            expect(who.covered, `${b.name}: ${s.target} drawn at ${t}`).not.toBe(true);
+            expect([who.dress.held, who.dress.shield, who.slung]).toEqual(["fists", null, undefined]);
+          } else {
+            expect(sheet!.size!.neck).toBeUndefined();
+            expect(tarpLow(sheet!.size!.w, sheet!.size!.h)).toBeLessThanOrEqual(0.4 * sheet!.size!.w + 1e-9);
+            expect(who.covered, `${b.name}: ${s.target} hidden at ${t}`).toBe(true);
+          }
         }
       }
     }, 120_000);
@@ -103,9 +123,10 @@ describe("the tarp on built bouts (real art)", () => {
       for (const e of p.tracks.fx) {
         if (e.fx !== "tarp" || e.p0 !== TARP.heave || e.size === undefined) continue;
         const end = e.x + e.facing * tarpSlide(e.size.w);
+        const half = e.size.neck !== undefined ? drapeHalf(e.size.w) : tarpHalf(e.size.w);
         for (const c of [e.x, end]) {
-          expect(c - tarpHalf(e.size.w), `${b.name}: sheet off at ${e.from}`).toBeGreaterThanOrEqual(span.x0 - 0.5);
-          expect(c + tarpHalf(e.size.w), `${b.name}: sheet off at ${e.from}`).toBeLessThanOrEqual(span.x1 + 0.5);
+          expect(c - half, `${b.name}: sheet off at ${e.from}`).toBeGreaterThanOrEqual(span.x0 - 0.5);
+          expect(c + half, `${b.name}: sheet off at ${e.from}`).toBeLessThanOrEqual(span.x1 + 0.5);
         }
       }
     }, 120_000);

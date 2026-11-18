@@ -5,7 +5,8 @@
  *  no tarp: the target just holds its snared clip, pinned, until it is freed. */
 import type { ActorId, StepOf } from "@rankzero/core";
 import type { FxSize } from "@rankzero/rig";
-import { drawnBox } from "../bounds";
+import { drawnBox, topPoint } from "../bounds";
+
 import { homeSpan } from "../camera";
 import type { FxItem, Sling } from "../model";
 import type { Builder } from "../timeline";
@@ -41,10 +42,26 @@ export function tarpSize(b: Builder, id: ActorId): { size: FxSize; dx: number; h
   // (the dome is as tall as the body itself: what it holds is put away in the snared pose)
   const bare = drawnBox(b.rig, sample, { ...b.dress(id), held: null, shield: null }, { x: 0, y: 0, facing: 1 });
   const tall = Math.max(4, -bare.y0);
-
+  if (tr.rig === "scrapper") {
+    // a fighter's sheet hangs from just under the chin at the lowest the snared loop ducks the
+    // head, so the face always shows; it is as wide as the bare body, arms at the face included
+    const d = { ...b.dress(id), held: null, shield: null };
+    const head = b.rig.hitPoint("scrapper", d, "head");
+    const standTop = topPoint(b.rig, b.rig.samplePose("scrapper", "idle", 0), d, { x: 0, y: 0, facing: 1 }).y;
+    const r = Math.max(4, head.y - standTop);
+    const loop = b.info("scrapper", "snared").durationMs;
+    let chin = -Infinity;
+    for (let t = 0; t < loop; t += 35) chin = Math.max(chin, topPoint(b.rig, b.rig.samplePose("scrapper", "snared", t), d, { x: 0, y: 0, facing: 1 }).y + 2 * r);
+    const neck = Math.max(10, -chin - 1);
+    const w = bare.x1 - bare.x0 + 6;
+    return { size: { w, h: tall, neck }, dx: (bare.x0 + bare.x1) / 2, half: drapeHalf(w) };
+  }
   const w = Math.max(box.x1 - box.x0, 0.9 * tall);
   return { size: { w, h: tall }, dx: (box.x0 + box.x1) / 2, half: tarpHalf(w) };
 }
+/** How far the drawn shoulder drape reaches each side of its centre once pegged, for a fighter's
+ *  sheet `w` across (rig content/fx.ts `drapeHalf`). */
+export const drapeHalf = (w: number): number => w / 2 + 6 + 5 + 1;
 /** The clip time of the hit pose a pinned pet holds. */
 const PINNED_MS = 60;
 
