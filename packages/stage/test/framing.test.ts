@@ -328,8 +328,11 @@ describe("review round 2: framing and skill effects on the phone", () => {
     const w = f.actors.find((a) => a.id === (log.result.winner === "a" ? "a0" : "b0"))!;
     for (const pet of f.actors.filter((a) => a.rig !== "scrapper")) {
       const pb = box(p, pet, end);
-      // (the checker's measure: its place inside the pet's drawn box, 6 units of slack)
-      const on = w.place.x > pb.x0 - 6 && w.place.x < pb.x1 + 6;
+      // (the checker's measure: its place inside the pet's drawn box, 6 units of slack; a pet on a
+      // floor line 10 or more behind his, where a downed pet now rests, choreo/ko.ts, is behind his
+      // legs, not under his feet)
+      const on = Math.abs(pet.floorY - w.floorY) < 10 && w.place.x > pb.x0 - 6 && w.place.x < pb.x1 + 6;
+
       expect(on, `the winner at ${w.place.x.toFixed(0)} stands on ${pet.id} (${pet.rig}, ${pet.clip}, ${pb.x0.toFixed(0)} to ${pb.x1.toFixed(0)})`).toBe(false);
     }
     expect(OUTRO.standFeet).toBeGreaterThan(6);

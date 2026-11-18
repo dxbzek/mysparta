@@ -15,7 +15,8 @@ import type { ActorId } from "@rankzero/core";
 import { sideOf } from "@rankzero/core";
 import { drawnBox } from "../bounds";
 import { drawnScale, layWay, planWay, readyAt } from "../footwork";
-import { SCRAPPER_REACH, STAGE_W } from "../layout";
+import { FLOOR_Y, SCRAPPER_REACH, STAGE_W } from "../layout";
+
 import type { Builder } from "../timeline";
 import { basePos, facingAt } from "../track";
 import { MOVE, OUTCOME, OUTRO } from "../tuning";
@@ -27,8 +28,10 @@ type Focus = NonNullable<Builder["koFocus"]>;
  *  on the floor; clears the fall zone of pets and sends the winner to its outro place. */
 export function fallFocus(b: Builder, id: ActorId, k: number, clip: string, real: (clipMs: number) => number = (c) => k + c): Focus {
   const tr = b.track(id);
-  const at = basePos(tr, k);
+  // where the body comes to rest (choreo/ko.ts may slide it in its fall, to keep it on the stage)
+  const at = basePos(tr, real(b.info(tr.rig, clip).durationMs));
   const facing = facingAt(tr, k);
+
   const back: 1 | -1 = facing === 1 ? -1 : 1;
   const info = b.info(tr.rig, clip);
   const here = { x: at.x, y: at.floorY, facing };
@@ -108,6 +111,8 @@ function restingPets(b: Builder, k: number): { x0: number; x1: number }[] {
     if (st === "fled") continue;
     const q = b.place(tr.id, k);
     if (st === "ko") {
+      // (a downed pet on a floor line well behind his (choreo/ko.ts) is not under his feet)
+      if (FLOOR_Y - q.y >= 10) continue;
       const d = b.info(tr.rig, "ko").durationMs;
       const bx = drawnBox(b.rig, b.rig.samplePose(tr.rig, "ko", d), b.dress(tr.id), q);
       out.push({ x0: bx.x0, x1: bx.x1 });

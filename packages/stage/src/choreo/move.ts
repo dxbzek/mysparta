@@ -556,7 +556,11 @@ function bodySlam(b: Builder, step: MoveStep, i: number, s: number, c: number): 
     const tp = b.place(target, seg.to);
     const away: 1 | -1 = me.x <= tp.x ? -1 : 1;
     const bounds = b.frameBounds(step.actor);
-    const x = Math.min(bounds.x1, Math.max(bounds.x0, tp.x + away * BODY_GAP.body * Math.max(drawnScale(b, step.actor), drawnScale(b, target))));
+    // (a body width past the gap: the get-up leans forward into him, and the Head Start dash after
+    // it ended in the getting-up body, round-2 close, level 30 n 70)
+    const k = Math.max(drawnScale(b, step.actor), drawnScale(b, target));
+    const x = Math.min(bounds.x1, Math.max(bounds.x0, tp.x + away * (BODY_GAP.body + SCRAPPER_REACH.front) * k));
+
     if (away * (x - me.x) > 0.5) {
       const way = planWay(b, step.actor, x - me.x, 0, false, seg.to);
       if (way.kind !== "still") set = layWay(b, step.actor, seg.to, x, me.y, way);
