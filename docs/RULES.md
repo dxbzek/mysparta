@@ -777,7 +777,7 @@ Owner amendment 13.12 (the Weapon loadout and Body equipment bullets), built sec
 | Always the perk card, win %, levels 5 / 10 / 20 / 30 | 49.9 / 50.5 / 54.0 / 53.1 | 49.5 / 49.9 / 54.9 / 50.5 |
 | Always the stat card, the same | 47.9 / 47.9 / 52.9 / 46.5 | 48.4 / 48.5 / 54.5 / 48.4 |
 | Median turns, levels 2, 3, 5, 10, 30 | 12, 12, 13, 14, 18 | 12, 12, 12, 13, 17 |
-| Gear with-and-without, lowest / highest of the 30 over the five levels | - | 48.6% Magazine Shin Guards (level 3) / 61.0% Welding Gloves (level 3) |
+| Gear with-and-without, lowest / highest of the 30 over the five levels | - | 48.5% Magazine Shin Guards (level 3) / 61.0% Welding Gloves (level 3) |
 
 Gate (`pnpm balance`, full sample, levels 2, 3, 5, 10 and 30): PASS, no limit broken. Nearest to a limit: with-and-without at level 30, Screwdrivers 47.2%, Bike Chain 47.4%, Monkey Wrench 47.6%, Rubber Chicken 47.8% (line 47%); level-up policy always-perk 54.9% at level 20 (band 45 to 55).
 
