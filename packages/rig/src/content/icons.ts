@@ -586,7 +586,7 @@ const TALENT_PICS: Readonly<Record<TalentId, Pic>> = {
   "iron-knuckles": PICS["bare-knuckle"], "gym-rat": PICS["heavy-hands"], "follow-through": PICS.flurry, stagger: PICS.stubborn,
   bruiser: PICS.haymaker, knockdown: PICS["body-slam"],
   "weapon-care": PICS["sharpening-stone"], "quick-hands": PICS["quick-swap"], hook: PICS["knock-loose"], "fast-swap": PICS["fast-twitch"],
-  "weapon-master": PICS.parry, "fresh-steel": OWN_PICS.blade,
+  "steel-guard": PICS.parry, "fresh-steel": OWN_PICS.blade,
   "strong-arm": PICS.pitcher, sidearm: PICS["junk-collector"], "dead-eye": PICS["sharp-eye"], "bank-shot": PICS["trick-shot"],
   "quick-catch": PICS.snatch, bullseye: OWN_PICS.target,
   "good-boy": PICS["big-heart"], "sharp-teeth": OWN_PICS.fangs, "quick-paws": PICS["light-feet"], "second-bowl": OWN_PICS.bowl,

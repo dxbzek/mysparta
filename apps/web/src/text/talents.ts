@@ -23,7 +23,7 @@ export const TALENT_NAMES: Readonly<Record<TalentId, string>> = {
   "iron-knuckles": "Iron Knuckles", "gym-rat": "Gym Rat", "follow-through": "Follow-Through", stagger: "Stagger",
   bruiser: "Bruiser", knockdown: "Knockdown",
   "weapon-care": "Weapon Care", "quick-hands": "Quick Hands", hook: "Hook", "fast-swap": "Fast Swap",
-  "weapon-master": "Weapon Master", "fresh-steel": "Fresh Steel",
+  "steel-guard": "Steel Guard", "fresh-steel": "Fresh Steel",
   "strong-arm": "Strong Arm", sidearm: "Sidearm", "dead-eye": "Dead Eye", "bank-shot": "Bank Shot",
   "quick-catch": "Quick Catch", bullseye: "Bullseye",
   "good-boy": "Good Boy", "sharp-teeth": "Sharp Teeth", "quick-paws": "Quick Paws", "second-bowl": "Second Bowl",
@@ -52,7 +52,7 @@ export function talentLine(c: ContentTables, id: TalentId, rank = 1): string {
     case "quick-hands": return `Draw a weapon into empty hands sooner (slack -${n("drawEase")}) and swap weapons ${n("swap")}% more often.`;
     case "hook": return `Disarm +${n("disarm")}.`;
     case "fast-swap": return `A turn in which you draw or swap a weapon takes ${-n("swapTime")}% less time.`;
-    case "weapon-master": return `Block +${n("block")} while you hold a weapon.`;
+    case "steel-guard": return `Block +${n("block")} while you hold a weapon.`;
     case "fresh-steel": return `The first swing with each weapon you draw or swap in deals ${n("freshDmg")}% more damage and cannot be blocked.`;
     case "strong-arm": return `Throws deal ${n("thrownDmg")}% more damage.`;
     case "sidearm": return `A melee weapon is thrown ${n("throwChance")}% more often.`;

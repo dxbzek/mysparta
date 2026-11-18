@@ -109,6 +109,7 @@
       "apps/web/src/text/stats.ts",
       "apps/web/src/text/results.ts",
       "apps/web/src/text/ui.ts",
+      "apps/web/src/text/talents.ts",
       "apps/web/test/state/**",
       "apps/web/test/app/**",
       "apps/web/test/screens/**",

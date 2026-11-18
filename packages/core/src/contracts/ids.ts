@@ -87,7 +87,7 @@ export const TALENT_BRANCHES = ["brawler","arsenal","thrower","pack","iron-wall"
 export type TalentBranch = (typeof TALENT_BRANCHES)[number];
 export const TALENT_IDS = [
   "iron-knuckles","gym-rat","follow-through","stagger","bruiser","knockdown",
-  "weapon-care","quick-hands","hook","fast-swap","weapon-master","fresh-steel",
+  "weapon-care","quick-hands","hook","fast-swap","steel-guard","fresh-steel",
   "strong-arm","sidearm","dead-eye","bank-shot","quick-catch","bullseye",
   "good-boy","sharp-teeth","quick-paws","second-bowl","guard-dog","loyal-pack",
   "thick-skin","brace","shield-strap","counter","turtle","unbreakable"] as const;

@@ -58,7 +58,7 @@ const PER: Readonly<Record<TalentId, Readonly<Record<string, number>>>> = {
   "quick-hands": { drawEase: 1, swap: 5 },
   "hook": { disarm: 5 },
   "fast-swap": { swapTime: -10 },
-  "weapon-master": { block: 5 },
+  "steel-guard": { block: 5 },
   "fresh-steel": { freshDmg: 30 },
   // Thrower: throwing chance and damage, ricochets, catching
   "strong-arm": { thrownDmg: 10 },

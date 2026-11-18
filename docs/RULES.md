@@ -115,7 +115,7 @@ Numbers are per rank; a node at rank r gives r times each.
 | Arsenal | 1 | Quick Hands | 3 | the slack of the empty-hand draw -1 (never below 1; not with Quick Swap or Bare Knuckle) and swap chance +5 (with any of 30, Quick Swap's 50, Firm Grip's 15) |
 | Arsenal | 2 | Hook | 3 | Disarm +5 |
 | Arsenal | 2 | Fast Swap | 2 | a turn in which its owner drew or swapped costs 10% less time (after Quick Swap's cut) |
-| Arsenal | 3 | Weapon Master | 2 | Block +5 while a weapon is held |
+| Arsenal | 3 | Steel Guard | 2 | Block +5 while a weapon is held |
 | Arsenal | cap | **Fresh Steel** | 1 | the first swing with a weapon just drawn or swapped in (not a throw) has damage +30% and cannot be blocked |
 | Thrower | 1 | Strong Arm | 3 | damage of a throw +10% |
 | Thrower | 1 | Sidearm | 3 | the chance a melee weapon is thrown +5 (with any base: 20, 5, Pitcher's or Junk Collector's) |

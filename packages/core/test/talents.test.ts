@@ -258,10 +258,10 @@ const RULE: Record<TalentId, () => void> = {
     p.A.drew = true;
     expect(quickTurn(p.A, 200)).toBe(200);
   },
-  "weapon-master": () => {
-    derivedRule("weapon-master", "block", "block", "pipe");
+  "steel-guard": () => {
+    derivedRule("steel-guard", "block", "block", "pipe");
     const a = buildSide("a", snap([])).actors[0]!;
-    expect(combatValues(a.skills, "fists", null, 0, 3, [], one("weapon-master", 2))).toEqual(combatValues(a.skills, "fists", null, 0, 3, [], {}));
+    expect(combatValues(a.skills, "fists", null, 0, 3, [], one("steel-guard", 2))).toEqual(combatValues(a.skills, "fists", null, 0, 3, [], {}));
   },
   "fresh-steel": () => {
     // the defender's block roll passes (0)

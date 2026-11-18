@@ -127,7 +127,7 @@ export const TALENT_META: Readonly<Record<TalentId, TalentMeta>> = {
   "quick-hands":    { branch: "arsenal",   tier: 0, max: 3 },
   "hook":           { branch: "arsenal",   tier: 1, max: 3 },
   "fast-swap":      { branch: "arsenal",   tier: 1, max: 2 },
-  "weapon-master":  { branch: "arsenal",   tier: 2, max: 2 },
+  "steel-guard":  { branch: "arsenal",   tier: 2, max: 2 },
   "fresh-steel":    { branch: "arsenal",   tier: 3, max: 1 },
   "strong-arm":     { branch: "thrower",   tier: 0, max: 3 },
   "sidearm":        { branch: "thrower",   tier: 0, max: 3 },

@@ -65,7 +65,7 @@ export function combatValues(skills: ReadonlySet<string>, held: HeldId, shield: 
   return {
     evade: BASE.evade + w.evade + (has("slippery") ? sk("slippery", "evade") : 0) + g("evade"),
     block: BASE.block + w.block + (has("parry") ? sk("parry", "block") : 0) + sh.block + g("block")
-      + tv(tal, "brace", "block") + (held !== "fists" ? tv(tal, "weapon-master", "block") : 0),
+      + tv(tal, "brace", "block") + (held !== "fists" ? tv(tal, "steel-guard", "block") : 0),
     aim: BASE.aim + PRECISION_AIM * prec + w.aim + (has("sharp-eye") ? sk("sharp-eye", "aim") : 0)
       + (heavy && has("heavy-lifter") ? sk("heavy-lifter", "heavyAim") : 0) + g("aim"),
     pierce: BASE.pierce + w.pierce + (has("sharp-eye") ? sk("sharp-eye", "pierce") : 0) + g("pierce"),
