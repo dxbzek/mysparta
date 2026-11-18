@@ -10,7 +10,8 @@
  *                         every other perk is removed. Without it the rivals keep their own kits.
  *   --want <list>         beat types that must all appear: hit, miss (or evade), block, crit, combo,
  *                         draw, swap, throw, disarm, intercept, riposte, move, companion-ko,
- *                         plus ko, cap, overtime
+ *                         plus ko, cap, overtime, and capstone (any capstone talent's tag) or one
+ *                         capstone by id (knockdown, fresh-steel, bullseye, loyal-pack, unbreakable)
  *   --min-turns <n>       fewest turns (default 0)    --max-turns <n>   most turns (default 149)
  *   --gate-only           only beats the 13 gate clips can show: no blocks, throws, Moves,
  *                         companions, doors, snares, overtime or skill tags; weapons fists, pipe,
@@ -23,7 +24,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { BoutLog, FighterSnapshot, PerkId } from "../packages/core/src/index";
-import { REALM_SALT, combineSeed, isWeaponId } from "../packages/core/src/index";
+import { CAPSTONE_IDS, REALM_SALT, combineSeed, isCapstoneId, isWeaponId } from "../packages/core/src/index";
 import { rivalSnapshot } from "../packages/core/src/progress/rivals";
 import { isBooster } from "../packages/core/src/progress/perks";
 import { simulateFight } from "../packages/core/src/sim/simulate";
@@ -52,7 +53,7 @@ const count = num("--count", 1);
 const out = opt("--out");
 
 const KNOWN = ["hit", "miss", "block", "crit", "combo", "draw", "swap", "throw", "disarm", "intercept", "riposte",
-  "move", "companion-ko", "ko", "cap", "overtime"];
+  "move", "companion-ko", "ko", "cap", "overtime", "capstone", ...CAPSTONE_IDS];
 for (const w of want) if (!KNOWN.includes(w)) { console.error(`unknown beat "${w}". Known: ${KNOWN.join(", ")}`); process.exit(2); }
 if (kit !== undefined) {
   if (kit.length !== 2) { console.error("--kit takes two ids: <a>,<b>"); process.exit(2); }
@@ -92,6 +93,10 @@ function matches(log: BoutLog): boolean {
   if (log.result.reason === "ko") beats.add("ko");
   if (log.result.reason === "cap") beats.add("cap");
   if (log.steps.some((s) => s.t === "overtime")) beats.add("overtime");
+  // a capstone talent named in a tag (content v3 batch 3), and that capstone by its own id
+  for (const s of log.steps) for (const p of ("procs" in s && s.procs) ? s.procs : []) {
+    if (isCapstoneId(p.skill)) { beats.add("capstone"); beats.add(p.skill); }
+  }
   return want.every((w) => beats.has(w));
 }
 
