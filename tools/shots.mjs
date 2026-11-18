@@ -30,7 +30,9 @@ function mainCheckout() {
     return ROOT;
   }
 }
-export const OUT = resolve(mainCheckout(), ".review/wp5/shots");
+/** RZ_SHOTS_OUT sends the shots somewhere else (a scratch folder), so a worktree run writes nothing
+ *  into the main checkout. */
+export const OUT = process.env.RZ_SHOTS_OUT ? resolve(process.env.RZ_SHOTS_OUT) : resolve(mainCheckout(), ".review/wp5/shots");
 const SIZES = { phone: PHONE, desktop: DESKTOP, narrow: NARROW };
 
 /** Horizontal scroll, and text that does not fit its box. Runs in the page. */
@@ -99,7 +101,7 @@ async function shootInner(browser, sizeName, base, ctx) {
 
   /** From the Locker: play one bout to its result card. */
   const playOne = async (i) => {
-    await page.getByRole("button", { name: /^Fight \(\d+ bouts? left\)$/ }).click();
+    await page.getByRole("button", { name: "Fight", exact: true }).click();
     await rival().nth(i % 6).click();
     await faceFight().click();
     await page.waitForURL(/#\/bout\//);
@@ -136,7 +138,7 @@ async function shootInner(browser, sizeName, base, ctx) {
   await shot("settings");
   await hash("#/locker");
   // Card and face-off
-  await page.getByRole("button", { name: /^Fight \(\d+ bouts? left\)$/ }).click();
+  await page.getByRole("button", { name: "Fight", exact: true }).click();
   await rival().first().waitFor();
   await shot("card");
   await rival().first().click();
@@ -167,11 +169,11 @@ async function shootInner(browser, sizeName, base, ctx) {
     await more.click();
     await takeLevelUp(1);
   } else await btn("Back to the Locker").click();
-  // spend the rest of the day
+  // spend the rest of the energy bar
   for (let guard = 0; guard < 12; guard++) {
     await page.waitForURL(/#\/locker$/);
-    await page.getByText(/Done for tonight|^Fight \(|^Level up!$/).first().waitFor();
-    if (await page.getByText(/Done for tonight/).count()) break;
+    await page.getByText(/Out of energy|^Fight$|^Level up!$/).first().waitFor();
+    if (await page.getByText(/Out of energy/).count()) break;
     if (await btn("Level up!").count()) {
       await btn("Level up!").click();
       await takeLevelUp(guard);
@@ -229,18 +231,18 @@ async function shootInner(browser, sizeName, base, ctx) {
   await shot("history");
   await page.locator("button[aria-label^='Replay the bout with']").first().click();
   await shot("replay", 2500);
-  // next day: a bout left unwatched by a reload
-  await page.goto(`${base.replace(ENTRY, `${ENTRY}?shift=1`)}#/locker`);
+  // two hours later (a full bar again): a bout left unwatched by a reload
+  await page.goto(`${base.replace(ENTRY, `${ENTRY}?shift=0.1`)}#/locker`);
   await settle(page);
   if (await btn("Level up!").count()) {
     await btn("Level up!").click();
     await takeLevelUp(0);
   }
-  await page.getByRole("button", { name: /^Fight \(\d+ bouts? left\)$/ }).click();
+  await page.getByRole("button", { name: "Fight", exact: true }).click();
   await rival().first().click();
   await faceFight().click();
   await page.waitForURL(/#\/bout\//);
-  await page.goto(`${base.replace(ENTRY, `${ENTRY}?shift=1`)}#/locker`);
+  await page.goto(`${base.replace(ENTRY, `${ENTRY}?shift=0.1`)}#/locker`);
   await settle(page);
   await shot("last-bout-finished");
   await page.goto(`${base}#/sandbox`);
