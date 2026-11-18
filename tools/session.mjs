@@ -21,7 +21,7 @@
  *   7. check an old-build storage key planted at the start is still there, unchanged.
  * Exit code 1 on any failed check.
  */
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -299,6 +299,83 @@ async function main() {
       await page.waitForTimeout(300);
       check(await page.locator("[aria-label^='Energy: 5 of 6. +1 in']").count() > 0 && await button("Fight").count() + await button("Level up!").count() > 0, "after watching, the Locker shows the new values (energy 5 and its countdown)", await page.locator("[aria-label^='Energy:']").first().getAttribute("aria-label"));
       void xpBefore;
+
+      // ---------------------------------------------------------------- 5b. loadout and gear (content v3 batch 2)
+      // Marla's picks are set to a Route that owns two weapons, a shield and a piece of gear
+      // (tools/lib/session-kit.ts), written as the app writes a save, then chosen on the real screens.
+      {
+        const tsx = join(ROOT, "node_modules/tsx/dist/cli.mjs");
+        const kit = JSON.parse(spawnSync(process.execPath, [tsx, join(ROOT, "tools/lib/session-kit.ts"), "Marla"], { encoding: "utf8" }).stdout);
+        await page.evaluate((k) => new Promise((done, fail) => {
+          const r = indexedDB.open("rankzero.save", 1);
+          r.onerror = () => fail(r.error);
+          r.onsuccess = () => {
+            const db = r.result;
+            const tx = db.transaction("kv", "readwrite");
+            const store = tx.objectStore("kv");
+            const keys = ["rankzero.slot.0", "rankzero.slot.1"];
+            const reads = keys.map((key) => store.get(key));
+            tx.oncomplete = () => { db.close(); done(null); };
+            reads[1].onsuccess = () => {
+              const docs = reads.map((g) => { try { return JSON.parse(g.result); } catch { return null; } });
+              const top = docs[0] && (!docs[1] || docs[0].rev >= docs[1].rev) ? 0 : 1;
+              const doc = docs[top];
+              const m = doc.fighters.find((f) => f.name === "Marla");
+              m.picks = k.picks;
+              m.xp = 0;
+              delete m.loadout;
+              delete m.gearFrom;
+              m.energy = 6;
+              store.put(JSON.stringify({ ...doc, rev: doc.rev + 1 }), keys[1 - top]);
+            };
+          };
+        }), kit);
+        await page.goto(`${app.url}${ENTRY}?shift=0.2#/kit/loadout`);
+        await settle(page);
+        const bag = page.getByRole("region", { name: "Bag" });
+        const inBag = async () => (await readSave(page)).doc.fighters.find((f) => f.name === "Marla");
+        check(await bag.locator("button[aria-pressed=true]").count() === kit.weapons.length, "the Bag tab shows every owned weapon in the bag by default", `${await bag.locator("button[aria-pressed=true]").count()} of ${kit.weapons.length}`);
+        await bag.locator("button[aria-pressed=true]").first().click();
+        await page.waitForTimeout(300);
+        let m = await inBag();
+        check(m.loadout && m.loadout.weapons.length === kit.weapons.length - 1, "taking a weapon out of the bag is saved", JSON.stringify(m.loadout));
+        await bag.locator("button[aria-pressed=true]").first().click();
+        await page.waitForTimeout(300);
+        m = await inBag();
+        check(m.loadout.weapons.length === kit.weapons.length - 1, "the last weapon stays in the bag", JSON.stringify(m.loadout.weapons));
+        const shieldRow = page.getByRole("region", { name: "Shield" }).locator("button").first();
+        await shieldRow.click();
+        await page.waitForTimeout(300);
+        m = await inBag();
+        check(m.loadout.shield === null, "the shield can be left at home", String(m.loadout.shield));
+        await page.evaluate(() => { location.hash = "#/kit/gear"; });
+        await page.waitForTimeout(500);
+        const gearTile = page.locator("main button[aria-pressed]").first();
+        check(await gearTile.getAttribute("aria-pressed") === "true", "the gear owned is worn by default", await gearTile.getAttribute("aria-label"));
+        await gearTile.click();
+        await page.waitForTimeout(300);
+        m = await inBag();
+        check(Object.keys(m.loadout.gear).length === 0, "taking the gear off is saved", JSON.stringify(m.loadout.gear));
+        await gearTile.click();
+        await page.waitForTimeout(300);
+        m = await inBag();
+        check(Object.values(m.loadout.gear).includes(kit.gear[0]), "wearing it again is saved", JSON.stringify(m.loadout.gear));
+        // the next bout's snapshot takes exactly that loadout
+        await page.evaluate(() => { location.hash = "#/locker"; });
+        await page.waitForTimeout(400);
+        await button("Fight").click();
+        await page.locator("button[aria-label$='Open the face-off.']").first().click();
+        await page.getByRole("dialog", { name: "Face-off" }).getByRole("button", { name: "Fight", exact: true }).click();
+        await page.waitForURL(/#\/bout\//);
+        await page.getByRole("button", { name: "Skip to the end" }).click();
+        await page.getByRole("region", { name: "Result" }).waitFor();
+        const last = (await readSave(page)).doc.history[0];
+        const perks = last.snapshotA.perks;
+        check(perks.includes(kit.gear[0]) && perks.filter((p) => kit.weapons.includes(p)).length === kit.weapons.length - 1 && !perks.includes(kit.shield),
+          "the bout's snapshot carries only the chosen weapons, no shield, and the gear worn", perks.join(", "));
+        await page.getByRole("region", { name: "Result" }).getByRole("button", { name: "Locker", exact: true }).click();
+        await page.waitForURL(/#\/locker$/);
+      }
 
       // ---------------------------------------------------------------- 6. three slots, retire
       for (const n of ["Dez", "Tug"]) {
