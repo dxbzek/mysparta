@@ -755,6 +755,32 @@ Open, not decided here:
 - Toughness and Precision are worth a little less per point than Health, Strength and Agility (table above). Raising them further moved the level-1 spread or the miss-based skills.
 - For the stage, found while re-pinning: at level 30 a blow at a snared pet took a fighter out of the frame in 18 of 400 bouts, and a shield slung for a Move lost its weapon in the crossfade in 33 of 400. Both fixed in content v3 batch 2; the stage test `sweep-l30` checks all 400 bouts.
 
+### Content v3, batch 2: loadout and body equipment (18 November 2026)
+
+Owner amendment 13.12 (the Weapon loadout and Body equipment bullets), built second of content v3 by 13.15. The rules are in sections 3, 3b and 6c.
+
+**What changed, and why:**
+- **The loadout** (section 3b): the player picks the bag (up to 5 weapons), the shield and the pets; a pet left home costs no max HP. Rivals take the default loadout.
+- **Body equipment** (section 6c): 30 pieces in five slots, found on gear cards (14% of perk cards, each with +1 stat point). The first cut offered gear on 18% of perk cards with +1 point only on the early cards: rivals swapped perk cards for gear and the pool got weaker, so always-stat won 61.2% at level 20 (band 45 to 55). With the +1 always, the pieces sized up from their first numbers (Beanie Health 2 to 1, the Motorbike Helmet's crit Toughness 3 to 12, the Padded Jacket's Agility cost dropped, Cargo Pants Health +1) and 14%, level 20 sits at 54.9 / 54.5.
+- **Screwdrivers:** Dmg 7 to 8 and Combo 10 to 16: soak from the gear the rivals wear ate its many small hits (45.5% with-and-without at level 30, line 47%).
+- **Sim version 9.** Golden digests regenerated; the stage tests' find-bout cases moved to new bouts with the same checks.
+
+| Row | Number | Was | Now | Why |
+|---|---|---|---|---|
+| Screwdrivers | Dmg | 7 | 8 | 45.5% with-and-without at level 30 once rivals wear gear |
+| Screwdrivers | Combo | 10 | 16 | same (Dmg 8 alone gave 47.0%) |
+
+**Results** (sim version 8 / now; full gate sample):
+
+| | Before | Now |
+|---|---|---|
+| Always the perk card, win %, levels 5 / 10 / 20 / 30 | 49.9 / 50.5 / 54.0 / 53.1 | 49.5 / 49.9 / 54.9 / 50.5 |
+| Always the stat card, the same | 47.9 / 47.9 / 52.9 / 46.5 | 48.4 / 48.5 / 54.5 / 48.4 |
+| Median turns, levels 2, 3, 5, 10, 30 | 12, 12, 13, 14, 18 | 12, 12, 12, 13, 17 |
+| Gear with-and-without, lowest / highest of the 30 over the five levels | - | 48.6% Magazine Shin Guards (level 3) / 61.0% Welding Gloves (level 3) |
+
+Gate (`pnpm balance`, full sample, levels 2, 3, 5, 10 and 30): PASS, no limit broken. Nearest to a limit: with-and-without at level 30, Screwdrivers 47.2%, Bike Chain 47.4%, Monkey Wrench 47.6%, Rubber Chicken 47.8% (line 47%); level-up policy always-perk 54.9% at level 20 (band 45 to 55).
+
 ### Old saves (round-2 close, 18 November 2026)
 
 A save stores a scrapper's seed and picks, never its kit: the kit is walked again from them under the tables of the build that reads the save. The start pass, the pet pass and the round-2 passes changed the start perks, the card offers, the rerolls and the weapon cap, so an old save's picks walked into a different kit: tested on saves made by the builds of 15 November (sim version 3) and 16 November (sim version 4), a scrapper lost two weapons and gained others it never took, another gained a skill. Nothing in a save said which build wrote it.
