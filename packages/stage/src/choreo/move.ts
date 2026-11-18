@@ -45,13 +45,14 @@ import { land, moveNameTag, overHead, resultTag, skillTag } from "../effects";
 import { flightMs, makePath } from "../flight";
 import { CORAL, GREEN, SKY, VOLT } from "../palette";
 import { drawnScale, layWay, planWay, readyAt } from "../footwork";
-import { BODY_GAP, SCRAPPER_REACH } from "../layout";
+import { BODY_GAP, FLOOR_Y, SCRAPPER_REACH } from "../layout";
+
 import type { Sig, SigKind } from "../model";
 import type { Builder, SwingPlan } from "../timeline";
 import { drawnBox } from "../bounds";
 import { clearLanding } from "./fall";
-import { petTarp } from "./snare";
-import { homeSpan } from "../camera";
+import { inFrameDx, tarpSize } from "./snare";
+import { CAMERA, homeSpan } from "../camera";
 import { BEAT, MOVE } from "../tuning";
 import type { Placed } from "./index";
 
@@ -237,14 +238,14 @@ function tarp(b: Builder, step: MoveStep, i: number, s: number, c: number): Plac
   const arrive = t.release + MOVE.tarpFlightMs;
   const landing = arrive + MOVE.tarpDropMs;
   let spot = b.place(target, arrive);
-  const pt = petTarp(b, target);
-  if (pt !== null) {
+  const ts = tarpSize(b, target);
+  if (b.track(target).rig !== "scrapper") {
     // the pinned pet and its tarp, pegs and all, stay inside the frame every canvas shows: a pet by
     // the frame's edge scrambles in while the tarp flies (owner on the recorded fight, level 30 n 70:
     // the raccoon's tarp stood at the right edge, cut off by it)
     const span = homeSpan(b);
-    const centre = spot.x + spot.facing * pt.dx;
-    const shift = Math.min(0, span.x1 - (centre + pt.half)) + Math.max(0, span.x0 - (centre - pt.half));
+    const centre = spot.x + spot.facing * ts.dx;
+    const shift = Math.min(0, span.x1 - (centre + ts.half)) + Math.max(0, span.x0 - (centre - ts.half));
     if (Math.abs(shift) > 0.5) {
       const from = Math.max(c, t.release - 120);
       b.move(target, from, arrive - from, spot.x + shift, spot.y, 0, "inOut");
@@ -253,14 +254,47 @@ function tarp(b: Builder, step: MoveStep, i: number, s: number, c: number): Plac
       spot = { ...spot, x: spot.x + shift };
     }
   }
-  // the tarp flies on an arc to above the target, then drops over it
-  b.fx.push({ fx: "tarp", from: t.release, to: landing, x: spot.x + spot.facing * (pt?.dx ?? 0), y: spot.y, facing: spot.facing,
-    seed: b.opts.cosmeticSeed + i, contact: null, fly: { x0: t.hand.x, y0: t.hand.y + 40, ms: MOVE.tarpFlightMs, arc: 30 },
-    ...(pt !== null ? { size: pt.size } : {}) });
-  b.tarpLanding = { target, at: landing };
+  // the sheet's centre: on the body, kept inside the frame (a fighter's heap is wider than him: it
+  // spreads toward the middle of the stage rather than past the frame's edge)
+  const dx = inFrameDx(b, spot.x, spot.facing, ts.dx, ts.half, b.track(target).rig === "scrapper");
+  const x1 = spot.x + spot.facing * dx;
+  // it flies folded, on an arc that tops out over every standing head (round-2 close: thrown flat
+  // at shoulder height it passed through the enemy's head as the landed dome), to above the
+  // target, and drops from there, its hem touching the floor at `landing`
+  const above = ts.size.h + 10;
+  const y0 = t.hand.y;
+  const y1 = spot.y - above;
+  // the arc is raised until the sheet passes over every standing head it flies by (measured along
+  // the path, the drawn heads of the fighters other than the thrower, at the time it passes), but
+  // never over the top of the closest camera's view
+  const top = FLOOR_Y + CAMERA.under - CAMERA.minVisibleH + 8;
+  const others = b.actors.filter((a) => a.rig === "scrapper" && a.id !== step.actor && a.id !== target && b.status.get(a.id) === "up");
+  const clears = (arc: number): boolean => {
+    for (let k = 1; k < 20; k++) {
+      const u = k / 20;
+      const v = 1 - (1 - u) * (1 - u);
+      const x = t.hand.x + (x1 - t.hand.x) * v;
+      const y = y0 + (y1 - y0) * v - 4 * v * (1 - v) * arc;
+      for (const o of others) {
+        const q = b.place(o.id, t.release + u * MOVE.tarpFlightMs);
+        const head = drawnBox(b.rig, b.poseAt(o.id, t.release + u * MOVE.tarpFlightMs), b.dress(o.id), q).y0;
+        if (Math.abs(x - q.x) < ts.size.w * 0.4 + 14 && y + 8 > head - MOVE.tarpClear) return false;
+      }
+    }
+    return true;
+  };
+  // (the highest arc whose top stays in view)
+  const most = Math.max(12, Math.min(y0, y1) - top);
+  let arc = 12;
+  while (arc < most && !clears(arc)) arc += 4;
+  arc = Math.min(arc, most);
+
+  b.fx.push({ fx: "tarp", from: t.release, to: landing, x: x1, y: spot.y, facing: spot.facing, under: target,
+    seed: b.opts.cosmeticSeed + i, contact: null, fly: { x0: t.hand.x, y0, ms: MOVE.tarpFlightMs, arc, dy: -above }, size: ts.size });
+  b.tarpLanding = { target, at: landing, dx };
   b.moveCue(c, i, "tarp", "act");            // the tarp shaken out
-  b.moveCue(landing, i, "tarp", "effect");   // it slaps down and wraps the target
-  sig(b, step, t.release, arrive + 60, { target, fly: { x0: t.hand.x, y0: t.hand.y, x1: spot.x, y1: spot.y - 40, ms: MOVE.tarpFlightMs, arc: 30 } });
+  b.moveCue(landing, i, "tarp", "effect");   // its hem slaps the floor round the target (the drawn drop ends here)
+  sig(b, step, t.release, arrive + 60, { target, fly: { x0: t.hand.x, y0, x1, y1, ms: MOVE.tarpFlightMs, arc } });
   resultTag(b, "tarp", target, landing + 60, CORAL);
   b.cursor = Math.max(t.end, landing);
   return { at: s, apply: landing };

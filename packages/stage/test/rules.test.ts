@@ -401,7 +401,11 @@ describe("choreography", () => {
       for (const d of [60, 200, 400, 700]) {
         const t = p.timeline.stepAt[i]! + d;
         if (t >= kill) continue;
+        // (a thrown tarp flies on a high arc over the heads, round-2 close: it may cross a corner
+        // patch in the air; that is the sheet, not a dim)
+        if (p.frame(t).fx.some((e) => e.fx === "tarp" && e.progress < MOVE.tarpPhases.fly)) continue;
         const got = patch(t);
+
         got.forEach((v, k) => expect(Math.abs(v - base[k]!), `${s.move} (step ${i}) at +${d} ms`).toBeLessThanOrEqual(2));
         checked++;
       }

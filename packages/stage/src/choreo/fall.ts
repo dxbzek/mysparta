@@ -138,14 +138,17 @@ function walkOver(b: Builder, id: ActorId, from: number, x: number): void {
 }
 
 /** Pets that would lie under the falling body run out of its zone, toward the fight. A pet in its
- *  own attack (the one that felled him) is left to finish it. */
+ *  own attack (the one that felled him) is left to finish it, and a pet pinned under a tarp stays
+ *  pinned where it is (round-2 close: it ran out with its pegged sheet sliding along on it, the
+ *  pegs past the frame's edge), as `clearLanding` already had it. */
 function clearFallZone(b: Builder, fallen: ActorId, k: number, body: { x0: number; x1: number }, whole: { x0: number; x1: number },
   winner: { x0: number; x1: number } | null): void {
   const back: 1 | -1 = facingAt(b.track(fallen), k) === 1 ? -1 : 1;
   // the next free edge toward the fight (past his feet too), moved on by each pet that takes a place there
   let edge = back === 1 ? whole.x0 - OUTCOME.fallClear : whole.x1 + OUTCOME.fallClear;
   const pets = b.actors.filter((tr) => tr.rig !== "scrapper" && b.status.get(tr.id) === "up" && k >= tr.showFrom && k < tr.goneAt
-    && !tr.attacks.some((w) => k >= w.from && k < w.to))
+    && !b.snared.has(tr.id) && !tr.attacks.some((w) => k >= w.from && k < w.to))
+
     // nearest the body first
     .sort((p, q) => Math.abs(b.place(p.id, k).x - (body.x0 + body.x1) / 2) - Math.abs(b.place(q.id, k).x - (body.x0 + body.x1) / 2));
   for (const tr of pets) {

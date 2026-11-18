@@ -213,6 +213,17 @@ export const MOVE = {
   hugLiftMs: 140,
   tarpFlightMs: 240,
   tarpDropMs: 140,
+  /** The tarp drawing's phases over its progress (rig content/fx.ts TARP, one drawing for a pet and
+   *  a fighter): in flight, the drop (its hem reaches the floor at `land`), the slump to its low
+   *  pegged shape, the heave (looped), and off. */
+  tarpPhases: { fly: 0.12, land: 0.3, slump: 0.4, heave: 0.88 },
+  /** After the touchdown the sheet sinks to its low shape over this long, as the body goes down. */
+  tarpSlumpMs: 140,
+  /** Coming off, the sheet slides along the floor, crumples and fades over this long. */
+  tarpOffMs: 420,
+  /** The thrown tarp's arc tops out this far over the tallest standing head (stage units). */
+  tarpClear: 16,
+
   /** The pops of the Firecrackers round each target after they land. */
   crackersMs: 650,
   /** Where the lit-bundle part of the content crackers effect ends (content/fx.ts CRACKERS_LIT). */

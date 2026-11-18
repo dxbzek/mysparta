@@ -8,12 +8,16 @@ import { isScrapper } from "@rankzero/core";
 import type { Builder } from "../timeline";
 import { fallFocus } from "./fall";
 import { KNOCKOUT } from "../tuning";
+import { tarpOff } from "./snare";
 import type { Placed } from "./index";
+
 
 export function ko(b: Builder, step: StepOf<"ko">, i: number): Placed {
   if (!b.has(step.actor)) return { at: b.cursor, apply: b.cursor };
   const tr = b.track(step.actor);
   const hitAt = b.lastHitAt.get(step.actor) ?? b.cursor;
+  // (a hit frees a snared actor before it falls; should one still be pinned, its tarp comes off)
+  tarpOff(b, step.actor, hitAt, b.opts.cosmeticSeed + i);
   const kill = isScrapper(step.actor) && b.killStep >= 0 && i > b.killStep && !b.koShown;
   const stop = b.cause !== null && b.cause.at === hitAt ? b.cause.hitStop : 0;
   const k = hitAt + stop;

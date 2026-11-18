@@ -108,9 +108,11 @@ export class Builder {
   /** What the last swing or Move hit, for the steps that follow from it (disarm, shieldOff, free, ko). */
   cause: { step: number; at: number; actor: ActorId; hitStop: number } | null = null;
   readonly lastHitAt = new Map<ActorId, number>();
-  readonly snared = new Map<ActorId, { seg: Seg; cover: FxItem; sling?: Sling }>();
-  /** The tarp of the last Tarp Move: where and when it lands. */
-  tarpLanding: { target: ActorId; at: number } | null = null;
+  readonly snared = new Map<ActorId, { seg: Seg; cover: FxItem; sling?: Sling; covered?: { from: number; to: number } }>();
+  /** The tarp of the last Tarp Move: its target, when its hem touches the floor, and the sheet's
+   *  centre from the target's place, in its facing. */
+  tarpLanding: { target: ActorId; at: number; dx: number } | null = null;
+
   readonly boosted = new Set<ActorId>();
   overtimeShown = false;
   /** The scrapper of the kill step has fallen. */
@@ -746,7 +748,16 @@ export class Builder {
     const gap = BODY_GAP.body * Math.max(drawnScale(this, p.actor), drawnScale(this, owner));
     if (facing * (o.x - stopX) >= gap - 0.5) return null;
     const lo = SCRAPPER_REACH.back * drawnScale(this, owner);
-    const x = Math.min(STAGE_W - lo, Math.max(lo, stopX + facing * gap));
+    // past the pet, not between the attacker and it: a long weapon reaches over the gap past its
+    // stop, and on a back row the attacker stands behind the owner, drawn into his body (round-2
+    // close, level 30 n 70: the owner gave to the gap from the stop, between the sledgehammer and
+    // the pinned goose, and the two fighters read as one)
+    const pet = this.place(p.target, start);
+    const far = (pet.facing === facing ? ttr.reach.front : ttr.reach.back);
+    const past = pet.x + facing * (far + SCRAPPER_REACH.front * drawnScale(this, owner) + BODY_GAP.petClear);
+    const want = facing === 1 ? Math.max(stopX + gap, past) : Math.min(stopX - gap, past);
+    const x = Math.min(STAGE_W - lo, Math.max(lo, want));
+
     const way = planWay(this, owner, x - o.x, 0, false, start);
     if (way.kind === "still") return null;
     this.face(owner, start, facing === 1 ? -1 : 1);

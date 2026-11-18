@@ -206,9 +206,13 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
   }
   for (const s of f.auras) auraBehind(env, s);
   for (const a of f.actors) {
-    drawSlung(env, rig, a);
-    rig.drawActor(env, poseOf(a), a.dress, a.place);
-    // a tarp over a pet goes with the pet: a fighter in front of it stays in front
+    // under a tarp only the sheet shows: the body, what it holds and what hangs on it are under it
+    if (a.covered !== true) {
+      drawSlung(env, rig, a);
+      rig.drawActor(env, poseOf(a), a.dress, a.place);
+    }
+    // a tarp over an actor goes with it: a fighter in front of it stays in front
+
     for (const e of f.fx) if (e.under === a.id) rig.drawFx(env, e.fx, e.progress, e.at, e.seed, e.size);
   }
   for (const p of f.flights) {

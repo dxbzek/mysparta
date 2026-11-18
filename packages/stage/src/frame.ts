@@ -25,7 +25,11 @@ export interface FrameActor {
   attacking: boolean;
   /** What it has put aside for a Move (`Sling`): drawn hanging at its back hip, not on the arm. */
   slung?: PropId[];
+  /** Under a tarp (choreo/snare.ts): not drawn, its sheet is (round-2 close: a goose's head floated
+   *  over the dome, a fighter's head and sledgehammer stood out of a tall blue box). */
+  covered?: boolean;
 }
+
 export interface FrameProp { item: PropId; x: number; y: number; rot: number; facing: 1 | -1; alpha: number;
   /** Drawn squashed to this share of its height toward the floor line `floorY` (a fallen shield). */
   squash?: number; floorY?: number }
@@ -126,6 +130,7 @@ export function frameAt(tr: Tracks, t: number): Frame {
       clipT: seg === null ? t + a.phase : clipTime(seg, t), place: { x: p.x, y: p.y, facing: p.facing }, floorY: p.floorY,
       dress, seg, nudges: p.nudges, attacking: a.attacks.some((w) => t >= w.from && t < w.to) };
     if (seg?.aim !== undefined) fa.aim = seg.aim;
+    if (a.covered?.some((w) => t >= w.from && t < w.to) === true) fa.covered = true;
     if (slung !== undefined && slung.length > 0) fa.slung = slung;
     actors.push(fa);
   }
@@ -167,32 +172,57 @@ export function frameAt(tr: Tracks, t: number): Frame {
   for (const e of tr.fx) {
     if (t < e.from || t >= e.to) continue;
     const span = e.to - e.from;
-    let progress = e.loopMs !== undefined ? ((t - e.from) % e.loopMs) / e.loopMs : span > 0 && span !== Infinity ? (t - e.from) / span : 0;
+    const k = t - e.from;
+    // its lead part plays once (a tarp's slump), then its loop or its span
+    const lead = e.lead !== undefined && k < e.lead.ms ? e.lead : undefined;
+    const looped = e.lead !== undefined ? k - e.lead.ms : k;
+    let progress = e.loopMs !== undefined ? (looped % e.loopMs) / e.loopMs : span > 0 && span !== Infinity ? k / span : 0;
     let x = e.x;
     let y = e.y;
     let facing = e.facing;
     let under: ActorId | undefined;
+    const landed = e.fly === undefined || k >= e.fly.ms;
     if (e.follow !== undefined) {
       const who = placeOf.get(e.follow);
       if (who === undefined) continue;
       x = who.place.x + who.place.facing * e.x;
       y = who.floorY + (e.dy ?? 0);
       facing = who.place.facing;
-      if (e.fx === "tarp" && who.rig !== "scrapper" && (e.fly === undefined || t - e.from >= e.fly.ms)) under = e.follow;
+      // a tarp over an actor is drawn with it, in its depth slot (round-2 close: a fighter's too)
+      if (e.fx === "tarp" && landed) under = e.follow;
     }
+    if (e.under !== undefined && landed) under = e.under;
     if (e.track !== undefined && e.track.length > 0) {
       const q = trackAt(e.track, t);
       x = q.x;
       y = q.y;
     }
-    if (e.fly !== undefined) {
-      const u = clamp01((t - e.from) / e.fly.ms);
-      const v = eased("out", u);
-      x = e.fly.x0 + (x - e.fly.x0) * v;
-      y = e.fly.y0 + (y - e.fly.y0) * v - 4 * v * (1 - v) * e.fly.arc;
-      progress = e.fx === "tarp" ? (u < 1 ? 0.2 : clamp01((t - e.from - e.fly.ms) / Math.max(1, span - e.fly.ms))) : u;
+    let mapped = false;
+    if (lead !== undefined) {
+      progress = lead.p0 + ((lead.p1 - lead.p0) * k) / lead.ms;
+      mapped = true;
     }
-    if (e.p0 !== undefined || e.p1 !== undefined) progress = (e.p0 ?? 0) + ((e.p1 ?? 1) - (e.p0 ?? 0)) * progress;
+    if (e.fly !== undefined) {
+      const u = clamp01(k / e.fly.ms);
+      const v = eased("out", u);
+      if (e.fx === "tarp") {
+        // in the air: the folded sheet on its arc to above the target; then the drop, its hem
+        // reaching the floor exactly at the effect's end (where the landing sound is cued)
+        const P = MOVE.tarpPhases;
+        if (u < 1) {
+          const y1 = y + (e.fly.dy ?? 0);
+          x = e.fly.x0 + (x - e.fly.x0) * v;
+          y = e.fly.y0 + (y1 - e.fly.y0) * v - 4 * v * (1 - v) * e.fly.arc;
+          progress = P.fly * u;
+        } else progress = P.fly + (P.land - P.fly) * clamp01((k - e.fly.ms) / Math.max(1, span - e.fly.ms));
+        mapped = true;
+      } else {
+        x = e.fly.x0 + (x - e.fly.x0) * v;
+        y = e.fly.y0 + (y - e.fly.y0) * v - 4 * v * (1 - v) * e.fly.arc;
+        progress = u;
+      }
+    }
+    if (!mapped && (e.p0 !== undefined || e.p1 !== undefined)) progress = (e.p0 ?? 0) + ((e.p1 ?? 1) - (e.p0 ?? 0)) * progress;
     fx.push({ fx: e.fx, progress, at: { x, y, facing }, seed: e.seed, ...(under !== undefined ? { under } : {}), ...(e.size !== undefined ? { size: e.size } : {}) });
     if (e.key !== undefined && e.contact !== null) present.push({ key: e.key, contact: e.contact });
   }

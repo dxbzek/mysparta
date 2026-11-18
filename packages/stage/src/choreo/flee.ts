@@ -9,12 +9,17 @@ import { BODY_GAP, STAGE_W } from "../layout";
 import { CORAL } from "../palette";
 import type { Builder } from "../timeline";
 import { MOVE } from "../tuning";
+import { tarpOff } from "./snare";
+
 import type { Placed } from "./index";
 
 export function flee(b: Builder, step: StepOf<"flee">, i: number): Placed {
   const at = b.fleeAt ?? b.cursor;
   if (!b.has(step.actor)) return { at, apply: at };
   const tr = b.track(step.actor);
+  // a pet pinned under a tarp throws it off first: the sheet slides off and stays (round-2 close:
+  // a pinned raccoon fled with its pegged tarp following it)
+  tarpOff(b, step.actor, at, b.opts.cosmeticSeed + i);
   const p = b.place(step.actor, at);
   const edge = tr.side === "a" ? -40 : STAGE_W + 40;
   const facing: 1 | -1 = tr.side === "a" ? -1 : 1;

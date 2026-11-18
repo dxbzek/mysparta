@@ -56,6 +56,8 @@ export interface ActorTrack {
   /** A pet's own attacks, from the start of its run in to the end of its swing: the only times it
    *  may be drawn in front of a fighter at the same depth. */
   attacks: { from: number; to: number }[];
+  /** Hidden under a tarp (choreo/snare.ts): from the hem's touchdown until it comes off. */
+  covered?: { from: number; to: number }[];
 }
 
 /** A drawn effect from the rig's list. `follow` pins it to an actor's place. `loopMs` repeats
@@ -64,8 +66,16 @@ export interface FxItem { fx: FxKind; from: number; to: number; x: number; y: nu
   contact: number | null; key?: EffectKey; follow?: ActorId; dy?: number; loopMs?: number;
   /** The drawn size of the body it covers (the tarp over a pet; rig FxSize). */
   size?: FxSize;
-  /** For an effect that flies (the tarp, the crackers): from this point to (x, y) over `flyMs`. */
-  fly?: { x0: number; y0: number; ms: number; arc: number };
+  /** For an effect that flies (the tarp, the crackers): from this point to (x, y + dy) over `ms`
+   *  (a tarp flies to above its target, `dy` up from its place, and drops from there). */
+  fly?: { x0: number; y0: number; ms: number; arc: number; dy?: number };
+  /** Drawn in this actor's depth slot, right after it (a tarp over it: a fighter in front of the
+   *  pet stays in front of its sheet); a `follow` tarp is drawn with what it follows. */
+  under?: ActorId;
+  /** The first `ms` of its life draw the progress from `p0` to `p1` once, before its loop starts (a
+   *  tarp's slump to its low shape, then the heave on a loop). */
+  lead?: { ms: number; p0: number; p1: number };
+
   /** The progress range drawn over the life of the effect (default 0 to 1): the lit crackers in the
    *  hand draw only the start of the crackers effect, their pops the rest. */
   p0?: number; p1?: number;

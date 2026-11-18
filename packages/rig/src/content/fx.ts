@@ -28,70 +28,127 @@ function paint(env: DrawEnv, d: string, colour: string, outline: number = LINE.i
 const clamp = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 const qs = (seed: number): number => Math.abs(Math.floor(seed)) % 16;
 
-/** Tarp: a blue poly tarp thrown over the target, dropping from above and settling into a draped
- *  heap (review round 2, 16 Nov 2026: in the wall teal it vanished into the arena). Tarp blue
- *  (3:1 or more on every arena floor), dark fold shadows running down the drape, the top fold
- *  lit by the lamp, a dark hem with steel eyelets along it. */
-export const tarp: FxDraw = (env, progress, at, seed, size) => {
-  if (size !== undefined) { drape(env, progress, at, seed, size); return; }
+/**
+ * The Tarp's drawing over its progress, one design for a pet and a fighter (round-2 close, owner
+ * on the recorded fight: a tall upright dome over a goose with its head floating over it, a tall
+ * blue box over a fighter, the flying tarp the landed dome passing through a head, and a tarp that
+ * floated up off the frame and vanished in one frame):
+ *  - 0 to `fly`: in flight, a folded sheet flapping and turning over on its arc (`at` is where it
+ *    is in the air);
+ *  - `fly` to `land`: the drop. It opens over the target and falls; its hem reaches the floor at
+ *    `land`, a dome over the standing body (`at` is the target's place on the floor from here);
+ *  - `land` to `slump`: the body goes down under it (the stage hides it from `land`) and the sheet
+ *    sinks to its low pegged shape, no taller than 0.4 of its width;
+ *  - `slump` to `heave`: the pinned body heaves under it (the stage loops this part);
+ *  - `heave` to 1: off. Pegs out, it slides along the floor toward `at.facing`, crumples flat and
+ *    fades where it comes to rest.
+ */
+export const TARP = { fly: 0.12, land: 0.3, slump: 0.4, heave: 0.88 } as const;
+/** The size a tarp is drawn at when the stage gives none: over a fighter. */
+const FIGHTER_TARP = { w: 84, h: 92 };
+
+/** Tarp: a blue poly tarp (round 2, 16 Nov 2026: in the wall teal it vanished into the arena),
+ *  3:1 or more on every arena floor, dark folds down the drape, the crown lit by the lamp, a dark
+ *  hem with steel eyelets, pegged down on the hem. `size`: the body it covers (`TARP`). */
+export const tarp: FxDraw = (env, progress, at, seed, size) => drape(env, progress, at, seed, size ?? FIGHTER_TARP);
+
+/** How far the drawn tarp reaches each side of its centre once pegged down, for a body `w` across
+ *  (the stage keeps it inside the frame): the sheet, its spread hem and the pegs on it. */
+export function tarpHalf(w: number): number {
+  return (w / 2 + 5) * 1.08 + 5 + 1.5;
+}
+/** The low height of a pegged-down tarp over a body `w` across and `h` tall: 0.4 of its width at most. */
+export function tarpLow(w: number, h: number): number {
+  return Math.max(6, Math.min(h + 2, 0.4 * w));
+}
+/** How far the tarp slides along the floor as it comes off, for a body `w` across. */
+export function tarpSlide(w: number): number {
+  return (w / 2 + 5) * 0.8;
+}
+
+/** The folded sheet in the air: about two thirds of its width, flapping and turning over. */
+function flying(env: DrawEnv, u: number, at: { x: number; y: number }, s: number, W: number): void {
   const c = env.ctx;
   c.translate(at.x, at.y);
-  const drop = clamp(progress / 0.35);
-  const top = -96 + drop * 30 + clamp((progress - 0.35) / 0.65) * 4;
-  const s = qs(seed);
-  const pts: Pt[] = [];
-  const w = 26;
-  for (let i = 0; i <= 8; i++) { const x = -w + (2 * w * i) / 8; pts.push([x, top + Math.sin(i * 1.3 + s) * 2.2 * (1 - drop * 0.5) + Math.abs(x) * 0.12]); }
-  const hem: Pt[] = [];
-  for (let i = 8; i >= 0; i--) { const x = -w - 4 + ((2 * w + 8) * i) / 8; hem.push([x, -2 - (i % 2) * 5 - hash01(s, i) * 3]); }
-  paint(env, dPoly([...pts, ...hem]), ALLEY.tarp);
-  // the folds: dark wedges from the top down to the hem, where the sheet hangs over the body
-  const folds: Pt[][] = [];
-  for (const [x0, x1] of [[-15, -19], [2, 5], [16, 21]] as const) {
-    folds.push([[x0 - 1.2, top + 8], [x0 + 1.6, top + 8], [x1 + 3.2, -7], [x1 - 2.6, -6]]);
+  c.rotate(-0.35 + 0.7 * u);
+  const half = W * 0.66;
+  const top: Pt[] = [];
+  const bottom: Pt[] = [];
+  for (let i = 0; i <= 10; i++) {
+    const x = -half + (2 * half * i) / 10;
+    const wave = Math.sin(i * 0.95 + u * 16 + s) * 3.2;
+    const belly = Math.cos((x / half) * Math.PI * 0.5) * 3;
+    top.push([x, -3.5 - belly + wave]);
+    bottom.push([x, 3 + wave * 0.55 + hash01(s, i) * 0.8]);
   }
-  paint(env, dPolys(folds), ALLEY.tarpFold, 0);
-  paint(env, dPolys([inkLine([[-14, top + 10], [-18, -8]], 0.9), inkLine([[2, top + 8], [4, -10]], 0.9), inkLine([[16, top + 10], [20, -6]], 0.9)]), INK, 0);
-  // the hem: a dark band along the bottom edge, its eyelets steel rings
-  const band: Pt[] = [];
-  for (let i = 0; i <= 8; i++) { const h = hem[8 - i]!; band.push([h[0], h[1] - 3.2]); }
-  for (let i = 8; i >= 0; i--) band.push(hem[8 - i]!);
-  paint(env, dPoly(band), ALLEY.tarpHem, 0);
-  for (let i = 1; i < 8; i += 2) { const h = hem[8 - i]!; paint(env, dPoly(ellipsePoly(h[0], h[1] - 1.6, 0.9, 0.9, 8)), FX.spark, 0.5); }
-  // the top fold catches the lamp
-  paint(env, dPolys([inkLine([[-22, top + 4], [-8, top + 2]], 1.8), inkLine([[4, top + 2.4], [14, top + 3.4]], 1.2), inkLine([[-20, top + 18], [-16, top + 40]], 1.0)]), LAMP, 0);
-  for (const x of [-20, 0, 20]) paint(env, dPoly(ellipsePoly(x, top + 2.6, 1.2, 1.2, 8)), FX.spark, 0.6);
-};
+  paint(env, dPoly([...top, ...bottom.slice().reverse()]), ALLEY.tarp);
+  // the fold along the middle and the hem band along the lower edge
+  const mid: Pt[] = [];
+  for (let i = 2; i <= 8; i++) mid.push([top[i]![0], (top[i]![1] + bottom[i]![1]) / 2]);
+  paint(env, dPolys([inkLine(mid, 0.8)]), ALLEY.tarpFold, 0);
+  paint(env, dPoly([...bottom.map(([x, y]) => [x, y - 1.8] as Pt), ...bottom.slice().reverse()]), ALLEY.tarpHem, 0);
+  for (const i of [1, 5, 9]) { const q = bottom[i]!; paint(env, dPoly(ellipsePoly(q[0], q[1] - 0.9, 0.8, 0.8, 8)), FX.spark, 0.4); }
+}
 
-/** The tarp over a pet (round 2, owner on the recorded fight: drawn at a fighter's size it stood
- *  over a raccoon as a tall upright curtain). A low sheet that drops from above and settles over
- *  the pet's shape, `size.w` across and `size.h` high: a dome that follows the body, the hem spread
- *  on the floor, pegged down at both ends with a stake and a cord, dark folds down the drape, the
- *  top fold lit, a few scuffs of grime. Progress 0 to 0.35 is the drop, the rest a slow heave as
- *  the pet struggles under it. */
 function drape(env: DrawEnv, progress: number, at: { x: number; y: number; facing: 1 | -1 }, seed: number, size: { w: number; h: number }): void {
   const c = env.ctx;
-  c.translate(at.x, at.y);
   const s = qs(seed);
-  const W = size.w / 2 + 5;
-  const H = size.h + 4;
-  const drop = clamp(progress / 0.35);
-  const heave = progress < 0.35 ? 0 : Math.sin(((progress - 0.35) / 0.65) * Math.PI * 2) * 1.2;
-  const lift = (1 - drop) * H * 1.1;
-  const spread = 2 + drop * 3;
-  // a full dome over the body's box (the stage sizes it to the pose the pinned pet holds), with
-  // round shoulders so the sheet covers the body's corners, and a lumpy crown
+  const W0 = size.w / 2 + 5;
+  // over the standing body at touchdown, and its low pegged height after it
+  const tall = size.h + 6;
+  const low = tarpLow(size.w, size.h);
+  if (progress < TARP.fly) { flying(env, progress / TARP.fly, at, s, W0); return; }
+  c.translate(at.x, at.y);
+  const ease = (u: number): number => 1 - (1 - u) * (1 - u);
+  let lift = 0;       // the hem's height over the floor
+  let H = low;        // the crown's height over the hem
+  let W = W0 * 1.08;  // half the sheet's width
+  let spread = 5;     // the hem's spread past it on the floor
+  let slide = 0;
+  let lumps = 0.06;
+  let pegs = false;
+  let alpha = 1;
+  if (progress < TARP.land) {
+    // it opens over the target and falls, the hem reaching the floor at `land`
+    const d = (progress - TARP.fly) / (TARP.land - TARP.fly);
+    lift = (1 - d * d) * (tall * 0.5 + 4);
+    H = tall * (0.5 + 0.5 * d);
+    W = W0 * (0.72 + 0.28 * d);
+    spread = 2 * d;
+  } else if (progress < TARP.slump) {
+    // the body goes down under it: the sheet sinks to its low shape and spreads
+    const d = (progress - TARP.land) / (TARP.slump - TARP.land);
+    H = low + (tall - low) * (1 - ease(d));
+    W = W0 * (1 + 0.08 * d);
+    spread = 2 + 3 * d;
+  } else if (progress <= TARP.heave) {
+    // pegged down, heaving as the body under it struggles
+    const d = (progress - TARP.slump) / (TARP.heave - TARP.slump);
+    H = low + Math.sin(d * Math.PI * 2) * 1.2;
+    pegs = true;
+  } else {
+    // off: it slides along the floor, crumples flat and fades where it comes to rest
+    const d = (progress - TARP.heave) / (1 - TARP.heave);
+    slide = at.facing * ease(d) * tarpSlide(size.w);
+    H = low * (1 - 0.72 * ease(d));
+    W = W0 * 1.08 * (1 - 0.18 * d);
+    lumps = 0.06 + 0.3 * d;
+    alpha = d < 0.45 ? 1 : 1 - (d - 0.45) / 0.55;
+  }
+  if (alpha <= 0) return;
+  c.globalAlpha = alpha;
+  c.translate(slide, 0);
   const height = (x: number): number => {
     const u = x / W;
-    const crown = 1 + 0.06 * Math.sin(u * 5 + s);
-    return -lift - (H + heave) * crown * Math.pow(Math.max(0, 1 - u * u), 0.4) * (0.6 + 0.4 * drop);
+    const crown = 1 + lumps * Math.sin(u * 5 + s) + (lumps > 0.1 ? lumps * 0.6 * Math.sin(u * 11 + s * 2) : 0);
+    return -lift - H * crown * Math.pow(Math.max(0, 1 - u * u), 0.45);
   };
   const top: Pt[] = [];
   for (let i = 0; i <= 12; i++) { const x = -W + (2 * W * i) / 12; top.push([x, height(x) + (hash01(s, i) - 0.5) * 1.4]); }
   const hem: Pt[] = [];
   for (let i = 12; i >= 0; i--) {
     const x = -W - spread + ((2 * W + 2 * spread) * i) / 12;
-    hem.push([x, (drop < 1 ? -lift * 0.9 : 0) + 0.6 - hash01(s, i + 20) * 1.6]);
+    hem.push([x, -lift + 0.6 - hash01(s, i + 20) * 1.6]);
   }
   paint(env, dPoly([...top, ...hem]), ALLEY.tarp);
   // folds: dark wedges from near the crown down to the hem, where the sheet drapes over the body
@@ -99,30 +156,34 @@ function drape(env: DrawEnv, progress: number, at: { x: number; y: number; facin
   for (const f of [-0.55, 0.05, 0.6]) {
     const x0 = f * W * 0.55;
     const x1 = f * (W + spread);
-    folds.push([[x0 - 1, height(x0) + 3], [x0 + 1.4, height(x0) + 3], [x1 + 2.6, -1.5 - lift * 0.9 * (1 - drop)], [x1 - 2.2, -1 - lift * 0.9 * (1 - drop)]]);
+    folds.push([[x0 - 1, height(x0) + 3], [x0 + 1.4, height(x0) + 3], [x1 + 2.6, -1.5 - lift], [x1 - 2.2, -1 - lift]]);
   }
   paint(env, dPolys(folds), ALLEY.tarpFold, 0);
-  // the hem band along the floor
+  // the hem band along the floor, its eyelets steel rings
   const band: Pt[] = hem.map((h) => [h[0], h[1] - 2.4] as Pt).reverse();
   paint(env, dPoly([...band, ...hem]), ALLEY.tarpHem, 0);
+  for (let i = 2; i <= 10; i += 4) { const h = hem[i]!; paint(env, dPoly(ellipsePoly(h[0], h[1] - 1.2, 0.8, 0.8, 8)), FX.spark, 0.4); }
   // grime: a few dark scuffs on the sheet
   const grime: Pt[][] = [];
   for (let k = 0; k < 4; k++) {
     const x = (hash01(s, k + 40) - 0.5) * W * 1.3;
-    const y = height(x) * (0.35 + hash01(s, k + 50) * 0.4);
+    const y = -lift + (height(x) + lift) * (0.35 + hash01(s, k + 50) * 0.4);
     grime.push(ellipsePoly(x, y, 1.6 + hash01(s, k + 60) * 1.4, 0.8, 6));
   }
   paint(env, dPolys(grime), ALLEY.tarpFold, 0);
   // the crown catches the lamp
   paint(env, dPolys([inkLine([[-W * 0.45, height(-W * 0.45) + 1.5], [W * 0.1, height(W * 0.1) + 1.2]], 1.4)]), LAMP, 0);
-  if (drop < 1) return;
-  // pegged down: a cord from each end of the hem to a stake driven into the floor beside it
-  for (const side of [-1, 1] as const) {
-    const hx = side * (W + spread - 1);
-    const sx = side * (W + spread + 5);
-    paint(env, dPolys([inkLine([[hx, -1.2], [sx, -3.4]], 0.7)]), INK, 0);
-    paint(env, dPoly([[sx - 1.3, -5.2], [sx + 1.3, -5.2], [sx + 0.4, 1.2], [sx - 0.4, 1.2]]), ALLEY.tarpHem, 0.5);
+  if (pegs) {
+    // pegged down on the hem: a stake through the end eyelet of each side, its cord tied over the
+    // band to the sheet
+    for (const side of [-1, 1] as const) {
+      const hx = side * (W + spread - 1.5);
+      paint(env, dPolys([inkLine([[hx, -3.6], [hx - side * 3.2, -2.2]], 0.6)]), INK, 0);
+      paint(env, dPoly([[hx - 1.2, -5.4], [hx + 1.2, -5.4], [hx + 0.4, 1.4], [hx - 0.4, 1.4]]), ALLEY.tarpHem, 0.5);
+      paint(env, dPoly(ellipsePoly(hx, -1.2, 1.3, 0.9, 8)), FX.spark, 0.4);
+    }
   }
+  c.globalAlpha = 1;
 }
 
 /** Tape: hazard tape wound round the target, tightening. */
