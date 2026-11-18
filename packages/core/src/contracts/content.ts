@@ -5,7 +5,7 @@
  * one copy of every identity fact. Lookups by raw string from a save warn once and fall back.
  * They never throw.
  */
-import type { CompanionId, GearId, GearSlot, HeldId, PerkId, ShieldId, SkillId } from "./ids";
+import type { CompanionId, GearId, GearSlot, HeldId, PerkId, ShieldId, SkillId, TalentBranch, TalentId } from "./ids";
 
 export type Rarity = "common" | "uncommon" | "rare" | "epic" | "mythic";
 export type WeaponTag = "light" | "heavy" | "pole" | "thrown" | "blade";
@@ -104,6 +104,49 @@ export const GEAR_META: Readonly<Record<GearId, GearMeta>> = {
   "skate-shoes":      { slot: "feet",  rarity: "uncommon", look: "flat chunky skate shoes with a thick sole" },
   "steel-toe-boots":  { slot: "feet",  rarity: "rare",     look: "brown work boots laced up the ankle, a scuffed steel toe cap" },
   "slippers":         { slot: "feet",  rarity: "epic",     look: "fluffy house slippers" },
+};
+
+/**
+ * A talent node (content v3, batch 3, plan 13.11). Identity: its branch, its tier (0 and 1 hold two
+ * nodes each, 2 holds one, 3 is the capstone) and how many ranks it takes. A node of tier t needs
+ * TALENT_TIER_NEED[t] points spent in the lower tiers of its branch. `per` holds the node's named
+ * numbers for ONE rank: a node at rank r gives r times each (a capstone has one rank). What the
+ * numbers do is sim code keyed by the id (docs/RULES.md 3c).
+ */
+export interface TalentMeta { branch: TalentBranch; tier: 0 | 1 | 2 | 3; max: 1 | 2 | 3 }
+export interface TalentDef extends TalentMeta { id: TalentId; per: Readonly<Record<string, number>> }
+export const TALENT_TIER_NEED = [0, 2, 4, 5] as const;
+export const TALENT_META: Readonly<Record<TalentId, TalentMeta>> = {
+  "iron-knuckles":  { branch: "brawler",   tier: 0, max: 3 },
+  "gym-rat":        { branch: "brawler",   tier: 0, max: 3 },
+  "follow-through": { branch: "brawler",   tier: 1, max: 3 },
+  "stagger":        { branch: "brawler",   tier: 1, max: 2 },
+  "bruiser":        { branch: "brawler",   tier: 2, max: 2 },
+  "knockdown":      { branch: "brawler",   tier: 3, max: 1 },
+  "weapon-care":    { branch: "arsenal",   tier: 0, max: 3 },
+  "quick-hands":    { branch: "arsenal",   tier: 0, max: 3 },
+  "hook":           { branch: "arsenal",   tier: 1, max: 3 },
+  "fast-swap":      { branch: "arsenal",   tier: 1, max: 2 },
+  "weapon-master":  { branch: "arsenal",   tier: 2, max: 2 },
+  "fresh-steel":    { branch: "arsenal",   tier: 3, max: 1 },
+  "strong-arm":     { branch: "thrower",   tier: 0, max: 3 },
+  "sidearm":        { branch: "thrower",   tier: 0, max: 3 },
+  "dead-eye":       { branch: "thrower",   tier: 1, max: 3 },
+  "bank-shot":      { branch: "thrower",   tier: 1, max: 2 },
+  "quick-catch":    { branch: "thrower",   tier: 2, max: 2 },
+  "bullseye":       { branch: "thrower",   tier: 3, max: 1 },
+  "good-boy":       { branch: "pack",      tier: 0, max: 3 },
+  "sharp-teeth":    { branch: "pack",      tier: 0, max: 3 },
+  "quick-paws":     { branch: "pack",      tier: 1, max: 3 },
+  "second-bowl":    { branch: "pack",      tier: 1, max: 2 },
+  "guard-dog":      { branch: "pack",      tier: 2, max: 2 },
+  "loyal-pack":     { branch: "pack",      tier: 3, max: 1 },
+  "thick-skin":     { branch: "iron-wall", tier: 0, max: 3 },
+  "brace":          { branch: "iron-wall", tier: 0, max: 3 },
+  "shield-strap":   { branch: "iron-wall", tier: 1, max: 2 },
+  "counter":        { branch: "iron-wall", tier: 1, max: 3 },
+  "turtle":         { branch: "iron-wall", tier: 2, max: 2 },
+  "unbreakable":    { branch: "iron-wall", tier: 3, max: 1 },
 };
 
 /** Roll weight of one item inside its category. Common to Mythic is 200 to 1. */

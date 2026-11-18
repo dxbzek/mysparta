@@ -2,8 +2,8 @@
  * Fighters inside a bout (work package 1): the actor record, the derived fight values a held
  * weapon and the skills give, and building the actors of both sides from two snapshots.
  */
-import type { DerivedValues, FighterSnapshot } from "../contracts/fighter";
-import type { CompanionId, GearId, HeldId, PerkId, ShieldId, SkillId } from "../contracts/ids";
+import type { DerivedValues, FighterSnapshot, TalentRanks } from "../contracts/fighter";
+import type { CompanionId, GearId, HeldId, PerkId, ShieldId, SkillId, TalentId } from "../contracts/ids";
 import { isCompanionId, isGearId, isPerkId, isShieldId, isSkillId, perkKind } from "../contracts/ids";
 import type { GearKey } from "../contracts/content";
 import { gearSum } from "../content/gear";
@@ -14,6 +14,13 @@ import { SKILLS, sk } from "../content/skills";
 import { hasTag, weaponNumbers } from "../content/weapons";
 import { shieldNumbers } from "../content/shields";
 import { companionCostPct, effectiveOf, maxHpOf } from "../progress/stats";
+import { tn } from "../content/talents";
+
+/** A talent's named number at the rank held (rank x the table's number for one rank; 0 unranked). */
+export function tv(tal: TalentRanks | undefined, id: TalentId, key: string): number {
+  const r = tal?.[id];
+  return typeof r === "number" && r > 0 ? r * tn(id, key) : 0;
+}
 
 /** Base values before any weapon, skill or stat. Aim was 5 and Crit 5 before content v3: Precision
  *  now gives both (PRECISION_AIM, PRECISION_CRIT), so the base is set for the average starting
@@ -46,9 +53,10 @@ export function soakOf(tough: number): number {
 
 /** The derived values of a scrapper holding `held`, carrying `shield` (or null), with effective
  *  Toughness `tough` and Precision `prec`, wearing `gear` (content v3 batch 2: its derived numbers
- *  add here). Stored values: no cap. */
+ *  add here), with talent ranks `tal` (content v3 batch 3: Follow-Through, Bruiser, Hook, Weapon
+ *  Master, Brace and Turtle add here). Stored values: no cap. */
 export function combatValues(skills: ReadonlySet<string>, held: HeldId, shield: ShieldId | null, tough = 0, prec = 0,
-  gear: readonly GearId[] = []): DerivedValues {
+  gear: readonly GearId[] = [], tal: TalentRanks = {}): DerivedValues {
   const w = weaponNumbers(held);
   const sh = shieldNumbers(shield);
   const has = (id: SkillId): boolean => skills.has(id);
@@ -56,18 +64,20 @@ export function combatValues(skills: ReadonlySet<string>, held: HeldId, shield: 
   const heavy = held !== "fists" && hasTag(held, "heavy");
   return {
     evade: BASE.evade + w.evade + (has("slippery") ? sk("slippery", "evade") : 0) + g("evade"),
-    block: BASE.block + w.block + (has("parry") ? sk("parry", "block") : 0) + sh.block + g("block"),
+    block: BASE.block + w.block + (has("parry") ? sk("parry", "block") : 0) + sh.block + g("block")
+      + tv(tal, "brace", "block") + (held !== "fists" ? tv(tal, "weapon-master", "block") : 0),
     aim: BASE.aim + PRECISION_AIM * prec + w.aim + (has("sharp-eye") ? sk("sharp-eye", "aim") : 0)
       + (heavy && has("heavy-lifter") ? sk("heavy-lifter", "heavyAim") : 0) + g("aim"),
     pierce: BASE.pierce + w.pierce + (has("sharp-eye") ? sk("sharp-eye", "pierce") : 0) + g("pierce"),
     intercept: BASE.intercept + (has("anticipation") ? sk("anticipation", "intercept") : 0) + g("intercept"),
     riposte: BASE.riposte + w.riposte + (has("payback") ? sk("payback", "riposte") : 0) + sh.riposte + g("riposte"),
     combo: BASE.combo + w.combo + (has("flurry") ? sk("flurry", "combo") : 0)
-      + (held === "fists" && has("bare-knuckle") ? sk("bare-knuckle", "unarmedCombo") : 0) + g("combo"),
-    disarm: BASE.disarm + w.disarm + (has("knock-loose") ? sk("knock-loose", "disarm") : 0) + g("disarm"),
-    crit: BASE.crit + PRECISION_CRIT * prec + w.crit + g("crit"),
+      + (held === "fists" && has("bare-knuckle") ? sk("bare-knuckle", "unarmedCombo") : 0) + g("combo")
+      + tv(tal, "follow-through", "combo"),
+    disarm: BASE.disarm + w.disarm + (has("knock-loose") ? sk("knock-loose", "disarm") : 0) + g("disarm") + tv(tal, "hook", "disarm"),
+    crit: BASE.crit + PRECISION_CRIT * prec + w.crit + g("crit") + tv(tal, "bruiser", "crit"),
     armor: BASE.armor + (has("padding") ? sk("padding", "armor") : 0) + (has("plate-vest") ? sk("plate-vest", "armor") : 0)
-      + sh.armor + g("armor"),
+      + sh.armor + g("armor") + tv(tal, "turtle", "armor"),
     soak: BASE.soak + soakOf(tough) + g("soak"),
     grip: BASE.grip + TOUGH_GRIP * Math.max(0, tough) + g("grip"),
   };
@@ -127,6 +137,17 @@ export interface Actor {
   movedLast: boolean;
   /** The gear worn (content v3 batch 2), in slot order. Empty for a companion. */
   gear: readonly GearId[];
+  /** Talent ranks (content v3 batch 3). A companion holds none: its owner's Pack talents are in
+   *  `petEvade` and `petDmg` (and its HP). */
+  tal: TalentRanks;
+  /** A companion's Evade and damage percent from its owner's Quick Paws and Sharp Teeth. */
+  petEvade: number; petDmg: number;
+  /** The scrapper drew or swapped a weapon this turn (Fast Swap). */
+  drew: boolean;
+  /** The turn in which Knockdown was used (0 = not yet), so it fires once a turn. */
+  knockTurn: number;
+  /** Loyal Pack has saved its owner (once a bout). */
+  loyalUsed: boolean;
 }
 
 /** The sum of one gear number over what an actor wears (0 for a companion). */
@@ -147,7 +168,7 @@ function known(perks: readonly PerkId[]): PerkId[] {
 /** Max HP of a snapshot (maxHpOf: 54 + 7 x Health), minus the companion cost. */
 export function snapshotMaxHp(s: FighterSnapshot): number {
   const perks = known(s.perks);
-  return maxHpOf(effectiveOf(s.stats).health, s.level, companionCostPct(perks));
+  return maxHpOf(effectiveOf(s.stats).health, s.level, companionCostPct(perks, s.talents));
 }
 
 export interface SideSetup { actors: Actor[]; bag: BagItem[]; shield: ShieldId | null }
@@ -159,9 +180,11 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
   const skills = new Set<string>(perks.filter((p) => perkKind(p) === "skill"));
   const shield = perks.find((p): p is ShieldId => isShieldId(p)) ?? null;
   const gear = perks.filter((p): p is GearId => isGearId(p));
-  const petHp = skills.has("pet-lover") ? sk("pet-lover", "petHp") : 0;
+  const tal: TalentRanks = s.talents ?? {};
+  // Pet Lover, and Good Boy (talent): more companion HP; Pet Lover's damage stays its own (its tag)
+  const petHp = (skills.has("pet-lover") ? sk("pet-lover", "petHp") : 0) + tv(tal, "good-boy", "petHp");
   const petDmg = skills.has("pet-lover") ? sk("pet-lover", "petDamage") : 0;
-  const maxHp = maxHpOf(eff.health, s.level, companionCostPct(perks));
+  const maxHp = maxHpOf(eff.health, s.level, companionCostPct(perks, tal));
   const actors: Actor[] = [{
     id: `${side}0` as ActorId, side, kind: "scrapper", scrapper: true, maxHp, hp: maxHp, status: "up",
     str: eff.strength, agi: eff.agility, spd: eff.speed, tou: eff.toughness, pre: eff.precision, held: "fists", heldAttacked: false, shield,
@@ -171,7 +194,7 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
     clock: 0, priority: false, skills, comp: null, dmg: 0,
     haymaker: false, lastStandUsed: false, headStartPending: skills.has("head-start"), level: s.level,
     loss: 0, lossTurn: 0, quickSwapPending: false, quickSwapTag: false, firmGripKept: false, fistsFirst: skills.has("bare-knuckle"), movedLast: false,
-    gear,
+    gear, tal, petEvade: 0, petDmg: 0, drew: false, knockTurn: 0, loyalUsed: false,
   }];
   let n = 1;
   for (const p of perks) {
@@ -186,7 +209,8 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
       taunt: 0, reload: false, startDraw: false, dmgPct: petDmg, clock: 0, priority: false,
       skills: new Set(), comp: def, dmg: def.dmg, haymaker: false, lastStandUsed: false, headStartPending: false,
       level: s.level, loss: 0, lossTurn: 0, quickSwapPending: false, quickSwapTag: false, firmGripKept: false, fistsFirst: false, movedLast: false,
-      gear: [],
+      gear: [], tal: {}, petEvade: tv(tal, "quick-paws", "petEvade"), petDmg: tv(tal, "sharp-teeth", "petDmg"), drew: false, knockTurn: 0,
+      loyalUsed: false,
     });
     n += 1;
   }
@@ -204,8 +228,12 @@ export function buildSide(side: Side, s: FighterSnapshot): SideSetup {
 
 /** The values an actor fights with right now: its kit, then Sand in the Eyes and Taunt. */
 export function valuesOf(a: Actor): DerivedValues {
-  if (a.comp !== null) return companionValues(a.comp);
-  const v = combatValues(a.skills, a.held, a.shield, a.tou, a.pre, a.gear);
+  if (a.comp !== null) {
+    const c = companionValues(a.comp);
+    c.evade += a.petEvade;
+    return c;
+  }
+  const v = combatValues(a.skills, a.held, a.shield, a.tou, a.pre, a.gear, a.tal);
   if (a.sand !== 0) v.aim -= a.sand;
   if (a.taunt > 0) v.riposte += sk("taunt", "riposte");
   return v;

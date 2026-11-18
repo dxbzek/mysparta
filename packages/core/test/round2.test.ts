@@ -14,6 +14,7 @@ import { BARE_KNUCKLE_MAX_WEAPONS, MAX_WEAPONS, WEAPON_SHARE, fits, isBooster, r
 import { PERK_PLUS_MAX_LEVEL, perkCardPlus, walk, walkWith } from "../src/progress/route";
 import { THROW_LAST_PCT, throwChance } from "../src/sim/thrown";
 import { rivalSnapshot } from "../src/progress/rivals";
+import { rivalTalents, statsWithTalents } from "../src/progress/talents";
 import { OPENING_BIG_PCT, OPENING_FLOOR_PCT, OPENING_PCT, OPENING_TURNS, onceOnly } from "../src/sim/bout";
 import { meleeAttack } from "../src/sim/melee";
 import { MOVE_SLACK, UNARMED_MOVES, moveReady } from "../src/sim/moves";
@@ -296,7 +297,9 @@ describe("the perk card is not the losing card", () => {
         const rng = makeRng(combineSeed(seed, level));
         const picks = walkWith(seed, level - 1, (c) => ((c.left.kind === "stat") === (policy === "stat") ? "L" : "R"));
         const kit = walk(seed, picks);
-        const me = { ...rivalSnapshot(REALM_SALT, 1, 0), id: `policy:${i}`, level, stats: kit.stats, perks: kit.perks };
+        // (the player spends its talent points by the rivals' own rule, content v3 batch 3)
+        const tal = rivalTalents(seed, kit.perks, level);
+        const me = { ...rivalSnapshot(REALM_SALT, 1, 0), id: `policy:${i}`, level, stats: statsWithTalents(kit.stats, tal), perks: kit.perks, talents: tal };
         for (let j = 0; j < 4; j++) {
           const foe = rivalSnapshot(REALM_SALT, level, rng.int(1_000_000));
           const mine = j % 2 === 0 ? "a" : "b";

@@ -8,6 +8,7 @@ import type { Side, Step } from "@rankzero/core";
 import { sideOf } from "@rankzero/core";
 import type { ActorNames } from "../text/log";
 import { logLine } from "../text/log";
+import { procName } from "../text/talents";
 import { NAMES } from "../text/names";
 import css from "./fight.module.css";
 
@@ -19,7 +20,7 @@ export function stripParts(step: Step, names: ActorNames): LogPart[] {
   const parts: LogPart[] = [];
   if ("procs" in step && step.procs && step.procs[0]) {
     const p = step.procs[0];
-    parts.push({ text: `${NAMES[p.skill].toUpperCase()}.`, skill: sideOf(p.by) }, { text: " " });
+    parts.push({ text: `${procName(p.skill).toUpperCase()}.`, skill: sideOf(p.by) }, { text: " " });
   }
   if (step.t === "move") {
     const name = NAMES[step.move];

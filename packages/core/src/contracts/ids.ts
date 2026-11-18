@@ -22,7 +22,12 @@ export const LOG_VERSION = 2 as const;
  *  equipment (`GEAR_IDS`, `GearSlot`, a "gear" perk kind, `Loadout.gear`, `ContentTables.gear`, rig
  *  `Dress.gear` and `ContentPack.gear`), `ScrapperRecord.gearFrom` for an old save's kit; the save is
  *  schema version 5. */
-export const CONTRACT_REV = 8;
+/** 9: content v3, batch 3 (plan 13.11): the talent tree (`TALENT_BRANCHES`, `TALENT_IDS`,
+ *  `CAPSTONE_IDS`, `ScrapperRecord.talents`, `FighterSnapshot.talents`, `ScrapperSheet.talents`,
+ *  `ContentTables.talents`, `CoreApi.talentPoints`/`spendTalent`/`respecTalents`/`canRespec`/
+ *  `rivalTalents`), a capstone may name itself in a proc (`ProcId` adds `CapstoneId`), rig
+ *  `IconRef` adds `talent:<id>`; the save is schema version 6. */
+export const CONTRACT_REV = 9;
 
 export const REALM_SALT = "yard-1";
 /** Rivals in the pool at each level, index 0 to 239. */
@@ -75,6 +80,22 @@ export const GEAR_IDS = [
   "sneakers","flip-flops","rain-boots","skate-shoes","steel-toe-boots","slippers"] as const;
 export type GearId = (typeof GEAR_IDS)[number];
 
+/** The talent tree (content v3, batch 3, plan 13.11): five branches of six nodes. In each branch
+ *  the nodes are in tier order: two of tier 0, two of tier 1, one of tier 2, then the capstone
+ *  (tier 3). Every node is a sim rule (docs/RULES.md 3c). */
+export const TALENT_BRANCHES = ["brawler","arsenal","thrower","pack","iron-wall"] as const;
+export type TalentBranch = (typeof TALENT_BRANCHES)[number];
+export const TALENT_IDS = [
+  "iron-knuckles","gym-rat","follow-through","stagger","bruiser","knockdown",
+  "weapon-care","quick-hands","hook","fast-swap","weapon-master","fresh-steel",
+  "strong-arm","sidearm","dead-eye","bank-shot","quick-catch","bullseye",
+  "good-boy","sharp-teeth","quick-paws","second-bowl","guard-dog","loyal-pack",
+  "thick-skin","brace","shield-strap","counter","turtle","unbreakable"] as const;
+export type TalentId = (typeof TALENT_IDS)[number];
+/** The capstones, one per branch in branch order. The only talents that write a proc (a tag). */
+export const CAPSTONE_IDS = ["knockdown","fresh-steel","bullseye","loyal-pack","unbreakable"] as const;
+export type CapstoneId = (typeof CAPSTONE_IDS)[number];
+
 export type WeaponId = (typeof WEAPON_IDS)[number];
 /** What a hand holds. "fists" is the stat block used when nothing is held. */
 export type HeldId = WeaponId | "fists";
@@ -87,8 +108,8 @@ export type PropId = WeaponId | ShieldId;
 /** Flat union. A contract test asserts that no id is in two lists. Raccoon may be owned twice. */
 export type PerkId = WeaponId | SkillId | CompanionId | ShieldId | GearId;
 export type PerkKind = "weapon" | "skill" | "companion" | "shield" | "gear";
-/** What a proc names: a skill, or the shield that made a block. */
-export type ProcId = SkillId | ShieldId;
+/** What a proc names: a skill, the shield that made a block, or a capstone talent (CONTRACT_REV 9). */
+export type ProcId = SkillId | ShieldId | CapstoneId;
 
 /** Compile-time proof that every Move is a skill. */
 const MOVES_ARE_SKILLS: readonly SkillId[] = MOVE_IDS;
@@ -105,6 +126,8 @@ const SHIELD_SET: ReadonlySet<string> = new Set(SHIELD_IDS);
 const STAGE_SET: ReadonlySet<string> = new Set(STAGE_IDS);
 const GEAR_SET: ReadonlySet<string> = new Set(GEAR_IDS);
 const SLOT_SET: ReadonlySet<string> = new Set(GEAR_SLOTS);
+const TALENT_SET: ReadonlySet<string> = new Set(TALENT_IDS);
+const CAPSTONE_SET: ReadonlySet<string> = new Set(CAPSTONE_IDS);
 
 /** Guards for raw strings, for example ids read from a save. They never throw. */
 export function isWeaponId(id: string): id is WeaponId { return WEAPON_SET.has(id); }
@@ -115,11 +138,13 @@ export function isShieldId(id: string): id is ShieldId { return SHIELD_SET.has(i
 export function isStageId(id: string): id is StageId { return STAGE_SET.has(id); }
 export function isGearId(id: string): id is GearId { return GEAR_SET.has(id); }
 export function isGearSlot(id: string): id is GearSlot { return SLOT_SET.has(id); }
+export function isTalentId(id: string): id is TalentId { return TALENT_SET.has(id); }
+export function isCapstoneId(id: string): id is CapstoneId { return CAPSTONE_SET.has(id); }
 export function isPerkId(id: string): id is PerkId {
   return WEAPON_SET.has(id) || SKILL_SET.has(id) || COMPANION_SET.has(id) || SHIELD_SET.has(id) || GEAR_SET.has(id);
 }
-/** A skill or a shield: the two things a proc may name. */
-export function isProcId(id: string): id is ProcId { return SKILL_SET.has(id) || SHIELD_SET.has(id); }
+/** A skill, a shield or a capstone: the things a proc may name. */
+export function isProcId(id: string): id is ProcId { return SKILL_SET.has(id) || SHIELD_SET.has(id) || CAPSTONE_SET.has(id); }
 
 /** The list a perk id belongs to. An unknown string (a damaged save) is reported as "skill"; it never throws. */
 export function perkKind(id: PerkId): PerkKind {

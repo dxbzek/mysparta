@@ -3,10 +3,11 @@
  * disarm, the door, combo, Stubborn and riposte, in the order of the rules.
  */
 import type { Proc, Step } from "../contracts/log";
+import type { ProcId } from "../contracts/ids";
 import { sk } from "../content/skills";
 import { hasTag, reachOf, weaponNumbers } from "../content/weapons";
 import type { Actor } from "./combatant";
-import { CAP, clampPct, gearOf, soakOf, valuesOf } from "./combatant";
+import { CAP, clampPct, gearOf, soakOf, tv, valuesOf } from "./combatant";
 import type { Bout } from "./bout";
 import { allowance, armored, boosterProcs, due, emit, firstAction, knockOut, land, opening, pickProc, proc, scrapperOfSide, spent, tryDisarm,
   tryFree, tryShield } from "./bout";
@@ -24,7 +25,7 @@ export function damageSkill(att: Actor, thrown: boolean): "pitcher" | "sharpenin
 
 /** Whole-percent damage multiplier: 100 plus skill bonuses, doubled by Haymaker. `bare` leaves the
  *  damage skill out (to tell whether it changed the number). */
-export function damageMult(att: Actor, thrown: boolean, boosted: boolean, bare = false): number {
+export function damageMult(att: Actor, thrown: boolean, boosted: boolean, bare = false, fresh = 0): number {
   let m = 100;
   const skill = bare ? null : damageSkill(att, thrown);
   if (att.scrapper) {
@@ -34,8 +35,16 @@ export function damageMult(att: Actor, thrown: boolean, boosted: boolean, bare =
     // Taped Fists (gear): more damage with fists.
     if (!thrown && att.held === "fists") m += gearOf(att, "fistDmg");
     m += shieldNumbers(att.shield).damage;
-  } else if (skill === "pet-lover") {
-    m += att.dmgPct;
+    // talents (content v3 batch 3): Iron Knuckles (fists), Weapon Care (a held weapon), Strong Arm
+    // (a throw), and `fresh`, Fresh Steel's bonus on the first swing with a weapon drawn or swapped in
+    if (thrown) m += tv(att.tal, "strong-arm", "thrownDmg");
+    else if (att.held === "fists") m += tv(att.tal, "iron-knuckles", "fistDmg");
+    else m += tv(att.tal, "weapon-care", "weaponDmg");
+    m += fresh;
+  } else {
+    if (skill === "pet-lover") m += att.dmgPct;
+    // Sharp Teeth (the owner's talent)
+    m += att.petDmg;
   }
   if (boosted) m = Math.floor((m * sk("haymaker", "damageMult")) / 100);
   return m < 0 ? 0 : m;
@@ -80,9 +89,11 @@ export function takenSoak(att: Actor, def: Actor, crit: boolean): number {
   return (crit && def.scrapper ? dv.soak - soakOf(def.tou) + soakOf(def.tou + gearOf(def, "headTough")) : dv.soak)
     + (att.comp !== null ? gearOf(def, "petSoak") : 0);
 }
-/** A crit taken by `def` multiplies by this percent: 150, less the Welding Mask's cut. */
-export function critPctOf(def: Actor): number {
-  return 150 - gearOf(def, "critCut");
+/** A crit taken by `def` multiplies by this percent: 150, less the Welding Mask's cut. A throw of an
+ *  attacker with Bullseye (talent) crits x2 (its `critTo`), less the same cut. */
+export function critPctOf(def: Actor, att?: Actor, thrown = false): number {
+  const to = thrown && att !== undefined && att.scrapper ? tv(att.tal, "bullseye", "critTo") : 0;
+  return (to > 0 ? to : 150) - gearOf(def, "critCut");
 }
 
 /** Evade and block chances, halved against a throw (a shield's thrownBlock is added after the
@@ -94,7 +105,9 @@ export function evadeChance(att: Actor, def: Actor, aimLess: number, evadeLess: 
   const lead = agi < -30 ? -30 : agi > 30 ? 30 : agi;
   // Hi-Vis Vest (gear): more Evade against a companion's swing.
   const pet = att.comp !== null ? gearOf(def, "petEvade") : 0;
-  const c = clampPct(dv.evade + pet - evadeLess + lead - (av.aim - aimLess), CAP.evade);
+  // Dead Eye (talent): more Aim on a throw.
+  const eye = thrown && att.scrapper ? tv(att.tal, "dead-eye", "thrownAim") : 0;
+  const c = clampPct(dv.evade + pet - evadeLess + lead - (av.aim + eye - aimLess), CAP.evade);
   return thrown ? Math.floor(c / 2) : c;
 }
 export function blockChance(att: Actor, def: Actor, pierceLess: number, thrown: boolean): number {
@@ -104,15 +117,21 @@ export function blockChance(att: Actor, def: Actor, pierceLess: number, thrown: 
   return clampPct(Math.floor(c / 2) + shieldNumbers(def.shield).thrownBlock + gearOf(def, "thrownBlock"), CAP.block);
 }
 
+/** What a capstone changes about one swing (content v3 batch 3). `sure`: it cannot be evaded or
+ *  blocked (Unbreakable's riposte); `noBlock`: it cannot be blocked (Fresh Steel); `crit`: it crits
+ *  when it lands (Knockdown); `fresh`: percent added to its damage multiplier (Fresh Steel); `tag`:
+ *  the capstone named on the step when it lands. The rolls are made as usual either way. */
+export interface SwingOpts { sure?: boolean; noBlock?: boolean; crit?: boolean; fresh?: number; tag?: ProcId }
+
 /** Rolls one swing and applies its HP loss. The caller writes the step, then calls `consequences`. */
-export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, boosted: boolean, procs: Proc[]): SwingCalc {
+export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, boosted: boolean, procs: Proc[], o: SwingOpts = {}): SwingCalc {
   const seBonus = att.skills.has("sharp-eye") ? sk("sharp-eye", "aim") : 0;
   const sePierce = att.skills.has("sharp-eye") ? sk("sharp-eye", "pierce") : 0;
   let wouldMiss = false;
 
   const ev = evadeChance(att, def, 0, 0, thrown);
   const r = b.r.hit.int(100);
-  const evaded = !def.snared && r < ev;
+  const evaded = !def.snared && !o.sure && r < ev;
   if (evaded) {
     if (def.skills.has("slippery") && due(b, def, "slippery", r >= evadeChance(att, def, 0, sk("slippery", "evade"), thrown))) {
       procs.push(proc(def, "slippery"));
@@ -128,7 +147,7 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
 
   const bl = blockChance(att, def, 0, thrown);
   const rb = b.r.hit.int(100);
-  const blocked = !def.snared && rb < bl;
+  const blocked = !def.snared && !o.sure && !o.noBlock && rb < bl;
   if (blocked) {
     if (def.shield !== null) procs.push(proc(def, def.shield));
     // Parry's Block decided the roll.
@@ -139,21 +158,26 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   if (seBonus > 0 && due(b, att, "sharp-eye", wouldMiss)) procs.push(proc(att, "sharp-eye"));
 
   const variance = thrown ? roll(b.r.damage, 95, 125) : roll(b.r.damage, 85, 115);
-  const critChance = Math.min(valuesOf(att).crit + (boosted ? sk("haymaker", "crit") : 0), CAP.crit);
-  const crit = b.r.hit.int(100) < critChance;
+  // Bullseye (talent): more Crit on a throw.
+  const bull = thrown && att.scrapper ? tv(att.tal, "bullseye", "thrownCrit") : 0;
+  const critChance = Math.min(valuesOf(att).crit + bull + (boosted ? sk("haymaker", "crit") : 0), CAP.crit);
+  const crit = b.r.hit.int(100) < critChance || o.crit === true;
   const raw = rawDamage(att, thrown);
-  const mult = damageMult(att, thrown, boosted);
+  const fresh = o.fresh ?? 0;
+  const mult = damageMult(att, thrown, boosted, false, fresh);
   const dv = valuesOf(def);
   const armor = thrown ? null : dv.armor;
   const soak = takenSoak(att, def, crit);
-  const critPct = critPctOf(def);
+  const critPct = critPctOf(def, att, thrown);
   const full = damageOf(raw, variance, mult, crit, armor, soak, critPct);
   // Number skills show where they changed the damage (no random number: the same hit, re-counted).
   const big = crit || boosted;
   const left = allowance(b, def, big);
   const cut = (d: number): number => (left === Infinity ? d : Math.max(1, Math.min(d, left)));
   const skill = damageSkill(att, thrown);
-  if (skill !== null && cut(damageOf(raw, variance, damageMult(att, thrown, boosted, true), crit, armor, soak, critPct)) !== cut(full)) {
+  if (o.tag !== undefined) procs.push(proc(att, o.tag));
+  else if (bull > 0 && crit) procs.push(proc(att, "bullseye"));
+  if (skill !== null && cut(damageOf(raw, variance, damageMult(att, thrown, boosted, true, fresh), crit, armor, soak, critPct)) !== cut(full)) {
     procs.push(proc(skill === "pet-lover" ? scrapperOfSide(b, att.side) : att, skill));
   }
   if (armor !== null) armorProcs(def, armor, (a) => cut(damageOf(raw, variance, mult, crit, a, soak, critPct)), cut(full), procs);
@@ -161,7 +185,7 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   // Light Feet's Agility also adds to Thrown damage: it may name itself on its owner's landed throw.
   if (thrown && att.scrapper && att.skills.has("light-feet")) procs.push(proc(att, "light-feet"));
   const damage = opening(b, def, full, big);
-  const hpAfter = land(def, damage, procs);
+  const hpAfter = land(def, damage, procs, b);
   return { outcome: "hit", damage, crit, hpAfter, procs, blocked: false };
 }
 
@@ -174,8 +198,10 @@ export function armorProcs(def: Actor, armor: number, dealt: (armor: number) => 
   }
 }
 
-/** The steps a swing causes, in order: disarm, doorOff, free, ko. */
+/** The steps a swing causes, in order: disarm, doorOff, free, ko. Stagger (talent): a crit landed
+ *  on a scrapper that still stands pushes its clock back. */
 export function consequences(b: Bout, att: Actor, def: Actor, c: SwingCalc): void {
+  if (c.outcome === "hit" && c.crit && def.scrapper && def.hp > 0 && att.scrapper) def.clock += tv(att.tal, "stagger", "stagger");
   if (c.outcome === "hit" && def.hp > 0) tryDisarm(b, att, def, "hit");
   if (c.outcome !== "evade" && def.hp > 0) tryShield(b, att, def, "hit");
   if (c.outcome === "hit") tryFree(b, def);
@@ -234,6 +260,7 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
   let why: "combo" | "stubborn" | undefined;
   let whyProc: Proc | null = null;
   let parried = false;
+  let blockedAny = false;
   // An Alley Cat's attack is two scratches: the second one is written as a combo swing.
   let scratches = att.comp !== null ? att.comp.swings - 1 : 0;
 
@@ -247,7 +274,20 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
     if (why === "combo" && att.scrapper && att.skills.has("light-feet")) procs.push(proc(att, "light-feet"));
     const boosted = n === 0 && att.scrapper && att.haymaker;
     if (boosted) att.haymaker = false;
-    const c = resolve(b, att, def, false, boosted, procs);
+    // Fresh Steel (capstone): the first swing with a weapon drawn or swapped in hits harder and
+    // cannot be blocked. Knockdown (capstone): the first combo swing of a turn that lands is a crit.
+    const o: SwingOpts = {};
+    if (n === 0 && att.scrapper && att.held !== "fists" && !att.heldAttacked && tv(att.tal, "fresh-steel", "freshDmg") > 0) {
+      o.noBlock = true; o.fresh = tv(att.tal, "fresh-steel", "freshDmg"); o.tag = "fresh-steel";
+    }
+    const knock = why === "combo" && att.scrapper && att.knockTurn !== b.turn && tv(att.tal, "knockdown", "knockClock") > 0;
+    if (knock) { o.crit = true; o.tag = "knockdown"; }
+    const c = resolve(b, att, def, false, boosted, procs, o);
+    if (knock && c.outcome === "hit") {
+      att.knockTurn = b.turn;
+      if (def.hp > 0) def.clock += tv(att.tal, "knockdown", "knockClock");
+    }
+    if (c.blocked) blockedAny = true;
     if (c.blocked && def.skills.has("parry")) parried = true;
     const step = swingStep("attack", b, att, def, c) as Step & { n: number; why?: string; boosted?: true };
     step.n = n;
@@ -293,17 +333,23 @@ export function meleeAttack(b: Bout, att: Actor, def: Actor): void {
   if (def.scrapper && def.status === "up" && !def.snared && att.status === "up" && !flying && !spent(b, att)) {
     const dv = valuesOf(def);
     const base = clampPct(dv.riposte, CAP.riposte);
-    const chance = parried ? sk("parry", "riposteAfterBlock") : base;
+    // Counter (talent): more Riposte after a block in this attack. Unbreakable (capstone): after a
+    // block the riposte is sure and cannot be evaded or blocked.
+    const afterBlock = blockedAny ? clampPct(dv.riposte + tv(def.tal, "counter", "blockRiposte"), CAP.riposte) : base;
+    const sure = blockedAny && tv(def.tal, "unbreakable", "sureRiposte") > 0;
+    const plain = parried ? Math.max(sk("parry", "riposteAfterBlock"), afterBlock) : afterBlock;
+    const capped = plain > CAP.riposte ? CAP.riposte : plain;
     const r = b.r.hit.int(100);
-    if (r < (chance > CAP.riposte ? CAP.riposte : chance)) {
+    if (r < (sure ? 100 : capped)) {
       const procs: Proc[] = [];
       const taunt = def.taunt > 0 ? sk("taunt", "riposte") : 0;
-      if (parried && r >= base) procs.push(proc(def, "parry"));
+      if (sure && r >= capped) { /* only the capstone made it: its own tag (resolve) */ }
+      else if (parried && r >= afterBlock) procs.push(proc(def, "parry"));
       else if (taunt > 0 && r >= clampPct(dv.riposte - taunt, CAP.riposte)) procs.push(proc(def, "taunt"));
       else if (def.skills.has("payback") && due(b, def, "payback", r >= clampPct(dv.riposte - sk("payback", "riposte"), CAP.riposte))) {
         procs.push(proc(def, "payback"));
       }
-      const c = resolve(b, def, att, false, false, procs);
+      const c = resolve(b, def, att, false, false, procs, sure ? { sure: true, tag: "unbreakable" } : {});
       emit(b, swingStep("riposte", b, def, att, c));
       consequences(b, def, att, c);
     }

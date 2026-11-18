@@ -3,15 +3,15 @@
  * turn shares: writing steps, picking a target, landing damage, and the steps a hit causes.
  */
 import type { ActorId, BagItem, Proc, Side, Step } from "../contracts/log";
-import type { ProcId, ShieldId } from "../contracts/ids";
-import { PERK_IDS, isShieldId } from "../contracts/ids";
+import type { PerkId, ProcId, ShieldId } from "../contracts/ids";
+import { CAPSTONE_IDS, PERK_IDS, isPerkId, isShieldId } from "../contracts/ids";
 import { RARITY_OF } from "../contracts/content";
 import type { Rarity } from "../contracts/content";
 import { sk } from "../content/skills";
 import { shieldNumbers } from "../content/shields";
 import { hasTag } from "../content/weapons";
 import type { Actor } from "./combatant";
-import { CAP, valuesOf } from "./combatant";
+import { CAP, tv, valuesOf } from "./combatant";
 import type { Streams } from "./rng";
 
 export interface Bout {
@@ -72,17 +72,26 @@ export function scrapperOfSide(b: Bout, side: Side): Actor {
 export const SCRAPPER_TARGET_WEIGHT = 2;
 
 /** One random standing enemy, scrapper or companion, the scrapper weighted 2 to each companion's 1.
- *  One random number. */
+ *  One random number; Guard Dog (talent) may then send a pick of its owner to one of its standing
+ *  companions (two more numbers on the same stream, only when it is owned and a companion stands). */
 export function pickEnemy(b: Bout, a: Actor): Actor | null {
   const list = enemiesUp(b, a);
   if (list.length === 0) return null;
   let r = b.r.target.int(list.length - 1 + SCRAPPER_TARGET_WEIGHT);
   for (const x of list) {
     const w = x.scrapper ? SCRAPPER_TARGET_WEIGHT : 1;
-    if (r < w) return x;
+    if (r < w) return x.scrapper ? guarded(b, x, list) : x;
     r -= w;
   }
   return list[list.length - 1]!;
+}
+/** Guard Dog: a pick of the owner goes to one of its standing companions this share of the time. */
+export function guarded(b: Bout, owner: Actor, list: readonly Actor[]): Actor {
+  const g = tv(owner.tal, "guard-dog", "guard");
+  if (g <= 0) return owner;
+  const pets = list.filter((x) => !x.scrapper && x.side === owner.side);
+  if (pets.length === 0 || !(b.r.target.int(100) < g)) return owner;
+  return pets[b.r.target.int(pets.length)]!;
 }
 
 const RANK: Readonly<Record<Rarity, number>> = { mythic: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
@@ -96,16 +105,21 @@ const TIER: Readonly<Partial<Record<ProcId, number>>> = {
   "sand-in-the-eyes": 2, "bare-knuckle": 2, "sharpening-stone": 2, "heavy-lifter": 2,
   "padding": 3, "plate-vest": 3, "pitcher": 3, "pet-lover": 3, "quick-swap": 3,
   "light-feet": 3, "big-heart": 4, "heavy-hands": 4, "fast-twitch": 4, "glass-cannon": 4, "mountain": 4,
+  // the capstones (content v3 batch 3) are rule tags: Loyal Pack with Last Stand, the others with the rule skills
+  "loyal-pack": 0, "knockdown": 1, "fresh-steel": 1, "bullseye": 1, "unbreakable": 1,
 };
 /** A shield's proc (a block made with it) is a rule proc. */
 const tierOf = (id: ProcId): number => TIER[id] ?? 1;
+
+/** A capstone ranks with the Epic perks. */
+const rankOfProc = (id: ProcId): number => (isPerkId(id) ? RANK[RARITY_OF[id]] : RANK.epic);
 
 /** At most one proc per step: the lowest tier, then the rarest skill, then the order of the perk list. */
 export function sortProcs(list: Proc[]): Proc[] | undefined {
   if (list.length === 0) return undefined;
   const best = [...list].sort((x, y) => tierOf(x.skill) - tierOf(y.skill)
-    || RANK[RARITY_OF[x.skill]] - RANK[RARITY_OF[y.skill]]
-    || PERK_IDS.indexOf(x.skill) - PERK_IDS.indexOf(y.skill))[0]!;
+    || rankOfProc(x.skill) - rankOfProc(y.skill)
+    || PERK_IDS.indexOf(x.skill as PerkId) - PERK_IDS.indexOf(y.skill as PerkId))[0]!;
   return [best];
 }
 
@@ -128,8 +142,9 @@ export function onceOnly(id: ProcId): boolean {
  *  happened at all, so every one can show. The first of a bout never waits; a repeat waits. Last
  *  Stand never waits (the log's HP reading depends on it). */
 const RULE: ReadonlySet<string> = new Set<string>(["parry", "stubborn", "firm-grip", "trick-shot", "junk-collector",
-  "taunt", "sand-in-the-eyes"]);
-const RULE_FIRST: ReadonlySet<string> = new Set<string>(["stubborn", "trick-shot", "junk-collector", "firm-grip", "parry", "taunt", "sand-in-the-eyes"]);
+  "taunt", "sand-in-the-eyes", ...CAPSTONE_IDS]);
+const RULE_FIRST: ReadonlySet<string> = new Set<string>(["stubborn", "trick-shot", "junk-collector", "firm-grip", "parry", "taunt", "sand-in-the-eyes",
+  ...CAPSTONE_IDS]);
 
 /** A tag that waits needs this much screen time (`screenNow`) since the last tag or Move. With
  *  2 turns (the first version), at level 30 nearly every turn was inside the wait and Flurry,
@@ -151,7 +166,7 @@ export function due(b: Bout, who: Actor, id: ProcId, decided: boolean): boolean 
 
 /** Whether a proc may show while the last tag or Move is under TAG_GAP_MS old. */
 function passesWait(b: Bout, p: Proc): boolean {
-  if (p.skill === "last-stand" || RARE.has(p.skill)) return true;
+  if (p.skill === "last-stand" || p.skill === "loyal-pack" || RARE.has(p.skill)) return true;
   if (RULE_FIRST.has(p.skill)) return !b.shown.has(key(p));
   if (RULE.has(p.skill)) return !b.shown.has(key(p)) && b.owed.has(key(p));
   return false;
@@ -283,14 +298,22 @@ export function opening(b: Bout, def: Actor, damage: number, big = false): numbe
   return d;
 }
 
-/** Takes `damage` from `def`. Last Stand leaves 1 HP once a bout. Returns hpAfter. */
-export function land(def: Actor, damage: number, procs: Proc[]): number {
+/** Takes `damage` from `def`. Last Stand leaves 1 HP once a bout; then Loyal Pack (capstone) once a
+ *  bout while a companion of the owner's side stands. Returns hpAfter. */
+export function land(def: Actor, damage: number, procs: Proc[], b?: Bout): number {
   const left = def.hp - damage;
   if (left > 0) { def.hp = left; return left; }
   if (def.scrapper && def.skills.has("last-stand") && !def.lastStandUsed && sk("last-stand", "saves") > 0) {
     def.lastStandUsed = true;
     def.hp = 1;
     procs.push(proc(def, "last-stand"));
+    return 1;
+  }
+  if (def.scrapper && b !== undefined && !def.loyalUsed && tv(def.tal, "loyal-pack", "loyal") > 0
+    && b.actors.some((x) => !x.scrapper && x.side === def.side && x.status === "up")) {
+    def.loyalUsed = true;
+    def.hp = 1;
+    procs.push(proc(def, "loyal-pack"));
     return 1;
   }
   def.hp = 0;
@@ -360,8 +383,9 @@ export function tryDisarm(b: Bout, att: Actor, def: Actor, cause: "hit" | "slam"
 /** The chance a swing that was not evaded knocks this shield off: its `knock` percent of the
  *  attacker's capped Disarm, rounded down, minus the defender's grip (Toughness, content v3). */
 export function knockChance(att: Actor, shield: ShieldId, def?: Actor): number {
+  // Shield Strap (talent): points off the chance, after the grip.
   const c = Math.floor((Math.min(valuesOf(att).disarm, CAP.disarm) * shieldNumbers(shield).knock) / 100)
-    - (def === undefined ? 0 : valuesOf(def).grip);
+    - (def === undefined ? 0 : valuesOf(def).grip + tv(def.tal, "shield-strap", "knockCut"));
   return c < 0 ? 0 : c;
 }
 

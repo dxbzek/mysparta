@@ -14,6 +14,7 @@ import { hasTag } from "../content/weapons";
 import type { Actor } from "./combatant";
 import type { Bout } from "./bout";
 import { bagCopy, due, emit, firstAction, pickEnemy, pickProc, proc, spent } from "./bout";
+import { tv } from "./combatant";
 import { MAX_COMBO, comboChance, consequences, resolve } from "./melee";
 
 /** A held melee weapon is thrown this often while another weapon waits in the bag. */
@@ -23,6 +24,10 @@ export const THROW_LAST_PCT = 5;
 
 /** The chance that a held weapon that is not Thrown is thrown this turn. */
 export function throwChance(a: Actor, bagHasWeapon: boolean): number {
+  return Math.min(100, baseThrowChance(a, bagHasWeapon) + tv(a.tal, "sidearm", "throwChance"));
+}
+/** The chance before Sidearm (talent), which adds its points to any of them. */
+function baseThrowChance(a: Actor, bagHasWeapon: boolean): number {
   if (a.skills.has("pitcher")) return sk("pitcher", "throwChance");
   // Junk Collector throws as often as Pitcher while a weapon waits in the bag (round-2 review: its
   // tag needs a melee throw, and showed in under a quarter of its owner's bouts).
@@ -41,6 +46,9 @@ export function afterThrow(b: Bout, a: Actor, weapon: WeaponId, procs: Proc[]): 
     procs.push(proc(a, "junk-collector"));
     return "bag";
   }
+  // Quick Catch (talent): a melee weapon that would be gone is caught back into the bag (no tag).
+  const c = tv(a.tal, "quick-catch", "catch");
+  if (c > 0 && b.r.throw.int(100) < c) return "bag";
   return "gone";
 }
 
@@ -72,14 +80,16 @@ export function throwAttack(b: Bout, att: Actor, first: Actor): WeaponId {
     consequences(b, att, def, c);
     if (b.ended || after !== "held") break;
     whyProc = null;
-    // Trick Shot: a landed throw bounces on to a random living enemy, once a turn.
-    if (c.outcome === "hit" && !ricocheted && att.skills.has("trick-shot")
-      && b.r.throw.int(100) < sk("trick-shot", "ricochet")) {
+    // Trick Shot: a landed throw bounces on to a random living enemy, once a turn. Bank Shot
+    // (talent) adds its share to Trick Shot's, or bounces on its own (no tag then).
+    const trick = att.skills.has("trick-shot") ? sk("trick-shot", "ricochet") : 0;
+    const bounce = trick + tv(att.tal, "bank-shot", "ricochet");
+    if (c.outcome === "hit" && !ricocheted && bounce > 0 && b.r.throw.int(100) < bounce) {
       const next = pickEnemy(b, att);
       if (next !== null && !spent(b, next)) {
         ricocheted = true;
         def = next;
-        whyProc = proc(att, "trick-shot");
+        whyProc = trick > 0 ? proc(att, "trick-shot") : null;
         continue;
       }
     }

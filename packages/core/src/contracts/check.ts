@@ -119,7 +119,7 @@ export function checkLog(log: BoutLog): string[] {
       }
     };
     const lastStand = (list: readonly Proc[] | undefined, target: ActorId): boolean =>
-      list !== undefined && list.some((p) => p.skill === "last-stand" && p.by === target);
+      list !== undefined && list.some((p) => (p.skill === "last-stand" || p.skill === "loyal-pack") && p.by === target);
     const damageLands = (target: ActorState, damage: number, hpAfter: number, saved: boolean): void => {
       if (!isWhole(damage) || damage < 1) err("a hit must deal 1 damage or more");
       const want = target.hp - damage > 0 ? target.hp - damage : saved ? 1 : 0;

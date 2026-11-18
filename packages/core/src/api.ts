@@ -5,6 +5,8 @@
 import type { ContentTables, CoreApi } from "./contracts/api";
 import type { DayKey, FighterSnapshot, KitBase, Pick as Side2, ScrapperRecord } from "./contracts/fighter";
 import { GEAR } from "./content/gear";
+import { TALENTS } from "./content/talents";
+import { canRespec, respecTalents, rivalTalents, spendTalent, talentBlock, talentPointsAt } from "./progress/talents";
 import { defaultLoadout } from "./progress/loadout";
 import { combineSeed } from "./prng";
 import { COMPANIONS } from "./content/companions";
@@ -25,7 +27,7 @@ export { LEGACY_NEW_STAT_POINTS, legacyBase, legacyKit, sixStatsOf } from "./pro
 export type { LegacyKit } from "./progress/legacy";
 import { canonical } from "./canonical";
 
-export const content: ContentTables = { weapons: WEAPONS, skills: SKILLS, companions: COMPANIONS, shields: SHIELDS, gear: GEAR };
+export const content: ContentTables = { weapons: WEAPONS, skills: SKILLS, companions: COMPANIONS, shields: SHIELDS, gear: GEAR, talents: TALENTS };
 
 /** Takes the waiting level-up; a new item joins a stored loadout when there is room (joinLoadout). */
 export function afterPick(rec: ScrapperRecord, pick: Side2): ScrapperRecord {
@@ -54,6 +56,12 @@ export const api: CoreApi = {
   loadoutOf,
   withLoadout,
   defaultLoadout,
+  talentPointsAt,
+  talentBlock,
+  spendTalent,
+  canRespec,
+  respecTalents,
+  rivalTalents,
   routeNode: (seed: number, picks: readonly Side2[], base?: KitBase, gearFrom?: number) => routeNode(seed, picks, base, gearFrom ?? 0),
   route,
   xpToNext,
@@ -74,7 +82,11 @@ export {
   canonical, checkName, randomName, fighterSeed, rollLook, createRecord, sheetOf, snapshotOf, snapshotSheet,
   routeNode, xpToNext, xpForBout, energyNow, energyNextMs, afterBout, rivalSnapshot, tonightsCard, foundPerks,
   simulateFight, loadoutOf, withLoadout, defaultLoadout,
+  talentPointsAt, talentBlock, spendTalent, canRespec, respecTalents, rivalTalents,
 };
+/** The talent tree's helpers for the tools and the app (content v3 batch 3). */
+export { TALENT_FROM, TALENT_EVERY, branchBuild, branchFit, branchOrder, cleanRanks, rankOf, statsWithTalents, talentsOf } from "./progress/talents";
+export { TALENTS, tn, branchNodes } from "./content/talents";
 /** For the save migration to schema 5 (apps/web state/migrations.ts) and the tools. */
 export { loadoutPerks, resolveLoadout, statsWithGear, wornGear } from "./progress/loadout";
 export { GEAR, gn, gearSlot } from "./content/gear";

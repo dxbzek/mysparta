@@ -1,7 +1,7 @@
 /**
  * FROZEN CONTRACT (work package 0). Scrappers: what a save stores, what is recomputed, what a bout reads.
  */
-import type { CompanionId, GearId, GearSlot, PerkId, ShieldId, WeaponId } from "./ids";
+import type { CompanionId, GearId, GearSlot, PerkId, ShieldId, TalentId, WeaponId } from "./ids";
 
 /** Six since content v3 (CONTRACT_REV 7): Toughness (a flat cut of every hit taken, and a firmer
  *  hold on the weapon and the shield) and Precision (Aim and Crit). */
@@ -53,6 +53,17 @@ export interface Loadout { weapons: WeaponId[]; shield: ShieldId | null; pets: C
 /** A loadout's bag holds this many weapons at most. */
 export const MAX_LOADOUT_WEAPONS = 5;
 
+/** Ranks spent per talent node (content v3, batch 3). A node not listed has rank 0. */
+export type TalentRanks = Readonly<Partial<Record<TalentId, number>>>;
+/**
+ * The talent tree of a scrapper (CONTRACT_REV 9, plan 13.11): the ranks the player spent, and the
+ * day of the last free respec. Points are never stored: a scrapper has earned `talentPointsAt(level)`
+ * (1 at level 3 and 1 every 3 levels after), and the unspent ones are those minus the ranks spent.
+ * Ranks that break a rule (an unknown id, a rank over the node's max, a node whose tier is not open,
+ * more ranks than earned points) are dropped when the record is read (`talentsOf`).
+ */
+export interface TalentPicks { ranks: TalentRanks; respecDay?: DayKey }
+
 /** The only thing a save stores per scrapper. Level, stats, kit and Route are always recomputed
  *  (from `base` on, when an earlier build's kit was carried over). */
 export interface ScrapperRecord {
@@ -73,6 +84,8 @@ export interface ScrapperRecord {
   /** Level-ups before this pick index offer no gear card (CONTRACT_REV 8): the save migration sets
    *  it to the picks an old save had taken, so its kit walks as it did. Absent = 0. */
   gearFrom?: number;
+  /** The talent tree (CONTRACT_REV 9). Absent: nothing spent, no respec used. */
+  talents?: TalentPicks;
 }
 
 /** Whole percentages. See the derived-values table of the rules. */
@@ -94,6 +107,9 @@ export interface ScrapperSheet {
    *  `maxHp`, `companionCostPct` and `derived` are those of the bout's snapshot: the gear worn and
    *  the pets taken are in them; `perks` is everything owned. */
   loadout: Loadout;
+  /** The talent tree (CONTRACT_REV 9): points earned at this level, spent, unspent, and the ranks
+   *  that hold (cleaned as `talentsOf` reads them). The snapshot's stats hold its stat talents. */
+  talents: { earned: number; spent: number; unspent: number; ranks: TalentRanks };
 }
 /** What a card shows about any snapshot, a rival's included: max HP after the companion cost, the
  *  effective stats behind the stat bars, and the bare-handed derived values. Never stored.
@@ -105,7 +121,11 @@ export interface SnapshotSheet { maxHp: number; effective: Record<StatKey, numbe
  *  `perks`. A sandbox snapshot (the debug route) is built by hand and is exempt from the Route
  *  invariant; the sim accepts any snapshot whose ids are known. */
 export interface FighterSnapshot { id: string; name: string; look: Look; level: number;
-  stats: StatBlock; perks: PerkId[]; rulesVersion: 1 }
+  stats: StatBlock; perks: PerkId[]; rulesVersion: 1;
+  /** The talent ranks the bout reads (CONTRACT_REV 9). Absent: none (a snapshot stored before
+   *  content v3 batch 3, a sandbox snapshot). Stat talents (Gym Rat, Thick Skin) are already in
+   *  `stats`; the sim must NOT add them again. */
+  talents?: TalentRanks }
 
 export type RouteCard =
   | { kind: "stat"; stat: StatKey; amount: number }

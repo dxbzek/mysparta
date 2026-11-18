@@ -83,10 +83,10 @@ describe("ids", () => {
     expect(isPerkId("not-a-perk")).toBe(false);
   });
 
-  it("is at contract rev 8 (content v3, batch 2) and log version 2; the rules version stays 1", () => {
+  it("is at contract rev 9 (content v3, batch 3) and log version 2; the rules version stays 1", () => {
     expect(RULES_VERSION).toBe(1);
     expect(LOG_VERSION).toBe(2);
-    expect(CONTRACT_REV).toBe(8);
+    expect(CONTRACT_REV).toBe(9);
     expect(RIVALS_PER_LEVEL).toBe(240);
   });
 });
@@ -845,7 +845,7 @@ describe("CoreApi (the shape the sim lane must fill)", () => {
   const randomName: Api["randomName"] extends (n: number) => string ? true : false = true;
   const snapshotSheet: Api["snapshotSheet"] extends (s: FighterSnapshot) => Sheet ? true : false = true;
   const weapons: keyof Api["content"]["weapons"] extends HeldId ? (HeldId extends keyof Api["content"]["weapons"] ? true : false) : false = true;
-  const tables: keyof Api["content"] extends "weapons" | "skills" | "companions" | "shields" | "gear" ? true : false = true;
+  const tables: keyof Api["content"] extends "weapons" | "skills" | "companions" | "shields" | "gear" | "talents" ? true : false = true;
   const sheetKeys: keyof Sheet extends "maxHp" | "effective" | "derived" | "companionCostPct" ? true : false = true;
 
   it("reaches the content tables, a random name and the sheet of any snapshot", () => {

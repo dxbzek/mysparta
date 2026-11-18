@@ -174,7 +174,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
         const damage = t.scrapper
           ? opening(b, t, roll(b.r.damage, sk("firecrackers", "damageMin"), sk("firecrackers", "damageMax")))
           : Math.max(1, Math.floor((t.maxHp * sk("firecrackers", "companionPct")) / 100));
-        const hpAfter = land(t, damage, procs);
+        const hpAfter = land(t, damage, procs, b);
         hits.push({ target: t.id, damage, hpAfter });
       }
       emit(b, moveStep(b, a, id, procs, { hits }));
@@ -228,7 +228,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       armorProcs(target, armor, (x) => openingCut(b, target, pad(armored(raw, x)), true), openingCut(b, target, pad(armored(raw, armor)), true),
         procs);
       const damage = opening(b, target, pad(armored(raw, armor)), true);
-      const hpAfter = land(target, damage, procs);
+      const hpAfter = land(target, damage, procs, b);
       emit(b, moveStep(b, a, id, procs, { target: target.id, hits: [{ target: target.id, damage, hpAfter }] }));
       if (target.hp > 0) tryDisarm(b, a, target, "slam");
       if (target.hp > 0) tryShield(b, a, target, "slam");
@@ -264,7 +264,7 @@ export function playMove(b: Bout, a: Actor, id: MoveId): number {
       const pad = (d: number): number => moveSoaked(foe, d);
       armorProcs(foe, armor, (x) => openingCut(b, foe, pad(armored(raw, x)), true), openingCut(b, foe, pad(armored(raw, armor)), true), procs);
       const damage = opening(b, foe, pad(armored(raw, armor)), true);
-      const hpAfter = land(foe, damage, procs);
+      const hpAfter = land(foe, damage, procs, b);
       emit(b, moveStep(b, a, id, procs, { target: foe.id, hits: [{ target: foe.id, damage, hpAfter }] }));
       if (foe.hp === 0) {
         knockOut(b, foe, a);

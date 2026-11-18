@@ -14,17 +14,18 @@ import { loadoutPerks, resolveLoadout, statsWithGear, wornGear } from "./loadout
 import type { Kit } from "./route";
 import { walk } from "./route";
 import { companionCostPct, effectiveOf, maxHpOf } from "./stats";
+import { statsWithTalents, talentsOf } from "./talents";
 import { levelOf, levelUpWaiting, xpToNext } from "./xp";
 
 export function snapshotSheet(s: FighterSnapshot): SnapshotSheet {
   const effective = effectiveOf(s.stats);
-  const cost = companionCostPct(s.perks);
+  const cost = companionCostPct(s.perks, s.talents);
   const skills = new Set<string>(s.perks.filter((p) => perkKind(p) === "skill"));
   return {
     maxHp: maxHpOf(effective.health, s.level, cost),
     effective,
     derived: combatValues(skills, "fists", s.perks.find((p): p is ShieldId => isShieldId(p)) ?? null, effective.toughness,
-      effective.precision, s.perks.filter((p): p is GearId => isGearId(p))),
+      effective.precision, s.perks.filter((p): p is GearId => isGearId(p)), s.talents),
     companionCostPct: cost,
   };
 }
@@ -44,9 +45,13 @@ export function withLoadout(rec: ScrapperRecord, loadout: Loadout): ScrapperReco
   return { ...rec, loadout: resolveLoadout(kitOf(rec).perks, loadout) };
 }
 
+/** The bout's snapshot: the loadout's perks, the worn gear's and the stat talents' points in its
+ *  stats, and the talent ranks that hold (content v3 batch 3). */
 function snapshotFrom(rec: ScrapperRecord, kit: Kit, l: Loadout): FighterSnapshot {
+  const { ranks } = talentsOf(rec);
   return { id: rec.id, name: rec.name, look: rollLook(rec.seed, rec.lookSalt, rec.colourSalt), level: levelOf(rec),
-    stats: statsWithGear(kit.stats, wornGear(l)), perks: loadoutPerks(kit.perks, l), rulesVersion: 1 };
+    stats: statsWithTalents(statsWithGear(kit.stats, wornGear(l)), ranks), perks: loadoutPerks(kit.perks, l), rulesVersion: 1,
+    talents: ranks };
 }
 
 export function snapshotOf(rec: ScrapperRecord): FighterSnapshot {
@@ -63,6 +68,7 @@ export function sheetOf(rec: ScrapperRecord): ScrapperSheet {
     level: snap.level, xp: rec.xp, xpToNext: xpToNext(snap.level), levelUpWaiting: levelUpWaiting(rec),
     look: snap.look, stats: snap.stats, effective: ss.effective, startPerk: kit.startPerk, startSkill: kit.startSkill,
     perks: kit.perks, maxHp: ss.maxHp, companionCostPct: ss.companionCostPct, derived: ss.derived, loadout,
+    talents: talentsOf(rec),
   };
 }
 

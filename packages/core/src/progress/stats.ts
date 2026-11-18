@@ -3,10 +3,11 @@
  * Whole-number maths only.
  */
 import type { PerkId, SkillId } from "../contracts/ids";
-import type { RouteCard, StatBlock, StatKey } from "../contracts/fighter";
+import type { RouteCard, StatBlock, StatKey, TalentRanks } from "../contracts/fighter";
 import { combineSeed, makeRng } from "../prng";
 import { COMPANIONS } from "../content/companions";
 import { sk } from "../content/skills";
+import { tn } from "../content/talents";
 
 /** The six stats, in the order the screens and the Route use (content v3 added the last two). */
 export const STAT_KEYS: readonly StatKey[] = ["health", "strength", "agility", "speed", "toughness", "precision"];
@@ -70,12 +71,22 @@ export function effectiveOf(s: StatBlock | StatsDraft): Record<StatKey, number> 
   return out;
 }
 
-/** Sum of the companion HP costs of a perk list, in whole percent. */
-export function companionCostPct(perks: readonly PerkId[]): number {
-  let total = 0;
+/** Sum of the companion HP costs of a perk list, in whole percent. Second Bowl (talent) takes its
+ *  share off the cost of every companion but the costliest (each rounded down). */
+export function companionCostPct(perks: readonly PerkId[], talents?: TalentRanks): number {
+  const costs: number[] = [];
   for (const p of perks) {
     const c = (COMPANIONS as Record<string, { hpCostPct: number } | undefined>)[p];
-    if (c !== undefined) total += c.hpCostPct;
+    if (c !== undefined) costs.push(c.hpCostPct);
+  }
+  const cut = Math.min(100, (talents?.["second-bowl"] ?? 0) * tn("second-bowl", "extraPetCost"));
+  if (cut === 0 || costs.length < 2) return costs.reduce((x, y) => x + y, 0);
+  const top = Math.max(...costs);
+  let total = top;
+  let skipped = false;
+  for (const c of costs) {
+    if (c === top && !skipped) { skipped = true; continue; }
+    total += Math.floor((c * (100 - cut)) / 100);
   }
   return total;
 }

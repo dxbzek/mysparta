@@ -6,7 +6,7 @@ import type { HeldId, WeaponId } from "../contracts/ids";
 import { sk } from "../content/skills";
 import { hasTag, weaponNumbers } from "../content/weapons";
 import type { Actor } from "./combatant";
-import { gearOf } from "./combatant";
+import { gearOf, tv } from "./combatant";
 import type { Bout } from "./bout";
 import { bagCopy, emit, knockOut, pickEnemy } from "./bout";
 import { turnCost } from "./clock";
@@ -23,8 +23,10 @@ export const OVERTIME_PCT = 8;
 /** Swap chance while holding a weapon that has attacked: 30%, Quick Swap 50%, Firm Grip 15%
  *  (Quick Swap counts when both are owned). */
 export function swapChance(a: Actor): number {
-  if (a.skills.has("firm-grip")) return sk("firm-grip", "swapChance");
-  return a.skills.has("quick-swap") ? sk("quick-swap", "swapChance") : SWAP_PCT;
+  // Quick Hands (talent) adds its points to any of them.
+  const more = tv(a.tal, "quick-hands", "swap");
+  if (a.skills.has("firm-grip")) return sk("firm-grip", "swapChance") + more;
+  return (a.skills.has("quick-swap") ? sk("quick-swap", "swapChance") : SWAP_PCT) + more;
 }
 
 /** The slack of the empty-hand draw: 6, Quick Swap 2, Bare Knuckle 12 (Quick Swap counts when both
@@ -32,7 +34,9 @@ export function swapChance(a: Actor): number {
 export function drawSlack(a: Actor): number {
   if (a.skills.has("quick-swap")) return sk("quick-swap", "drawSlack");
   // Cargo Pants (gear): the next weapon is close to hand.
-  return a.skills.has("bare-knuckle") ? sk("bare-knuckle", "drawSlack") : Math.max(1, DRAW_SLACK - gearOf(a, "drawEase"));
+  // Quick Hands (talent) takes its points off the same slack.
+  return a.skills.has("bare-knuckle") ? sk("bare-knuckle", "drawSlack")
+    : Math.max(1, DRAW_SLACK - gearOf(a, "drawEase") - tv(a.tal, "quick-hands", "drawEase"));
 }
 
 /** Picks a weapon out of the bag by Draw weight with chance S / (S + slack). One random number. */
@@ -75,6 +79,7 @@ function drawOrSwap(b: Bout, a: Actor): void {
     takeFromBag(b, a, id);
     a.held = id;
     a.heldAttacked = false;
+    a.drew = true;
     if (a.skills.has("quick-swap")) { a.quickSwapPending = true; a.quickSwapTag = !reload; }
     emit(b, { t: "draw", turn: b.turn, actor: a.id, weapon: id, bagAfter: bagCopy(b.bag[a.side]) });
     return;
@@ -91,13 +96,17 @@ function drawOrSwap(b: Bout, a: Actor): void {
   takeFromBag(b, a, id);
   a.held = id;
   a.heldAttacked = false;
+  a.drew = true;
   if (a.skills.has("quick-swap")) { a.quickSwapPending = true; a.quickSwapTag = true; }
   emit(b, { t: "swap", turn: b.turn, actor: a.id, dropped, weapon: id, bagAfter: bagCopy(b.bag[a.side]) });
 }
 
-/** Quick Swap: a turn in which its owner drew or swapped a weapon costs 30% less time. */
-function quickTurn(a: Actor, cost: number): number {
-  return a.quickSwapPending ? Math.floor((cost * (100 + sk("quick-swap", "swapTime"))) / 100) : cost;
+/** Quick Swap: a turn in which its owner drew or swapped a weapon costs 30% less time. Fast Swap
+ *  (talent): such a turn costs its share less again, after Quick Swap. */
+export function quickTurn(a: Actor, cost: number): number {
+  const q = a.quickSwapPending ? Math.floor((cost * (100 + sk("quick-swap", "swapTime"))) / 100) : cost;
+  const f = a.drew ? tv(a.tal, "fast-swap", "swapTime") : 0;
+  return f === 0 ? q : Math.floor((q * (100 + f)) / 100);
 }
 
 /** A scrapper's turn. Returns its time cost. */
@@ -156,6 +165,7 @@ export function takeTurn(b: Bout, a: Actor): void {
   }
   a.quickSwapPending = false;
   a.firmGripKept = false;
+  a.drew = false;
   a.clock += cost;
   if (cost === 0) a.priority = true;
   overtime(b, a);

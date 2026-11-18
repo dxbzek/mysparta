@@ -3,10 +3,10 @@
  * packages/core/src/api.ts. The package index checks it with `const check: CoreApi = impl`.
  * Every function is pure: the same inputs give the same output on every engine.
  */
-import type { CompanionDef, GearDef, ShieldDef, SkillDef, WeaponDef } from "./content";
+import type { CompanionDef, GearDef, ShieldDef, SkillDef, TalentDef, WeaponDef } from "./content";
 import type { DayKey, TimeMs, FighterSnapshot, KitBase, Loadout, Look, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
-  SnapshotSheet } from "./fighter";
-import type { CompanionId, GearId, HeldId, PerkId, ShieldId, SkillId } from "./ids";
+  SnapshotSheet, TalentRanks } from "./fighter";
+import type { CompanionId, GearId, HeldId, PerkId, ShieldId, SkillId, TalentId } from "./ids";
 import type { BoutLog } from "./log";
 
 /** The four number tables of the rules, as total Records. The screens read every number they
@@ -18,7 +18,12 @@ export interface ContentTables {
   shields: Readonly<Record<ShieldId, ShieldDef>>;
   /** Body equipment (CONTRACT_REV 8). */
   gear: Readonly<Record<GearId, GearDef>>;
+  /** The talent tree (CONTRACT_REV 9). */
+  talents: Readonly<Record<TalentId, TalentDef>>;
 }
+
+/** Why a talent rank cannot be spent now. */
+export type TalentBlock = "no-points" | "maxed" | "locked";
 
 export interface CoreApi {
   /** The number tables. The only way the app reaches them: it never imports a content file. */
@@ -52,6 +57,18 @@ export interface CoreApi {
    *  Tonight's Card, either side of the face-off sheet, a sandbox snapshot. It holds the HP
    *  formula and the companion cost, so no screen copies a rule. */
   snapshotSheet(s: FighterSnapshot): SnapshotSheet;
+  /** Talent points earned at a level: 1 at level 3 and 1 every 3 levels after (CONTRACT_REV 9). */
+  talentPointsAt(level: number): number;
+  /** Null when one more rank of `id` can be spent now, else why not. */
+  talentBlock(rec: ScrapperRecord, id: TalentId): TalentBlock | null;
+  /** The record with one more rank of `id`, or the same record when `talentBlock` says no. Pure. */
+  spendTalent(rec: ScrapperRecord, id: TalentId): ScrapperRecord;
+  /** True when the free respec of `today` is not used yet and any rank is spent. */
+  canRespec(rec: ScrapperRecord, today: DayKey): boolean;
+  /** Every rank back to unspent, the day's respec used; the same record when `canRespec` says no. */
+  respecTalents(rec: ScrapperRecord, today: DayKey): ScrapperRecord;
+  /** The sim's own talent ranks for a kit owning `perks` at `level` (rivals, docs/RULES.md 3c). */
+  rivalTalents(seed: number, perks: readonly PerkId[], level: number): TalentRanks;
   /** The two cards after the given picks (from the record's carried kit, `base`, when it has one).
    *  A pure function of its inputs: it never rerolls. */
   routeNode(seed: number, picks: readonly Pick[], base?: KitBase, gearFrom?: number): { left: RouteCard; right: RouteCard };
