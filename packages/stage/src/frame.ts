@@ -123,10 +123,16 @@ export function frameAt(tr: Tracks, t: number): Frame {
       // the Move's last clip takes up to BLEND.maxMs (review round 2: the shield snapped back onto
       // an arm still raised at the mouth and covered the face)
       if (g.actor !== a.id || t < g.from || t >= g.to + BLEND.maxMs) continue;
+      // (but a swing that starts inside it, as it ends, has its weapon in hand: round-2 close, an
+      // intercept's pitchfork thrust right after an Air Horn was drawn with fists, the pitchfork on
+      // the back)
+      const swinging = seg !== null && seg.aim !== undefined && seg.from > g.from;
+
+
       // (two slings may overlap, a Move right after a Move: what the first put aside stays there)
       slung ??= [];
       if (g.shield && dress.shield !== null) { slung.push(dress.shield); dress.shield = null; }
-      if (g.held && dress.held !== null && dress.held !== "fists") { slung.push(dress.held); dress.held = "fists"; }
+      if (g.held && !swinging && dress.held !== null && dress.held !== "fists") { slung.push(dress.held); dress.held = "fists"; }
     }
     const fa: FrameActor = { id: a.id, rig: a.rig, clip: seg === null ? "idle" : seg.clip,
       clipT: seg === null ? t + a.phase : clipTime(seg, t), place: { x: p.x, y: p.y, facing: p.facing }, floorY: p.floorY,

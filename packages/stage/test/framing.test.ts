@@ -173,7 +173,11 @@ describe("review round 2: framing and skill effects on the phone", () => {
         if (p.tracks.byId.get(g.actor)!.shields.some((c) => c.from > g.from && c.from <= t)) continue;
         seen++;
         expect(a.dress.shield, `${level}/${n} ${g.actor} at ${t}: still off the arm`).toBeNull();
-        expect(a.slung, `${level}/${n} ${g.actor} at ${t}`).toEqual(had);
+        // (a swing begun inside the sling has its weapon back in hand, frame.ts: only the shield
+        // stays slung then)
+        const swinging = a.seg !== null && a.seg.aim !== undefined && a.seg.from > g.from;
+        expect(a.slung, `${level}/${n} ${g.actor} at ${t}`).toEqual(swinging ? had.filter((x) => x !== a.dress.held) : had);
+
       }
     }
     expect(seen).toBeGreaterThan(3);

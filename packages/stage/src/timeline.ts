@@ -24,11 +24,14 @@ import type { ActorTrack, BagEvent, Crowd, Flash, FlightItem, FloorItem, FxItem,
 import type { MotionRules } from "./motion";
 import { motionRules } from "./motion";
 import { homeSpan } from "./camera";
-import { basePos, clipTime, drawPlace, facingAt, nudgeAt, segAt } from "./track";
+import { basePos, clipTime, drawPlace, facingAt, heldAt, nudgeAt, segAt, shieldAt } from "./track";
+
 import { BEAT, CONTACT, FLOOR, FRAMING, HIT_STOP, IDLE, INTRO, KNOCKOUT, SOUND } from "./tuning";
 import type { Plan } from "./footwork";
 import { drawnScale, layWay, planWay, readyAt } from "./footwork";
 import { dispatch } from "./choreo/index";
+import { poseAt as blendedPose } from "./blend";
+
 
 /** Test hooks. Never set by the host: a planted fault for the controls of ground rule 13. */
 export interface Internal {
@@ -177,19 +180,24 @@ export class Builder {
    * fastest frames and nearly silent before the hit (round-2 close, measured on the recorded audio).
    * A clip whose hand does not drive forward (a pet's bite) whooshes at its middle.
    */
-  swooshAt(id: ActorId, from: number, contact: number, facing: 1 | -1): number {
-    let best = 0;
-    let at = (from + contact) / 2;
-    try {
-      let prev = this.handAt(id, from).x * facing;
-      for (let t = from + 4; t <= contact; t += 4) {
-        const x = this.handAt(id, t).x * facing;
-        if (x - prev > best) { best = x - prev; at = t - 2; }
-        prev = x;
-      }
-    } catch { /* a rig with no hand: the middle */ }
-    if (best <= 0.05) at = (from + contact) / 2;
-    return Math.min(contact, Math.max(from - SOUND.whooshPeakMs, at - SOUND.whooshPeakMs));
+  /** Every swing's whoosh cue and its wind-up, for `placeSwooshes`. */
+  readonly swooshes: { cue: Cue; actor: ActorId; from: number; contact: number }[] = [];
+  /** Each whoosh at its swing's drive as finally drawn. */
+  placeSwooshes(): void {
+    for (const w of this.swooshes) w.cue.at = this.swooshAt(w.actor, w.from, w.contact, 1);
+  }
+  swooshAt(id: ActorId, from: number, contact: number, _facing: 1 | -1): number {
+    const tr = this.track(id);
+    // (dressed as at each moment, from the track: what it holds then, not at the end of the build)
+    const dressAt = (t: number): Dress => {
+      const d: Dress = { held: tr.rig === "scrapper" ? heldAt(tr, t) : null, shield: tr.rig === "scrapper" ? shieldAt(tr, t) : null, scale: tr.scale };
+      if (tr.look !== undefined) d.look = tr.look;
+      const lead = segAt(tr, t)?.lead;
+      if (lead !== undefined) d.lead = lead;
+      return d;
+    };
+    const d = forwardDrive(this.rig, tr, this.nudgesOf.get(id) ?? [], dressAt, from, contact);
+    return Math.min(contact, Math.max(from - SOUND.whooshPeakMs, d.mid - SOUND.whooshPeakMs));
   }
   /** When an effect of a contact starts. Equal to the contact time, except under a planted fault. */
   effectStart(contact: number, key: EffectKey, at: number): number {
@@ -512,6 +520,9 @@ export class Builder {
     segs.push(this.play(p.actor, p.clip, swingStart, { rate: strike / strikeIn, until: contactAt, ...extra }));
     // the whoosh is loudest on the fastest part of the forward drive (`swooshAt`)
     this.cue(this.swooshAt(p.actor, swingStart, contactAt, facing), p.i, "swing", 0, this.soundItem(p.actor, p.dress.held));
+    // (placed again once the whole bout is laid: what is laid after this step can change the drawn
+    // pose before the contact, the crossfade and what the hand holds)
+    this.swooshes.push({ cue: this.cues[this.cues.length - 1]!, actor: p.actor, from: swingStart, contact: contactAt });
     segs.push(this.play(p.actor, p.clip, contactAt, { c0: strike, rate: 0, until: contactAt + p.hitStop, ...extra }));
     const rest = info.durationMs - strike;
     const restMs = p.combo ? BEAT.comboMs - BEAT.comboStrikeMs : rest;
@@ -786,7 +797,70 @@ export class Builder {
   }
 }
 
+/**
+ * The stage x of the striking end as drawn (round-2 close: the hand alone is fastest early in the
+ * wind-up; what the eye follows is the weapon's head, which the wrist whips through last): the
+ * grip, plus the grip-to-striking-end vector of the strike pose turned by how far the held item's
+ * angle is from its angle there. Bare hands and a pet's mouth: the grip itself.
+ */
+export function strikingEnd(rig: Rig, tr: ActorTrack, dress: Dress, pose: Pose, place: { x: number; y: number; facing: 1 | -1 },
+  contactT: number): number {
+  return strikingPoint(rig, tr, dress, pose, place, contactT).x;
+}
+/** The same, as a stage point. */
+export function strikingPoint(rig: Rig, tr: ActorTrack, dress: Dress, pose: Pose, place: { x: number; y: number; facing: 1 | -1 },
+  contactT: number): { x: number; y: number } {
+  const seg = segAt(tr, contactT - 0.5);
+  const h = rig.handAnchor(pose, dress, { x: 0, y: 0, facing: 1 });
+  let vx = 0;
+  let vy = 0;
+  let rot0 = h.rot;
+  if (seg !== null && dress.held !== null && dress.held !== "fists") {
+    const strike = rig.samplePose(tr.rig, seg.clip, clipTime(seg, contactT - 0.5), seg.aim);
+    const hs = rig.handAnchor(strike, dress, { x: 0, y: 0, facing: 1 });
+    const sp = rig.strikePoint(tr.rig, seg.clip, dress, seg.aim?.y);
+    vx = sp.x - hs.x;
+    vy = sp.y - hs.y;
+    rot0 = hs.rot;
+  }
+  const d = ((h.rot - rot0) * Math.PI) / 180;
+  const x = h.x + vx * Math.cos(d) - vy * Math.sin(d);
+  const y = h.y + vx * Math.sin(d) + vy * Math.cos(d);
+  return { x: place.x + place.facing * x, y: place.y + y };
+}
+
+
+/**
+ * The forward drive of a swing as drawn, from `from` (the wind-up's start) to `contact`: the striking
+ * end (`strikingPoint`) on the blended pose (blend.ts) every 4 ms, its speed while it moves toward
+ * the target; `start` is the first moment of the run of samples at half the top speed or more that
+ * holds the fastest one, `mid` the middle of the drive from there to the contact. A heavy swing's
+ * head moves at nearly one speed from the top of the wind-up to the hit (level 30 n 70, the crowbar:
+ * 12.3 units per 8 ms after the turn, 10.5 at 32 ms before the hit), so the whoosh is centred on the
+ * drive rather than on its noisy fastest sample. With no forward motion (a bite), the middle.
+ */
+export function forwardDrive(rig: Rig, tr: ActorTrack, nudges: readonly Nudge[], dressAt: (t: number) => Dress, from: number,
+  contact: number): { start: number; mid: number } {
+  const v: { t: number; s: number }[] = [];
+  try {
+    let prev: { x: number; y: number } | null = null;
+    for (let t = from; t <= contact; t += 4) {
+      const p = drawPlace(tr, nudges, t);
+      const q = strikingPoint(rig, tr, dressAt(t), blendedPose(rig, tr, t), { x: p.x, y: p.y, facing: p.facing }, contact);
+      if (prev !== null) v.push({ t: t - 4, s: p.facing * (q.x - prev.x) > 0 ? Math.hypot(q.x - prev.x, q.y - prev.y) : 0 });
+      prev = q;
+    }
+  } catch { /* a rig with no hand */ }
+  const top = Math.max(0, ...v.map((q) => q.s));
+  if (top <= 0.05) return { start: from, mid: (from + contact) / 2 };
+  let k = v.findIndex((q) => q.s === top);
+  while (k > 0 && v[k - 1]!.s >= top * 0.5) k -= 1;
+  const start = v[k]!.t;
+  return { start, mid: (start + contact) / 2 };
+}
+
 /** Spans sorted and merged where they touch or overlap. */
+
 function mergeSpans(list: readonly [number, number][]): [number, number][] {
   const out: [number, number][] = [];
   for (const [f, t] of [...list].filter((s) => s[1] > s[0]).sort((p, q) => p[0] - q[0])) {
@@ -832,6 +906,8 @@ export function buildTimeline(log: BoutLog, a: FighterSnapshot, b: FighterSnapsh
     B.stepAt[i] = r.at;
     B.applyAt[i] = r.apply;
   });
+  B.placeSwooshes();
+
 
   // Step ends: strictly rising, so `state(stepEnd[n])` is the state after exactly n + 1 steps.
   const stepEnd: number[] = [];

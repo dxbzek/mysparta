@@ -4,9 +4,9 @@
  *  - an impact sound (fist, blunt, blade, block) starts within 30 ms of its contact (the contact
  *    mark is where contact-sync.test.ts proves every hit effect starts; build-audio.mjs cuts every
  *    sprite to start 5 ms before its onset, so a cue at the contact sounds 5 ms after it);
- *  - a swing's whoosh is loudest on the fastest frame of the forward drive: its cue plus the swish
- *    samples' peak (`SOUND.whooshPeakMs`) is within 12 ms of the moment the striking hand moves
- *    toward the target fastest (the hand found on the drawn pose, frame by frame, every 2 ms). It
+ *  - a swing's whoosh is loudest in the middle of the forward drive: its cue plus the swish samples'
+ *    peak (`SOUND.whooshPeakMs`) is within 12 ms of the middle of the drive, from where the drawn
+ *    weapon's head reaches half its top speed toward the target to the contact (`forwardDrive`). It
  *    used to start at the start of the wind-up (heard 70 to 130 ms early), then at the start of the
  *    drive (still loud 45 to 55 ms before the fastest frames, round-2 close);
  *  - a throw's sound starts on the release of its own step's throw clip (within 10 ms), and a throw
@@ -27,6 +27,9 @@ import { contentPack, createRig, gatePack, strikeTime } from "@rankzero/rig";
 import type { Cue } from "../src/contracts";
 import type { StagePlayer } from "../src/createFightPlayer";
 import { SOUND } from "../src/tuning";
+import { forwardDrive } from "../src/timeline";
+
+
 import { homeSpan } from "../src/camera";
 import { drawnBox } from "../src/bounds";
 
@@ -43,23 +46,13 @@ function found(level: number, n: number): { name: string; log: BoutLog; a: Fight
   return { name: `find-bout level ${level} n ${n}`, log: simulateFight(combineSeed("find-bout", n), a, b, 1), a, b };
 }
 
-/** The forward drive of a strike seg: when the drawn hand moves toward the target fastest
- *  (`peak`), and the first time from which it moves at half that speed or more before it (`start`). */
-function drive(p: StagePlayer, actor: string, from: number, to: number): { start: number; peak: number } {
-  const xs: { t: number; x: number }[] = [];
-  for (let t = from; t <= to; t += 2) {
-    const f = p.frame(t).actors.find((a) => a.id === actor);
-    if (f === undefined) continue;
-    const h = FULL.handAnchor(FULL.samplePose(f.rig, f.clip, f.clipT, f.aim), f.dress, f.place);
-    xs.push({ t, x: h.x * f.place.facing });
-  }
-  const v = xs.slice(1).map((q, k) => ({ t: xs[k]!.t, v: Math.max(0, q.x - xs[k]!.x) }));
-  const top = Math.max(0, ...v.map((q) => q.v));
-  if (top <= 0) return { start: from, peak: (from + to) / 2 };
-  let k = v.findIndex((q) => q.v === top);
-  const peak = v[k]!.t + 1;
-  while (k > 0 && v[k - 1]!.v >= top * 0.5) k -= 1;
-  return { start: v[k]!.t, peak };
+/** The forward drive of a strike seg, measured on the frames the player draws: the striking end on
+ *  the blended pose, its speed toward the target (`forwardDrive`); `start` where it reaches half its
+ *  top speed, `mid` the middle of the drive from there to the contact. */
+function drive(p: StagePlayer, actor: string, from: number, to: number): { start: number; mid: number } {
+  const tr = p.tracks.byId.get(actor as never)!;
+  const nudges = p.tracks.nudges.filter((n) => n.actor === actor);
+  return forwardDrive(FULL, tr, nudges, (t) => p.frame(t).actors.find((a) => a.id === actor)!.dress, from, to);
 }
 
 /** The actor of a step, when it has one. */
@@ -92,7 +85,7 @@ function soundProblems(p: StagePlayer, log: BoutLog, cues: readonly Cue[]): stri
         if (seg === undefined) continue;
         const d = drive(p, tr.id, seg.from, seg.to);
         const loud = c.at + SOUND.whooshPeakMs;
-        if (Math.abs(loud - d.peak) > 12 || c.at > mark.at) out.push(`swing whoosh loudest at ${Math.round(loud)} ms, the hand fastest at ${Math.round(d.peak)} ms (step ${c.step})`);
+        if (Math.abs(loud - d.mid) > 12 || c.at > mark.at) out.push(`swing whoosh loudest at ${Math.round(loud)} ms, the middle of the drive at ${Math.round(d.mid)} ms (step ${c.step})`);
         break;
       }
       continue;
