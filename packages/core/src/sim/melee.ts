@@ -134,7 +134,8 @@ export function resolve(b: Bout, att: Actor, def: Actor, thrown: boolean, booste
   const armor = thrown ? null : dv.armor;
   // gear: a crit is a clean blow to the head (Motorbike Helmet: more Toughness for its soak; Welding
   // Mask: a smaller crit); a companion's bite lands on the shins (Magazine Shin Guards)
-  const soak = (crit && def.scrapper ? soakOf(def.tou + gearOf(def, "headTough")) : dv.soak) + (att.comp !== null ? gearOf(def, "petSoak") : 0);
+  const soak = (crit && def.scrapper ? dv.soak - soakOf(def.tou) + soakOf(def.tou + gearOf(def, "headTough")) : dv.soak)
+    + (att.comp !== null ? gearOf(def, "petSoak") : 0);
   const critPct = 150 - gearOf(def, "critCut");
   const full = damageOf(raw, variance, mult, crit, armor, soak, critPct);
   // Number skills show where they changed the damage (no random number: the same hit, re-counted).

@@ -68,7 +68,7 @@ export function combatValues(skills: ReadonlySet<string>, held: HeldId, shield: 
     crit: BASE.crit + PRECISION_CRIT * prec + w.crit + g("crit"),
     armor: BASE.armor + (has("padding") ? sk("padding", "armor") : 0) + (has("plate-vest") ? sk("plate-vest", "armor") : 0)
       + sh.armor + g("armor"),
-    soak: BASE.soak + soakOf(tough),
+    soak: BASE.soak + soakOf(tough) + g("soak"),
     grip: BASE.grip + TOUGH_GRIP * Math.max(0, tough) + g("grip"),
   };
 }

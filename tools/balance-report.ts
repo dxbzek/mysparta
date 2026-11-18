@@ -29,7 +29,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { FighterSnapshot, PerkId, Rarity } from "../packages/core/src/index";
-import { PERK_IDS, REALM_SALT, RARITY_OF, isCompanionId, makeRng, combineSeed, perkKind } from "../packages/core/src/index";
+import { PERK_IDS, REALM_SALT, RARITY_OF, isCompanionId, isGearId, makeRng, combineSeed, perkKind } from "../packages/core/src/index";
+import { defaultLoadout, loadoutPerks, statsWithGear, wornGear } from "../packages/core/src/progress/loadout";
+import { GEAR_STAT_KEYS, gearSlot, gn } from "../packages/core/src/content/gear";
 import { MAX_WEAPONS, fits, weaponsOf } from "../packages/core/src/progress/perks";
 import { rivalSnapshot } from "../packages/core/src/progress/rivals";
 import { simulateFight } from "../packages/core/src/sim/simulate";
@@ -67,6 +69,15 @@ const WW_MAX_COMPANION = 65;
  *  weapons (nearly every level-30 kit, round 2) is measured with its last weapon left at home, so
  *  the test is the choice the Route can really offer, a 5th weapon, and never a 6th. */
 function baseFor(s: FighterSnapshot, perk: PerkId): FighterSnapshot {
+  // a piece of gear goes to a kit with that slot empty: the gear it wore there is taken off (and
+  // its stat points with it), so the test is that piece against none (content v3 batch 2)
+  if (isGearId(perk)) {
+    const old = s.perks.find((p) => isGearId(p) && gearSlot(p) === gearSlot(perk));
+    if (old === undefined || !isGearId(old)) return s;
+    const d = draftOf(s.stats);
+    for (const k of GEAR_STAT_KEYS) d.points[k] = Math.max(0, d.points[k] - gn(old, k));
+    return { ...s, id: `${s.id}-${old}`, stats: freeze(d), perks: s.perks.filter((p) => p !== old) };
+  }
   const owned = weaponsOf(s.perks);
   if (perkKind(perk) !== "weapon" || owned.length < MAX_WEAPONS || owned.includes(perk as never)) return s;
   const last = owned[owned.length - 1]!;
@@ -81,6 +92,7 @@ function canAdd(s: FighterSnapshot, perk: PerkId): boolean {
 }
 
 function withPerk(s: FighterSnapshot, perk: PerkId): FighterSnapshot {
+  if (isGearId(perk)) return { ...s, id: `${s.id}+${perk}`, stats: statsWithGear(s.stats, [perk]), perks: [...s.perks, perk] };
   const d = draftOf(s.stats);
   applyPerkToStats(d, perk);
   return { ...s, id: `${s.id}+${perk}`, stats: freeze(d), perks: [...s.perks, perk] };
@@ -164,8 +176,10 @@ if (POLICY_LEVELS.length > 0) {
           return prng.int(100) < 65 ? perkSide : statSide;
         });
         const kit = walk(seed, picks);
+        // (the player takes the sim's own loadout, as a record with none stored)
+        const lo = defaultLoadout(kit.perks);
         const me: FighterSnapshot = { id: `policy:${pol}:${i}`, name: "Policy", look: rivalSnapshot(REALM_SALT, 1, 0).look,
-          level, stats: kit.stats, perks: kit.perks, rulesVersion: 1 };
+          level, stats: statsWithGear(kit.stats, wornGear(lo)), perks: loadoutPerks(kit.perks, lo), rulesVersion: 1 };
         for (let j = 0; j < 3; j++) {
           const swap = j === 1;
           const foe = rivalSnapshot(REALM_SALT, level, prng.int(POOL));

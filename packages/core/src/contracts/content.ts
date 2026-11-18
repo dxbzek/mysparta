@@ -45,7 +45,7 @@ export interface ShieldDef { id: ShieldId; rarity: Rarity; tiers: readonly [Shie
  *  health strength agility speed toughness precision
  *               stat points, added to the snapshot's stats when a bout's snapshot is made (the sim
  *               never adds them again, like a booster's)
- *  evade block aim pierce intercept riposte combo disarm crit armor grip
+ *  evade block aim pierce intercept riposte combo disarm crit armor grip soak
  *               added to the derived value of that name while worn
  *  headTough    Toughness added for the soak of a crit taken (a crit is a clean blow to the head)
  *  critCut      percent cut from the half a crit adds to a hit taken (x1.5 becomes x(1.5 - critCut/100))
@@ -60,7 +60,7 @@ export interface ShieldDef { id: ShieldId; rarity: Rarity; tiers: readonly [Shie
  *  snareCut     a Tarp's snare on the wearer lasts this many skipped turns fewer (at least 1)
  *  startClock   added to the start clock (a minus starts sooner) */
 export type GearKey = "health" | "strength" | "agility" | "speed" | "toughness" | "precision"
-  | "evade" | "block" | "aim" | "pierce" | "intercept" | "riposte" | "combo" | "disarm" | "crit" | "armor" | "grip"
+  | "evade" | "block" | "aim" | "pierce" | "intercept" | "riposte" | "combo" | "disarm" | "crit" | "armor" | "grip" | "soak"
   | "headTough" | "critCut" | "sandProof" | "petEvade" | "fistDmg" | "snatchResist" | "thrownBlock" | "moveSoak"
   | "drawEase" | "petSoak" | "snareCut" | "startClock";
 export type GearNumbers = Readonly<Partial<Record<GearKey, number>>>;

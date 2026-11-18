@@ -96,7 +96,9 @@ function nodeCards(seed: number, k: number, prefix: string, owned: readonly Perk
       for (let i = 0; i <= PERK_REROLLS; i++) {
         const gear = rollGear(g);
         if (!fits(gear, owned)) continue;
-        perkCard = perkCardPlus(k + 2, perkCards) ? { kind: "perk", perk: gear, plus: STAT_KEYS[g.int(n)]! } : { kind: "perk", perk: gear };
+        // (a gear card always carries +1 stat point: a piece of gear is a small bonus, and the perk
+        // card it replaces is worth about a stat card)
+        perkCard = { kind: "perk", perk: gear, plus: STAT_KEYS[g.int(n)]! };
         break;
       }
     }

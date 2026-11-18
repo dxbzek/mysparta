@@ -8,6 +8,7 @@ import { START_EACH, STAT_KEYS } from "./stats";
 import { combineSeed, makeRng } from "../prng";
 import { randomName, rollLook } from "./create";
 import { walk, walkWith } from "./route";
+import { defaultLoadout, loadoutPerks, statsWithGear, wornGear } from "./loadout";
 import { levelOf } from "./xp";
 
 /** A rival takes the perk card (or the split that replaced it) 65% of the time. */
@@ -41,9 +42,12 @@ export function rivalSnapshot(realmSalt: string, level: number, index: number): 
     return policy.int(100) < RIVAL_PERK_PCT ? perkSide : statSide;
   });
   const kit = walk(seed, picks);
+  // a rival takes the sim's own loadout (content v3 batch 2): every weapon up to the limit, its
+  // shield, its pets, the rarest gear of each slot
+  const l = defaultLoadout(kit.perks);
   const snap: FighterSnapshot = {
     id: `rival:${realmSalt}:${lvl}:${index}`, name: randomName(seed), look: rollLook(seed, 0, 0), level: lvl,
-    stats: kit.stats, perks: kit.perks, rulesVersion: 1,
+    stats: statsWithGear(kit.stats, wornGear(l)), perks: loadoutPerks(kit.perks, l), rulesVersion: 1,
   };
   if (cache.size >= CACHE_MAX) cache.clear();
   cache.set(key, snap);
