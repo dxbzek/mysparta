@@ -27,7 +27,7 @@
   box-shadow: 0 0 0 1.5px var(--c-ink);
 }
 .legendLeft::after {
-  border-top: 4px dashed #6a6258;
+  border-top: 4px dashed var(--c-limb-dead);
   box-shadow: none;
 }
 .tree {
@@ -40,7 +40,7 @@
   box-shadow: var(--shadow-hard);
   background:
     var(--tex-halftone-light),
-    radial-gradient(90% 40% at 50% 0%, rgba(242, 166, 90, 0.18), transparent 70%),
+    var(--tex-lamp-glow),
     var(--c-dark);
   color: var(--t-on-dark);
 }
@@ -54,7 +54,7 @@
   width: 8px;
   transform: translateX(-50%);
   border: 2px solid var(--c-ink);
-  background: linear-gradient(90deg, #5a3a20, #8c5e30 45%, #4a2e18);
+  background: var(--tex-trunk);
 }
 .root {
   position: relative;
@@ -129,7 +129,7 @@
   height: 7px;
   margin-top: -3.5px;
   background: var(--c-hazard);
-  box-shadow: 0 0 0 1.5px var(--c-ink), 0 0 8px rgba(242, 194, 0, 0.5);
+  box-shadow: var(--glow-limb);
 }
 .left {
   padding-left: 10px;
@@ -138,7 +138,7 @@
 }
 .left::before {
   left: -4px;
-  border-top: 4px dashed #6a6258;
+  border-top: 4px dashed var(--c-limb-dead);
 }
 .knot {
   position: relative;

@@ -18,7 +18,7 @@ import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { FighterSnapshot, KitBase, PerkId, ScrapperRecord, StatBlock } from "@rankzero/core";
-import { COMPANION_IDS, ENERGY_MAX, routeNode, sheetOf, snapshotOf } from "@rankzero/core";
+import { COMPANION_IDS, ENERGY_MAX, api, routeNode, sheetOf, snapshotOf } from "@rankzero/core";
 import { readDoc } from "../../src/state/migrations";
 import { memGame } from "./helpers";
 
@@ -61,11 +61,11 @@ describe.each(["aac2d64", "1681640"])("a schema-2 save written by build %s", (c)
     expect(changed).toBe(true);
   });
 
-  it("loads (now as schema 5), every scrapper keeping its level, picks, record, kit, stats and pets, with a full bar", () => {
+  it("loads (now as schema 6), every scrapper keeping its level, picks, record, kit, stats and pets, with a full bar", () => {
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(5);
+    expect(r.doc.schemaVersion).toBe(6);
     expect(r.doc.fighters.map((f) => f.id)).toEqual(fx.doc.fighters.map((f) => f.id));
     expect(r.doc.history).toHaveLength(2);
     for (const [k, f] of r.doc.fighters.entries()) {
@@ -129,11 +129,11 @@ describe("a schema-3 save written by build 74fc265 (sim version 7)", () => {
     expect(JSON.stringify(now.perks) !== JSON.stringify(was.perks) || JSON.stringify(four(now.stats)) !== JSON.stringify(four(was.stats))).toBe(true);
   });
 
-  it("loads (now as schema 5): every scrapper, active and retired, keeps its exact kit with Toughness 3 and Precision 3 added", () => {
+  it("loads (now as schema 6): every scrapper, active and retired, keeps its exact kit with Toughness 3 and Precision 3 added", () => {
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(5);
+    expect(r.doc.schemaVersion).toBe(6);
     expect(r.doc.retired.map((f) => f.name)).toEqual(["Kip Ladle"]);
     for (const f of [...r.doc.fighters, ...r.doc.retired]) {
       const old = [...fx.doc.fighters, ...fx.doc.retired].find((o) => o.id === f.id)!;
@@ -243,7 +243,7 @@ describe("a schema-4 save written by build b13cbf4 (sim version 8, content v3 ba
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(5);
+    expect(r.doc.schemaVersion).toBe(6);
     for (const rec of [...r.doc.fighters, ...r.doc.retired]) {
       const was = fx.expect[rec.name]!;
       const now = snapshotOf(rec);
@@ -292,3 +292,63 @@ const GEAR_IDS_LIST: readonly string[] = ["bandana", "beanie", "hard-hat", "gogg
   "hi-vis-vest", "padded-jacket", "leather-jacket", "hockey-chest-pad", "tyre-rubber-vest", "work-gloves", "taped-fists", "rubber-gloves",
   "fingerless-gloves", "oven-mitts", "welding-gloves", "ripped-jeans", "cargo-pants", "knee-pads", "track-pants", "magazine-shin-guards",
   "overalls", "sneakers", "flip-flops", "rain-boots", "skate-shoes", "steel-toe-boots", "slippers"];
+
+/**
+ * Schema 5 to 6 (content v3, batch 3, plan 13.11). The fixture is a save as build 77dc0d0 (sim
+ * version 9, content v3 batch 2) wrote it through its own actions: three scrappers made, fought
+ * and levelled there (Bo Rivet to level 13, Cleo Socket to level 9 with a stored loadout, Dex Gravel
+ * to level 7 and retired; the history cut to its newest 20 rows to keep the file small). `expect`
+ * holds that build's snapshotOf of each. With the migration each keeps its kit, stats, pets and
+ * loadout exactly, gets an empty talent tree, and holds the points its level earns, unspent, so the
+ * Locker and the Kit show the talent prompt.
+ */
+describe("a schema-5 save written by build 77dc0d0 (sim version 9, content v3 batch 2)", () => {
+  interface Fixture5 { build: string; simVersion: number; doc: { fighters: ScrapperRecord[]; retired: ScrapperRecord[]; schemaVersion: number } & Record<string, unknown>;
+    expect: Record<string, FighterSnapshot> }
+  const fx = load<Fixture5>("77dc0d0");
+  const all = [...fx.doc.fighters, ...fx.doc.retired];
+
+  it("is a real schema-5 save of sim version 9: no talents anywhere, a stored loadout, a retired scrapper", () => {
+    expect(fx.doc.schemaVersion).toBe(5);
+    expect(fx.simVersion).toBe(9);
+    expect(all.length).toBe(3);
+    expect(fx.doc.retired.length).toBe(1);
+    expect(all.some((r) => r.loadout !== undefined)).toBe(true);
+    expect(JSON.stringify(fx.doc)).not.toContain("talents");
+  });
+
+  it("keeps every kit, stat, pet and loadout exactly; each scrapper gets an empty tree and the points its level earns, unspent", () => {
+    const r = readDoc(JSON.stringify(fx.doc));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.doc.schemaVersion).toBe(6);
+    const byId = new Map(all.map((x) => [x.id, x]));
+    for (const rec of [...r.doc.fighters, ...r.doc.retired]) {
+      const was = fx.expect[rec.name]!;
+      const now = snapshotOf(rec);
+      expect(now.perks, rec.name).toEqual(was.perks);
+      expect(now.stats, rec.name).toEqual(was.stats);
+      expect(now.level, rec.name).toBe(was.level);
+      expect(rec.loadout, rec.name).toEqual(byId.get(rec.id)!.loadout);
+      expect(rec.talents, rec.name).toEqual({ ranks: {} });
+      const t = sheetOf(rec).talents;
+      expect(t.earned, rec.name).toBe(api.talentPointsAt(was.level));
+      expect([t.spent, t.unspent], rec.name).toEqual([0, t.earned]);
+      expect(t.earned, rec.name).toBeGreaterThan(0);
+    }
+    expect(r.doc.history.length).toBe((fx.doc.history as unknown[]).length);
+  });
+
+  it("spends after the migration, the bout's snapshot carries the talent, and the save round-trips", async () => {
+    const g = await memGame();
+    const r = readDoc(JSON.stringify(fx.doc));
+    if (!r.ok) throw new Error(r.why);
+    const bo = r.doc.fighters.find((f) => f.name === "Bo Rivet")!;
+    const spent = api.spendTalent(api.spendTalent(bo, "thick-skin"), "brace");
+    expect(snapshotOf(spent).talents).toEqual({ "thick-skin": 1, brace: 1 });
+    expect(snapshotOf(spent).stats.points.toughness - snapshotOf(bo).stats.points.toughness).toBe(api.content.talents["thick-skin"].per.toughness);
+    const back = readDoc(JSON.stringify({ ...r.doc, fighters: r.doc.fighters.map((f) => (f.id === bo.id ? spent : f)) }));
+    expect(back.ok && back.doc.fighters.find((f) => f.id === bo.id)!.talents).toEqual({ ranks: { "thick-skin": 1, brace: 1 } });
+    void g;
+  });
+});

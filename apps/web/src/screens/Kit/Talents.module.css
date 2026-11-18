@@ -103,12 +103,12 @@
 /* ------------------------------------------------------------ branch panel */
 .branch,
 .jumpChip {
-  --branch: #b8352a;
+  --branch: var(--c-branch-brawler);
 }
-[data-branch="arsenal"] { --branch: #e8b07a; }
-[data-branch="thrower"] { --branch: #e8662a; }
-[data-branch="pack"] { --branch: #4e8a3e; }
-[data-branch="iron-wall"] { --branch: #4a6a9a; }
+[data-branch="arsenal"] { --branch: var(--c-branch-arsenal); }
+[data-branch="thrower"] { --branch: var(--c-branch-thrower); }
+[data-branch="pack"] { --branch: var(--c-branch-pack); }
+[data-branch="iron-wall"] { --branch: var(--c-branch-iron-wall); }
 
 .branch {
   scroll-margin-top: 48px;
@@ -118,7 +118,7 @@
   overflow: hidden;
   background:
     var(--tex-halftone-light),
-    radial-gradient(120% 60% at 50% 0%, rgba(242, 166, 90, 0.16), transparent 70%),
+    var(--tex-lamp-glow),
     var(--c-dark);
   color: var(--t-on-dark);
 }
@@ -155,14 +155,13 @@
   height: 100%;
 }
 .linkDark {
-  stroke: #4a443c;
+  stroke: var(--c-link-dead);
   stroke-width: 5;
   stroke-dasharray: 7 6;
 }
 .linkLit {
   stroke: var(--branch);
   stroke-width: 6;
-  filter: drop-shadow(0 0 3px rgba(242, 166, 90, 0.5));
 }
 .gate {
   position: absolute;
@@ -215,9 +214,9 @@
   height: 96px;
 }
 .node[data-state="open"] .disc {
-  box-shadow: 0 0 0 3px var(--c-hazard), 0 0 16px 4px rgba(242, 194, 0, 0.55);
+  box-shadow: var(--glow-open);
 }
-.node[data-state="open"][data-waiting="1"] .disc {
+:global(html[data-motion="full"]) .node[data-state="open"][data-waiting="1"] .disc {
   animation: rzTalentPulse 1.6s ease-in-out infinite;
 }
 .node[data-state="ranked"] .disc {
@@ -225,7 +224,7 @@
 }
 .node[data-state="full"] .disc {
   box-shadow: 0 0 0 3px var(--c-hazard), var(--shadow-hard-sm);
-  background: var(--tex-halftone-sodium), #3a2a12;
+  background: var(--tex-halftone-sodium), var(--c-node-full);
 }
 .cap[data-state="full"] .disc {
   box-shadow: var(--glow-mythic);
@@ -283,18 +282,15 @@
   width: 12px;
   height: 8px;
   border: 1.5px solid var(--c-ink);
-  background: #3a3530;
+  background: var(--c-hp-back);
   transform: skewX(-12deg);
 }
 .pipOn {
   background: var(--c-hazard);
 }
 @keyframes rzTalentPulse {
-  0%, 100% { box-shadow: 0 0 0 3px var(--c-hazard), 0 0 10px 2px rgba(242, 194, 0, 0.4); }
-  50% { box-shadow: 0 0 0 3px var(--c-hazard), 0 0 22px 7px rgba(242, 194, 0, 0.75); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .node[data-state="open"][data-waiting="1"] .disc { animation: none; }
+  0%, 100% { box-shadow: var(--glow-open-dim); }
+  50% { box-shadow: var(--glow-open-big); }
 }
 
 /* ------------------------------------------------------------ sheet */

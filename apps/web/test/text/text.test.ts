@@ -47,7 +47,7 @@ describe("plain labels", () => {
     expect(Object.values(NAV)).toEqual(["Home", "Kit", "History", "Inventory", "Pick a rival", "Tonight's Card", "Level path", "Route",
       "Fight", "Level up", "Skills", "Weapons", "Pets"]);
     expect(LOCKER_WORDS.tabs).toEqual({ home: "Home", kit: "Kit", inventory: "Inventory", history: "History" });
-    expect(UI.kit.tabs).toEqual({ kit: "Kit", loadout: "Bag", gear: "Gear", route: "Level path", stats: "Stats" });
+    expect(UI.kit.tabs).toEqual({ kit: "Kit", loadout: "Bag", gear: "Gear", talents: "Talents", route: "Level path", stats: "Stats" });
     expect(UI.card.heading).toBe("Pick a rival");
     expect(UI.card.title).toBe("Tonight's Card");
     expect(LOCKER_WORDS.levelUp).toBe("Level up!");

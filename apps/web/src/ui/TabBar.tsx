@@ -20,8 +20,9 @@ export function TabBar<K extends string>({ tabs, active, onSelect, label = "Main
           aria-current={t.key === active ? "page" : undefined}
           onClick={() => onSelect(t.key)}
         >
-          <span className={css.label}>{t.label}{t.badge !== undefined && t.badge.n > 0
-            ? <span className={css.badge} aria-label={t.badge.label} data-testid="tab-badge">{t.badge.n}</span> : null}</span>
+          {t.badge !== undefined && t.badge.n > 0
+            ? <span className={css.label}>{t.label}<span className={css.badge} aria-label={t.badge.label} data-testid="tab-badge">{t.badge.n}</span></span>
+            : t.label}
         </button>
       ))}
     </nav>

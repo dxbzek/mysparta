@@ -220,3 +220,30 @@ describe("the day key", () => {
     expect(dayKeyOf(new Date(2026, 10, 16, 0, 0, 1).getTime())).toBe("2026-11-16");
   });
 });
+
+describe("talent actions (content v3 batch 3)", () => {
+  it("spend a rank, refuse a locked one, respec once a day through the store", async () => {
+    const { memGame, playUntilLevelUp, DAY_MS } = await import("./helpers");
+    const g = await memGame();
+    const made = await g.actions.create("Tally Bolt", 0, 0);
+    if (!made.ok) throw new Error(made.error);
+    const id = made.value.id;
+    while (api.sheetOf(g.store.doc.fighters[0]!).level < 3) {
+      await playUntilLevelUp(g, id);
+      await g.actions.takeLevelUp(id, "L");
+      g.clock.add(3 * 3600 * 1000);
+    }
+    const rec = () => g.store.doc.fighters.find((f) => f.id === id)!;
+    expect(api.sheetOf(rec()).talents.unspent).toBe(1);
+    expect(await g.actions.spendTalent(id, "unbreakable")).toEqual({ ok: false, error: "locked" });
+    expect((await g.actions.spendTalent(id, "brace")).ok).toBe(true);
+    expect(api.snapshotOf(rec()).talents).toEqual({ brace: 1 });
+    expect(await g.actions.spendTalent(id, "brace")).toEqual({ ok: false, error: "no-points" });
+    expect((await g.actions.respecTalents(id)).ok).toBe(true);
+    expect(api.sheetOf(rec()).talents.unspent).toBe(1);
+    await g.actions.spendTalent(id, "thick-skin");
+    expect(await g.actions.respecTalents(id)).toEqual({ ok: false, error: "used-today" });
+    g.clock.add(DAY_MS);
+    expect((await g.actions.respecTalents(id)).ok).toBe(true);
+  });
+});

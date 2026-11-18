@@ -120,6 +120,23 @@
   --glow-teal: 0 0 0 2px #0c1514, 0 0 14px 2px rgba(69, 194, 182, 0.75);
   --ink-text: -2px -2px 0 #15110c, 2px -2px 0 #15110c, -2px 2px 0 #15110c, 2px 2px 0 #15110c, 3px 4px 0 #15110c;
 
+  /* the talent tree and the Level path tree (content v3 batch 3): one colour per branch, the
+     rig's own icon tones (sign red, lamp steel, safety orange, boot green, denim) */
+  --c-branch-brawler: #b8352a;
+  --c-branch-arsenal: #e8b07a;
+  --c-branch-thrower: #e8662a;
+  --c-branch-pack: #4e8a3e;
+  --c-branch-iron-wall: #4a6a9a;
+  --c-link-dead: #4a443c;        /* a tree line to a tier that is not open */
+  --c-limb-dead: #6a6258;        /* the dashed limb to the card left behind */
+  --c-node-full: #3a2a12;        /* a fully ranked node's disc */
+  --tex-trunk: linear-gradient(90deg, #5a3a20, #8c5e30 45%, #4a2e18);
+  --tex-lamp-glow: radial-gradient(110% 50% at 50% 0%, rgba(242, 166, 90, 0.17), transparent 70%);
+  --glow-open: 0 0 0 3px #f2c200, 0 0 16px 4px rgba(242, 194, 0, 0.55);
+  --glow-open-dim: 0 0 0 3px #f2c200, 0 0 10px 2px rgba(242, 194, 0, 0.4);
+  --glow-open-big: 0 0 0 3px #f2c200, 0 0 22px 7px rgba(242, 194, 0, 0.75);
+  --glow-limb: 0 0 0 1.5px #14152b, 0 0 8px rgba(242, 194, 0, 0.5);
+
   --c-scrim: rgba(21, 19, 15, 0.55);   /* behind a sheet */
   --c-focus: #f2c200;           /* focus ring, drawn with an ink edge so it shows on every surface */
 
