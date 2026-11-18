@@ -25,6 +25,7 @@
 import type { Tracks } from "./model";
 import type { CompanionId } from "@rankzero/core";
 import { FLOOR_Y, PET_FRAME_REACH, SCRAPPER_REACH, STAGE_H, STAGE_W } from "./layout";
+import { basePos, facingAt } from "./track";
 
 /** Every number of the camera, in stage units and ms at 1x. */
 export const CAMERA = {
@@ -84,7 +85,7 @@ interface Span { x0: number; x1: number; bottom: number; must?: { x0: number; x1
  * those places near the marks (timeline.ts `targetGives`, FRAMING); what is left over, the frame
  * holds. It is still one fixed frame for the whole bout.
  */
-export function frameSpan(tr: Pick<Tracks, "actors"> & { koFocus?: Tracks["koFocus"] }): Span {
+export function frameSpan(tr: Pick<Tracks, "actors"> & { koFocus?: Tracks["koFocus"]; nudges?: Tracks["nudges"] }): Span {
   const hit = spans.get(tr.actors);
   if (hit !== undefined) return hit;
   const s = homeSpan(tr);
@@ -101,6 +102,18 @@ export function frameSpan(tr: Pick<Tracks, "actors"> & { koFocus?: Tracks["koFoc
         const x = Math.min(a.home.x + lim, Math.max(a.home.x - lim, m.x1));
         x0 = Math.min(x0, x - r);
         x1 = Math.max(x1, x + r);
+      }
+      // and where a nudge (a knockback, a slide, a hop) carries it from there, at its farthest
+      // (content v3 batch 2: a long weapon's stop near the frame's edge, then a flinch, took a
+      // fighter's middle 1.5 units past the short phone's view in 2 of 400 level-30 bouts)
+      for (const n of tr.nudges ?? []) {
+        if (n.actor !== a.id || n.from >= until || n.from < a.showFrom) continue;
+        const t = n.from + n.outMs;
+        const x = basePos(a, t).x + facingAt(a, t) * n.dx;
+        const lim = CAMERA.excursionMax;
+        const c = Math.min(a.home.x + lim, Math.max(a.home.x - lim, x));
+        x0 = Math.min(x0, c - r);
+        x1 = Math.max(x1, c + r);
       }
     }
     x0 = Math.max(0, x0);
