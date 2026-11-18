@@ -25,6 +25,7 @@ import { PET_ART } from "./pets";
 import { SHIELD_ART } from "./shields";
 import { CONTENT_STAGES } from "./stages";
 import { CONTENT_WEAPONS } from "./weapons";
+import { GEAR_ART, GEAR_ICONS } from "./gear";
 
 export const contentPack: ContentPack = {
   clips: CONTENT_CLIPS,
@@ -38,5 +39,7 @@ export const contentPack: ContentPack = {
   looks: CONTENT_LOOKS,
   companions: PET_ART,
   fx: CONTENT_FX,
-  icons: { ...SKILL_ICONS, ...CONTENT_UI_ICONS, ...SHIELD_ICONS, ...WEAPON_ICONS, ...PET_ICONS },
+  icons: { ...SKILL_ICONS, ...CONTENT_UI_ICONS, ...SHIELD_ICONS, ...WEAPON_ICONS, ...PET_ICONS, ...GEAR_ICONS },
+  // body equipment (content v3 batch 2): drawn on the bones of its slot
+  gear: GEAR_ART,
 };

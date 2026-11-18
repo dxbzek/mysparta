@@ -52,7 +52,7 @@
  *    prop is drawn at its own size in the hand, in flight and on the floor, so it never changes
  *    size when it is thrown, dropped or snatched.
  */
-import type { CompanionId, HeldId, Look, PerkId, PropId, ShieldId, SkillId, StageId, StatKey } from "@rankzero/core";
+import type { CompanionId, GearId, GearSlot, HeldId, Look, PerkId, PropId, ShieldId, SkillId, StageId, StatKey } from "@rankzero/core";
 
 export type RigId = "scrapper" | CompanionId;
 export const SCRAPPER_BONES = ["root","pelvis","torso","head","armB.up","armB.lo","handB",
@@ -84,7 +84,10 @@ export type FaceId = "neutral" | "grit" | "shout" | "dazed" | "grin";
 /** The fixed item colours ("sign" red, "cone" orange, "pink", "paint" blue) are real objects' own
  *  paint (`FIXED` in gate/style.ts). */
 export type ColourSlot = "ink" | "skin" | "hair" | "top" | "bottom" | "shoes" | "accent" | "metal" | "wood" | "white"
-  | "sign" | "cone" | "pink" | "paint";
+  | "sign" | "cone" | "pink" | "paint"
+  /** Body equipment's own colours (CONTRACT_REV 8): a hard hat's and a rubber glove's yellow, denim,
+   *  tyre rubber, a rain boot's green, black leather, khaki, suede, a dark visor. */
+  | "yellow" | "denim" | "rubber" | "green" | "leather" | "khaki" | "suede" | "visor";
 export type Ease = "linear" | "in" | "out" | "inOut" | "back" | "snap";
 
 /** One bone. `limit` is the range its own rotation may take, in degrees, lowest first: the way a
@@ -196,7 +199,23 @@ export type MoveProp = "can" | "whistle" | "horn";
  *  `shield` is the shield on the back forearm, or null. It turns with the forearm; the
  *  "block-shield" clip raises it in front of the body. */
 export interface Dress { look?: Look; held: HeldId | null; shield: ShieldId | null; scale: number; tint?: "white";
-  lead?: "F" | "B"; prop?: MoveProp }
+  lead?: "F" | "B"; prop?: MoveProp;
+  /** Body equipment worn (CONTRACT_REV 8), one per slot, drawn on its bones over the look. */
+  gear?: Partial<Record<GearSlot, GearId>> }
+
+/** The look parts a piece of gear may hide while it is worn (a full-face helmet hides the hair, the
+ *  face and the accessory; boots hide the shoes). */
+export type LookPart = "hair" | "face" | "accessory" | "shoes";
+/**
+ * One piece of body equipment as it is drawn on the fighter (CONTRACT_REV 8). `shapes` sit on the
+ * scrapper's own bones (head, torso, arms, hands, legs, feet; a hand shape may end in ":open" like
+ * the look's hands) at the z of the parts they cover plus a little, so they turn and bend with the
+ * body. `hide` takes look parts away while it is worn. `hands`, `top` and `bottom` repaint the look's
+ * skin of the hands, its top or its bottom in another slot (gloves, a jacket, trousers), so the
+ * piece follows every finger and every crease of the body it covers.
+ */
+export interface GearArt { slot: GearSlot; shapes: readonly Shape[]; hide?: readonly LookPart[];
+  hands?: ColourSlot; top?: ColourSlot; bottom?: ColourSlot; arms?: ColourSlot }
 /** Where the feet stand, in stage units, and which way the actor faces (1 = right, -1 = left). */
 export interface Place { x: number; y: number; facing: 1 | -1 }
 /** A point given as an offset from an actor's `Place`, for an actor that faces right: x is
@@ -278,7 +297,9 @@ export interface ContentPack {              // the content-art lane: packages/ri
    *  item (fists, the gate's pipe and knife included), drawn for 28-64 px. `rig.icon` uses these
    *  over the engine's whole-weapon drawing, which turns a long pole into a hairline and a
    *  weapon drawn as links into an empty icon. */
-  icons: Record<SkillId | `ui:${ContentUi}` | ShieldId | HeldId, IconArt> & Partial<Record<CompanionId, IconArt>>;
+  icons: Record<SkillId | `ui:${ContentUi}` | ShieldId | HeldId | GearId, IconArt> & Partial<Record<CompanionId, IconArt>>;
+  /** Body equipment (CONTRACT_REV 8): every piece drawn on the bones of its slot. */
+  gear: Record<GearId, GearArt>;
   /** Animation pass (16 Nov 2026), optional: the clip variants a held item plays in place of a
    *  base clip (`uses[held][base]` names one of `variants`), so each weapon is used the way the
    *  real object is. A variant keeps its base clip's length and events (a rig test). */

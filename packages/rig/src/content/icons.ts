@@ -48,7 +48,7 @@ function farSide(p: Poly, share = 0.42): Pt[] {
   return out;
 }
 /** A filled shape with its far-side teal shadow. */
-function solid(polys: readonly Poly[], slot: Slot, shade = true, share = 0.3): IconShape {
+export function solid(polys: readonly Poly[], slot: Slot, shade = true, share = 0.3): IconShape {
   const s: IconShape = { d: dPolys(polys), slot };
   if (shade) {
     const sh = polys.map((p) => farSide(p, share)).filter((p) => p.length >= 3);
@@ -56,13 +56,13 @@ function solid(polys: readonly Poly[], slot: Slot, shade = true, share = 0.3): I
   }
   return s;
 }
-const flat = (polys: readonly Poly[], slot: Slot): IconShape => ({ d: dPolys(polys), slot });
-const inkOf = (list: readonly Poly[], w: number, taper = false): IconShape => ({ d: dPolys(list.map((p) => inkLine(p, w, taper))), slot: "ink" });
-const circ = (cx: number, cy: number, r: number, n = 20, ry = r): Pt[] => ellipsePoly(cx, cy, r, ry, n);
+export const flat = (polys: readonly Poly[], slot: Slot): IconShape => ({ d: dPolys(polys), slot });
+export const inkOf = (list: readonly Poly[], w: number, taper = false): IconShape => ({ d: dPolys(list.map((p) => inkLine(p, w, taper))), slot: "ink" });
+export const circ = (cx: number, cy: number, r: number, n = 20, ry = r): Pt[] => ellipsePoly(cx, cy, r, ry, n);
 const tr = (p: Poly, dx: number, dy: number, k = 1, rot = 0, cx = 12, cy = 12): Pt[] =>
   p.map(([x, y]) => { const r = rotPt([(x - cx) * k, (y - cy) * k], rot); return [cx + r[0] + dx, cy + r[1] + dy] as Pt; });
 /** A thick band along a curve, flat ends. */
-const band = (pts: Poly, w: number): Pt[] => inkLine(pts, w, false);
+export const band = (pts: Poly, w: number): Pt[] => inkLine(pts, w, false);
 const arc = (cx: number, cy: number, r: number, a0: number, a1: number, n = 12): Pt[] => {
   const out: Pt[] = [];
   for (let i = 0; i <= n; i++) { const a = (a0 + ((a1 - a0) * i) / n) * Math.PI / 180; out.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); }
@@ -240,7 +240,7 @@ function thickness(q: Poly): number {
 }
 /** A coloured feature thinner than its own ink outline vanishes into it at 28 px (review round 2:
  *  a goose bill, a dog ear, the light lines of a tarp): give such a shape a line that fits it. */
-function fitLine(s: IconShape): IconShape {
+export function fitLine(s: IconShape): IconShape {
   if (s.slot === "ink") return s;
   const w = s.w ?? LINE.icon;
   const t = Math.min(...parsePolys(s.d).map(thickness));

@@ -10,8 +10,9 @@
  * stand-ins (`gate/placeholders.ts`), applies `CLIP_FALLBACK`, draws the yard for every arena and
  * nothing for a content effect or a Move prop, warning once each.
  */
-import type { CompanionId, HeldId, Look, PropId, ShieldId, StageId } from "@rankzero/core";
-import { COMPANION_IDS, WEAPON_META, isShieldId } from "@rankzero/core";
+import type { CompanionId, GearId, GearSlot, HeldId, Look, PropId, ShieldId, StageId } from "@rankzero/core";
+import { COMPANION_IDS, GEAR_SLOTS, WEAPON_META, isShieldId } from "@rankzero/core";
+import type { ColourSlot, GearArt } from "../contracts";
 import type { Aim, AppearanceSet, IconArt, Clip, ClipInfo, CompanionClip, ContentClip, ContentPack, CreateRig, DrawEnv, Dress,
   FaceId, FxDraw, FxKind, FxSize, GatePack, IconRef, Offset, Place, Pose, PropArt, Rig, RigDef, RigId, Shape, StageDraw,
   SvgArt, WeaponArt } from "../contracts";
@@ -155,6 +156,20 @@ function itemSpan(art: WeaponArt): [number, number, number, number] {
 export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig => {
   const gateOnly = content === undefined;
   const looks: AppearanceSet = content?.looks ?? gate.looks;
+  const gearArt: Partial<Record<GearId, GearArt>> = content?.gear ?? {};
+  /** The art of the gear a dress wears, in slot order (a gate-only rig has none and draws none). */
+  function wornArt(gear: Partial<Record<GearSlot, GearId>> | undefined): GearArt[] {
+    if (gear === undefined) return [];
+    const out: GearArt[] = [];
+    for (const slot of GEAR_SLOTS) {
+      const id = gear[slot];
+      if (id === undefined) continue;
+      const art = gearArt[id];
+      if (art === undefined) { warnOnce(`gear:${id}`, `no gear art for "${id}"`); continue; }
+      out.push(art);
+    }
+    return out;
+  }
   const model = modelOf(gate.scrapper);
 
   // ------------------------------------------------------------------- clips and bodies
@@ -691,12 +706,35 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
     const openF = frontEmpty && (dazed || released) && !(f.held === "fists" && !dazed);
     const openB = !backHolds && dazed;
     const faces = pick(looks.faces, look?.face);
+    // body equipment (content v3 batch 2): drawn on its bones over the look, hiding or repainting
+    // the look parts it covers
+    const worn = wornArt(dress.gear);
+    const hide = new Set(worn.flatMap((g) => g.hide ?? []));
+    const repaint = (k: "hands" | "top" | "bottom" | "arms"): ColourSlot | undefined => worn.reduce<ColourSlot | undefined>((v, g) => g[k] ?? v, undefined);
+    const handsTo = repaint("hands");
+    const topTo = repaint("top");
+    const bottomTo = repaint("bottom");
+    const armsTo = repaint("arms");
+    const tops = pick(looks.tops, look?.top);
+    const bottoms = pick(looks.bottoms, look?.bottom);
+    const recolour = new Map<Shape, ColourSlot>();
+    for (const s of looks.hands) if (handsTo !== undefined && s.slot === "skin") recolour.set(s, handsTo);
+    for (const s of tops) {
+      const arm = s.bone.startsWith("arm");
+      if (arm && armsTo !== undefined && (s.slot === "skin" || s.slot === "top")) recolour.set(s, armsTo);
+      else if (topTo !== undefined && s.slot === "top") recolour.set(s, topTo);
+    }
+    for (const s of bottoms) if (bottomTo !== undefined && s.slot === "bottom") recolour.set(s, bottomTo);
     const shapes: Shape[] = [
-      ...pick(looks.heads, look?.head), ...pick(looks.hair, look?.hair), ...(faces[pose.face as FaceId] ?? faces.neutral),
-      ...pick(looks.tops, look?.top), ...pick(looks.bottoms, look?.bottom), ...pick(looks.shoes, look?.shoes),
-      ...pick(looks.accessories, look?.accessory), ...looks.hands,
+      ...pick(looks.heads, look?.head), ...(hide.has("hair") ? [] : pick(looks.hair, look?.hair)),
+      ...(hide.has("face") ? [] : (faces[pose.face as FaceId] ?? faces.neutral)),
+      ...tops, ...bottoms, ...(hide.has("shoes") ? [] : pick(looks.shoes, look?.shoes)),
+      ...(hide.has("accessory") ? [] : pick(looks.accessories, look?.accessory)), ...looks.hands,
+      ...worn.flatMap((g) => g.shapes),
     ];
-    for (const sh of shapes) {
+    for (const sh0 of shapes) {
+      const to = recolour.get(sh0);
+      const sh = to === undefined ? sh0 : { ...sh0, slot: to };
       const open = sh.bone.endsWith(":open");
       const boneId = open ? sh.bone.slice(0, -5) : sh.bone;
       if (boneId === "handF" && open !== openF) continue;

@@ -73,7 +73,8 @@ export const PALETTES_MORE: readonly Palette[] = [
 /** Fixed colours of the other slots. The item colours (review round 2, 16 Nov 2026: "the stop
  *  sign is brown and the cone is cream") are the real objects' own paint under the sodium lamp:
  *  a road sign's red, a cone's safety orange, a lawn flamingo's pink, a paint tin's blue label. */
-export const FIXED: Readonly<Record<"metal" | "wood" | "white" | "ink" | "sign" | "cone" | "pink" | "paint", string>> = {
+export const FIXED: Readonly<Record<"metal" | "wood" | "white" | "ink" | "sign" | "cone" | "pink" | "paint"
+  | "yellow" | "denim" | "rubber" | "green" | "leather" | "khaki" | "suede" | "visor", string>> = {
   metal: "#E8B07A",       // steel under a sodium lamp
   wood: "#9A5A2A",
   white: "#F2D4A8",       // cream, never pure white on a figure
@@ -82,6 +83,15 @@ export const FIXED: Readonly<Record<"metal" | "wood" | "white" | "ink" | "sign" 
   cone: "#E8662A",        // safety orange
   pink: "#E2789A",        // plastic flamingo pink
   paint: "#4A8FD0",       // a paint tin's label
+  // body equipment (content v3 batch 2), real objects' own colours under the sodium lamp
+  yellow: "#F2B83A",      // a builder's hard hat, washing-up gloves
+  denim: "#4A6A9A",       // jeans and overalls
+  rubber: "#3A3A40",      // tyre rubber, a knee pad's shell (lighter than ink, so the outline reads)
+  green: "#4E8A3E",       // rain boots
+  leather: "#5E4232",     // a leather jacket, fingerless gloves (brown-black: pure black vanishes at night)
+  khaki: "#A8955E",       // cargo trousers, a canvas work vest
+  suede: "#C89058",       // welding gauntlets, work gloves
+  visor: "#2A3E52",       // a helmet's dark visor, a welding mask's slot
 };
 
 /** The flash: the target's parts redrawn in this for 60 ms. */
