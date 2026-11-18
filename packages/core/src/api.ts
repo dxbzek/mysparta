@@ -3,7 +3,7 @@
  * checks that with `const check: CoreApi = impl` at integration.
  */
 import type { ContentTables, CoreApi } from "./contracts/api";
-import type { DayKey, FighterSnapshot, Pick as Side2, ScrapperRecord } from "./contracts/fighter";
+import type { DayKey, FighterSnapshot, KitBase, Pick as Side2, ScrapperRecord } from "./contracts/fighter";
 import { combineSeed } from "./prng";
 import { COMPANIONS } from "./content/companions";
 import { SKILLS } from "./content/skills";
@@ -27,7 +27,7 @@ export function boutSeed(aId: string, bId: string, lifetimeBouts: number): numbe
 }
 
 export function route(rec: ScrapperRecord) {
-  return walk(rec.seed, rec.picks).nodes;
+  return walk(rec.seed, rec.picks, rec.base).nodes;
 }
 
 export const api: CoreApi = {
@@ -40,7 +40,7 @@ export const api: CoreApi = {
   sheetOf,
   snapshotOf,
   snapshotSheet,
-  routeNode: (seed: number, picks: readonly Side2[]) => routeNode(seed, picks),
+  routeNode: (seed: number, picks: readonly Side2[], base?: KitBase) => routeNode(seed, picks, base),
   route,
   xpToNext,
   xpForBout,

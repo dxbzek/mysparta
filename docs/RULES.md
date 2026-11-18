@@ -597,7 +597,7 @@ Open, not decided here:
 - Firm Grip, Junk Collector, Anticipation and Sharpening Stone still show in under a third of their owner's level-30 bouts (the table above): a once-a-bout tag shares 19 turns with 20 other perks. Bare Knuckle is no longer offered to a kit with 3 weapons, but a kit that already holds it shows it in 1% of level-30 bouts.
 - Level-1 win rate by starting weapon, starts with 300 or more bouts: 41.9% (Sledgehammer) to 67.8% (Monkey Wrench), a 26-point spread; it was 18 points before this round. The Common and Uncommon starts run from 41.9% to 59.7%; six Rare starts sit at 62 to 68% (Bike Chain, Screwdrivers, Cricket Bat, Hubcap, Boomerang, Monkey Wrench). Every scrapper now draws on turn 1, so the weapon counts from the first swing, and a disarm of a level-1 scrapper's only weapon leaves fists for the bout. By starting skill the spread is 12 points (Stubborn 43.8% to Pitcher 56.0%). A rule that returns a scrapper's last weapon to its bag after a disarm would narrow this; it changes the log contract and was not done here.
 - For the stage: boosters have a tag and no lasting body effect; a Body Slam at a pet behind its owner runs the attacker past the owner (find-bout level 30 n 2), and a pet's dodge hop leaves the bout frame in find-bout level 10 n 36.
-- Saved scrappers get their starting skill and new cards on their next walk, with no migration (as after the pet pass).
+- Saved scrappers got their starting skill and new cards on their next walk, with no migration (as after the pet pass). Since the round-2 close an old save keeps its kit: see "Old saves" below.
 
 ### Round 2, second and third pass (16 and 17 November 2026)
 
@@ -650,3 +650,15 @@ Open, not decided here:
 - At level 30 a bout holds about 23 skills over 19 turns; with the tags spaced, Snatch (33.9%), Stubborn (34.7%) and Whistle (34.9%) sit just under a third, inside sampling noise of 35%. A wider spacing (1,700 ms gave 1.52 s between all skill moments) starves Padding and Quick Swap and breaks the 9-tag median; the median gap between all skill moments, Moves counted, is 1.35 s at level 30 (1.79 s between tags).
 - Shields (Bin Lid, Skateboard) show in about 22% of their owner's level-30 bouts.
 - For the stage: a foot slides in a flinch or in footwork in some level-30 bouts (open-defects.test.ts lists them).
+
+### Old saves (round-2 close, 18 November 2026)
+
+A save stores a scrapper's seed and picks, never its kit: the kit is walked again from them under the tables of the build that reads the save. The start pass, the pet pass and the round-2 passes changed the start perks, the card offers, the rerolls and the weapon cap, so an old save's picks walked into a different kit: tested on saves made by the builds of 15 November (sim version 3) and 16 November (sim version 4), a scrapper lost two weapons and gained others it never took, another gained a skill. Nothing in a save said which build wrote it.
+
+**The migration** (save schema 3, contract rev 5): when a save of schema 2 or older loads, each scrapper, active or retired, gets its newest stored bout's snapshot of itself as a carried kit (`ScrapperRecord.base`: the level-ups behind it, its perks with the start perks first, its stats), unless today's walk already gives that kit (a save of this build). From then on its sheet, its snapshot for a bout and its next level-up cards come from the carried kit, and level-ups taken after that bout walk on from it under today's tables. Level, picks, XP, bout counts, days, history and settings are carried unchanged.
+
+What cannot be carried:
+- A scrapper with no stored bout (none fought, or its rows dropped past the 200th) has nothing to read its old kit from: it keeps today's walk of its picks.
+- The cards a carried level-up offered are not stored anywhere: the Route list shows only the level-ups walked after the carried kit, and its Start row shows the carried start perks (one for a save from before round 2, which had no starting skill; such a scrapper does not get one).
+- A perk id the game no longer has is left out of a carried kit, with a warning.
+- How many stat cards and perk cards a carried kit took is read off it (its perks past the start ones were perk cards, the rest of its level-ups stat or split cards); the growing stat card and the late perk card's +1 count from there.

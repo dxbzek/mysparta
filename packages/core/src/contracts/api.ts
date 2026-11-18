@@ -4,7 +4,7 @@
  * Every function is pure: the same inputs give the same output on every engine.
  */
 import type { CompanionDef, ShieldDef, SkillDef, WeaponDef } from "./content";
-import type { DayKey, FighterSnapshot, Look, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
+import type { DayKey, FighterSnapshot, KitBase, Look, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
   SnapshotSheet } from "./fighter";
 import type { CompanionId, HeldId, PerkId, ShieldId, SkillId } from "./ids";
 import type { BoutLog } from "./log";
@@ -39,8 +39,10 @@ export interface CoreApi {
    *  Tonight's Card, either side of the face-off sheet, a sandbox snapshot. It holds the HP
    *  formula and the companion cost, so no screen copies a rule. */
   snapshotSheet(s: FighterSnapshot): SnapshotSheet;
-  /** The two cards after the given picks. A pure function of its inputs: it never rerolls. */
-  routeNode(seed: number, picks: readonly Pick[]): { left: RouteCard; right: RouteCard };
+  /** The two cards after the given picks (from the record's carried kit, `base`, when it has one).
+   *  A pure function of its inputs: it never rerolls. */
+  routeNode(seed: number, picks: readonly Pick[], base?: KitBase): { left: RouteCard; right: RouteCard };
+
   /** Every level-up taken so far, oldest first. */
   route(rec: ScrapperRecord): RouteNode[];
   xpToNext(level: number): number;

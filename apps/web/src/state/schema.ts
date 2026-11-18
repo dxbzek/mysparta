@@ -4,11 +4,12 @@
  * ids (a perk the game no longer has) warn and are dropped: they never throw.
  */
 import { LOOK_SPACE, isPerkId } from "@rankzero/core";
-import type { BoutLog, FighterSnapshot, Look, PerkId, ScrapperRecord } from "@rankzero/core";
+import type { BoutLog, FighterSnapshot, KitBase, Look, PerkId, ScrapperRecord, StatBlock } from "@rankzero/core";
 import type { BoutRecord, SaveDoc, Settings } from "../contracts";
 
-/** 2 since CONTRACT_REV 4: `settings.isVip` (migration 1 to 2 in migrations.ts). */
-export const SCHEMA_VERSION = 2 as const;
+/** 2 since CONTRACT_REV 4: `settings.isVip` (migration 1 to 2 in migrations.ts). 3 since
+ *  CONTRACT_REV 5: a scrapper's carried kit, `ScrapperRecord.base` (migration 2 to 3). */
+export const SCHEMA_VERSION = 3 as const;
 /** Scrappers on one save. A fourth needs one retired first. */
 export const SLOT_LIMIT = 3;
 /** History: the last 50 bouts keep their logs, the last 200 are kept as summaries. */
@@ -66,7 +67,31 @@ function checkSettings(v: unknown, warn: (w: string) => void): Settings {
   return s;
 }
 
-function checkRecord(v: unknown, where: string): ScrapperRecord {
+/** A carried kit (`ScrapperRecord.base`), or null when it is not one. Unknown perk ids are left out. */
+export function checkBase(v: unknown, picks: number, warn: (w: string) => void): KitBase | null {
+  if (!isObj(v) || !isNat(v.picks) || v.picks > picks || !isNat(v.starts) || !Array.isArray(v.perks) || !isObj(v.stats)) return null;
+  const pts = v.stats.points;
+  const mult = v.stats.mult;
+  const keys = ["health", "strength", "agility", "speed"] as const;
+  if (!isObj(pts) || !isObj(mult) || !keys.every((k) => isInt(pts[k]) && isInt(mult[k]))) return null;
+  const perks: PerkId[] = [];
+  let starts = v.starts;
+  (v.perks as unknown[]).forEach((p, i) => {
+    if (isStr(p) && isPerkId(p)) perks.push(p);
+    else {
+      warn(`unknown perk id ${JSON.stringify(p)} in a carried kit: left out`);
+      if (i < (v.starts as number)) starts -= 1;
+    }
+  });
+  if (perks.length === 0 || starts < 1) return null;
+  const stats: StatBlock = {
+    points: { health: pts.health as number, strength: pts.strength as number, agility: pts.agility as number, speed: pts.speed as number },
+    mult: { health: mult.health as number, strength: mult.strength as number, agility: mult.agility as number, speed: mult.speed as number },
+  };
+  return { picks: v.picks, starts, perks, stats };
+}
+
+function checkRecord(v: unknown, where: string, warn: (w: string) => void = () => undefined): ScrapperRecord {
   need(isObj(v), `${where}: not an object`);
   const r = v as Obj;
   need(isStr(r.id) && r.id.length > 0, `${where}: id`);
@@ -77,10 +102,16 @@ function checkRecord(v: unknown, where: string): ScrapperRecord {
   need(isNat(r.xp), `${where}: xp`);
   need(isDay(r.createdDay) && isDay(r.day), `${where}: days`);
   need(isNat(r.boutsUsed) && isNat(r.lifetimeBouts), `${where}: counts`);
-  return { id: r.id as string, name: r.name as string, seed: r.seed as number, lookSalt: r.lookSalt as number,
+  const rec: ScrapperRecord = { id: r.id as string, name: r.name as string, seed: r.seed as number, lookSalt: r.lookSalt as number,
     colourSalt: r.colourSalt as number, picks: [...(r.picks as ("L" | "R")[])], xp: r.xp as number,
     createdDay: r.createdDay as string, day: r.day as string, boutsUsed: r.boutsUsed as number,
     lifetimeBouts: r.lifetimeBouts as number };
+  if (r.base !== undefined) {
+    const base = checkBase(r.base, rec.picks.length, warn);
+    if (base !== null) rec.base = base;
+    else warn(`${where}: its carried kit could not be read: walked from its picks`);
+  }
+  return rec;
 }
 
 function checkLook(v: unknown): Look | null {
@@ -165,8 +196,9 @@ export function checkDoc(raw: unknown): CheckResult {
     need(isNat(d.rev), "rev");
     need(isNat(d.updatedAt), "updatedAt");
     need(Array.isArray(d.fighters) && Array.isArray(d.retired) && Array.isArray(d.history), "lists");
-    const fighters = (d.fighters as unknown[]).map((f, i) => checkRecord(f, `fighters[${i}]`));
-    const retired = (d.retired as unknown[]).map((f, i) => checkRecord(f, `retired[${i}]`));
+    const fighters = (d.fighters as unknown[]).map((f, i) => checkRecord(f, `fighters[${i}]`, warn));
+    const retired = (d.retired as unknown[]).map((f, i) => checkRecord(f, `retired[${i}]`, warn));
+
     const ids = new Set<string>();
     for (const f of [...fighters, ...retired]) {
       need(!ids.has(f.id), `duplicate scrapper id ${f.id}`);

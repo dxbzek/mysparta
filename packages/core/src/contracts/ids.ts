@@ -10,7 +10,10 @@ export const LOG_VERSION = 2 as const;
 /** 3: sound cues name what made them (stage `Cue.item`, `Cue.on`) and a `swing` family (owner, 15 Nov 2026). */
 /** 4: fight speed 3x (owner, 15 Nov 2026: "Add x1, x2 and x3 for VIP"): `Settings.speed` and
  *  `FightClock.speed` are 1 | 2 | 3, `Settings.isVip` gates 3x, and the save is schema version 2. */
-export const CONTRACT_REV = 4;
+/** 5: old saves keep their kit (round-2 close): `ScrapperRecord.base` (a `KitBase`), `routeNode`
+ *  takes it, and the save is schema version 3. */
+export const CONTRACT_REV = 5;
+
 export const REALM_SALT = "yard-1";
 /** Rivals in the pool at each level, index 0 to 239. */
 export const RIVALS_PER_LEVEL = 240;

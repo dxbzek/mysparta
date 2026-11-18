@@ -25,7 +25,19 @@ export type Pick = "L" | "R";
 /** "YYYY-MM-DD" in local time. Always passed in by the caller; the core never reads a clock. */
 export type DayKey = string;
 
-/** The only thing a save stores per scrapper. Level, stats, kit and Route are always recomputed. */
+/**
+ * A kit carried over from an earlier build (CONTRACT_REV 5, save schema 3). The kit is walked from
+ * the seed and the picks under today's tables, so a save written by an earlier build would walk
+ * into a different kit (the round-2 sim changed the start perks, the card offers and the rerolls).
+ * The save migration pins the kit that build gave the scrapper, read from its last stored bout:
+ * after `picks` picks it owned `perks` (in the order they came, the start perks first, as many as
+ * `starts`) and `stats`. Later picks walk on from it under today's tables. A record made by this
+ * build has no base.
+ */
+export interface KitBase { picks: number; starts: number; perks: PerkId[]; stats: StatBlock }
+
+/** The only thing a save stores per scrapper. Level, stats, kit and Route are always recomputed
+ *  (from `base` on, when an earlier build's kit was carried over). */
 export interface ScrapperRecord {
   id: string;                                             // ULID, made by the app
   name: string; seed: number;
@@ -34,7 +46,9 @@ export interface ScrapperRecord {
   xp: number;                                             // XP inside the current level; a level-up
                                                           // is waiting while xp >= xpToNext(level)
   createdDay: DayKey; day: DayKey; boutsUsed: number; lifetimeBouts: number;
+  base?: KitBase;
 }
+
 /** Whole percentages. See the derived-values table of the rules. */
 export interface DerivedValues { evade: number; block: number; aim: number; pierce: number;
   intercept: number; riposte: number; combo: number; disarm: number; crit: number; armor: number }

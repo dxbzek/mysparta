@@ -24,13 +24,13 @@ export function snapshotSheet(s: FighterSnapshot): SnapshotSheet {
 }
 
 export function snapshotOf(rec: ScrapperRecord): FighterSnapshot {
-  const kit = walk(rec.seed, rec.picks);
+  const kit = walk(rec.seed, rec.picks, rec.base);
   return { id: rec.id, name: rec.name, look: rollLook(rec.seed, rec.lookSalt, rec.colourSalt), level: levelOf(rec),
     stats: kit.stats, perks: kit.perks, rulesVersion: 1 };
 }
 
 export function sheetOf(rec: ScrapperRecord): ScrapperSheet {
-  const kit = walk(rec.seed, rec.picks);
+  const kit = walk(rec.seed, rec.picks, rec.base);
   const level = levelOf(rec);
   const snap: FighterSnapshot = { id: rec.id, name: rec.name, look: rollLook(rec.seed, rec.lookSalt, rec.colourSalt),
     level, stats: kit.stats, perks: kit.perks, rulesVersion: 1 };
@@ -45,6 +45,6 @@ export function sheetOf(rec: ScrapperRecord): ScrapperSheet {
 /** Every perk any of these records has owned, in the order of PERK_IDS. */
 export function foundPerks(records: readonly ScrapperRecord[]): PerkId[] {
   const seen = new Set<string>();
-  for (const r of records) for (const p of walk(r.seed, r.picks).perks) seen.add(p);
+  for (const r of records) for (const p of walk(r.seed, r.picks, r.base).perks) seen.add(p);
   return PERK_IDS.filter((p) => seen.has(p));
 }

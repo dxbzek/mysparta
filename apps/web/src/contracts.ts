@@ -18,8 +18,11 @@ export interface BoutRecord { id: string; at: number; seed: number; rulesVersion
   role: "attacker" | "defender"; fighterId: string; xp: 1 | 2; lineId: number;
   watched: boolean; before: { xp: number; boutsUsed: number };   // the UI shows these until watched
   log?: BoutLog }                                                // kept for the last 50
-/** Schema version 2 (CONTRACT_REV 4): `settings.isVip` added; migration 1 to 2 sets it false. */
-export interface SaveDoc { schemaVersion: 2; rev: number; updatedAt: number; settings: Settings;
+/** Schema version 2 (CONTRACT_REV 4): `settings.isVip` added; migration 1 to 2 sets it false.
+ *  Schema version 3 (CONTRACT_REV 5): a scrapper may carry an earlier build's kit
+ *  (`ScrapperRecord.base`); migration 2 to 3 pins it from the scrapper's last stored bout. */
+export interface SaveDoc { schemaVersion: 3; rev: number; updatedAt: number; settings: Settings;
+
   activeId: string | null;                                       // the scrapper shown in the Locker
   fighters: ScrapperRecord[]; retired: ScrapperRecord[]; history: BoutRecord[] }
 export type LoadResult = { state: "empty" } | { state: "ok"; doc: SaveDoc }

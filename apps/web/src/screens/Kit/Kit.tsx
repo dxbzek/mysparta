@@ -162,7 +162,7 @@ function RouteTabView({ rec }: { rec: ScrapperRecord }) {
         <li className={css.node}>
           <span className={css.nodeLevel}>{UI.kit.start}</span>
           <div className={css.nodeCards}>
-            {[sheet.startPerk, sheet.startSkill].map((id) => (
+            {[...new Set([sheet.startPerk, sheet.startSkill])].map((id) => (
               <span key={id} className={css.startPerk}>
                 <PerkIcon id={id} size={44} rarity />
                 <span className={css.chipName}>{NAMES[id]}</span>
