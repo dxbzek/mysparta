@@ -21,10 +21,10 @@ type NodeState = "locked" | "open" | "ranked" | "full" | "idle";
 
 /** Where each node of a branch sits in its panel, in % of the width and px from the top. */
 const SPOTS: readonly { x: number; y: number }[] = [
-  { x: 27, y: 0 }, { x: 73, y: 0 }, { x: 27, y: 132 }, { x: 73, y: 132 }, { x: 50, y: 264 }, { x: 50, y: 392 },
+  { x: 27, y: 0 }, { x: 73, y: 0 }, { x: 27, y: 158 }, { x: 73, y: 158 }, { x: 50, y: 316 }, { x: 50, y: 474 },
 ];
 const LINKS: readonly [number, number][] = [[0, 2], [1, 3], [2, 4], [3, 4], [4, 5]];
-const TREE_H = 540;
+const TREE_H = 620;
 
 export function TalentIcon({ id, size, dim = false }: { id: TalentId; size: number; dim?: boolean }) {
   useRigVersion();
@@ -125,7 +125,7 @@ function Branch({ branch, rank, state, onOpen, unspent }: { branch: TalentBranch
           ))}
         </svg>
         {[1, 2, 3].map((tier) => {
-          const y = tier === 1 ? 98 : tier === 2 ? 230 : 356;
+          const y = tier === 1 ? 126 : tier === 2 ? 284 : 442;
           const open = lit(tier === 1 ? 2 : tier === 2 ? 4 : 5);
           return <span key={tier} className={`${css.gate} ${open ? css.gateOpen : ""}`} style={{ top: y }}>
             {open ? `Tier ${tier + 1}` : `${TALENT_TIER_NEED[tier]} pts to open`}</span>;
@@ -176,7 +176,11 @@ function NodeDetail({ id, rank, why, lowerNeed: need, onSpend }: { id: TalentId;
       {why === "locked" ? <p className={css.detailNote}>{TALENT_WORDS.tierNeed(need, BRANCH_NAMES[m.branch])}</p> : null}
       {why === "maxed" ? <p className={css.detailNote}>{TALENT_WORDS.maxed}</p> : null}
       {why === "no-points" ? <p className={css.detailNote}>{TALENT_WORDS.noPoints}</p> : null}
-      <Button variant="primary" disabled={why !== null} onClick={onSpend} data-testid="talent-spend">{TALENT_WORDS.spend}</Button>
+      {why === "maxed" ? null : (
+        <Button variant={why === null ? "primary" : "secondary"} disabled={why !== null} onClick={onSpend} data-testid="talent-spend">
+          {why === null ? TALENT_WORDS.spend : why === "locked" ? TALENT_WORDS.locked : TALENT_WORDS.none}
+        </Button>
+      )}
     </div>
   );
 }

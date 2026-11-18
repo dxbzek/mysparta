@@ -103,7 +103,7 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 54px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr);
   align-items: center;
   gap: 0;
   padding: 7px 0;
@@ -160,6 +160,7 @@
   text-transform: uppercase;
 }
 .talentTag {
+  white-space: nowrap;
   display: grid;
   place-items: center;
   height: 18px;
@@ -180,9 +181,4 @@
 .left > span {
   padding: 4px;
   gap: 5px;
-}
-.taken > span span,
-.left > span span {
-  font-size: 14px;
-  overflow-wrap: anywhere;
 }
