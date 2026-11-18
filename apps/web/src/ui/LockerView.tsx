@@ -89,6 +89,10 @@ export interface LockerViewProps {
   statScale: number;
   primary: LockerPrimary;
   energy: LockerEnergy;
+  /** Unspent talent points (content v3 batch 3): a prompt under the main button and a badge on Kit. */
+  talentsDue?: number;
+  talentText?: { prompt(n: number): string; sub: string };
+  onTalents?(): void;
   kit: readonly PerkId[];
   bouts: readonly LockerBout[];
   tab: LockerTab;
@@ -175,6 +179,16 @@ export function LockerView(p: LockerViewProps) {
           </Button>
         )}
 
+        {(p.talentsDue ?? 0) > 0 && p.talentText !== undefined ? (
+          <button type="button" className={css.talentPrompt} onClick={p.onTalents} data-testid="talent-prompt">
+            <span className={css.talentN}>{p.talentsDue}</span>
+            <span className={css.talentWords}>
+              <span className={css.talentLine}>{p.talentText.prompt(p.talentsDue ?? 0)}</span>
+              <span className={css.talentSub}>{p.talentText.sub}</span>
+            </span>
+          </button>
+        ) : null}
+
         <Panel aria-label={t.kit}>
           <div className={css.kitHead}>
             <h2 className={css.sectionTitle}>{t.kit}</h2>
@@ -212,7 +226,9 @@ export function LockerView(p: LockerViewProps) {
         </Panel>
       </main>
       <div className={css.tabs}>
-        <TabBar tabs={MAIN_TABS.map((k) => ({ key: k, label: t.tabs[k] }))} active={p.tab} onSelect={p.onTab} />
+        <TabBar tabs={MAIN_TABS.map((k) => ({ key: k, label: t.tabs[k],
+          ...(k === "kit" && (p.talentsDue ?? 0) > 0 && p.talentText !== undefined ? { badge: { n: p.talentsDue ?? 0, label: p.talentText.prompt(p.talentsDue ?? 0) } } : {}) }))}
+          active={p.tab} onSelect={p.onTab} />
       </div>
     </div>
   );

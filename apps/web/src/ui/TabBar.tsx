@@ -2,7 +2,8 @@
 import css from "./TabBar.module.css";
 
 export interface TabBarProps<K extends string> {
-  tabs: readonly { key: K; label: string }[];
+  /** `badge`: a count in a red disc on the tab (unspent talent points on Kit), with its own label. */
+  tabs: readonly { key: K; label: string; badge?: { n: number; label: string } }[];
   active: K;
   onSelect(key: K): void;
   label?: string;
@@ -19,7 +20,8 @@ export function TabBar<K extends string>({ tabs, active, onSelect, label = "Main
           aria-current={t.key === active ? "page" : undefined}
           onClick={() => onSelect(t.key)}
         >
-          {t.label}
+          <span className={css.label}>{t.label}{t.badge !== undefined && t.badge.n > 0
+            ? <span className={css.badge} aria-label={t.badge.label} data-testid="tab-badge">{t.badge.n}</span> : null}</span>
         </button>
       ))}
     </nav>

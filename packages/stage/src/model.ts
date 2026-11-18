@@ -3,7 +3,7 @@
  * times. `frame.ts` reads it at any `t` (a pure function) and `draw.ts` paints a frame.
  * Nothing in here is mutated after `buildTimeline` returns.
  */
-import type { ActorId, BagItem, CompanionId, GearId, GearSlot, HeldId, Look, MoveId, PerkId, PropId, ShieldId, Side, SkillId } from "@rankzero/core";
+import type { ActorId, BagItem, CompanionId, GearId, GearSlot, HeldId, Look, MoveId, PerkId, PropId, ShieldId, Side, SkillId, TalentId } from "@rankzero/core";
 import type { Aim, FxKind, FxSize, MoveProp, RigId } from "@rankzero/rig";
 import type { Cue, EffectKey, Timeline } from "./contracts";
 import type { FlightPath } from "./flight";
@@ -103,7 +103,7 @@ export interface NumberItem { from: number; x: number; y: number; text: string; 
 export interface TagItem { from: number; to: number; text: string; colour: string; ink: string;
   actor: ActorId | null; x: number; y: number; size: number; kind: "tag" | "banner" | "sticker";
   /** A skill's icon drawn at the left of the words (a skill tag, a Move's result). */
-  icon?: PerkId;
+  icon?: PerkId | `talent:${TalentId}`;
   /** A banner held in the top band of the view, clear of the heads (the winner's banner). */
   band?: "top";
   /** What the tag says, for its size and place in the pecking order (labels.ts): a Move's

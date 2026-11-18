@@ -16,34 +16,33 @@ import { activeRecord } from "../../app/guards";
 import { useDoc, useGame } from "../../app/context";
 import type { KitTab } from "../../app/router";
 import { shownRecord } from "../../state/actions";
-import { NAMES } from "../../text/names";
 import { DERIVED_CAP, DERIVED_KEYS, DERIVED_LINE, DERIVED_NAME, DERIVED_POINTS, HOW_BOUTS_WORK, STAT_KEYS, STAT_LINE } from "../../text/stats";
 import { LOCKER_WORDS, UI } from "../../text/ui";
+import { TALENT_WORDS } from "../../text/talents";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
-import { PerkIcon } from "../../ui/PerkIcon";
 import { Portrait } from "../../ui/Portrait";
 import { Sheet } from "../../ui/Sheet";
 import { StatBar } from "../../ui/StatBar";
-import { Sticker } from "../../ui/Sticker";
 import { MAIN_TABS } from "../../ui/LockerView";
 import { TabBar } from "../../ui/TabBar";
 import { tabRoute } from "../Locker/Locker";
 import { BackGlyph, HeartGlyph } from "../parts/Glyphs";
 import { PerkDetail, PerkRow } from "../parts/Perk";
 import { GearTabView, LoadoutTabView } from "./Loadout";
-import { RouteCardChip } from "../parts/RouteCard";
+import { RouteTreeView } from "./RouteTree";
+import { TalentsTabView } from "./Talents";
 import common from "../common.module.css";
 import css from "./Kit.module.css";
 
-const TABS: readonly KitTab[] = ["kit", "loadout", "gear", "route", "stats"];
+const TABS: readonly KitTab[] = ["kit", "loadout", "gear", "talents", "route", "stats"];
 
 export function KitScreen({ tab }: { tab: KitTab }) {
   const { core, go } = useGame();
   const doc = useDoc();
   const rec = activeRecord(doc);
   const shown = rec ? shownRecord(doc, rec) : null;
-  const sheet = useMemo(() => (shown ? core.sheetOf(shown) : null), [core, shown?.id, shown?.picks.length, shown?.xp, JSON.stringify(shown?.loadout)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sheet = useMemo(() => (shown ? core.sheetOf(shown) : null), [core, shown?.id, shown?.picks.length, shown?.xp, JSON.stringify(shown?.loadout), JSON.stringify(shown?.talents)]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!rec || !shown || !sheet) return null;
   return (
     <div className={`${common.screen} ${common.wide}`}>
@@ -59,6 +58,7 @@ export function KitScreen({ tab }: { tab: KitTab }) {
         {TABS.map((t) => (
           <button key={t} type="button" role="tab" aria-selected={t === tab} className={`${css.tab} ${t === tab ? css.tabOn : ""}`} onClick={() => go({ name: "kit", tab: t }, { replace: true })}>
             {UI.kit.tabs[t]}
+            {t === "talents" && sheet.talents.unspent > 0 ? <span className={css.tabBadge} aria-label={TALENT_WORDS.prompt(sheet.talents.unspent)}>{sheet.talents.unspent}</span> : null}
           </button>
         ))}
       </div>
@@ -66,11 +66,14 @@ export function KitScreen({ tab }: { tab: KitTab }) {
         {tab === "kit" ? <KitTabView rec={shown} perks={sheet.perks} /> : null}
         {tab === "loadout" ? <LoadoutTabView rec={shown} /> : null}
         {tab === "gear" ? <GearTabView rec={shown} /> : null}
-        {tab === "route" ? <RouteTabView rec={shown} /> : null}
+        {tab === "talents" ? <TalentsTabView rec={shown} /> : null}
+        {tab === "route" ? <RouteTreeView rec={shown} /> : null}
         {tab === "stats" ? <StatsTabView rec={shown} /> : null}
       </main>
       <div className={common.tabs}>
-        <TabBar tabs={MAIN_TABS.map((k) => ({ key: k, label: LOCKER_WORDS.tabs[k] }))} active="kit" onSelect={(k) => go(tabRoute(k))} />
+        <TabBar tabs={MAIN_TABS.map((k) => ({ key: k, label: LOCKER_WORDS.tabs[k],
+          ...(k === "kit" && sheet.talents.unspent > 0 ? { badge: { n: sheet.talents.unspent, label: TALENT_WORDS.prompt(sheet.talents.unspent) } } : {}) }))}
+          active="kit" onSelect={(k) => go(tabRoute(k))} />
       </div>
     </div>
   );
@@ -152,40 +155,6 @@ function RetireSheet({ open, rec, onClose }: { open: boolean; rec: ScrapperRecor
         <Button type="submit" variant="primary">{UI.kit.retireConfirm}</Button>
       </form>
     </Sheet>
-  );
-}
-
-function RouteTabView({ rec }: { rec: ScrapperRecord }) {
-  const { core } = useGame();
-  const nodes = useMemo(() => core.route(rec), [core, rec]);
-  const sheet = core.sheetOf(rec);
-  return (
-    <>
-      <p className={css.intro}><Sticker size="small" tone="hazard" tilt={-1}>{UI.kit.routeTitle}</Sticker> {UI.kit.routeIntro}</p>
-      <ol className={css.timeline}>
-        <li className={css.node}>
-          <span className={css.nodeLevel}>{UI.kit.start}</span>
-          <div className={css.nodeCards}>
-            {[...new Set([sheet.startPerk, sheet.startSkill])].map((id) => (
-              <span key={id} className={css.startPerk}>
-                <PerkIcon id={id} size={44} rarity />
-                <span className={css.chipName}>{NAMES[id]}</span>
-                <span className={css.startLabel}>{UI.kit.startPerk}</span>
-              </span>
-            ))}
-          </div>
-        </li>
-        {nodes.map((n) => (
-          <li key={n.level} className={css.node}>
-            <span className={css.nodeLevel}>{UI.lv(n.level)}</span>
-            <div className={css.nodeCards}>
-              <RouteCardChip card={n.taken === "L" ? n.left : n.right} taken />
-              <RouteCardChip card={n.taken === "L" ? n.right : n.left} taken={false} />
-            </div>
-          </li>
-        ))}
-      </ol>
-    </>
   );
 }
 

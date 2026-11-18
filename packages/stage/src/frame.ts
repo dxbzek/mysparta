@@ -8,7 +8,7 @@
  * offset, a burst, a number, an HP change, a shake, a crowd bounce, a sound cue that plays in
  * this millisecond), not from the contact's `starts` record.
  */
-import type { ActorId, PerkId, PropId, SkillId } from "@rankzero/core";
+import type { ActorId, PerkId, PropId, SkillId, TalentId } from "@rankzero/core";
 import type { Aim, Dress, FxKind, FxSize, Place, RigId } from "@rankzero/rig";
 import type { EffectKey } from "./contracts";
 import { IMPACT_FAMILIES } from "./cues";
@@ -39,7 +39,7 @@ export interface FrameFx { fx: FxKind; progress: number; at: Place; seed: number
   /** Drawn behind every actor (draw.ts), not over them. */
   behind?: boolean }
 export interface FrameText { text: string; x: number; y: number; size: number; colour: string; ink: string; alpha: number;
-  kind: "number" | "tag" | "banner" | "sticker"; icon?: PerkId;
+  kind: "number" | "tag" | "banner" | "sticker"; icon?: PerkId | `talent:${TalentId}`;
   /** A banner held in the top band of the view (`TagItem.band`). */
   band?: "top";
   /** A tag's role (`TagItem.role`; a tag without one is a note), the actor it rides on, its index

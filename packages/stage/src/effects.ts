@@ -7,8 +7,8 @@
  * stage's test does not trust it and measures every start from sampled frames.
  * Block and evade, the skill tag, the OVERTIME sticker and the ticket tape are here too.
  */
-import type { ActorId, HeldId, MoveId, PerkId, Proc, SkillId } from "@rankzero/core";
-import { MOVE_IDS, SKILL_IDS, WEAPON_META, content, impactFamily } from "@rankzero/core";
+import type { ActorId, HeldId, MoveId, PerkId, Proc, SkillId, TalentId } from "@rankzero/core";
+import { MOVE_IDS, SKILL_IDS, WEAPON_META, content, impactFamily, isPerkId } from "@rankzero/core";
 import { toStage } from "@rankzero/rig";
 import type { EffectKey, SfxItem } from "./contracts";
 import { noise } from "./cues";
@@ -73,7 +73,7 @@ export function overHead(b: Builder, id: ActorId, at: number): { x: number; y: n
  * what it is (a Move's name, a result, a proc, a note, the CRIT).
  */
 export function tagOver(b: Builder, id: ActorId, at: number, text: string, colour: string, ms: number = OUTCOME.tagMs,
-  icon?: PerkId, role: TagRole = "note"): void {
+  icon?: PerkId | `talent:${TalentId}`, role: TagRole = "note"): void {
   const p = overHead(b, id, at);
   const base = b.place(id, at);
   const tag: TagItem = { from: at, to: at + ms, text, colour, ink: INK, actor: id, x: p.x, y: p.y, size: TEXT.tag, kind: "tag", role,
@@ -105,7 +105,8 @@ export function critTag(b: Builder, id: ActorId, at: number, head: { x: number; 
 export function skillTag(b: Builder, procs: readonly Proc[] | undefined, at: number): void {
   const p = procs?.[0];
   if (p === undefined || !b.has(p.by)) return;
-  tagOver(b, p.by, at, `${b.opts.text.skillName(p.skill).toUpperCase()}!`, SKY, OUTCOME.skillTagMs, p.skill as PerkId, "proc");
+  tagOver(b, p.by, at, `${b.opts.text.skillName(p.skill).toUpperCase()}!`, SKY, OUTCOME.skillTagMs,
+    isPerkId(p.skill) ? p.skill : `talent:${p.skill}` as `talent:${TalentId}`, "proc");
   // every passive that procs also shows on the body (sigs.ts: an armour plate's flash, a blade's
   // glint, steam off a stubborn head), not only in words
   const seen = new Set<string>();

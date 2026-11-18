@@ -246,3 +246,45 @@
   position: sticky;
   bottom: 0;
 }
+/* unspent talent points (content v3 batch 3) */
+.talentPrompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius);
+  box-shadow: var(--shadow-hard);
+  background: var(--tex-halftone-light), var(--c-dark);
+  color: var(--t-on-dark);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.talentN {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border: var(--line) solid var(--c-ink);
+  clip-path: polygon(25% 2%, 75% 2%, 100% 50%, 75% 98%, 25% 98%, 0 50%);
+  background: var(--tex-halftone), var(--c-hazard);
+  color: var(--t-on-hazard);
+  font: 900 26px / 1 var(--font-display);
+}
+.talentWords {
+  display: grid;
+  gap: 2px;
+}
+.talentLine {
+  font: 900 20px / 1.05 var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--t-on-dark-hazard);
+}
+.talentSub {
+  font-size: var(--fs-small);
+  color: var(--t-on-dark-dim);
+}

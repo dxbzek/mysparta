@@ -127,7 +127,7 @@ export const UI = {
 
   kit: {
     title: "Kit",
-    tabs: { kit: NAV.kit, loadout: "Bag", gear: "Gear", route: NAV.levelPath, stats: "Stats" },
+    tabs: { kit: NAV.kit, loadout: "Bag", gear: "Gear", talents: "Talents", route: NAV.levelPath, stats: "Stats" },
     gear: "Gear",
     weapons: NAV.weapons,
     skills: NAV.skills,
@@ -149,6 +149,10 @@ export const UI = {
     routeTitle: NAV.route,
     routeIntro: "Every level-up so far: the card taken, and the one left behind.",
     start: "Start",
+    routeTaken: "Taken",
+    routeLeft: "Left behind",
+    routeTalent: "This level gave a talent point",
+    routeTalentShort: "+1 Talent",
     startPerk: "Starting perk",
     taken: "Taken",
     notTaken: "Not taken",

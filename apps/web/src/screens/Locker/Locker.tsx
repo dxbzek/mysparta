@@ -13,6 +13,7 @@ import { shownRecord, unwatchedOf } from "../../state/actions";
 import { SLOT_LIMIT } from "../../state/schema";
 import { resultLine } from "../../text/results";
 import { LOCKER_WORDS, UI } from "../../text/ui";
+import { TALENT_WORDS } from "../../text/talents";
 import { Button } from "../../ui/Button";
 import { LockerView, clockOf } from "../../ui/LockerView";
 import { useTick } from "../parts/EnergyMeter";
@@ -86,6 +87,9 @@ export function LockerScreen() {
         statScale={view.statScale}
         primary={primary}
         energy={energy}
+        talentsDue={view.sheet.talents.unspent}
+        talentText={{ prompt: TALENT_WORDS.prompt, sub: TALENT_WORDS.promptSub }}
+        onTalents={() => go({ name: "kit", tab: "talents" })}
         kit={view.sheet.perks}
         bouts={view.bouts}
         tab="home"
