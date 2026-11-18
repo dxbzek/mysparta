@@ -12,6 +12,7 @@
     "check:owners": "node tools/check-ownership.mjs",
     "smoke": "tsx tools/smoke-canvas.ts",
     "sheet": "tsx tools/contact-sheet.ts",
+    "gear-sheet": "tsx tools/gear-sheet.ts",
     "spacing": "tsx tools/spacing-chart.ts",
     "render-bout": "tsx tools/render-bout.ts",
     "audit": "tsx tools/timeline-audit.ts",

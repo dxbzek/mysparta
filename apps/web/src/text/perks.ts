@@ -133,7 +133,7 @@ export function gearLine(key: GearKey, v: number): string {
   switch (key) {
     case "soak": return `every swing or throw taken loses ${v} HP`;
     case "headTough": return `Toughness ${sign(v)} against crits (clean blows to the head)`;
-    case "critCut": return `crits taken hit x${((150 - v) / 100).toFixed(2).replace(/0$/, "")}, not x1.5`;
+    case "critCut": return `crits taken hit x${((150 - v) / 100).toFixed(2)}, not x1.5`;
     case "sandProof": return "Sand in the Eyes takes no Aim";
     case "petEvade": return `Evade ${sign(v)} against pets`;
     case "fistDmg": return `fists hit ${v}% harder`;
@@ -340,9 +340,12 @@ export function shortEffect(id: PerkId, c: ContentTables = api.content): string 
   if (k === "gear") {
     const g = c.gear[id as GearId];
     if (!g) return "Unknown gear";
+    // (short: no parenthesis, the cost only when it fits two lines of a tile)
     const t = gearText(g.tiers[0], g.slot);
-    const bonus = t.effect.replace(/^Worn on the [a-z]+: /, "").replace(/\.$/, "");
-    return t.costs.length > 0 ? `${bonus}; ${t.costs[0]}` : bonus;
+    const bonus = t.effect.replace(/^Worn on the [a-z]+: /, "").replace(/\.$/, "").replace(/ \([^)]*\)/g, "");
+    const head = bonus.charAt(0).toUpperCase() + bonus.slice(1);
+    const withCost = t.costs.length > 0 ? `${head}; ${t.costs[0]}` : head;
+    return withCost.length <= 46 ? withCost : head;
   }
   const s = c.skills[id as SkillId];
   const line = SKILL_SHORT[id as SkillId];

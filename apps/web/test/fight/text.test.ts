@@ -15,10 +15,10 @@ const STEP_TYPES: Step["t"][] = ["enter", "draw", "swap", "move", "attack", "int
 const SIM_WORDS = /\b(beat|beats|tick|ticks|clock)\b/i;
 
 describe("names", () => {
-  it("names all 92 perks and fists, each once", () => {
-    expect(PERK_IDS).toHaveLength(92);
+  it("names all 122 perks and fists, each once", () => {
+    expect(PERK_IDS).toHaveLength(122);
     expect(Object.keys(NAMES)).toHaveLength(PERK_IDS.length + 1);
-    for (const id of PERK_IDS) expect(NAMES[id], id).toMatch(/^[A-Z][A-Za-z ]+$/);
+    for (const id of PERK_IDS) expect(NAMES[id], id).toMatch(/^[A-Z][A-Za-z -]+$/);
     expect(new Set(Object.values(NAMES)).size).toBe(Object.keys(NAMES).length);
   });
   it("falls back on an unknown id without throwing", () => {

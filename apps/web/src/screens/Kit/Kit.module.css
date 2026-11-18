@@ -10,7 +10,7 @@
   border-radius: var(--rough-radius-sm);
   background: var(--c-panel);
   color: var(--t-on-panel);
-  font: 900 18px / 1 var(--font-display);
+  font: 900 15px / 1.05 var(--font-display);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;

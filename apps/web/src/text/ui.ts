@@ -127,7 +127,7 @@ export const UI = {
 
   kit: {
     title: "Kit",
-    tabs: { kit: NAV.kit, loadout: "Bag", gear: "Gear", route: "Path", stats: "Stats" },
+    tabs: { kit: NAV.kit, loadout: "Bag", gear: "Gear", route: NAV.levelPath, stats: "Stats" },
     gear: "Gear",
     weapons: NAV.weapons,
     skills: NAV.skills,

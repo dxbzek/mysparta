@@ -17,7 +17,7 @@ describe("migrations", () => {
   });
   it("a current-version document reads back unchanged", () => {
     const d = emptyDoc(1000);
-    expect(d.schemaVersion).toBe(4);
+    expect(d.schemaVersion).toBe(5);
     const r = readDoc(JSON.stringify(d));
     expect(r.ok && r.doc).toEqual(d);
     expect(readDoc("{").ok).toBe(false);
@@ -33,7 +33,7 @@ describe("migrations", () => {
     const r = readDoc(JSON.stringify(v1));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(4);
+    expect(r.doc.schemaVersion).toBe(5);
     expect(r.doc.settings).toEqual({ sound: false, speed: 2, reducedMotion: "on", liveLog: false, isVip: false });
     // settings that are not an object still fall back to the defaults
     const junk = readDoc(JSON.stringify({ ...v1, settings: "x" }));

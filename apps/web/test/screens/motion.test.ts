@@ -61,6 +61,6 @@ describe("screen motion is off under reduced motion", () => {
 describe("empty states", () => {
   it("every Kit group says how it gets filled", () => {
     for (const line of Object.values(UI.kit.emptyFor)) expect(line).toMatch(/level-up/);
-    expect(Object.keys(UI.kit.emptyFor).sort()).toEqual(["companion", "shield", "skill", "weapon"]);
+    expect(Object.keys(UI.kit.emptyFor).sort()).toEqual(["companion", "gear", "shield", "skill", "weapon"]);
   });
 });

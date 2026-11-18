@@ -4,8 +4,8 @@
  * the row that the rules act on is printed.
  */
 import { describe, expect, it } from "vitest";
-import { COMPANION_IDS, PERK_IDS, RARITY_OF, SHIELD_IDS, SKILL_IDS, WEAPON_IDS, api } from "@rankzero/core";
-import type { CompanionId, PerkId, ShieldId, SkillId, WeaponId } from "@rankzero/core";
+import { COMPANION_IDS, GEAR_IDS, PERK_IDS, RARITY_OF, SHIELD_IDS, SKILL_IDS, WEAPON_IDS, api } from "@rankzero/core";
+import type { CompanionId, GearId, PerkId, ShieldId, SkillId, WeaponId } from "@rankzero/core";
 import { WEAPON_BONUS_KEYS, needsLine, perkKindWord, perkNumbers, perkText } from "../../src/text/perks";
 
 const c = api.content;
@@ -20,7 +20,13 @@ function rowNumbers(id: PerkId): Set<number> {
   if ((WEAPON_IDS as readonly string[]).includes(id)) Object.values(c.weapons[id as WeaponId].tiers[0]).forEach(add);
   else if ((COMPANION_IDS as readonly string[]).includes(id)) Object.values(c.companions[id as CompanionId]).forEach(add);
   else if ((SHIELD_IDS as readonly string[]).includes(id)) Object.values(c.shields[id as ShieldId].tiers[0]).forEach(add);
-  else {
+  else if ((GEAR_IDS as readonly string[]).includes(id)) {
+    const n = c.gear[id as GearId].tiers[0];
+    Object.values(n).forEach(add);
+    // the two rules a gear card states with the rule's own constant: the crit's x1.5, the draw's S + 6
+    if (n.critCut !== undefined) numbersIn(`1.5 ${((150 - n.critCut) / 100).toFixed(2)}`).forEach(add);
+    if (n.drawEase !== undefined) { add(6); add(6 - n.drawEase); }
+  } else {
     const s = c.skills[id as SkillId];
     Object.values(s.tiers[0]).forEach(add);
     if (s.move) add(s.move.uses);
@@ -32,8 +38,8 @@ function rowNumbers(id: PerkId): Set<number> {
 const NOT_PRINTED = new Set(["cost", "costPct", "extraCost", "saves"]);
 
 describe("perk cards", () => {
-  it("covers all 92 perks with a name, a kind, a rarity word and an effect", () => {
-    expect(PERK_IDS).toHaveLength(92);
+  it("covers all 122 perks with a name, a kind, a rarity word and an effect", () => {
+    expect(PERK_IDS).toHaveLength(122);
     for (const id of PERK_IDS) {
       const t = perkText(id);
       expect(t.name.length, id).toBeGreaterThan(1);

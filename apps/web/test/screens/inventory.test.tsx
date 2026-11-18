@@ -51,7 +51,7 @@ function tiles(out: string): { state: string; id: PerkId; inner: string }[] {
 }
 
 describe("inventory", () => {
-  it("the grid shows all 92 perks and its unlocked tiles are exactly foundPerks over active and retired", async () => {
+  it("the grid shows all 122 perks and its unlocked tiles are exactly foundPerks over active and retired", async () => {
     const { html, doc, found } = await setup();
     expect(doc.retired.length).toBe(1);
     const retiredOnly = api.foundPerks(doc.retired).filter((p) => !api.foundPerks(doc.fighters).includes(p));
@@ -69,7 +69,7 @@ describe("inventory", () => {
   it("review r2: 'All' is split under a heading per kind, in the same order; a kind filter is one plain list", () => {
     const all = inventoryItems(new Set(PERK_IDS.slice(0, 10)), "all", true);
     const secs = inventorySections(all, "all");
-    expect(secs.map((x) => x.kind)).toEqual(["weapon", "skill", "companion", "shield"]);
+    expect(secs.map((x) => x.kind)).toEqual(["weapon", "skill", "companion", "shield", "gear"]);
     expect(secs.flatMap((x) => x.ids).sort()).toEqual([...all].sort());
     for (const x of secs) expect(x.ids).toEqual(all.filter((id) => perkKind(id) === x.kind));
     const w = inventoryItems(new Set(), "weapon", true);
@@ -141,8 +141,8 @@ describe("inventory", () => {
   it("filters: each kind shows exactly its ids; Show locked off leaves only the unlocked ones", async () => {
     const { found } = await setup();
     const kinds = { weapon: WEAPON_IDS, skill: SKILL_IDS, companion: COMPANION_IDS, shield: SHIELD_IDS } as const;
-    expect(FILTERS).toEqual(["all", "weapon", "skill", "companion", "shield"]);
-    expect(inventoryItems(found, "all", true)).toHaveLength(92);
+    expect(FILTERS).toEqual(["all", "weapon", "skill", "companion", "shield", "gear"]);
+    expect(inventoryItems(found, "all", true)).toHaveLength(122);
     expect(inventoryItems(found, "all", false).sort()).toEqual([...found].sort());
     for (const [k, ids] of Object.entries(kinds) as [keyof typeof kinds, readonly PerkId[]][]) {
       const shown = inventoryItems(found, k, true);

@@ -61,11 +61,11 @@ describe.each(["aac2d64", "1681640"])("a schema-2 save written by build %s", (c)
     expect(changed).toBe(true);
   });
 
-  it("loads as schema 4, every scrapper keeping its level, picks, record, kit, stats and pets, with a full bar", () => {
+  it("loads (now as schema 5), every scrapper keeping its level, picks, record, kit, stats and pets, with a full bar", () => {
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(4);
+    expect(r.doc.schemaVersion).toBe(5);
     expect(r.doc.fighters.map((f) => f.id)).toEqual(fx.doc.fighters.map((f) => f.id));
     expect(r.doc.history).toHaveLength(2);
     for (const [k, f] of r.doc.fighters.entries()) {
@@ -129,11 +129,11 @@ describe("a schema-3 save written by build 74fc265 (sim version 7)", () => {
     expect(JSON.stringify(now.perks) !== JSON.stringify(was.perks) || JSON.stringify(four(now.stats)) !== JSON.stringify(four(was.stats))).toBe(true);
   });
 
-  it("loads as schema 4: every scrapper, active and retired, keeps its exact kit with Toughness 3 and Precision 3 added", () => {
+  it("loads (now as schema 5): every scrapper, active and retired, keeps its exact kit with Toughness 3 and Precision 3 added", () => {
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(4);
+    expect(r.doc.schemaVersion).toBe(5);
     expect(r.doc.retired.map((f) => f.name)).toEqual(["Kip Ladle"]);
     for (const f of [...r.doc.fighters, ...r.doc.retired]) {
       const old = [...fx.doc.fighters, ...fx.doc.retired].find((o) => o.id === f.id)!;
@@ -211,3 +211,84 @@ describe("carried kits (schema 4)", () => {
     warn.mockRestore();
   });
 });
+
+/**
+ * Schema 4 to 5 (content v3, batch 2). The fixture is a save as build b13cbf4 (sim version 8,
+ * content v3 batch 1) wrote it: three scrappers made, fought and levelled by that build's own core
+ * (`expect` holds that build's snapshotOf of each). Today's Route has gear cards: walked today, the
+ * same picks would meet one where they took another card. With the migration each keeps its kit,
+ * stats and pets exactly, gets the default loadout (all its weapons, its shield, its pets) and no
+ * gear, and walks on with gear cards from its next level-up.
+ */
+describe("a schema-4 save written by build b13cbf4 (sim version 8, content v3 batch 1)", () => {
+  interface Fixture4 { build: string; simVersion: number; doc: { fighters: ScrapperRecord[]; retired: ScrapperRecord[]; schemaVersion: number } & Record<string, unknown>;
+    expect: Record<string, FighterSnapshot> }
+  const fx = load<Fixture4>("b13cbf4");
+  vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  const all = [...fx.doc.fighters, ...fx.doc.retired];
+
+  it("is a schema-4 save of sim version 8 with level-ups behind every scrapper", () => {
+    expect(fx.doc.schemaVersion).toBe(4);
+    expect(fx.simVersion).toBe(8);
+    expect(all.length).toBe(3);
+    for (const r of all) expect(r.picks.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("would walk into another kit today for at least one scrapper (the test is not empty)", () => {
+    const changed = all.some((r) => JSON.stringify(snapshotOf(r).perks) !== JSON.stringify(fx.expect[r.name]!.perks));
+    expect(changed).toBe(true);
+  });
+
+  it("keeps every scrapper's kit, stats and pets exactly, with the default loadout and no gear", () => {
+    const r = readDoc(JSON.stringify(fx.doc));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.doc.schemaVersion).toBe(5);
+    for (const rec of [...r.doc.fighters, ...r.doc.retired]) {
+      const was = fx.expect[rec.name]!;
+      const now = snapshotOf(rec);
+      expect(now.perks, rec.name).toEqual(was.perks);
+      expect(now.stats, rec.name).toEqual(was.stats);
+      expect(now.level).toBe(was.level);
+      expect(rec.gearFrom).toBe(rec.picks.length);
+      expect(rec.loadout, rec.name).toBeDefined();
+      expect(rec.loadout!.gear).toEqual({});
+      // (every weapon it owned is in the bag: an old kit holds 5 at most)
+      expect(rec.loadout!.weapons).toEqual(was.perks.filter((p) => rec.loadout!.weapons.includes(p as never) || /^[a-z-]+$/.test(p) && false));
+      expect(rec.loadout!.weapons.length).toBe(now.perks.filter((p) => rec.loadout!.weapons.includes(p as never)).length);
+      expect(pets(now.perks)).toEqual(pets(was.perks));
+    }
+  });
+
+  it("keeps everything else: names, picks, XP, energy, history rows and settings", () => {
+    const r = readDoc(JSON.stringify(fx.doc));
+    if (!r.ok) throw new Error(r.why);
+    const byId = new Map(all.map((x) => [x.id, x]));
+    for (const rec of [...r.doc.fighters, ...r.doc.retired]) {
+      const old = byId.get(rec.id)!;
+      expect(rec.picks).toEqual(old.picks);
+      expect(rec.xp).toBe(old.xp);
+      expect([rec.energy, rec.energyAt]).toEqual([old.energy, old.energyAt]);
+    }
+    expect(r.doc.history.length).toBe((fx.doc.history as unknown[]).length);
+    expect(r.doc.settings.speed).toBe(2);
+  });
+
+  it("walks on with gear cards after the migration (gearFrom holds only the old picks)", () => {
+    const r = readDoc(JSON.stringify(fx.doc));
+    if (!r.ok) throw new Error(r.why);
+    const rec = r.doc.fighters[0]!;
+    let gearSeen = false;
+    let picks = [...rec.picks];
+    for (let k = 0; k < 40 && !gearSeen; k++) {
+      const n = routeNode(rec.seed, picks, rec.base, rec.gearFrom);
+      gearSeen = [n.left, n.right].some((c) => c.kind === "perk" && GEAR_IDS_LIST.includes(c.perk));
+      picks = [...picks, k % 2 === 0 ? "L" : "R"];
+    }
+    expect(gearSeen).toBe(true);
+  });
+});
+const GEAR_IDS_LIST: readonly string[] = ["bandana", "beanie", "hard-hat", "goggles", "welding-mask", "motorbike-helmet", "work-vest",
+  "hi-vis-vest", "padded-jacket", "leather-jacket", "hockey-chest-pad", "tyre-rubber-vest", "work-gloves", "taped-fists", "rubber-gloves",
+  "fingerless-gloves", "oven-mitts", "welding-gloves", "ripped-jeans", "cargo-pants", "knee-pads", "track-pants", "magazine-shin-guards",
+  "overalls", "sneakers", "flip-flops", "rain-boots", "skate-shoes", "steel-toe-boots", "slippers"];

@@ -68,6 +68,7 @@
       "packages/rig/test/engine/**",
       "packages/rig/test/gate/**",
       "tools/contact-sheet.ts",
+      "tools/gear-sheet.ts",
       "tools/spacing-chart.ts",
       "docs/ART.md"
     ],
