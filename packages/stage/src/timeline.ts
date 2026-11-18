@@ -30,7 +30,6 @@ import { BEAT, CONTACT, FLOOR, FRAMING, HIT_STOP, IDLE, INTRO, KNOCKOUT, SOUND }
 import type { Plan } from "./footwork";
 import { drawnScale, layWay, planWay, readyAt } from "./footwork";
 import { dispatch } from "./choreo/index";
-import { poseAt as blendedPose } from "./blend";
 
 
 /** Test hooks. Never set by the host: a planted fault for the controls of ground rule 13. */
@@ -48,6 +47,8 @@ export interface Internal {
    *  dash loop, the walk home an eased slide under the backpedal (a planted fault for the
    *  foot-slide test). */
   easedDash?: boolean;
+  /** Leave the whooshes at the wind-up's start (a control for the build-cost test). */
+  noSwooshes?: boolean;
 }
 
 export type { Zone } from "./layout";
@@ -519,7 +520,10 @@ export class Builder {
     const segs: Seg[] = [];
     segs.push(this.play(p.actor, p.clip, swingStart, { rate: strike / strikeIn, until: contactAt, ...extra }));
     // the whoosh is loudest on the fastest part of the forward drive (`swooshAt`)
-    this.cue(this.swooshAt(p.actor, swingStart, contactAt, facing), p.i, "swing", 0, this.soundItem(p.actor, p.dress.held));
+    // (cued at the wind-up's start for now: `placeSwooshes` puts it on the drive once the bout is laid)
+    void facing;
+    this.cue(swingStart, p.i, "swing", 0, this.soundItem(p.actor, p.dress.held));
+
     // (placed again once the whole bout is laid: what is laid after this step can change the drawn
     // pose before the contact, the crossfade and what the hand holds)
     this.swooshes.push({ cue: this.cues[this.cues.length - 1]!, actor: p.actor, from: swingStart, contact: contactAt });
@@ -809,20 +813,26 @@ export function strikingEnd(rig: Rig, tr: ActorTrack, dress: Dress, pose: Pose, 
 }
 /** The same, as a stage point. */
 export function strikingPoint(rig: Rig, tr: ActorTrack, dress: Dress, pose: Pose, place: { x: number; y: number; facing: 1 | -1 },
-  contactT: number): { x: number; y: number } {
-  const seg = segAt(tr, contactT - 0.5);
+  contactT: number, cache?: Map<string, { vx: number; vy: number; rot0: number } | null>): { x: number; y: number } {
   const h = rig.handAnchor(pose, dress, { x: 0, y: 0, facing: 1 });
-  let vx = 0;
-  let vy = 0;
-  let rot0 = h.rot;
-  if (seg !== null && dress.held !== null && dress.held !== "fists") {
-    const strike = rig.samplePose(tr.rig, seg.clip, clipTime(seg, contactT - 0.5), seg.aim);
-    const hs = rig.handAnchor(strike, dress, { x: 0, y: 0, facing: 1 });
-    const sp = rig.strikePoint(tr.rig, seg.clip, dress, seg.aim?.y);
-    vx = sp.x - hs.x;
-    vy = sp.y - hs.y;
-    rot0 = hs.rot;
+  // the grip-to-head vector at the strike, the same for every sample of one swing (measured once:
+  // round-2 close, measuring it per sample doubled the timeline's build and stalled the app)
+  const key = `${dress.held ?? ""}|${dress.lead ?? ""}`;
+  let sv = cache?.get(key);
+  if (sv === undefined) {
+    sv = null;
+    const seg = segAt(tr, contactT - 0.5);
+    if (seg !== null && dress.held !== null && dress.held !== "fists") {
+      const strike = rig.samplePose(tr.rig, seg.clip, clipTime(seg, contactT - 0.5), seg.aim);
+      const hs = rig.handAnchor(strike, dress, { x: 0, y: 0, facing: 1 });
+      const sp = rig.strikePoint(tr.rig, seg.clip, dress, seg.aim?.y);
+      sv = { vx: sp.x - hs.x, vy: sp.y - hs.y, rot0: hs.rot };
+    }
+    cache?.set(key, sv);
   }
+  const vx = sv?.vx ?? 0;
+  const vy = sv?.vy ?? 0;
+  const rot0 = sv?.rot0 ?? h.rot;
   const d = ((h.rot - rot0) * Math.PI) / 180;
   const x = h.x + vx * Math.cos(d) - vy * Math.sin(d);
   const y = h.y + vx * Math.sin(d) + vy * Math.cos(d);
@@ -832,22 +842,29 @@ export function strikingPoint(rig: Rig, tr: ActorTrack, dress: Dress, pose: Pose
 
 /**
  * The forward drive of a swing as drawn, from `from` (the wind-up's start) to `contact`: the striking
- * end (`strikingPoint`) on the blended pose (blend.ts) every 4 ms, its speed while it moves toward
+ * end (`strikingPoint`) on the clip's pose every 8 ms, its speed while it moves toward
  * the target; `start` is the first moment of the run of samples at half the top speed or more that
  * holds the fastest one, `mid` the middle of the drive from there to the contact. A heavy swing's
  * head moves at nearly one speed from the top of the wind-up to the hit (level 30 n 70, the crowbar:
  * 12.3 units per 8 ms after the turn, 10.5 at 32 ms before the hit), so the whoosh is centred on the
  * drive rather than on its noisy fastest sample. With no forward motion (a bite), the middle.
  */
+const DRIVE_STEP = 8;
 export function forwardDrive(rig: Rig, tr: ActorTrack, nudges: readonly Nudge[], dressAt: (t: number) => Dress, from: number,
   contact: number): { start: number; mid: number } {
   const v: { t: number; s: number }[] = [];
+  const cache = new Map<string, { vx: number; vy: number; rot0: number } | null>();
   try {
     let prev: { x: number; y: number } | null = null;
-    for (let t = from; t <= contact; t += 4) {
+    // (every 8 ms: half a frame at 60 fps, and the blended pose is the costly part of a build)
+    for (let t = from; t <= contact; t += DRIVE_STEP) {
       const p = drawPlace(tr, nudges, t);
-      const q = strikingPoint(rig, tr, dressAt(t), blendedPose(rig, tr, t), { x: p.x, y: p.y, facing: p.facing }, contact);
-      if (prev !== null) v.push({ t: t - 4, s: p.facing * (q.x - prev.x) > 0 ? Math.hypot(q.x - prev.x, q.y - prev.y) : 0 });
+      // (the clip's own pose, not the crossfaded one: they gave the same drive on the measured
+      // bouts, and the crossfade's recursion made the build half as slow again)
+      const seg = segAt(tr, t);
+      const pose = seg === null ? rig.samplePose(tr.rig, "idle", t + tr.phase) : rig.samplePose(tr.rig, seg.clip, clipTime(seg, t), seg.aim);
+      const q = strikingPoint(rig, tr, dressAt(t), pose, { x: p.x, y: p.y, facing: p.facing }, contact, cache);
+      if (prev !== null) v.push({ t: t - DRIVE_STEP, s: p.facing * (q.x - prev.x) > 0 ? Math.hypot(q.x - prev.x, q.y - prev.y) : 0 });
       prev = q;
     }
   } catch { /* a rig with no hand */ }
@@ -906,7 +923,8 @@ export function buildTimeline(log: BoutLog, a: FighterSnapshot, b: FighterSnapsh
     B.stepAt[i] = r.at;
     B.applyAt[i] = r.apply;
   });
-  B.placeSwooshes();
+  if (internal.noSwooshes !== true) B.placeSwooshes();
+
 
 
   // Step ends: strictly rising, so `state(stepEnd[n])` is the state after exactly n + 1 steps.
