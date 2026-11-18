@@ -19,9 +19,9 @@ function row(tempo: number, dmg: number, draw: number, aim: number, pierce: numb
 const ROWS: Readonly<Record<HeldId, Row>> = {
   //                         tempo dmg draw  aim pierce block evade ripo combo disarm crit
   "fists":           row(100,   5,  0,    0,   0,    0,    0,    0,   0,    0,    0),
-  "pipe":            row(110,  13,  5,    0,   0,   12,    0,    5,   0,   10,   10),
+  "pipe":            row(110,  14,  5,    0,   0,   12,    0,    5,   0,   10,   10),
   "pocket-knife":    row( 60,   7,  5,   25,   0,    0,    5,    0,  35,    0,   15),
-  "broom":           row(100,   6,  4,    0,   0,   20,    5,   28,  10,   15,    5),
+  "broom":           row(100,   7,  4,    0,   0,   20,    5,   28,  10,   15,    5),
   "machete":         row(115,  13,  5,    5,   0,    5,    0,    5,   5,    5,   30),
   "hand-axe":        row(130,  17,  4,    0,  15,   -5,    0,    0,   0,    5,   15),
   "bat":             row(120,  12,  5,    0,  10,    5,    0,   18,   0,    5,   15),
@@ -31,7 +31,7 @@ const ROWS: Readonly<Record<HeldId, Row>> = {
   "shovel":          row(150,  16,  3,    0,  10,   18,   -5,    5, -10,   10,    5),
   "sledgehammer":    row(160,  34,  5,  -20,  30,  -20,  -20,  -20, -40,   10,   10),
   "darts":           row( 45,   3,  5,    0,   0,   -5,   12,    0,  30,    0,    5),
-  "bike-chain":      row(140,  11,  5,   30, -10,  -15,   20,   -5,  30,   25,    0),
+  "bike-chain":      row(140,  10,  5,   30, -10,  -15,   20,   -5,  30,   25,    0),
   "monkey-wrench":   row(135,  13,  2,    0,  10,   10,    0,    0,   0,   60,    5),
   "pickaxe":         row(150,  19,  4,    0, 100,  -10,  -10,    0, -10,   10,   10),
   "rebar":           row(160,  23,  5,   20, -10,    5,  -15,    0,   0,   10,   10),
@@ -54,7 +54,7 @@ const ROWS: Readonly<Record<HeldId, Row>> = {
   "hockey-stick":    row(125,  10,  3,    5,   0,   10,    5,   10,  10,   30,    5),
   "folding-chair":   row(160,  22,  4,  -10,  15,   20,  -10,    0, -15,   15,    5),
   "cricket-bat":     row(160,  17,  4,    5,  10,   12,    0,   20,   0,   10,   15),
-  "wok":             row(135,  16,  4,    0,  10,   30,    0,   20, -10,   10,   10),
+  "wok":             row(135,  16,  4,    0,  10,   26,    0,   20, -10,   10,   10),
   "plunger":         row( 90,   7,  7,   40,  40,    0,   10,   20,  30,   70,   10),
   // content v2, Thrown. Roles: cheap fast lobs, a bounce that slips past a block, a heavy can,
   // an aimed cone, a spinning disc that crits, a rolling tyre that bowls through a guard.

@@ -19,9 +19,9 @@ export function snap(perks: PerkId[], o: { level?: number; points?: Partial<Reco
   return {
     id: o.id ?? "test", name: "Test", look: LOOK, level: o.level ?? 10,
     stats: {
-      // Toughness and Precision (content v3) default to 0, so a hand-built test kit fights with the
-      // bare base values unless a test gives them.
-      points: { health: 5, strength: 5, agility: 5, speed: 5, toughness: 0, precision: 0, ...o.points },
+      // Content v3: Toughness 0 (no soak, no grip) and Precision 3 (Aim 4, Crit 4: the old base of
+      // 5 and 5 within a point), so a hand-built test kit fights as it did unless a test says.
+      points: { health: 5, strength: 5, agility: 5, speed: 5, toughness: 0, precision: 3, ...o.points },
       mult: { health: 100, strength: 100, agility: 100, speed: 100, toughness: 100, precision: 100, ...o.mult },
     },
     perks, rulesVersion: 1,

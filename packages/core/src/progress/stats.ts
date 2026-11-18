@@ -11,8 +11,14 @@ import { sk } from "../content/skills";
 /** The six stats, in the order the screens and the Route use (content v3 added the last two). */
 export const STAT_KEYS: readonly StatKey[] = ["health", "strength", "agility", "speed", "toughness", "precision"];
 export const START_EACH = 2;
-/** Points dealt on top of START_EACH: a starting budget of 20 (14 with four stats before content v3). */
+/** Points dealt on top of START_EACH: a starting budget of 20 (14 with four stats before content v3).
+ *  START_DEALT_FIRST of them go to the first four stats, the rest to Toughness and Precision. */
 export const START_DEALT = 8;
+export const START_DEALT_FIRST = 6;
+/** The four stats of the first rules, dealt first and from the same stream as before content v3, so
+ *  a name keeps the Health, Strength, Agility and Speed it was born with. */
+export const FIRST_FOUR: readonly StatKey[] = ["health", "strength", "agility", "speed"];
+export const NEW_TWO: readonly StatKey[] = ["toughness", "precision"];
 export const START_MAX = 5;
 /** A multiplier block of 100 for every stat. */
 export function plainMult(): Record<StatKey, number> {
@@ -35,13 +41,17 @@ export function freeze(d: StatsDraft): StatBlock {
   return { points: { ...d.points }, mult: { ...d.mult } };
 }
 
-/** Every stat starts at 2, then 8 points go one at a time to a random stat still below 5. */
+/** Every stat starts at 2. Then 6 points go one at a time to a random one of the first four stats
+ *  still below 5 (the deal of the first rules, number for number), and 2 to Toughness or
+ *  Precision. 20 points; Toughness + Precision is always 6 (2 to 4 each), the same 6 an old save's
+ *  kit is given (legacy.ts `sixStatsOf`). */
 export function startStats(seed: number): StatsDraft {
   const rng = makeRng(combineSeed(seed, "stats"));
   const points: Record<StatKey, number> = { health: START_EACH, strength: START_EACH, agility: START_EACH, speed: START_EACH,
     toughness: START_EACH, precision: START_EACH };
   for (let i = 0; i < START_DEALT; i++) {
-    const open = STAT_KEYS.filter((k) => points[k] < START_MAX);
+    const keys = i < START_DEALT_FIRST ? FIRST_FOUR : NEW_TWO;
+    const open = keys.filter((k) => points[k] < START_MAX);
     const k = open[rng.int(open.length)]!;
     points[k] += 1;
   }

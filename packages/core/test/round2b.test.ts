@@ -214,18 +214,18 @@ describe("the last weapon is held harder", () => {
 });
 
 describe("the stat card is not the losing card either", () => {
-  it("gives 2 points, 3 from the 7th stat card taken and 4 from the 21st", () => {
-    expect(STAT_CARD_MORE).toEqual([6, 20]);
-    expect([0, 5, 6, 19, 20, 28].map(statCardAmount)).toEqual([2, 2, 3, 3, 4, 4]);
+  it("gives 2 points, 3 from the 9th stat card taken (content v3; 3 from the 7th and 4 from the 21st before)", () => {
+    expect(STAT_CARD_MORE).toEqual([8]);
+    expect([0, 5, 7, 8, 19, 20, 28].map(statCardAmount)).toEqual([2, 2, 2, 3, 3, 3, 3]);
     for (let i = 0; i < 100; i++) {
       const seed = fighterSeed(REALM_SALT, `stat-${i}`);
       const picks = walkWith(seed, 29, (c) => (c.left.kind === "stat" ? "L" : "R"));
       const kit = walk(seed, picks);
       expect(kit.statCards).toBe(29);
       expect(kit.nodes.map((n) => { const c = n.taken === "L" ? n.left : n.right; return c.kind === "stat" ? c.amount : 0; }))
-        .toEqual([...Array<number>(6).fill(2), ...Array<number>(14).fill(3), ...Array<number>(9).fill(4)]);
-      // 14 starting points, then 6 x 2 + 14 x 3 + 9 x 4 (a starting skill is never a booster).
-      expect(Object.values(kit.stats.points).reduce((a, b) => a + b, 0)).toBe(14 + 12 + 42 + 36);
+        .toEqual([...Array<number>(8).fill(2), ...Array<number>(21).fill(3)]);
+      // 20 starting points, then 8 x 2 + 21 x 3 (a starting skill is never a booster).
+      expect(Object.values(kit.stats.points).reduce((a, b) => a + b, 0)).toBe(20 + 16 + 63);
     }
   });
 

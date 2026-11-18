@@ -14,16 +14,20 @@ import { shieldNumbers } from "../content/shields";
 import { companionCostPct, effectiveOf, maxHpOf } from "../progress/stats";
 
 /** Base values before any weapon, skill or stat. Aim was 5 and Crit 5 before content v3: Precision
- *  now gives both (PRECISION_AIM, PRECISION_CRIT), and a level-1 scrapper's Precision of 2 to 5
- *  keeps them about where they were. */
-export const BASE: Readonly<DerivedValues> = { evade: 10, block: 5, aim: 0, pierce: 0, intercept: 0,
-  riposte: 0, combo: 0, disarm: 3, crit: 2, armor: 0, soak: 0, grip: 0 };
+ *  now gives both (PRECISION_AIM, PRECISION_CRIT), so the base is set for the average starting
+ *  Precision of 3 to give Aim 4 and Crit 4, about the old 5 and 5. */
+export const BASE: Readonly<DerivedValues> = { evade: 10, block: 5, aim: -2, pierce: 0, intercept: 0,
+  riposte: 0, combo: 0, disarm: 3, crit: -5, armor: 0, soak: 0, grip: 0 };
 /** Aim per point of Precision. */
 export const PRECISION_AIM = 2;
 /** Crit per point of Precision. */
-export const PRECISION_CRIT = 1;
-/** Soak (HP off every hit of a swing or a throw) is floor(Toughness / TOUGH_SOAK_DIV). */
-export const TOUGH_SOAK_DIV = 2;
+export const PRECISION_CRIT = 3;
+/** Soak (HP off every hit of a swing or a throw) is floor((Toughness - TOUGH_SOAK_FROM) / TOUGH_SOAK_DIV),
+ *  never below 0: 1 at Toughness 6, 2 at 9, 3 at 12, 5 at 18. It starts late on purpose: a soak of 1 on
+ *  every level-1 scrapper took a fifth off the small hits of Darts, Broom and Pocket Knife and
+ *  spread the level-1 starting weapons over 28 to 40 points (17 without it). */
+export const TOUGH_SOAK_FROM = 3;
+export const TOUGH_SOAK_DIV = 3;
 /** Grip (points off an attacker's disarm and shield knock-off chances) per point of Toughness. */
 export const TOUGH_GRIP = 1;
 /** Caps on the final chance of a roll. Aim and Pierce have none. */
@@ -54,7 +58,7 @@ export function combatValues(skills: ReadonlySet<string>, held: HeldId, shield: 
     crit: BASE.crit + PRECISION_CRIT * prec + w.crit,
     armor: BASE.armor + (has("padding") ? sk("padding", "armor") : 0) + (has("plate-vest") ? sk("plate-vest", "armor") : 0)
       + sh.armor,
-    soak: BASE.soak + Math.floor(Math.max(0, tough) / TOUGH_SOAK_DIV),
+    soak: BASE.soak + Math.floor(Math.max(0, tough - TOUGH_SOAK_FROM) / TOUGH_SOAK_DIV),
     grip: BASE.grip + TOUGH_GRIP * Math.max(0, tough),
   };
 }

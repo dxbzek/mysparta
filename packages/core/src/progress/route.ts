@@ -41,10 +41,10 @@ export const PERK_REROLLS = 5;
 /** A perk card taken on the way to level 2 up to this level also gives +1 point in a random stat
  *  (round-2 review). A kit of perks only had no stat points: a player who always took the perk card
  *  won 41% at level 10 and 28% at level 30, so the new item was the losing card. */
-export const PERK_PLUS_MAX_LEVEL = 3;
+export const PERK_PLUS_MAX_LEVEL = 2;
 /** ...and so do the perk cards from the first to the last of these, counted over the perk cards a
  *  kit has taken (the 17th to the 22nd). A kit of perks only is still short of stat points late. */
-export const PERK_PLUS_CARDS: readonly [number, number] = [17, 22];
+export const PERK_PLUS_CARDS: readonly [number, number] = [18, 22];
 
 /** Whether the perk card of the level-up to `level` carries +1 stat point, for a kit that has taken
  *  `perkCards` perk cards. */
@@ -58,7 +58,7 @@ export function perkCardPlus(level: number, perkCards: number): boolean {
  *  every kit by level instead lifted the rivals as much as the player; points by the kit's own stat
  *  cards lift the kit that takes them. Measured with the perk bonus above, 1,000 seeds x 3 rivals:
  *  always-stat 47 / 53 / 53 / 49% and always-perk 51 / 51 / 52 / 47% at levels 5 / 10 / 20 / 30. */
-export const STAT_CARD_MORE: readonly number[] = [6, 20];
+export const STAT_CARD_MORE: readonly number[] = [8];
 export function statCardAmount(statCards: number): number {
   let amount = 2;
   for (const from of STAT_CARD_MORE) if (statCards >= from) amount += 1;

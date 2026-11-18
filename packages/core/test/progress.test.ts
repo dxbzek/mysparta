@@ -52,11 +52,12 @@ describe("names", () => {
 });
 
 describe("creation", () => {
-  it("starts every scrapper with 14 points, each stat 2 to 5", () => {
+  it("starts every scrapper with 20 points over six stats, each stat 2 to 5 (14 over four before content v3)", () => {
     for (let i = 0; i < 2000; i++) {
       const s = startStats(combineSeed("t", i));
       const pts = Object.values(s.points);
-      expect(pts.reduce((a, b) => a + b, 0)).toBe(14);
+      expect(pts).toHaveLength(6);
+      expect(pts.reduce((a, b) => a + b, 0)).toBe(20);
       for (const p of pts) { expect(p).toBeGreaterThanOrEqual(2); expect(p).toBeLessThanOrEqual(5); }
     }
   });
@@ -145,12 +146,12 @@ describe("the Route", () => {
     const s = api.fighterSeed(REALM_SALT, "Tug");
     expect(api.routeNode(s, ["L", "R", "R"])).toEqual(api.routeNode(s, ["L", "R", "R"]));
   });
-  it("offers a stat card (+2, more after 6 and 20 of them) and a perk or split card, and the kit matches the picks", () => {
+  it("offers a stat card (+2, +3 from the 9th) and a perk or split card, and the kit matches the picks", () => {
     const rng = makeRng(7);
     for (let i = 0; i < 300; i++) {
       const r = rec(api.randomName(i + 9000), randomPicks(rng, 15));
       const sheet = api.sheetOf(r);
-      let points = 14;
+      let points = 20;
       let statCards = 0;
       let perkCards = 0;
       const perks: PerkId[] = [sheet.startPerk, sheet.startSkill];
@@ -162,8 +163,8 @@ describe("the Route", () => {
         else if (card.kind === "split") { expect(card.stats[0]).not.toBe(card.stats[1]); points += 2; }
         else {
           perks.push(card.perk);
-          // Round 2: some perk cards carry +1 point in a stat (the first two level-ups, and the
-          // 17th to the 22nd perk card taken).
+          // Round 2: some perk cards carry +1 point in a stat (content v3: the first level-up, and
+          // the 18th to the 22nd perk card taken).
           expect(card.plus !== undefined, `level ${n.level}`).toBe(perkCardPlus(n.level, perkCards));
           perkCards += 1;
           if (card.plus !== undefined) points += 1;
@@ -171,7 +172,7 @@ describe("the Route", () => {
       }
       expect(sheet.perks).toEqual(perks);
       const boosterPoints = perks.reduce((a, p) => a + (skillOf(p) === undefined ? 0
-        : ["health", "strength", "agility", "speed"].reduce((b, k) => b + (skillOf(p)!.tiers[0][k] ?? 0), 0)), 0);
+        : ["health", "strength", "agility", "speed", "toughness", "precision"].reduce((b, k) => b + (skillOf(p)!.tiers[0][k] ?? 0), 0)), 0);
       expect(Object.values(sheet.stats.points).reduce((a, b) => a + b, 0)).toBe(points + boosterPoints);
     }
   });
@@ -266,16 +267,16 @@ describe("rivals", () => {
         const s = api.rivalSnapshot(REALM_SALT, level, i);
         expect(s.level).toBe(level);
         const pts = Object.values(s.stats.points).reduce((a, b) => a + b, 0);
-        expect(pts).toBeGreaterThanOrEqual(14);
-        // Every level-up adds one perk (with 1 point at most, round 2) or 2 to 4 points (a stat
+        expect(pts).toBeGreaterThanOrEqual(20);
+        // Every level-up adds one perk (with 1 point at most, round 2) or 2 to 3 points (a stat
         // card grows with the stat cards taken; a split gives 2). A scrapper starts with two perks.
         const perks = s.perks.length - 2;
         const boosterPoints = s.perks.reduce((a, p) => a + (skillOf(p) === undefined ? 0
-          : ["health", "strength", "agility", "speed"].reduce((b, k) => b + (skillOf(p)!.tiers[0][k] ?? 0), 0)), 0);
+          : ["health", "strength", "agility", "speed", "toughness", "precision"].reduce((b, k) => b + (skillOf(p)!.tiers[0][k] ?? 0), 0)), 0);
         const others = level - 1 - perks;
         expect(others).toBeGreaterThanOrEqual(0);
-        expect(pts - 14 - boosterPoints).toBeGreaterThanOrEqual(2 * others);
-        expect(pts - 14 - boosterPoints).toBeLessThanOrEqual(4 * others + perks);
+        expect(pts - 20 - boosterPoints).toBeGreaterThanOrEqual(2 * others);
+        expect(pts - 20 - boosterPoints).toBeLessThanOrEqual(3 * others + perks);
       }
     }
   });

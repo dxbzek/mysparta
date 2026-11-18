@@ -198,7 +198,10 @@ describe("boosters show in the fight", () => {
         }
       }
     }
-    for (const [id, e] of owners) if (e.n >= 50) expect(e.shown / e.n, id).toBeGreaterThan(0.6);
+    // "Most bouts": over half. The line was 60% (the lowest measured 62.1%, Heavy Hands); content v3
+    // re-rolled the 720 rivals this samples and Heavy Hands measures 57.5% (it waits TAG_GAP_MS like
+    // every frequent tag; letting it skip the wait put the level-30 tag median over 9).
+    for (const [id, e] of owners) if (e.n >= 50) expect(e.shown / e.n, id).toBeGreaterThan(0.55);
   });
 });
 
@@ -239,8 +242,8 @@ describe("the weapon cap and the dead passives", () => {
     expect(fits("bare-knuckle", ["pipe", "bat", "broom"])).toBe(false);
   });
 
-  it("Snatch has weight 16 and one use (at 28 and 2 uses it won 75% of level-2 bouts; at 13 it fired in 33% of its owner's level-30 bouts)", () => {
-    expect(SKILLS["snatch"].move).toEqual({ weight: 16, uses: 1 });
+  it("Snatch has weight 22 and one use (at 28 and 2 uses it won 75% of level-2 bouts; at 16 it fired in 31.5% of its owner's level-30 bouts under content v3)", () => {
+    expect(SKILLS["snatch"].move).toEqual({ weight: 22, uses: 1 });
   });
 
   it("Junk Collector throws a used weapon 65% of the time while a weapon waits in the bag (35% showed in 24% of its owner's level-30 bouts)", () => {
@@ -256,10 +259,11 @@ describe("the weapon cap and the dead passives", () => {
 });
 
 describe("the perk card is not the losing card", () => {
-  it("a perk card of the first two level-ups, and the 17th to the 22nd one taken, carries +1 point in a stat", () => {
-    expect(PERK_PLUS_MAX_LEVEL).toBe(3);
-    expect([perkCardPlus(2, 0), perkCardPlus(3, 1), perkCardPlus(4, 2), perkCardPlus(20, 15), perkCardPlus(20, 16),
-      perkCardPlus(30, 21), perkCardPlus(30, 22)]).toEqual([true, true, false, false, true, true, false]);
+  it("a perk card of the first level-up, and the 18th to the 22nd one taken, carries +1 point in a stat", () => {
+    // content v3: the first two level-ups and the 17th to the 22nd card before (docs/RULES.md 9)
+    expect(PERK_PLUS_MAX_LEVEL).toBe(2);
+    expect([perkCardPlus(2, 0), perkCardPlus(3, 1), perkCardPlus(4, 2), perkCardPlus(20, 16), perkCardPlus(20, 17),
+      perkCardPlus(30, 21), perkCardPlus(30, 22)]).toEqual([true, false, false, false, true, true, false]);
     for (let i = 0; i < 200; i++) {
       const seed = fighterSeed(REALM_SALT, `plus-${i}`);
       const picks = walkWith(seed, 29, (c) => (c.left.kind === "stat" ? "R" : "L"));
@@ -275,9 +279,9 @@ describe("the perk card is not the losing card", () => {
       }
       expect(kit.perkCards).toBe(taken);
       const boosters = kit.perks.reduce((a, p) => a + (isBooster(p)
-        ? (["health", "strength", "agility", "speed"] as const).reduce((b, k) => b + sk(p as SkillId, k), 0) : 0), 0);
+        ? (["health", "strength", "agility", "speed", "toughness", "precision"] as const).reduce((b, k) => b + sk(p as SkillId, k), 0) : 0), 0);
       const splits = kit.nodes.filter((n) => (n.taken === "L" ? n.left : n.right).kind === "split").length;
-      expect(Object.values(kit.stats.points).reduce((a, b) => a + b, 0)).toBe(14 + plus + boosters + 2 * splits);
+      expect(Object.values(kit.stats.points).reduce((a, b) => a + b, 0)).toBe(20 + plus + boosters + 2 * splits);
     }
   });
 

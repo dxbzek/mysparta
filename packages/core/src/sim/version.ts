@@ -23,5 +23,12 @@
  *   7: round 2, third pass, gate fixes (17 November 2026): Bare Knuckle fists +200% and Combo +20
  *      while unarmed (it now really opens with fists: 39.5% ownership at level 2), Body Slam base 19
  *      (46.9% with-and-without at level 30).
+ *   8: content v3, batch 1 (18 November 2026): six stats. Toughness (soak off every hit from
+ *      Toughness 6, grip off disarm and shield knock-off chances), Precision (Aim and Crit; base Aim
+ *      -2 and Crit -5), a starting budget of 20 with Toughness + Precision 6, stat cards and stat
+ *      bonuses drawn from six stats, stat card +3 from the 9th (was +3 from the 7th, +4 from the
+ *      21st), perk card +1 on the first level-up and the 18th to 22nd card (was the first two and
+ *      the 17th to 22nd), Snatch weight 22, Broom Dmg 7, Pipe Dmg 14, Bike Chain Dmg 10, Wok Block
+ *      26 (docs/RULES.md section 9).
  */
-export const SIM_VERSION = 7;
+export const SIM_VERSION = 8;
