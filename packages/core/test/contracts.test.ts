@@ -845,7 +845,7 @@ describe("CoreApi (the shape the sim lane must fill)", () => {
   const randomName: Api["randomName"] extends (n: number) => string ? true : false = true;
   const snapshotSheet: Api["snapshotSheet"] extends (s: FighterSnapshot) => Sheet ? true : false = true;
   const weapons: keyof Api["content"]["weapons"] extends HeldId ? (HeldId extends keyof Api["content"]["weapons"] ? true : false) : false = true;
-  const tables: keyof Api["content"] extends "weapons" | "skills" | "companions" | "shields" ? true : false = true;
+  const tables: keyof Api["content"] extends "weapons" | "skills" | "companions" | "shields" | "gear" ? true : false = true;
   const sheetKeys: keyof Sheet extends "maxHp" | "effective" | "derived" | "companionCostPct" ? true : false = true;
 
   it("reaches the content tables, a random name and the sheet of any snapshot", () => {
