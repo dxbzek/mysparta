@@ -35,7 +35,7 @@ function Preview({ rec, l }: { rec: ScrapperRecord; l: Loadout }) {
   );
 }
 
-function Tile({ id, on, onClick, note }: { id: PerkId; on: boolean; onClick(): void; note?: string }) {
+function Tile({ id, on, onClick, note, onWord = UI.loadout.inBag }: { id: PerkId; on: boolean; onClick(): void; note?: string; onWord?: string }) {
   const t = perkText(id);
   return (
     <button type="button" className={`${css.tile} ${on ? css.on : ""}`} aria-pressed={on} aria-label={UI.loadout.toggle(NAMES[id], on)} onClick={onClick}>
@@ -45,7 +45,7 @@ function Tile({ id, on, onClick, note }: { id: PerkId; on: boolean; onClick(): v
         <span className={css.tileLine}>{note ?? t.effect}</span>
         {t.costs.length > 0 ? <span className={css.tileCost}>{t.costs.join(". ")}</span> : null}
       </span>
-      <span className={css.mark} aria-hidden="true">{on ? UI.loadout.inBag : UI.loadout.atHome}</span>
+      <span className={css.mark} aria-hidden="true">{on ? onWord : UI.loadout.atHome}</span>
     </button>
   );
 }
@@ -90,7 +90,7 @@ export function LoadoutTabView({ rec }: { rec: ScrapperRecord }) {
         <h2 className={css.title}>{UI.loadout.shieldTitle}</h2>
         {shields.length === 0 ? <p className={css.empty}>{UI.loadout.noShieldOwned}</p> : (
           <div className={css.list}>
-            {shields.map((s) => <Tile key={s} id={s} on={l.shield === s} onClick={() => set({ ...l, shield: l.shield === s ? null : s })} />)}
+            {shields.map((s) => <Tile key={s} id={s} on={l.shield === s} onWord={UI.loadout.carried} onClick={() => set({ ...l, shield: l.shield === s ? null : s })} />)}
           </div>
         )}
       </section>
@@ -98,7 +98,7 @@ export function LoadoutTabView({ rec }: { rec: ScrapperRecord }) {
         <h2 className={css.title}>{UI.loadout.petsTitle} <span className={css.count}>{l.pets.length}/{pets.length}</span></h2>
         <p className={css.sub}>{UI.loadout.petsSub}</p>
         {pets.length === 0 ? <p className={css.empty}>{UI.loadout.noPets}</p> : (
-          <div className={css.list}>{pets.map(({ p, i }) => <Tile key={`${p}${i}`} id={p} on={petOn(p, i)} onClick={() => togglePet(p, i)} />)}</div>
+          <div className={css.list}>{pets.map(({ p, i }) => <Tile key={`${p}${i}`} id={p} on={petOn(p, i)} onWord={UI.loadout.coming} onClick={() => togglePet(p, i)} />)}</div>
         )}
       </section>
     </div>

@@ -186,6 +186,8 @@ export const UI = {
     petsSub: "Pets left at home take nothing off max HP.",
     noPets: "No pets yet.",
     inBag: "In the bag",
+    carried: "Carried",
+    coming: "Comes along",
     atHome: "At home",
     worn: "Worn",
     gearTitle: "Gear",
