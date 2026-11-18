@@ -39,7 +39,7 @@ const POOLS: Readonly<Record<PerkKind, Pool>> = {
 
 /** A perk card is a gear card this often (content v3, batch 2): a roll on a stream of its own,
  *  `(seed, "gear", level-up, picks so far)`, so the other cards of a level-up stay as they were. */
-export const GEAR_CARD_PCT = 18;
+export const GEAR_CARD_PCT = 14;
 /** One piece of gear by rarity weight (one random number). */
 export function rollGear(rng: Rng): PerkId {
   return pickWeighted(POOLS.gear, rng.int(POOLS.gear.total));

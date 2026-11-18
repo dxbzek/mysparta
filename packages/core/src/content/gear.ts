@@ -12,15 +12,15 @@ import { GEAR_META } from "../contracts/content";
 const ROWS: Readonly<Record<GearId, GearNumbers>> = {
   // head
   "bandana":          { precision: 2 },                 // sweat out of the eyes
-  "beanie":           { health: 2 },                    // warm and a little padded
+  "beanie":           { health: 1 },                    // warm and a little padded
   "hard-hat":         { armor: 10 },                     // a shell over the skull
   "goggles":          { aim: 6, sandProof: 1 },         // eyes covered: the aim stays, and sand bounces off
   "welding-mask":     { critCut: 30, aim: -3 },         // a clean blow to the face lands softer; a narrow slot to see through
-  "motorbike-helmet": { headTough: 9, speed: -1 },      // Toughness against blows to the head; heavy
+  "motorbike-helmet": { headTough: 12, speed: -1 },      // Toughness against blows to the head; heavy
   // torso
   "work-vest":        { toughness: 2 },
   "hi-vis-vest":      { petEvade: 15 },                 // the pets see it coming
-  "padded-jacket":    { soak: 1, agility: -1 },
+  "padded-jacket":    { soak: 1 },
   "leather-jacket":   { riposte: 12 },
   "hockey-chest-pad": { block: 10 },
   "tyre-rubber-vest": { armor: 15, speed: -1 },
@@ -33,7 +33,7 @@ const ROWS: Readonly<Record<GearId, GearNumbers>> = {
   "welding-gloves":   { strength: 3, precision: -1 },
   // legs
   "ripped-jeans":     { agility: 2 },
-  "cargo-pants":      { drawEase: 3 },                  // the next weapon is close to hand
+  "cargo-pants":      { drawEase: 3, health: 1 },       // the next weapon is close to hand; roomy
   "knee-pads":        { moveSoak: 8 },                  // a slam or a hold to the floor hurts less
   "track-pants":      { speed: 2 },
   "magazine-shin-guards": { petSoak: 4 },               // pets bite at the shins
