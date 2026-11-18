@@ -17,6 +17,8 @@
  *   5. move the clock 21 minutes on (?shift=): one point back; then 2 hours on: a full bar of 6;
  *      start a bout, reload mid-bout: the Locker shows "Your last bout finished" and the old XP
  *      and the old energy until it is skipped (content v3: energy in place of the daily cap);
+ *   5c. content v3 batch 3: the Locker's talent prompt and the Kit badge, spend on the real tree,
+ *      respec once (a second the same day is refused), and the next bout's snapshot carries the ranks;
  *   6. make three scrappers, see the fourth refused, retire one and see it kept in the save;
  *   7. check an old-build storage key planted at the start is still there, unchanged.
  * Exit code 1 on any failed check.
@@ -373,6 +375,60 @@ async function main() {
         const perks = last.snapshotA.perks;
         check(perks.includes(kit.gear[0]) && perks.filter((p) => kit.weapons.includes(p)).length === kit.weapons.length - 1 && !perks.includes(kit.shield),
           "the bout's snapshot carries only the chosen weapons, no shield, and the gear worn", perks.join(", "));
+        await page.getByRole("region", { name: "Result" }).getByRole("button", { name: "Locker", exact: true }).click();
+        await page.waitForURL(/#\/locker$/);
+      }
+
+      // ---------------------------------------------------------------- 5c. talent tree (content v3 batch 3)
+      // Marla is level 10 now: 3 talent points, none spent. The Locker prompts, the Kit tab carries
+      // the badge; spend on the real tree, respec once (a second is refused today), spend again, and
+      // the next bout's snapshot carries exactly the ranks held.
+      {
+        const me = async () => (await readSave(page)).doc.fighters.find((f) => f.name === "Marla");
+        const level = 1 + (await me()).picks.length;
+        const earned = level < 3 ? 0 : 1 + Math.floor((level - 3) / 3);
+        const prompt = page.getByTestId("talent-prompt");
+        check(earned > 0 && await prompt.count() === 1 && (await prompt.textContent()).includes(`${earned} talent point`), "the Locker prompts for the unspent talent points", `level ${level}, ${await prompt.textContent().catch(() => "no prompt")}`);
+        check(await page.getByTestId("tab-badge").textContent() === String(earned), "the Kit tab carries the talent-point badge", await page.getByTestId("tab-badge").textContent().catch(() => "none"));
+        await prompt.click();
+        await page.waitForURL(/#\/kit\/talents$/);
+        await page.waitForTimeout(400);
+        check(await page.getByTestId("talent-unspent").textContent() === String(earned), "the tree shows the unspent points", await page.getByTestId("talent-unspent").textContent());
+        const node = (id) => page.locator(`button[data-talent='${id}']`);
+        check(await node("counter").getAttribute("data-state") === "locked", "a tier-2 node starts locked");
+        const spend = async (id) => {
+          await node(id).click();
+          await page.getByTestId("talent-spend").click();
+          await page.waitForTimeout(250);
+          await page.keyboard.press("Escape");
+          await page.waitForTimeout(250);
+        };
+        await spend("brace");
+        await spend("thick-skin");
+        check(await node("counter").getAttribute("data-state") === "open", "two points in tier 1 open tier 2", await node("counter").getAttribute("data-state"));
+        await spend("counter");
+        let m = await me();
+        check(JSON.stringify(m.talents?.ranks) === JSON.stringify({ brace: 1, "thick-skin": 1, counter: 1 }), "the spent ranks are saved", JSON.stringify(m.talents));
+        check(await page.getByTestId("talent-unspent").textContent() === String(earned - 3) && await page.locator("[data-testid=tab-badge]").count() === (earned > 3 ? 1 : 0), "the points left and the badge follow", await page.getByTestId("talent-unspent").textContent());
+        await page.getByRole("button", { name: "Free respec", exact: true }).click();
+        await page.getByRole("button", { name: "Take all points back", exact: true }).click();
+        await page.waitForTimeout(400);
+        m = await me();
+        check(JSON.stringify(m.talents?.ranks) === "{}" && typeof m.talents?.respecDay === "string", "the free respec hands every point back and keeps the day", JSON.stringify(m.talents));
+        await spend("brace");
+        check(await page.getByRole("button", { name: "Free respec", exact: true }).isDisabled(), "a second respec the same day is refused (the button is off)");
+        m = await me();
+        check(JSON.stringify(m.talents?.ranks) === JSON.stringify({ brace: 1 }), "spending after the respec is saved", JSON.stringify(m.talents));
+        await page.evaluate(() => { location.hash = "#/locker"; });
+        await page.waitForTimeout(400);
+        await button("Fight").click();
+        await page.locator("button[aria-label$='Open the face-off.']").first().click();
+        await page.getByRole("dialog", { name: "Face-off" }).getByRole("button", { name: "Fight", exact: true }).click();
+        await page.waitForURL(/#\/bout\//);
+        await page.getByRole("button", { name: "Skip to the end" }).click();
+        await page.getByRole("region", { name: "Result" }).waitFor();
+        const lastBout = (await readSave(page)).doc.history[0];
+        check(JSON.stringify(lastBout.snapshotA.talents) === JSON.stringify({ brace: 1 }), "the next bout's snapshot carries exactly the ranks held", JSON.stringify(lastBout.snapshotA.talents));
         await page.getByRole("region", { name: "Result" }).getByRole("button", { name: "Locker", exact: true }).click();
         await page.waitForURL(/#\/locker$/);
       }

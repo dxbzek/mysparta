@@ -200,6 +200,11 @@ async function shootInner(browser, sizeName, base, ctx) {
   await btn("Retire this scrapper").click();
   await shot("kit-retire", 500);
   await page.keyboard.press("Escape");
+  await hash("#/kit/talents");
+  await shot("kit-talents");
+  await page.locator("button[data-talent]").first().click();
+  await shot("kit-talent-node", 500);
+  await page.keyboard.press("Escape");
   await hash("#/kit/route");
   await shot("kit-route");
   await hash("#/kit/stats");
