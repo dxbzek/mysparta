@@ -18,6 +18,13 @@
  * and the body, kept the body and cut the winner while "X WINS" showed). The reframe takes
  * `koMoveMs` (was 2.6 s: the fall outran it and the body left the frame on the way down).
  *
+ * Canvas shapes (owner, 19 Nov 2026: the fight screen is the stage only, full screen, held upright
+ * or turned): the frame is fitted to any canvas (`fit`). The host's HUD lies over the canvas's top
+ * and, at the end, its result card over the bottom, so the heads stay under `hudRoomPx` (the
+ * banner's room in the outro) and the outro's feet over `resultRoomPx`. A tall canvas opens at most
+ * `tallViewW` across, so the fighters stay large, and shows the whole stage with the night and the
+ * floor going on past it (draw.ts EDGE); a short wide one stays inside the stage across.
+ *
  * Like everything in the stage it is a pure function of `t` and the built tracks.
  * Reduced motion: the bout's frame from start to end; the camera never moves (a fallen body may
  * lie partly outside it).

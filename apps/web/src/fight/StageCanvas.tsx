@@ -1,6 +1,6 @@
 /**
- * The stage canvas, full width; on a phone as tall as the screen allows up to 9:10 of the width
- * (fight.module.css `--stage-max-h`: 390 x 351 on a 390 x 844 phone, less on a shorter one). It paints `player.draw(t)` for the
+ * The stage canvas: the whole fight screen inside the safe areas (the stage only, owner 19 Nov
+ * 2026), held upright or turned; the stage camera fits the fighters to its shape. It paints `player.draw(t)` for the
  * `t` it is given, in a layout effect, so the picture and the DOM around it always show the same
  * time. Backing store = CSS size x min(devicePixelRatio, 2).
  */
