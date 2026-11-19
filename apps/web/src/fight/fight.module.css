@@ -1150,9 +1150,19 @@
   }
   .bossName { font-size: 24px; }
   .bossTaunt { font-size: 14px; text-align: left; }
+  /* turned, the card stays one band: the rank-up takes the boss's line's place */
   .rankUp {
-    grid-column: 1 / -1;
-    grid-row: 3;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
     margin: 0;
+    padding: 2px 8px;
+    font-size: 14px;
+  }
+  .rankUp b {
+    font-size: 16px;
+  }
+  .result:has(.rankUp) .resultLine {
+    display: none;
   }
 }
