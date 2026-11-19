@@ -64,7 +64,6 @@
   font: 900 15px / 1.05 var(--font-display);
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  overflow-wrap: anywhere;
 }
 .count {
   font: 700 12px / 1.2 var(--font-body);
@@ -119,4 +118,18 @@
   margin: 0;
   font: 400 13px / 1.35 var(--font-body);
   color: var(--t-on-panel-dim);
+}
+@media (max-width: 360px) {
+  .row {
+    grid-template-columns: minmax(0, 58px) var(--tap) minmax(0, 1fr) var(--tap);
+    gap: 5px;
+  }
+  .label,
+  .colourTitle {
+    font-size: 13px;
+  }
+  .name {
+    font-size: 13.5px;
+    letter-spacing: 0.01em;
+  }
 }
