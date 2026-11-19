@@ -2,15 +2,29 @@
 
 Everything in the game that was not made for it is listed here, one row per file, from the day it enters the repo.
 
-Allowed licences for sounds and fonts: CC0, SIL OFL 1.1, Apache 2.0, OGA-BY, CC BY with credit, or the Envato Elements licence (short cut clips in the sound sprite only; the source files are not in the repo). Nothing marked NC, SA or GPL. Font licence files ship beside the fonts.
+Allowed licences for sounds and fonts: CC0, SIL OFL 1.1, Apache 2.0, OGA-BY, CC BY with credit. Nothing marked NC, SA or GPL. Font licence files ship beside the fonts.
+
+Envato Elements audio (the owner's licence) never enters this repo, not even as a cut clip: the repo is public, and the Envato Elements licence forbids redistributing an item "as-is or with superficial modifications" and letting anyone "extract an Item and use it separately from the End Product" (clause 12 b and e, https://help.elements.envato.com/hc/en-us/articles/360000628966, read 19 Nov 2026). Licensed files live in a private folder outside the repo; `pnpm build` (through `tools/build-audio.mjs --overlay`) mixes them into the built site only, and the built `sfx.json` and `music.json` credit them. Every file in this repo is CC0 or CC BY, so a clone builds and plays without the private folder.
 
 ## Sounds
 
 All sounds are mixed into two files by `tools/build-audio.mjs`: `apps/web/public/audio/sfx.mp3` (the core: the sound every cue family falls back to, every pet's voice and every Move's own sounds) and `sfx-content.mp3` (one sound set per weapon, shield and pet, or per material group). The map and the same credits are in `sfx.json`. Every source below was changed: cut to its onset, trimmed, faded, level-adjusted, some layered with a second file, and encoded to MP3. "Used for" names the sound sets that use the file (see `apps/web/src/audio/soundMap.ts`).
 
-Two sounds have no source file: the air horn and the referee's pea whistle are synthesised by `tools/build-audio.mjs` (its `SYNTH` recipes), made for this game and given to the public domain (CC0). No CC0 recording of either was on hand when they were made (16 Nov 2026). A recording can replace either one by changing its set in the build script.
+Three sounds have no source file: the air horn, the referee's pea whistle and the goose's honk are synthesised by `tools/build-audio.mjs` (its `SYNTH` recipes), made for this game and given to the public domain (CC0). A recording can replace any of them by changing its set in the build script, or in the built site only through the private folder.
 
-Open licence question (round 2 audio review, 16 Nov 2026): the repo is public and has no licence file, and `sfx.mp3` holds the two Envato Elements clips (voice-goose, voice-raccoon) with their exact cut points in `sfx.json`, so anyone can cut them out again. Whether the Envato Elements licence allows that has not been checked against Envato's own wording (no web access when this was written). Before the next release: read the licence terms on redistribution and open-source projects and register both items to this project. If it is not allowed, swap both for CC0 recordings, or keep them out of git and add them only in the deployed build.
+Moved out on 19 Nov 2026: the two Envato Elements clips (Goose Honks by HollywoodEdge, Raccoon Snorts and Growls by prosoundfx) were in `sfx.mp3` until then. They now come only from the private folder; the repo's goose is the synthesised honk and its raccoon two CC0 creature sounds. Older commits of `sfx.mp3` still hold the two clips.
+
+## Music
+
+All music is in `apps/web/public/audio/music/` with its loop points in `music.json`, written by `tools/build-audio.mjs` from the recipes in `tools/audio-music.mjs`: made for this game and given to the public domain (CC0). The owner's licensed tracks replace any slot in the built site only (see above).
+
+| File | Used for | Source | Author | Licence | Made |
+|---|---|---|---|---|---|
+| menu.mp3 | the menus and the Locker (loop) | tools/audio-music.mjs | Rank Zero | CC0 1.0 | 2026-11-19 |
+| fight-calm.mp3, fight-intense.mp3 | the fight (two layers of one loop, crossfaded by HP) | tools/audio-music.mjs | Rank Zero | CC0 1.0 | 2026-11-19 |
+| ko.mp3, win.mp3, lose.mp3, level-up.mp3 | stings | tools/audio-music.mjs | Rank Zero | CC0 1.0 | 2026-11-19 |
+
+## Sound table
 
 | File | Used for | Source URL | Author | Licence | Fetched |
 |---|---|---|---|---|---|
@@ -39,8 +53,10 @@ Open licence question (round 2 audio review, 16 Nov 2026): the repo is public an
 | dog-growl.flac (Dog Snarl Grunt Grumble) | voice-dog | https://opengameart.org/content/dog-snarl-grunt-grumble | qubodup | CC0 1.0 | 2026-11-15 |
 | crow_caw.wav (Crow caw) | voice-crow | https://opengameart.org/content/crow-caw | zeroisnotnull | CC0 1.0 | 2026-11-15 |
 | crow.ogg (Crow) | voice-crow | https://opengameart.org/content/crow | fvcalderan | CC0 1.0 | 2026-11-15 |
-| GooseHonksBizarre AT085701.wav (Goose Honks) | voice-goose | https://elements.envato.com/goose-honks-AS7EXLF | HollywoodEdge | Envato Elements licence | 2026-11-15 |
-| Raccoon_Snorts_and_Growls_OCP-1199-05.wav (Raccoon Snorts and Growls) | voice-raccoon | https://elements.envato.com/raccoon-snorts-and-growls-9A624SH | prosoundfx | Envato Elements licence | 2026-11-15 |
+| goose-honk (Synthesised in tools/build-audio.mjs) | voice-goose | tools/build-audio.mjs | Rank Zero | CC0 1.0 | 2026-11-16 |
+| goose-honk-2 (Synthesised in tools/build-audio.mjs) | voice-goose | tools/build-audio.mjs | Rank Zero | CC0 1.0 | 2026-11-16 |
+| nose.ogg (80 CC0 creature SFX) | voice-raccoon, move-snort | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
+| grunt_04.ogg (80 CC0 creature SFX) | voice-raccoon | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | pig_hit1.mp3 (Pig SFX Pack (pig_hit1)) | voice-boar, hit-gore | https://opengameart.org/content/pig-sfx-pack | Vinrax | CC BY 3.0 | 2026-11-15 |
 | pig_hit2.mp3 (Pig SFX Pack (pig_hit2)) | voice-boar | https://opengameart.org/content/pig-sfx-pack | Vinrax | CC BY 3.0 | 2026-11-15 |
 | grunt_02.ogg (80 CC0 creature SFX) | voice-boar, hit-gore | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
@@ -76,7 +92,6 @@ Open licence question (round 2 audio review, 16 Nov 2026): the repo is public an
 | slam_02.ogg (100 CC0 SFX) | move-slam, hit-accent | https://opengameart.org/content/100-cc0-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | stones_04.ogg (80 CC0 RPG SFX) | move-sand-scoop, move-sand | https://opengameart.org/content/80-cc0-rpg-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | misc_09.ogg (80 CC0 creature SFX) | move-shout | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
-| nose.ogg (80 CC0 creature SFX) | move-snort | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | breath.ogg (80 CC0 creature SFX) | move-breath | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | hurt_05.ogg (80 CC0 creature SFX) | move-grab-grunt | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |
 | grunt_01.ogg (80 CC0 creature SFX) | move-squeeze | https://opengameart.org/content/80-cc0-creature-sfx | rubberduck | CC0 1.0 | 2026-11-15 |

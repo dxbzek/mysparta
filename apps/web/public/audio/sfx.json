@@ -143,282 +143,282 @@
    {
     "f": 0,
     "start": 9195.4,
-    "dur": 520
+    "dur": 350.8
    },
    {
     "f": 0,
-    "start": 9765.4,
-    "dur": 520
+    "start": 9596.2,
+    "dur": 271.7
    }
   ],
   "voice-raccoon": [
    {
     "f": 0,
-    "start": 10335.4,
-    "dur": 420
+    "start": 9918,
+    "dur": 250.4
    },
    {
     "f": 0,
-    "start": 10805.4,
+    "start": 10218.4,
     "dur": 420
    }
   ],
   "voice-boar": [
    {
     "f": 0,
-    "start": 11275.4,
+    "start": 10688.4,
     "dur": 308
    },
    {
     "f": 0,
-    "start": 11633.4,
+    "start": 11046.4,
     "dur": 337.2
    },
    {
     "f": 0,
-    "start": 12020.6,
+    "start": 11433.6,
     "dur": 383.7
    }
   ],
   "voice-cat": [
    {
     "f": 0,
-    "start": 12454.2,
+    "start": 11867.2,
     "dur": 600
    },
    {
     "f": 0,
-    "start": 13104.2,
+    "start": 12517.2,
     "dur": 539.2
    }
   ],
   "dash": [
    {
     "f": 0,
-    "start": 13693.4,
+    "start": 13106.4,
     "dur": 229.4
    },
    {
     "f": 0,
-    "start": 13972.8,
+    "start": 13385.8,
     "dur": 213.5
    }
   ],
   "landing": [
    {
     "f": 0,
-    "start": 14236.3,
+    "start": 13649.3,
     "dur": 487.3
    },
    {
     "f": 0,
-    "start": 14773.7,
+    "start": 14186.6,
     "dur": 513.9
    }
   ],
   "crowd": [
    {
     "f": 0,
-    "start": 15337.5,
+    "start": 14750.5,
     "dur": 650
    },
    {
     "f": 0,
-    "start": 16037.5,
+    "start": 15450.5,
     "dur": 650
    }
   ],
   "move": [
    {
     "f": 0,
-    "start": 16737.5,
+    "start": 16150.5,
     "dur": 278.1
    }
   ],
   "move-charge": [
    {
     "f": 0,
-    "start": 17065.6,
+    "start": 16478.6,
     "dur": 600
    }
   ],
   "move-haymaker-hit": [
    {
     "f": 0,
-    "start": 17715.6,
+    "start": 17128.6,
     "dur": 409.4
    }
   ],
   "move-can-open": [
    {
     "f": 0,
-    "start": 18175,
+    "start": 17588,
     "dur": 282.1
    }
   ],
   "move-gulp": [
    {
     "f": 0,
-    "start": 18507.1,
+    "start": 17920.1,
     "dur": 480
    }
   ],
   "move-tarp-shake": [
    {
     "f": 0,
-    "start": 19037.1,
+    "start": 18450.1,
     "dur": 360
    }
   ],
   "move-tarp-land": [
    {
     "f": 0,
-    "start": 19447.1,
+    "start": 18860.1,
     "dur": 420
    }
   ],
   "move-whistle": [
    {
     "f": 0,
-    "start": 19917.1,
+    "start": 19330.1,
     "dur": 474.7
    }
   ],
   "move-fuse": [
    {
     "f": 0,
-    "start": 20441.8,
+    "start": 19854.8,
     "dur": 520
    }
   ],
   "move-crackers": [
    {
     "f": 0,
-    "start": 21011.8,
+    "start": 20424.8,
     "dur": 649.5
    }
   ],
   "move-grab": [
    {
     "f": 0,
-    "start": 21711.2,
+    "start": 21124.2,
     "dur": 280
    }
   ],
   "move-air-horn": [
    {
     "f": 0,
-    "start": 22041.2,
+    "start": 21454.2,
     "dur": 613.6
    }
   ],
   "move-heave": [
    {
     "f": 0,
-    "start": 22704.8,
+    "start": 22117.8,
     "dur": 394.1
    }
   ],
   "move-slam": [
    {
     "f": 0,
-    "start": 23148.8,
+    "start": 22561.8,
     "dur": 474
    }
   ],
   "move-sand-scoop": [
    {
     "f": 0,
-    "start": 23672.8,
+    "start": 23085.8,
     "dur": 299.7
    }
   ],
   "move-sand": [
    {
     "f": 0,
-    "start": 24022.5,
+    "start": 23435.5,
     "dur": 257.2
    }
   ],
   "move-shout": [
    {
     "f": 0,
-    "start": 24329.7,
+    "start": 23742.7,
     "dur": 470.5
    }
   ],
   "move-snort": [
    {
     "f": 0,
-    "start": 24850.2,
+    "start": 24263.2,
     "dur": 226.4
    }
   ],
   "move-breath": [
    {
     "f": 0,
-    "start": 25126.6,
+    "start": 24539.6,
     "dur": 476.6
    }
   ],
   "move-grab-grunt": [
    {
     "f": 0,
-    "start": 25653.1,
+    "start": 25066.1,
     "dur": 414
    }
   ],
   "move-squeeze": [
    {
     "f": 0,
-    "start": 26117.2,
+    "start": 25530.2,
     "dur": 600
    }
   ],
   "hit-accent": [
    {
     "f": 0,
-    "start": 26767.2,
+    "start": 26180.2,
     "dur": 487.2
    }
   ],
   "win": [
    {
     "f": 0,
-    "start": 27304.3,
+    "start": 26717.3,
     "dur": 1957.9
    }
   ],
   "loss": [
    {
     "f": 0,
-    "start": 29312.2,
+    "start": 28725.2,
     "dur": 815.7
    }
   ],
   "ui-tap": [
    {
     "f": 0,
-    "start": 30177.9,
+    "start": 29590.9,
     "dur": 41.2
    },
    {
     "f": 0,
-    "start": 30269.1,
+    "start": 29682.1,
     "dur": 39.7
    }
   ],
   "card-flip": [
    {
     "f": 0,
-    "start": 30358.8,
+    "start": 29771.8,
     "dur": 199.6
    }
   ],
   "level-up": [
    {
     "f": 0,
-    "start": 30608.4,
+    "start": 30021.4,
     "dur": 895.9
    }
   ],
@@ -1176,49 +1176,49 @@
    "set": "voice-goose",
    "variant": 0,
    "files": [
-    "goose:GooseHonksBizarre AT085701.wav"
+    "synth:goose-honk"
    ],
    "loud": -16,
-   "phone": -16.5,
+   "phone": -18.8,
    "shelf": 0,
-   "onset": 10,
-   "peakAt": 156.6
+   "onset": 5,
+   "peakAt": 277
   },
   {
    "set": "voice-goose",
    "variant": 1,
    "files": [
-    "goose:GooseHonksBizarre AT085701.wav"
+    "synth:goose-honk-2"
    ],
    "loud": -16,
-   "phone": -16.5,
+   "phone": -19,
    "shelf": 0,
-   "onset": 10,
-   "peakAt": 59.4
+   "onset": 5,
+   "peakAt": 207.2
   },
   {
    "set": "voice-raccoon",
    "variant": 0,
    "files": [
-    "raccoon:Raccoon_Snorts_and_Growls_OCP-1199-05.wav"
+    "creature80:nose.ogg"
    ],
    "loud": -16,
-   "phone": -16.9,
-   "shelf": 0,
-   "onset": 10,
-   "peakAt": 113.4
+   "phone": -23.6,
+   "shelf": 1,
+   "onset": 5,
+   "peakAt": 42.3
   },
   {
    "set": "voice-raccoon",
    "variant": 1,
    "files": [
-    "raccoon:Raccoon_Snorts_and_Growls_OCP-1199-05.wav"
+    "creature80:grunt_04.ogg"
    ],
    "loud": -16,
-   "phone": -22.7,
+   "phone": -19.3,
    "shelf": 0,
-   "onset": 10,
-   "peakAt": 111.8
+   "onset": 5,
+   "peakAt": 68.8
   },
   {
    "set": "voice-boar",
@@ -2934,24 +2934,6 @@
    "licence": "CC BY 3.0",
    "licenceUrl": "https://creativecommons.org/licenses/by/3.0/",
    "page": "https://opengameart.org/content/cat-sfx",
-   "fetched": "2026-11-15"
-  },
-  {
-   "pack": "goose",
-   "name": "Goose Honks",
-   "author": "HollywoodEdge",
-   "licence": "Envato Elements licence",
-   "licenceUrl": "https://elements.envato.com/license-terms",
-   "page": "https://elements.envato.com/goose-honks-AS7EXLF",
-   "fetched": "2026-11-15"
-  },
-  {
-   "pack": "raccoon",
-   "name": "Raccoon Snorts and Growls",
-   "author": "prosoundfx",
-   "licence": "Envato Elements licence",
-   "licenceUrl": "https://elements.envato.com/license-terms",
-   "page": "https://elements.envato.com/raccoon-snorts-and-growls-9A624SH",
    "fetched": "2026-11-15"
   },
   {

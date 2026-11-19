@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /**
- * Build the sound sprite (fight-screen lane). Run: pnpm build-audio [--src <dir>] [--out <dir>] [--local <dir>]
+ * Build the sound sprite and the music (fight-screen lane).
+ *   pnpm build-audio [--src <dir>] [--out <dir>]            CC0 only, into apps/web/public/audio (tracked)
+ *   pnpm build-audio --overlay [--private <dir>] [--out <dir>]  the private files mixed in, into
+ *                                                          apps/web/dist/audio (never a tracked path)
  *
  * Writes apps/web/public/audio/sfx.mp3 (the core sprite: every set a stage family falls back to),
  * sfx-content.mp3 (the per-weapon, shield and pet sets), each a mono MP3 under a 300 KB cap, and
@@ -11,11 +14,19 @@
  * on OpenGameArt and pinned by SHA-256. `PACKS` holds the page, author, licence and fetch date
  * of every pack; CREDITS.md has the same rows. No pack is ripped game audio or AI-generated sound.
  *
- * Envato Elements (owner's licence, owner OK 15 Nov 2026: "use free or envato"): a pack with
- * `local` has no URL. The owner downloads it; the build reads it from --local <dir>, else the
- * RANKZERO_LOCAL_AUDIO environment variable, else D:/Downloads, checks its SHA-256 and unpacks
- * it. Without those zips the build stops and names each missing file and where to get it. Only short cut clips go into the sprite; the
- * source files never enter the repo.
+ * Paid audio (Envato Elements) never enters the repo (it is public; the Envato licence forbids
+ * redistributing an item or letting anyone extract it, clause 12 b and e). It lives in a private
+ * folder outside the repo (tools/audio-private.mjs) and `pnpm build-audio --overlay` (run by the
+ * root `pnpm build` after the web build) mixes it into apps/web/dist/audio only. Without that
+ * folder the overlay does nothing and the built site plays the CC0 files from public/audio.
+ *
+ * Music (plan 13.17): the same run writes music/<slot>.mp3 and music.json: three loops (menu,
+ * fight-calm, fight-intense; the two fight loops share tempo and length so the player crossfades
+ * them in sync) and four stings (ko, win, lose, level-up). In the repo they are synthesised here
+ * (tools/audio-music.mjs, CC0); the overlay swaps in the owner's tracks. Each loop is encoded with
+ * a copy of its own end before it and of its start after it, so the loop points sit in the middle
+ * of the MP3 (no encoder padding at the seam) and the loop plays with no gap; music.json holds the
+ * loop points measured on the decoded file.
  *
  * The sprite holds named sound sets (`SETS`): one per weapon, shield or pet where an own sound
  * fits, else one per material group (owner, 15 Nov 2026: "it depends on the weapon too"). The web
@@ -42,8 +53,9 @@
  * by cross-correlation, because the encoder adds padding at the start. The JSON holds those
  * measured offsets, never the planned ones.
  *
- * Two sounds are synthesised here, not recorded (pack "synth", CC0, no source file): the air horn
- * and the referee's pea whistle. No CC0 recording of either was on hand and the build has no web
+ * Three sounds are synthesised here, not recorded (pack "synth", CC0, no source file): the air horn,
+ * the referee's pea whistle and the goose's honk (the CC0 stand-in for the Envato goose, which
+ * moved to the private folder on 19 Nov 2026). No CC0 recording of either was on hand and the build has no web
  * access; each is a small physical recipe (`SYNTH`), deterministic, so the sprite is the same on
  * every build. Swap in a recording (Envato or CC0) by replacing the layer in its set.
  *
@@ -67,15 +79,18 @@ import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } 
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { MUSIC_RATE, MUSIC_SYNTH } from "./audio-music.mjs";
+import { MUSIC_STINGS, MUSIC_TRACKS, applySetOverrides, gitCommonDirOf, isTrackedPath, musicPlan, readManifest, resolvePrivateRoot } from "./audio-private.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const arg = (name) => {
   const i = process.argv.indexOf(`--${name}`);
   return i >= 0 ? process.argv[i + 1] : undefined;
 };
-const OUT = resolve(arg("out") ?? join(ROOT, "apps/web/public/audio"));
+const OVERLAY = process.argv.includes("--overlay");
+const PUBLIC_OUT = resolve(join(ROOT, "apps/web/public/audio"));
+const OUT = resolve(arg("out") ?? (OVERLAY ? join(ROOT, "apps/web/dist/audio") : PUBLIC_OUT));
 const SRC = resolve(arg("src") ?? join(tmpdir(), "rankzero-audio-src-v2"));
-const LOCAL = resolve(arg("local") ?? process.env.RANKZERO_LOCAL_AUDIO ?? "D:/Downloads");
 const RATE = 44100;
 const BITRATE = "64k";
 const GAP_MS = 50;
@@ -88,6 +103,10 @@ const PRESENCE_MAX = 18;                  // dB, the most the presence shelf may
 const PHONE_MARGIN = 1;                   // dB the shelf aims inside the gate
 const PHONE_HZ = 400;                     // a phone speaker gives back little under this
 const PHONE_GAP = 9;                      // dB a sound's phone-band loudness may sit under its target
+
+/** Music limits: a loop of at most this long (memory on a phone: a decoded 60 s stereo loop is
+ *  about 21 MB), loops at this RMS, stings at this loudness, and the file caps budgets.mjs checks. */
+const MUSIC = { loopMaxMs: 60_000, padMs: 500, loopRmsDb: -20, stingLoudDb: -13, loopCapKb: 1024, stingCapKb: 160 };
 
 const OGA = "https://opengameart.org/sites/default/files/";
 const CC0 = { licence: "CC0 1.0", licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/" };
@@ -133,8 +152,6 @@ export const PACKS = [
   { id: "pig2", name: "Pig SFX Pack (pig_hit2)", page: "https://opengameart.org/content/pig-sfx-pack", url: `${OGA}pig_hit2.mp3`, sha256: "bf6eea8b67053fbe2a0a62ed75fff5e59d91c931eb881d5e4a90c806e5f55ca8", author: "Vinrax", ...BY3 },
   { id: "catsfx", name: "Cat SFX (Cat 7)", page: "https://opengameart.org/content/cat-sfx", url: `${OGA}Cat%207.wav`, sha256: "80dde593cd3ea081a89373e557d9990b240de85f08bb6f852aef66512ade30a9", author: "Dan Knoflicek (Macro)", ...BY3 },
   { id: "catsfx8", name: "Cat SFX (Cat 8)", page: "https://opengameart.org/content/cat-sfx", url: `${OGA}Cat%208.wav`, sha256: "89c8edaec94f6cfc7e0e8711772085ed45c3423eed6d9a8fbcaec36403f19712", author: "Dan Knoflicek (Macro)", ...BY3 },
-  { id: "goose", name: "Goose Honks", page: "https://elements.envato.com/goose-honks-AS7EXLF", local: "goose-honks-2026-05-18-18-32-38-utc.zip", sha256: "6921519895e67f18a83f977b0b20446d8157ce386fa8740537d7770a98293a07", author: "HollywoodEdge", ...ENVATO },
-  { id: "raccoon", name: "Raccoon Snorts and Growls", page: "https://elements.envato.com/raccoon-snorts-and-growls-9A624SH", local: "raccoon-snorts-and-growls-2026-05-18-04-25-01-utc.zip", sha256: "4a939c13c43f200f4a4e9ec07760fbb430e1e45a9e681d916540e6a672d0cd47", author: "prosoundfx", ...ENVATO },
   // made by this script (see `SYNTH`); no file is fetched
   { id: "synth", name: "Synthesised in tools/build-audio.mjs", page: "tools/build-audio.mjs", synth: true, author: "Rank Zero", ...CC0, fetched: "2026-11-16" },
 ].map((p) => ({ fetched: FETCHED, ...p }));
@@ -186,6 +203,27 @@ function envelope(x, attack, release) {
   for (let i = 0; i < Math.min(r, x.length); i++) x[x.length - 1 - i] *= 0.5 - 0.5 * Math.cos((Math.PI * i) / r);
   return x;
 }
+function gooseHonk(dur, f0, f1, f2, seed) {
+  const n = Math.round(dur * RATE);
+  const out = new Float32Array(n);
+  const rand = rng(seed);
+  let ph = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / n;
+    const f = t < 0.3 ? f0 + (f1 - f0) * (t / 0.3) : f1 + (f2 - f1) * ((t - 0.3) / 0.7);
+    ph += (2 * Math.PI * f) / RATE;
+    let v = 0;
+    for (let k = 1; k <= 15; k++) {
+      const fk = f * k;
+      // a formant near 1.1 kHz on top of a falling spectrum; odd harmonics louder (nasal buzz)
+      const form = 1 + 2.5 * Math.exp(-(((fk - 1100) / 450) ** 2));
+      v += (Math.sin(k * ph) * form * (k % 2 === 1 ? 1 : 0.45)) / k;
+    }
+    out[i] = Math.tanh(1.4 * v) + 0.05 * (rand() * 2 - 1);
+  }
+  return envelope(lowpass(highpass(out, 220), 4500), 0.02, 0.06);
+}
+
 /**
  * The synthesised sounds. Each returns mono samples at RATE.
  *  air-horn: a handheld can air horn. Two brass reeds a few hertz apart (the beating of a real
@@ -197,6 +235,12 @@ function envelope(x, attack, release) {
  *    1.8 kHz under it, rising from 2.6 kHz in the first 30 ms. 480 ms, 15 ms attack.
  */
 const SYNTH = {
+  /** goose-honk / goose-honk-2: a goose's nasal honk. A reed tone whose pitch rises then falls
+   *  (330 -> 420 -> 300 Hz; the second call lower and shorter), odd harmonics strong (a clarinet-
+   *  like nasal buzz), a formant near 1.1 kHz, a little breath noise, driven into a soft clip.
+   *  CC0, made for this game: the stand-in for the licensed goose that lives in the private folder. */
+  "goose-honk": () => gooseHonk(0.36, 330, 420, 300, 41),
+  "goose-honk-2": () => gooseHonk(0.28, 290, 370, 270, 43),
   "air-horn": () => {
     const n = Math.round(0.62 * RATE);
     const out = new Float32Array(n);
@@ -349,10 +393,13 @@ export const SETS = [
   // ---- pets
   ["voice-dog", 420, -15, ["dogsounds:Dog/Dog Bark 1.wav", "dogsounds:Dog/Dog Bark 3.wav", "dogsnarl:dog/dog-growl.flac"]],
   ["voice-crow", 450, -15, ["crowcaw:crow_caw.wav", "crow:crow.ogg"]],
-  // goose: two real honks cut from one take (400-950 ms and 2200-2900 ms)
-  ["voice-goose", 520, -16, ["goose:GooseHonksBizarre AT085701.wav@400", "goose:GooseHonksBizarre AT085701.wav@2220"]],
-  // raccoon: a sharp snort (1600-2000 ms) and a low growl (3100-3400 ms)
-  ["voice-raccoon", 420, -16, ["raccoon:Raccoon_Snorts_and_Growls_OCP-1199-05.wav@1600", "raccoon:Raccoon_Snorts_and_Growls_OCP-1199-05.wav@3080"]],
+  // goose: a synthesised honk (CC0). The licensed Envato honks (two real honks cut from one take,
+  // 400-950 ms and 2200-2900 ms) are in the private folder's manifest and replace these in the
+  // built site only.
+  ["voice-goose", 520, -16, ["synth:goose-honk", "synth:goose-honk-2"]],
+  // raccoon: a creature snort and a low grunt (CC0); the licensed Envato snort and growl are in the
+  // private folder's manifest, as for the goose
+  ["voice-raccoon", 420, -16, ["creature80:nose.ogg", "creature80:grunt_04.ogg"]],
   // boar: grunts and squeals (toy pig resampled to pig pitch; a low creature grunt 99% 150-500)
   ["voice-boar", 400, -15, ["pig:pig_hit1.mp3", "pig2:pig_hit2.mp3", "creature80:grunt_02.ogg"]],
   // cat: upset yowl and hiss (59-77% 500-2k)
@@ -436,22 +483,15 @@ function unpack(file, dir) {
   throw new Error(`could not unpack ${file}`);
 }
 
-/** Downloads (once) and checks every pack. Returns pack id -> folder holding its files. */
-function fetchPacks() {
+/** Downloads (once) and checks every pack. Returns pack id -> folder holding its files. The
+ *  private folder, when the overlay uses it, is the pack "private". */
+function fetchPacks(privateRoot) {
   const dirs = new Map();
-  const missing = PACKS.filter((p) => p.local && !existsSync(join(LOCAL, p.local)));
-  if (missing.length > 0) {
-    console.error(`build-audio: ${missing.length} licensed pack(s) not found in ${LOCAL}:`);
-    for (const p of missing) console.error(`  ${p.local}  (${p.name}, ${p.page})`);
-    console.error("Download them with the owner's licence, then pass --local <dir> or set RANKZERO_LOCAL_AUDIO=<dir>.");
-    process.exit(2);
-  }
   for (const p of PACKS) {
     if (p.synth) { dirs.set(p.id, null); continue; }
     const home = join(SRC, p.id);
     mkdirSync(home, { recursive: true });
-    const file = p.local ? join(LOCAL, p.local) : join(home, decodeURIComponent(basename(p.url)));
-    if (p.local && !existsSync(file)) throw new Error(`${p.name}: download it from ${p.page} into ${LOCAL} (or pass --local <dir>)`);
+    const file = join(home, decodeURIComponent(basename(p.url)));
     if (!existsSync(file)) run("curl", ["-sfL", "-A", "audio-sprite-tool", "-o", file, p.url]);
     const sum = createHash("sha256").update(readFileSync(file)).digest("hex");
     if (sum !== p.sha256) throw new Error(`${p.name}: sha256 ${sum}, expected ${p.sha256}`);
@@ -463,6 +503,7 @@ function fetchPacks() {
       dirs.set(p.id, home);
     }
   }
+  if (privateRoot) dirs.set("private", privateRoot);
   return dirs;
 }
 
@@ -612,17 +653,48 @@ function prepare(dirs, spec, maxMs, target, opts = {}) {
   return { clip, layers, peakDb: dB(peakOf(clip)), loudDb: loudness(clip), phoneDb: phoneLoudness(clip), shelfDb, peakAtMs: ms(at), onsetMs: ms(on) };
 }
 
-function wav(pcm) {
-  const data = Buffer.alloc(pcm.length * 2);
-  for (let i = 0; i < pcm.length; i++) data.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(pcm[i] * 32767))), i * 2);
+/** 16-bit PCM WAV of one or more channels (equal lengths) at RATE. */
+function wav(...chans) {
+  const nc = chans.length;
+  const n = chans[0].length;
+  const data = Buffer.alloc(n * 2 * nc);
+  for (let i = 0; i < n; i++) for (let c = 0; c < nc; c++) data.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(chans[c][i] * 32767))), (i * nc + c) * 2);
   const h = Buffer.alloc(44);
   h.write("RIFF", 0); h.writeUInt32LE(36 + data.length, 4); h.write("WAVE", 8); h.write("fmt ", 12);
-  h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22); h.writeUInt32LE(RATE, 24);
-  h.writeUInt32LE(RATE * 2, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34); h.write("data", 36); h.writeUInt32LE(data.length, 40);
+  h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(nc, 22); h.writeUInt32LE(RATE, 24);
+  h.writeUInt32LE(RATE * 2 * nc, 28); h.writeUInt16LE(2 * nc, 32); h.writeUInt16LE(16, 34); h.write("data", 36); h.writeUInt32LE(data.length, 40);
   return Buffer.concat([h, data]);
 }
 
-const dirs = fetchPacks();
+// ---- which build: the repo's CC0 files, or the overlay with the private folder's files
+let PRIVATE = null;
+let MANIFEST = null;
+let SETS_BUILT = SETS;
+let REPLACED = [];
+if (OVERLAY) {
+  PRIVATE = resolvePrivateRoot({ argv: process.argv, env: process.env, gitCommonDir: gitCommonDirOf(ROOT) });
+  if (PRIVATE === null) {
+    console.log("build-audio --overlay: no private audio folder; the build keeps the CC0 sounds and music from apps/web/public/audio");
+    process.exit(0);
+  }
+  MANIFEST = readManifest(PRIVATE, { setNames: SETS.map(([n]) => n) });
+  if (MANIFEST === null || (Object.keys(MANIFEST.sets).length === 0 && Object.keys(MANIFEST.music).length === 0)) {
+    console.log(`build-audio --overlay: ${PRIVATE} has no manifest.json naming a slot; the build keeps the CC0 sounds and music`);
+    process.exit(0);
+  }
+  if (isTrackedPath(OUT, ROOT)) {
+    console.error(`build-audio --overlay: refusing to write private audio into ${OUT}, a path git tracks (use the build output, apps/web/dist/audio)`);
+    process.exit(1);
+  }
+  if (!existsSync(join(OUT, ".."))) {
+    console.error(`build-audio --overlay: ${join(OUT, "..")} does not exist; run the web build first`);
+    process.exit(1);
+  }
+  ({ sets: SETS_BUILT, replaced: REPLACED } = applySetOverrides(SETS, MANIFEST));
+  console.log(`build-audio --overlay: private folder ${PRIVATE}: ${REPLACED.length} sound set(s) and ${Object.keys(MANIFEST.music).length} music slot(s) replaced, into ${OUT}`);
+}
+
+const dirs = fetchPacks(PRIVATE);
 const gap = Math.round((GAP_MS / 1000) * RATE);
 const used = [];
 const problems = [];
@@ -633,10 +705,10 @@ const problems = [];
 // content sprite loads
 // every Move's own sounds and the crit layer too (round 2 review), so a skill never plays a
 // fallback while the content loads
-const CORE = new Set([...Object.values(ALIASES), ...SETS.map(([name]) => name).filter((n) => /^(voice|move)-/.test(n) || n === "hit-accent")]);
+const CORE = new Set([...Object.values(ALIASES), ...SETS_BUILT.map(([name]) => name).filter((n) => /^(voice|move)-/.test(n) || n === "hit-accent")]);
 const SPRITES = [
-  { file: "sfx.mp3", sets: SETS.filter(([name]) => CORE.has(name)) },
-  { file: "sfx-content.mp3", sets: SETS.filter(([name]) => !CORE.has(name)) },
+  { file: "sfx.mp3", sets: SETS_BUILT.filter(([name]) => CORE.has(name)) },
+  { file: "sfx-content.mp3", sets: SETS_BUILT.filter(([name]) => !CORE.has(name)) },
 ];
 for (const sp of SPRITES) {
   const parts = [];
@@ -718,16 +790,21 @@ SPRITES.forEach((sp, f) => {
   if (peak >= 1) { console.error(`build-audio: ${sp.file} clips`); failed = true; }
 });
 const packsUsed = PACKS.filter((p) => used.some((u) => u.files.some((f) => f.startsWith(`${p.id}:`))));
+// the private files' credits (the built site only): name, author, page from the manifest; the
+// cut points are left out of `sources` for them
+const privateCredits = [...new Set(used.flatMap((u) => u.files.filter((f) => f.startsWith("private:")).map((f) => f.slice(8).replace(/(@\d+)?(~\d+)?(\*[\d.]+)?$/, ""))))]
+  .map((file) => ({ pack: "private", name: MANIFEST?.credits?.[file]?.name ?? basename(file), author: MANIFEST?.credits?.[file]?.author ?? "", licence: ENVATO.licence, licenceUrl: ENVATO.licenceUrl, page: MANIFEST?.credits?.[file]?.page ?? "", fetched: "" }));
 const json = {
   version: 2,
   files: SPRITES.map((s) => s.file),
   note: "Offsets in ms, measured on the decoded MP3 (not planned); `f` is the index in `files`. Built by tools/build-audio.mjs. Credits: see `credits` and CREDITS.md.",
   sets: map,
   families: ALIASES,
-  sources: used.map((u) => ({ set: u.family, variant: u.variant, files: u.files, loud: u.loudDb, phone: u.phoneDb, shelf: u.shelfDb, onset: u.onsetMs, peakAt: u.peakAtMs })),
-  credits: packsUsed.map((p) => ({ pack: p.id, name: p.name, author: p.author, licence: p.licence, licenceUrl: p.licenceUrl, page: p.page, fetched: p.fetched })),
+  sources: used.filter((u) => !u.files.some((f) => f.startsWith("private:"))).map((u) => ({ set: u.family, variant: u.variant, files: u.files, loud: u.loudDb, phone: u.phoneDb, shelf: u.shelfDb, onset: u.onsetMs, peakAt: u.peakAtMs })),
+  credits: [...packsUsed.map((p) => ({ pack: p.id, name: p.name, author: p.author, licence: p.licence, licenceUrl: p.licenceUrl, page: p.page, fetched: p.fetched })), ...privateCredits],
 };
 writeFileSync(join(OUT, "sfx.json"), `${JSON.stringify(json, null, 1)}\n`);
+buildMusic(musicPlan(MANIFEST));
 writeCredits();
 for (const u of used) console.log(`${`${u.family}[${u.variant}]`.padEnd(20)} ${String(u.lenMs).padStart(6)} ms  peak ${String(u.peakDb).padStart(5)} dB  loud ${String(u.loudDb).padStart(6)} dB  phone ${String(u.phoneDb).padStart(6)} dB  shelf ${String(u.shelfDb).padStart(2)} dB  onset ${String(u.onsetMs).padStart(5)} ms  peak at ${String(u.peakAtMs).padStart(5)} ms  ${u.files.join(" + ")}`);
 console.log(`whole-sprite trim ${dB(trim).toFixed(2)} dB; ${k - disagree} of ${k} sounds agree on their file's encoder shift within 1 ms`);
@@ -757,4 +834,95 @@ function writeCredits() {
   const end = md.indexOf("\n## ", at);
   if (at < 0 || end < 0) throw new Error("CREDITS.md: no sound table under ## Sounds");
   writeFileSync(path, `${md.slice(0, at)}${head}${lines.join("\n")}\n${md.slice(end)}`);
+}
+
+/** Decoded channels (1 or 2) at RATE from any file ffmpeg reads. */
+function decodeChannels(file, channels) {
+  const raw = run("ffmpeg", ["-v", "error", "-i", file, "-ac", String(channels), "-ar", String(RATE), "-f", "f32le", "-"]);
+  const all = new Float32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
+  const n = Math.floor(all.length / channels);
+  return Array.from({ length: channels }, (_, c) => { const ch = new Float32Array(n); for (let i = 0; i < n; i++) ch[i] = all[i * channels + c]; return ch; });
+}
+
+
+/**
+ * Writes OUT/music/<slot>.mp3 and OUT/music.json. A loop is encoded as [its last padMs][the loop]
+ * [its first padMs]; the loop points in music.json are measured on the decoded file (the encoder's
+ * shift found by cross-correlation, as for the sprites), so `loopStart`..`loopEnd` is exactly one
+ * period and wraps with no gap. A private file's loop is the manifest's loopStartMs..loopEndMs,
+ * a sting its startMs..endMs (a 30 ms fade-out at the end).
+ */
+function buildMusic(plan) {
+  const dir = join(OUT, "music");
+  mkdirSync(dir, { recursive: true });
+  const out = { version: 1, note: "Seconds in the decoded file. Loops: play loopStart..loopEnd forever. Built by tools/build-audio.mjs.", tracks: {}, stings: {}, credits: [] };
+  const sources = new Set();
+  for (const slot of [...MUSIC_TRACKS, ...MUSIC_STINGS]) {
+    const p = plan[slot];
+    const loop = MUSIC_TRACKS.includes(slot);
+    let chans;
+    if (p.source === "synth") {
+      if (MUSIC_RATE !== RATE) throw new Error("music rate differs from the sprite rate");
+      chans = [MUSIC_SYNTH[slot].make()];
+    } else {
+      const all = decodeChannels(join(PRIVATE, p.file), 2);
+      const a = Math.round(((loop ? p.loopStartMs : p.startMs ?? 0) / 1000) * RATE);
+      const b = Math.round(((loop ? p.loopEndMs : p.endMs ?? (all[0].length / RATE) * 1000) / 1000) * RATE);
+      if (loop && (b - a) / RATE * 1000 > MUSIC.loopMaxMs) throw new Error(`music.${slot}: loop is ${((b - a) / RATE).toFixed(1)} s, over ${MUSIC.loopMaxMs / 1000} s`);
+      chans = all.map((c) => c.slice(a, Math.min(b, c.length)));
+      if (!loop) {
+        const f = Math.min(chans[0].length, Math.round(0.03 * RATE));
+        for (const c of chans) for (let i = 0; i < f; i++) c[c.length - 1 - i] *= i / f;
+      }
+      sources.add(p.file);
+    }
+    // level: loops by RMS, stings by their loudest 50 ms; never over -1 dBFS peak
+    const peak = Math.max(...chans.map(peakOf));
+    let g;
+    if (loop) {
+      let ss = 0; let n = 0;
+      for (const c of chans) for (const v of c) { ss += v * v; n++; }
+      g = 10 ** (MUSIC.loopRmsDb / 20) / Math.sqrt(ss / n || 1e-12);
+    } else {
+      g = 10 ** ((MUSIC.stingLoudDb - Math.max(...chans.map(loudness))) / 20);
+    }
+    g = Math.min(g, (PEAK * 0.89) / (peak || 1));
+    for (const c of chans) for (let i = 0; i < c.length; i++) c[i] *= g;
+    const len = chans[0].length;
+    const pad = loop ? Math.min(Math.round((MUSIC.padMs / 1000) * RATE), len) : 0;
+    const body = chans.map((c) => {
+      if (!loop) return c;
+      const x = new Float32Array(len + 2 * pad);
+      x.set(c.subarray(len - pad), 0); x.set(c, pad); x.set(c.subarray(0, pad), pad + len);
+      return x;
+    });
+    const file = join(dir, `${slot}.mp3`);
+    const tmp = join(tmpdir(), `rankzero-music-${slot}.wav`);
+    writeFileSync(tmp, wav(...body));
+    const bitrate = body.length === 2 ? "112k" : "64k";
+    run("ffmpeg", ["-v", "error", "-y", "-i", tmp, "-ar", String(RATE), "-c:a", "libmp3lame", "-b:a", bitrate, file]);
+    rmSync(tmp, { force: true });
+    // the encoder's shift: the lag (0 to 80 ms) at which the decoded file best matches the input
+    const back = decodeChannels(file, 1)[0];
+    const mono = body.length === 2 ? body[0].map((v, i) => 0.5 * (v + body[1][i])) : body[0];
+    const span = Math.min(mono.length - Math.round(0.08 * RATE), Math.round(4 * RATE));
+    let best = 0; let bestSc = -Infinity;
+    for (let lag = 0; lag <= Math.round(0.08 * RATE); lag++) {
+      let sc = 0;
+      for (let i = 0; i < span; i += 2) sc += mono[i] * (back[i + lag] ?? 0);
+      if (sc > bestSc) { bestSc = sc; best = lag; }
+    }
+    const kb = statSync(file).size / 1024;
+    const cap = loop ? MUSIC.loopCapKb : MUSIC.stingCapKb;
+    if (kb > cap) problems.push(`music/${slot}.mp3 is ${kb.toFixed(0)} KB, over its ${cap} KB cap`);
+    const r6 = (v) => Math.round(v * 1e6) / 1e6;
+    if (loop) out.tracks[slot] = { file: `music/${slot}.mp3`, loopStart: r6((pad + best) / RATE), loopEnd: r6((pad + best + len) / RATE) };
+    else out.stings[slot] = { file: `music/${slot}.mp3`, start: r6(best / RATE), dur: r6(len / RATE) };
+    console.log(`music/${slot}.mp3`.padEnd(24), `${kb.toFixed(1)} KB, ${(len / RATE).toFixed(2)} s ${loop ? "loop" : "sting"}, ${body.length} ch at ${bitrate}, encoder shift ${ms(best)} ms, ${p.source}`);
+  }
+  out.credits = [
+    ...(Object.values(plan).some((p) => p.source === "synth") ? [{ pack: "synth", name: "Synthesised in tools/audio-music.mjs", author: "Rank Zero", licence: CC0.licence, licenceUrl: CC0.licenceUrl, page: "tools/audio-music.mjs", fetched: "2026-11-19" }] : []),
+    ...[...sources].map((file) => ({ pack: "private", name: MANIFEST?.credits?.[file]?.name ?? basename(file), author: MANIFEST?.credits?.[file]?.author ?? "", licence: ENVATO.licence, licenceUrl: ENVATO.licenceUrl, page: MANIFEST?.credits?.[file]?.page ?? "", fetched: "" })),
+  ];
+  writeFileSync(join(OUT, "music.json"), `${JSON.stringify(out, null, 1)}\n`);
 }

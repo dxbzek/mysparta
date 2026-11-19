@@ -99,6 +99,8 @@
       "apps/web/test/debug/**",
       "tools/record-bout.mjs",
       "tools/build-audio.mjs",
+      "tools/audio-music.mjs",
+      "tools/audio-private.mjs",
       "tools/subset-fonts.mjs"
     ],
     "wp5": [

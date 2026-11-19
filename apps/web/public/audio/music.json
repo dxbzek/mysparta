@@ -1,0 +1,54 @@
+{
+ "version": 1,
+ "note": "Seconds in the decoded file. Loops: play loopStart..loopEnd forever. Built by tools/build-audio.mjs.",
+ "tracks": {
+  "menu": {
+   "file": "music/menu.mp3",
+   "loopStart": 0.5,
+   "loopEnd": 22.318186
+  },
+  "fight-calm": {
+   "file": "music/fight-calm.mp3",
+   "loopStart": 0.5,
+   "loopEnd": 19.7
+  },
+  "fight-intense": {
+   "file": "music/fight-intense.mp3",
+   "loopStart": 0.5,
+   "loopEnd": 19.7
+  }
+ },
+ "stings": {
+  "ko": {
+   "file": "music/ko.mp3",
+   "start": 0,
+   "dur": 1.9
+  },
+  "win": {
+   "file": "music/win.mp3",
+   "start": 0,
+   "dur": 2.6
+  },
+  "lose": {
+   "file": "music/lose.mp3",
+   "start": 0,
+   "dur": 2.6
+  },
+  "level-up": {
+   "file": "music/level-up.mp3",
+   "start": 0,
+   "dur": 1.8
+  }
+ },
+ "credits": [
+  {
+   "pack": "synth",
+   "name": "Synthesised in tools/audio-music.mjs",
+   "author": "Rank Zero",
+   "licence": "CC0 1.0",
+   "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+   "page": "tools/audio-music.mjs",
+   "fetched": "2026-11-19"
+  }
+ ]
+}
