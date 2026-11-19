@@ -3,9 +3,10 @@
  * history limits. A document that fails the shape check is CORRUPT, never empty. Unknown content
  * ids (a perk the game no longer has) warn and are dropped: they never throw.
  */
-import { GEAR_SLOTS, LOOK_SPACE, isCompanionId, isGearId, isPerkId, isShieldId, isTalentId, isWeaponId } from "@rankzero/core";
+import { GEAR_SLOTS, LADDER_RUNGS, LOOK_SPACE, isCompanionId, isGearId, isPerkId, isShieldId, isTalentId, isWeaponId } from "@rankzero/core";
 import type { StatKey, TalentId, TalentPicks, TalentRanks } from "@rankzero/core";
-import type { BoutLog, CompanionId, FighterSnapshot, GearId, GearSlot, KitBase, Loadout, Look, PerkId, ScrapperRecord, StatBlock,
+import type { BoutLog, CompanionId, FighterSnapshot, GearId, GearSlot, KitBase, LadderPrize, LadderState, Loadout, Look, PerkId, RouteCard,
+  ScrapperRecord, StatBlock,
   WeaponId } from "@rankzero/core";
 import type { BoutRecord, SaveDoc, Settings } from "../contracts";
 
@@ -15,8 +16,9 @@ import type { BoutRecord, SaveDoc, Settings } from "../contracts";
  *  CONTRACT_REV 8: the loadout and body equipment (`ScrapperRecord.loadout`, `gearFrom`; migration
  *  4 to 5). 6 since CONTRACT_REV 9: the talent tree (`ScrapperRecord.talents`, `FighterSnapshot.talents`;
  *  migration 5 to 6). 7 since CONTRACT_REV 10: the look editor (`ScrapperRecord.look`; migration 6 to 7
- *  pins each scrapper's seeded look). */
-export const SCHEMA_VERSION = 7 as const;
+ *  pins each scrapper's seeded look). 8 since CONTRACT_REV 11: the rank ladder (`ScrapperRecord.ladder`,
+ *  `BoutRecord.boss`; migration 7 to 8 starts every scrapper at Rank Zero). */
+export const SCHEMA_VERSION = 8 as const;
 /** Scrappers on one save. A fourth needs one retired first. */
 export const SLOT_LIMIT = 3;
 /** History: the last 50 bouts keep their logs, the last 200 are kept as summaries. */
@@ -179,6 +181,12 @@ function checkRecord(v: unknown, where: string, warn: (w: string) => void = () =
     if (t !== null) rec.talents = t;
     else warn(`${where}: its talents could not be read: every point is unspent`);
   }
+  // the ladder (schema 8): one that cannot be read starts again at Rank Zero
+  if (r.ladder !== undefined) {
+    const l = checkLadder(r.ladder, warn);
+    if (l !== null) rec.ladder = l;
+    else warn(`${where}: its rank could not be read: Rank Zero`);
+  }
   // the look (schema 7): one that cannot be read falls back to the seeded look of its name
   if (r.look !== undefined) {
     const look = checkLook(r.look);
@@ -186,6 +194,30 @@ function checkRecord(v: unknown, where: string, warn: (w: string) => void = () =
     else warn(`${where}: its look could not be read: the seeded look is shown`);
   }
   return rec;
+}
+
+const STAT_SET: ReadonlySet<string> = new Set(STAT_KEYS);
+/** A stored prize card: a perk card with a known id (and its +1 stat, if any) or a stat card. */
+function checkCard(v: unknown): RouteCard | null {
+  if (!isObj(v)) return null;
+  if (v.kind === "perk" && isStr(v.perk) && isPerkId(v.perk)) {
+    return isStr(v.plus) && STAT_SET.has(v.plus) ? { kind: "perk", perk: v.perk, plus: v.plus as StatKey } : { kind: "perk", perk: v.perk };
+  }
+  if (v.kind === "stat" && isStr(v.stat) && STAT_SET.has(v.stat) && isNat(v.amount)) return { kind: "stat", stat: v.stat as StatKey, amount: v.amount };
+  return null;
+}
+/** The ladder (schema 8): a rank of 0 to LADDER_RUNGS and at most that many prizes. A prize card
+ *  that cannot be read (an id this build does not know) is left out, and the rank stays. */
+export function checkLadder(v: unknown, warn: (w: string) => void): LadderState | null {
+  if (!isObj(v) || !isNat(v.rank) || !Array.isArray(v.prizes)) return null;
+  const rank = Math.min(LADDER_RUNGS, v.rank);
+  const prizes: LadderPrize[] = [];
+  for (const p of v.prizes as unknown[]) {
+    const card = isObj(p) && isNat(p.at) ? checkCard(p.card) : null;
+    if (card !== null && isObj(p) && prizes.length < rank) prizes.push({ at: p.at as number, card });
+    else warn("a boss prize could not be read: left out");
+  }
+  return { rank, prizes };
 }
 
 function checkLook(v: unknown): Look | null {
@@ -240,6 +272,7 @@ function checkBout(v: unknown, warn: (w: string) => void): BoutRecord | null {
     lineId: isNat(v.lineId) ? v.lineId : 0, watched: v.watched === true,
     before: { xp: before.xp, energy: before.energy, energyAt: before.energyAt },
   };
+  if (isNat(v.boss) && v.boss >= 1 && v.boss <= LADDER_RUNGS) rec.boss = v.boss;
   // A log that names a perk we dropped cannot be played safely: keep the row, drop the log.
   // So is a log written before content v2 (log version 1: the door, not the shields).
   const log = v.log;

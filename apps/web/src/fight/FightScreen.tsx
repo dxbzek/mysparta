@@ -17,7 +17,8 @@ import type { Side } from "@rankzero/core";
 import type { Rig } from "@rankzero/rig";
 import { createFightClock, createFightPlayer } from "@rankzero/stage";
 import type { Cue, FightClock, FightPlayer } from "@rankzero/stage";
-import type { FightScreenProps, Settings } from "../contracts";
+import type { FightScreenProps, ResultAction, Settings } from "../contracts";
+import { BossBanner } from "./BossBanner";
 import { playSpeed } from "../state/schema";
 import { UI } from "../text/ui";
 import { createCueDriver, engineSink, fightMusicAt, knockoutAt } from "../audio/cues";
@@ -175,7 +176,11 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
     }
   }, [ended, onFinished]);
 
-  const sides = useMemo(() => ({ a: { name: a.name, level: a.level }, b: { name: b.name, level: b.level } }), [a, b]);
+  const { ranks, intro } = props;
+  const sides = useMemo(() => {
+    const tag = (r: string | undefined) => (r ? { rank: { short: /zero/i.test(r) ? "R0" : r.replace(/^Rank\s*/i, "R"), label: r } } : {});
+    return { a: { name: a.name, level: a.level, ...tag(ranks?.a) }, b: { name: b.name, level: b.level, ...tag(ranks?.b) } };
+  }, [a, b, ranks?.a, ranks?.b]);
   const names = useMemo(() => actorNames(log.init, a, b), [log, a, b]);
   const sideNames: Record<Side, string> = useMemo(() => ({ a: a.name, b: b.name }), [a, b]);
   const cards = useMemo(() => ({ a: cardInfo("a", a, log.init.actors), b: cardInfo("b", b, log.init.actors) }), [a, b, log]);
@@ -222,7 +227,7 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
       onFinished("skipped");
     }
   };
-  const onResult = (action: "levelup" | "next" | "replay" | "locker"): void => {
+  const onResult = (action: ResultAction): void => {
     if (action === "replay" && mode === "replay") {
       seek(0);
       clock.paused = false;
@@ -237,6 +242,7 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
       <div className={css.stageArea}>
         <StageCanvas player={player} t={t} label={`${a.name} against ${b.name}`} />
         <StageOverlay beats={beats} t={t} reduced={reduced} resultIn={ended ? hud.resultIn : 0} />
+        {intro !== undefined ? <BossBanner intro={intro} t={t} reduced={reduced} /> : null}
         <Hud frame={hud} sides={sides} actors={log.init.actors} t={t} turn={state.turn} reduced={reduced} onCard={(side) => openDrawer("fighters", side)} />
         <div className={css.bottom}>
           {/* a short note (the locked 3x) sits over the speed buttons, never among the stage's

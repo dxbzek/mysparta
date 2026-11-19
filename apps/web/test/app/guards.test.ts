@@ -14,7 +14,8 @@ describe("router", () => {
   it("parses and prints every route", () => {
     const routes: Route[] = [{ name: "home" }, { name: "create" }, { name: "locker" }, { name: "settings" }, { name: "card" },
       { name: "bout", id: "01ABC" }, { name: "levelup" }, { name: "kit", tab: "kit" }, { name: "kit", tab: "route" },
-      { name: "kit", tab: "stats" }, { name: "bouts" }, { name: "replay", id: "01XYZ" }, { name: "sandbox" }, { name: "inventory" }];
+      { name: "kit", tab: "stats" }, { name: "bouts" }, { name: "replay", id: "01XYZ" }, { name: "sandbox" }, { name: "inventory" },
+      { name: "ladder" }, { name: "prize" }];
     for (const r of routes) expect(parseRoute(hrefOf(r))).toEqual(r);
     expect(parseRoute("")).toEqual({ name: "home" });
     expect(parseRoute("#/nowhere").name).toBe("unknown");

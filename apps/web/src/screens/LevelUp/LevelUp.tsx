@@ -6,7 +6,7 @@
  */
 import { useMemo, useState } from "react";
 import type { HeldId, Pick as Side2, RouteCard, ScrapperRecord } from "@rankzero/core";
-import { RARITY_OF, perkKind } from "@rankzero/core";
+import { RARITY_OF, perkKind, prizesOf } from "@rankzero/core";
 import { activeRecord } from "../../app/guards";
 import { useDoc, useGame } from "../../app/context";
 import { STAT_NAME } from "../../text/stats";
@@ -29,7 +29,7 @@ export function LevelUpScreen() {
   const doc = useDoc();
   const live = activeRecord(doc);
   // The offer is frozen when the screen opens, so the cards stay put after the pick is saved.
-  const [offer, setOffer] = useState<Offer | null>(() => (live ? { rec: live, ...core.routeNode(live.seed, live.picks, live.base, live.gearFrom) } : null));
+  const [offer, setOffer] = useState<Offer | null>(() => (live ? { rec: live, ...core.routeNode(live.seed, live.picks, live.base, live.gearFrom, prizesOf(live)) } : null));
   const [sel, setSel] = useState<Side2 | null>(null);
   const [taken, setTaken] = useState<Side2 | null>(null);
   const [busy, setBusy] = useState(false);
@@ -64,7 +64,7 @@ export function LevelUpScreen() {
     }
   };
   const next = (): void => {
-    setOffer({ rec: live, ...core.routeNode(live.seed, live.picks, live.base, live.gearFrom) });
+    setOffer({ rec: live, ...core.routeNode(live.seed, live.picks, live.base, live.gearFrom, prizesOf(live)) });
     setSel(null);
     setTaken(null);
   };

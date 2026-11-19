@@ -24,6 +24,8 @@ export type LockerTab = "home" | "kit" | "inventory" | "history";
 export const MAIN_TABS: readonly LockerTab[] = ["home", "kit", "inventory", "history"];
 export type LockerPrimary =
   | { kind: "levelup" }
+  /** A boss prize waits (the ladder): "Claim prize". */
+  | { kind: "prize" }
   | { kind: "fight"; energy: number }
   /** Out of energy: `backIn` is the countdown to the next point ("12:04"). */
   | { kind: "done"; backIn: string };
@@ -39,6 +41,8 @@ export interface LockerText {
   kit: string; seeAll: string; more(n: number): string; lastBouts: string; allBouts: string; noBouts: string;
   win: string; loss: string; replay(opponent: string): string; xpGained(n: number): string;
   tabs: Record<LockerTab, string>; hero(name: string): string;
+  /** The main button while a boss prize waits (the ladder). */
+  prize?: string;
 }
 
 /** Default English. The app lane may pass its own `text/ui.ts` strings instead. */
@@ -110,6 +114,10 @@ export interface LockerViewProps {
   onReplay(id: string): void;
   onAllBouts(): void;
   onTab(tab: LockerTab): void;
+  /** The rank (the ladder): "Rank 10" and its name, on a tape under the name sticker. */
+  rank?: { label: string; title: string };
+  /** The ladder's big button under the main one: its label, a line under it, and the way in. */
+  ladder?: { label: string; sub: string; onOpen(): void };
   /** The look editor (content v3 batch 4): a "Change look" button on the hero. */
   onLook?(): void;
   lookLabel?: string;
@@ -144,7 +152,14 @@ export function LockerView(p: LockerViewProps) {
             <ActorStage look={p.look} held={p.held ?? null} companions={p.companions ?? []} shield={p.shield ?? null} {...(p.gear !== undefined ? { gear: p.gear } : {})} height={234} floorAt={0.78} label={t.hero(p.name)} t={p.heroT} clip={p.heroClip ?? "flick"} restMs={2600} />
           </div>
           <div className={css.heroTop}>
-            <Sticker tilt={-2}>{p.name}</Sticker>
+            <span className={css.nameStack}>
+              <Sticker tilt={-2}>{p.name}</Sticker>
+              {p.rank !== undefined ? (
+                <span className={css.rankTape} data-testid="hero-rank" aria-label={`${p.rank.label}, ${p.rank.title}`}>
+                  <b>{p.rank.label}</b><span className={css.rankTitle}>{p.rank.title}</span>
+                </span>
+              ) : null}
+            </span>
             <Sticker tone="hazard" tilt={1.5}>{t.level(p.level)}</Sticker>
           </div>
           {p.onLook !== undefined ? (
@@ -181,9 +196,19 @@ export function LockerView(p: LockerViewProps) {
           <Panel tone="raised"><p className={css.doneNote}>{t.done(p.primary.backIn)}</p></Panel>
         ) : (
           <Button variant="primary" onClick={p.onPrimary} data-primary={p.primary.kind}>
-            {p.primary.kind === "levelup" ? t.levelUp : t.fight(p.primary.energy)}
+            {p.primary.kind === "levelup" ? t.levelUp : p.primary.kind === "prize" ? (t.prize ?? "Claim prize") : t.fight(p.primary.energy)}
           </Button>
         )}
+
+        {p.ladder !== undefined ? (
+          <button type="button" className={css.ladderButton} onClick={p.ladder.onOpen} data-testid="ladder-button">
+            <LadderGlyph />
+            <span className={css.ladderWords}>
+              <span className={css.ladderLine}>{p.ladder.label}</span>
+              <span className={css.ladderSub}>{p.ladder.sub}</span>
+            </span>
+          </button>
+        ) : null}
 
         {(p.talentsDue ?? 0) > 0 && p.talentText !== undefined ? (
           <button type="button" className={css.talentPrompt} onClick={p.onTalents} data-testid="talent-prompt">
@@ -237,6 +262,16 @@ export function LockerView(p: LockerViewProps) {
           active={p.tab} onSelect={p.onTab} />
       </div>
     </div>
+  );
+}
+
+/** The ladder's glyph: two rails and four rungs, inked. */
+export function LadderGlyph() {
+  return (
+    <svg viewBox="0 0 32 40" width="32" height="40" aria-hidden="true" focusable="false" className={css.ladderGlyph}>
+      <path d="M8 2L6 38M24 2L26 38" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" />
+      <path d="M7.6 9H24.4M7.2 17H24.8M6.8 25H25.2M6.4 33H25.6" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
   );
 }
 

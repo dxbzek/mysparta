@@ -26,6 +26,8 @@ import { Sticker } from "../ui/Sticker";
 import { TabBar } from "../ui/TabBar";
 import type { DebugRoute } from "./route";
 import { parseDebugRoute } from "./route";
+import { BOSS_LINES, RUNG_TITLE, rankLabel, rungRank } from "../text/ladder";
+import { dressOf } from "../screens/Ladder/Ladder";
 
 const noop = (): void => undefined;
 
@@ -43,6 +45,12 @@ type Simulate = (seed: number, a: FighterSnapshot, b: FighterSnapshot, rulesVers
 
 function boutFor(route: Extract<DebugRoute, { page: "bout" }>): { log: BoutLog; a: FighterSnapshot; b: FighterSnapshot } | string {
   if (route.fixture) return BOUT_FIXTURES[route.fixture];
+  if (route.boss !== null) {
+    const n = route.find ?? 0;
+    const a = core.rivalSnapshot("ladder-test", route.level, n);
+    const b = core.bossSnapshot(route.boss);
+    return { log: core.simulateFight(core.combineSeed("boss-bout", route.boss, route.level, n), a, b, 1), a, b };
+  }
   if (route.find !== null) {
     // the same candidate as tools/find-bout.ts: rivals 2n and 2n + 1, seed hash("find-bout", n)
     const n = route.find;
@@ -89,7 +97,15 @@ function DebugBout({ route }: { route: Extract<DebugRoute, { page: "bout" }> }) 
   const onHandle = useCallback((h: FightHandle | null) => setHandle(h), []);
   if (typeof bout === "string") return <p style={{ padding: 16 }}>{bout}</p>;
   const won = bout.log.result.winner === "a";
-  const result: ResultCardData = { won, line: won ? `${bout.a.name} folded ${bout.b.name} like a deckchair.` : `${bout.a.name} went looking for a fight and found a better one.`, xpBefore: 3, xpAfter: won ? 5 : 4, xpToNext: 8, levelUp: false, energy: 5 };
+  const rung = route.boss;
+  const result: ResultCardData = rung !== null
+    ? { won, line: `${bout.b.name}: "${won ? BOSS_LINES[rung]?.beaten ?? "" : BOSS_LINES[rung]?.gloat ?? ""}"`, xpBefore: 3, xpAfter: won ? 5 : 4, xpToNext: 8, levelUp: false, energy: 5,
+      boss: true, ...(won ? { rankUp: { rank: rungRank(rung), title: RUNG_TITLE[rung] ?? "" } } : {}) }
+    : { won, line: won ? `${bout.a.name} folded ${bout.b.name} like a deckchair.` : `${bout.a.name} went looking for a fight and found a better one.`, xpBefore: 3, xpAfter: won ? 5 : 4, xpToNext: 8, levelUp: false, energy: 5 };
+  const bossProps = rung !== null ? {
+    intro: { name: bout.b.name, title: `${rungRank(rung)} · ${RUNG_TITLE[rung] ?? ""}`, taunt: BOSS_LINES[rung]?.taunt ?? "" },
+    ranks: { a: rankLabel(rung - 1), b: rungRank(rung) },
+  } : {};
   return (
     <RigGate>
     <FightScreen
@@ -105,6 +121,7 @@ function DebugBout({ route }: { route: Extract<DebugRoute, { page: "bout" }> }) 
       startT={route.t}
       startPaused={route.paused}
       onHandle={onHandle}
+      {...bossProps}
     />
     </RigGate>
   );
@@ -217,6 +234,32 @@ function DebugUi() {
   );
 }
 
+/** The boss sheet (the ladder): the ten bosses side by side, bottom rung first, each standing on the
+ *  yard at `scale` times its fight size, with its name, rank and level under it. */
+function DebugBosses({ scale }: { scale: number }) {
+  useEffect(() => {
+    void loadFonts().then(() => { window.__rz = { ready: true, durationMs: 0, seek: noop }; });
+  }, []);
+  const h = Math.round(200 * scale);
+  return (
+    <div data-testid="boss-sheet" style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: 8, background: "var(--c-dark)" }}>
+      {Array.from({ length: 10 }, (_, i) => i + 1).map((rung) => {
+        const b = core.bossSnapshot(rung);
+        const d = dressOf(b);
+        return (
+          <figure key={rung} style={{ margin: 0, width: Math.round(150 * scale), display: "grid", gap: 4 }}>
+            <ActorStage look={b.look} held={d.held} shield={d.shield} gear={d.gear} companions={d.pets} facing={-1} height={h} floorAt={0.86}
+              window={{ w: 150, h: 200 }} label={b.name} t={500} clip="idle" />
+            <figcaption style={{ color: "var(--t-on-dark)", font: "900 14px/1.1 var(--font-display)", textAlign: "center" }}>
+              <Sticker size="small">{b.name}</Sticker><br />{rungRank(rung)} · {RUNG_TITLE[rung]} · LV {b.level}
+            </figcaption>
+          </figure>
+        );
+      })}
+    </div>
+  );
+}
+
 export function DebugApp() {
   const hash = useHash();
   const route = useMemo(() => parseDebugRoute(hash || "#/debug/bout?fixture=bout-gate"), [hash]);
@@ -227,6 +270,8 @@ export function DebugApp() {
       return <DebugLocker route={route} />;
     case "ui":
       return <DebugUi />;
+    case "bosses":
+      return <DebugBosses scale={route.scale} />;
     default:
       return (
         <p style={{ padding: 16 }}>

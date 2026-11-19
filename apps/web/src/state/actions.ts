@@ -11,7 +11,7 @@
  *     it is watched or skipped.
  */
 import { REALM_SALT, api } from "@rankzero/core";
-import type { CoreApi, FighterSnapshot, Loadout, Look, Pick as Side2, ScrapperRecord, TalentBlock, TalentId } from "@rankzero/core";
+import type { BossBlock, CoreApi, FighterSnapshot, Loadout, Look, Pick as Side2, ScrapperRecord, TalentBlock, TalentId } from "@rankzero/core";
 import type { BoutRecord, Clock, GameActions, Result, SaveDoc, Settings } from "../contracts";
 import { decodeSave, encodeSave } from "./saveCode";
 import { SLOT_LIMIT, emptyDoc, trimHistory } from "./schema";
@@ -67,8 +67,13 @@ export function unwatchedOf(doc: SaveDoc, id?: string): BoutRecord | undefined {
 export function shownRecord(doc: SaveDoc, rec: ScrapperRecord): ScrapperRecord {
   const b = unwatchedOf(doc, rec.id);
   if (!b) return rec;
-  return { ...rec, xp: b.before.xp, energy: b.before.energy, energyAt: b.before.energyAt,
+  const shown: ScrapperRecord = { ...rec, xp: b.before.xp, energy: b.before.energy, energyAt: b.before.energyAt,
     lifetimeBouts: Math.max(0, rec.lifetimeBouts - 1) };
+  // a won boss bout moved the rank up when it started: the rank from before it until it is watched
+  if (b.boss !== undefined && b.result.winner === "a" && rec.ladder !== undefined && rec.ladder.rank >= b.boss) {
+    shown.ladder = { rank: b.boss - 1, prizes: rec.ladder.prizes.slice(0, b.boss - 1) };
+  }
+  return shown;
 }
 
 /** Line id for the one-line result text: a pure function of the bout seed. */
@@ -136,6 +141,45 @@ export function createGameActions(deps: ActionDeps): AppActions {
         };
         const next = core.afterBout(rec, xp, at);
         return { doc: { ...put(doc, next), history: trimHistory([bout, ...doc.history]) }, value: ok(bout) };
+      });
+    },
+
+    startBoss(id: string, rung: number) {
+      const at = clock.now();
+      type Why = "level-up-waiting" | "no-energy" | "unwatched-bout" | "prize-waiting" | BossBlock;
+      return store.commit((doc): { doc: SaveDoc | null; value: Result<BoutRecord, Why> } => {
+        const rec = find(doc, id);
+        if (!rec) throw new Error(`startBoss: no scrapper ${id}`);
+        if (unwatchedOf(doc)) return { doc: null, value: fail("unwatched-bout") };
+        if (core.sheetOf(rec).levelUpWaiting) return { doc: null, value: fail("level-up-waiting") };
+        if (core.ladderOf(rec).prizeWaiting) return { doc: null, value: fail("prize-waiting") };
+        const block = core.bossBlock(rec, rung);
+        if (block !== null) return { doc: null, value: fail(block) };
+        if (core.energyNow(rec, at) <= 0) return { doc: null, value: fail("no-energy") };
+        const me = core.snapshotOf(rec);
+        const boss = core.bossSnapshot(rung);
+        const seed = core.boutSeed(rec.id, boss.id, rec.lifetimeBouts);
+        const log = core.simulateFight(seed, me, boss, 1);
+        const won = log.result.winner === "a";
+        const xp = core.xpForBout(won, me.level, boss.level);
+        const taken = new Set(doc.history.map((b) => b.id));
+        let boutId = newId(at);
+        for (let i = 0; taken.has(boutId); i++) boutId = newId(at + i + 1);
+        const bout: BoutRecord = {
+          id: boutId, at, seed, rulesVersion: 1, logVersion: 2, snapshotA: me, snapshotB: boss,
+          result: log.result, role: "attacker", fighterId: rec.id, xp, lineId: lineIdFor(seed), watched: false,
+          before: { xp: rec.xp, energy: rec.energy, energyAt: rec.energyAt }, boss: rung, log,
+        };
+        const next = core.afterBoss(rec, rung, won, xp, at);
+        return { doc: { ...put(doc, next), history: trimHistory([bout, ...doc.history]) }, value: ok(bout) };
+      });
+    },
+
+    takePrize(id: string, pick: Side2) {
+      return store.commit<Result<void, "nothing-waiting">>((doc) => {
+        const rec = find(doc, id);
+        if (!rec || unwatchedOf(doc, id) || !core.ladderOf(rec).prizeWaiting) return { doc: null, value: fail("nothing-waiting" as const) };
+        return { doc: put(doc, core.takePrize(rec, pick)), value: ok(undefined) };
       });
     },
 

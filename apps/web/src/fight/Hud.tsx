@@ -16,7 +16,8 @@ import css from "./fight.module.css";
 
 const sizeClass = (name: string): string => { const k = nameSize(name); return k === "long" ? css.nameLong! : k === "mid" ? css.nameMid! : ""; };
 
-export interface HudSideInfo { name: string; level: number }
+/** `rank` (the ladder): a short rank tag beside the level ("R10", "R0"), with its words for a screen reader. */
+export interface HudSideInfo { name: string; level: number; rank?: { short: string; label: string } }
 
 export interface HudProps {
   frame: HudFrame;
@@ -51,6 +52,7 @@ function SideHud({ side, frame, info, levelLabel, reduced, onCard }: { side: Sid
       <div className={css.nameRow}>
         <Sticker size="small" tilt={side === "a" ? -1.5 : 1.5} slap={frame.namesIn} className={`${css.tape} ${sizeClass(info.name)}`}>{info.name}</Sticker>
         <span className={css.lvl}>{levelLabel(info.level)}</span>
+        {info.rank !== undefined ? <span className={css.rankTag} data-testid={`hud-rank-${side}`} aria-label={info.rank.label}>{info.rank.short}</span> : null}
       </div>
       <span
         className={css.hpBar}
@@ -69,7 +71,7 @@ function SideHud({ side, frame, info, levelLabel, reduced, onCard }: { side: Sid
   const cls = `${css.side} ${side === "b" ? css.sideB : css.sideA}`;
   // over the stage the whole name-and-bar block is one 44 px button to that fighter's card
   return onCard ? (
-    <button type="button" className={`${cls} ${css.sideButton}`} data-side={side} onClick={() => onCard(side)} aria-label={`${info.name}, ${levelLabel(info.level)}, ${now} of ${max} HP. Open the fighter card.`}>{body}</button>
+    <button type="button" className={`${cls} ${css.sideButton}`} data-side={side} onClick={() => onCard(side)} aria-label={`${info.name}, ${levelLabel(info.level)}${info.rank !== undefined ? `, ${info.rank.label}` : ""}, ${now} of ${max} HP. Open the fighter card.`}>{body}</button>
   ) : <div className={cls} data-side={side}>{body}</div>;
 }
 

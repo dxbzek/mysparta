@@ -310,3 +310,66 @@
   transform: translate(2px, 3px);
   box-shadow: none;
 }
+
+/* the ladder (plan 13.10 item 1): the rank on a black tape under the name, and the ladder's big
+   button under the main one */
+.nameStack {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+.rankTape {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 2px solid var(--c-ink);
+  background: var(--c-dark);
+  color: var(--t-on-dark-hazard);
+  transform: rotate(-1deg);
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.rankTitle {
+  color: var(--t-on-dark);
+  font-size: 12px;
+}
+.ladderButton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 12px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius);
+  box-shadow: var(--shadow-hard);
+  background: var(--tex-halftone), var(--c-hazard);
+  color: var(--t-on-hazard);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ladderButton:active {
+  transform: translate(2px, 3px);
+  box-shadow: none;
+}
+.ladderGlyph {
+  flex: 0 0 auto;
+}
+.ladderWords {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.ladderLine {
+  font: 900 24px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.ladderSub {
+  font-size: var(--fs-small);
+  font-weight: 700;
+}

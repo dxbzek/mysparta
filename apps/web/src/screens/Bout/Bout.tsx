@@ -11,6 +11,8 @@ import { RigGate } from "../../app/RigGate";
 import { FightScreen } from "../../fight/FightScreen";
 import { resultLine } from "../../text/results";
 import { UI } from "../../text/ui";
+import { BOSS_LINES, RUNG_TITLE, rankLabel, rungRank } from "../../text/ladder";
+import type { BossIntro, ResultAction } from "../../contracts";
 import { Panel } from "../../ui/Panel";
 import common from "../common.module.css";
 
@@ -28,20 +30,33 @@ export function BoutScreen({ id }: { id: string }) {
     const xpAfter = bout.before.xp + bout.xp;
     const levelUp = xpAfter >= xpToNext;
     const left = rec ? core.energyNow(rec, clock.now()) : 0;
+    if (bout.boss !== undefined) {
+      // a boss bout: the boss has the last word, and a win shows the rank reached
+      const lines = BOSS_LINES[bout.boss];
+      return { won, line: `${bout.snapshotB.name}: "${won ? lines?.beaten ?? "" : lines?.gloat ?? ""}"`, xpBefore: bout.before.xp, xpAfter,
+        xpToNext, levelUp, energy: levelUp ? 0 : left, boss: true,
+        ...(won ? { rankUp: { rank: rungRank(bout.boss), title: RUNG_TITLE[bout.boss] ?? "" } } : {}) };
+    }
     return { won, line: resultLine(bout.lineId, won, bout.snapshotA.name, bout.snapshotB.name), xpBefore: bout.before.xp, xpAfter,
       xpToNext, levelUp, energy: levelUp ? 0 : left };
   }, [bout?.id, rec?.id, core, clock]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onSettings = useCallback((patch: Partial<Settings>) => void actions.setSettings(patch).catch((e: Error) => toast(e.message)), [actions, toast]);
   const onFinished = useCallback(() => void actions.markWatched(id).catch((e: Error) => toast(e.message)), [actions, id, toast]);
-  const onAction = useCallback(async (a: "levelup" | "next" | "replay" | "locker") => {
+  const onAction = useCallback(async (a: ResultAction) => {
     await actions.markWatched(id).catch(() => undefined);
     if (a === "levelup") go({ name: "levelup" });
+    else if (a === "prize") go({ name: "prize" });
+    else if (a === "ladder") go({ name: "ladder" });
     else if (a === "next") go({ name: "card" });
     else if (a === "replay") go({ name: "replay", id });
     else go({ name: "locker" });
   }, [actions, go, id]);
 
+  // a boss bout's banner, and both ranks in the HUD (the player's from before the bout)
+  const intro: BossIntro | undefined = bout?.boss !== undefined
+    ? { name: bout.snapshotB.name, title: `${rungRank(bout.boss)} · ${RUNG_TITLE[bout.boss] ?? ""}`, taunt: BOSS_LINES[bout.boss]?.taunt ?? "" } : undefined;
+  const ranks = bout?.boss !== undefined ? { a: rankLabel(bout.boss - 1), b: rungRank(bout.boss) } : rec ? { a: rankLabel(core.ladderOf(rec).rank), b: "" } : undefined;
   if (!bout || !log || !result) {
     return <main className={common.body}><Panel><p>{UI.bout.missing}</p></Panel></main>;
   }
@@ -57,6 +72,8 @@ export function BoutScreen({ id }: { id: string }) {
       onFinished={onFinished}
       result={result}
       onResultAction={(a) => void onAction(a)}
+      {...(intro !== undefined ? { intro } : {})}
+      {...(ranks !== undefined ? { ranks } : {})}
     />
     </RigGate>
   );

@@ -74,6 +74,9 @@ const SandboxChunk = retryable<object>(() => import("./debug/Sandbox").then((m) 
 const KitChunk = retryable<{ tab: KitTab }>(() => import("../screens/Kit/Kit").then((m) => ({ default: m.KitScreen })));
 /** The look editor from home (content v3 batch 4). */
 const LookChunk = retryable<object>(() => import("../screens/Look/Look").then((m) => ({ default: m.LookScreen })));
+/** The rank ladder and the boss prize (plan 13.10 item 1). */
+const LadderChunk = retryable<object>(() => import("../screens/Ladder/Ladder").then((m) => ({ default: m.LadderScreen })));
+const PrizeChunk = retryable<object>(() => import("../screens/Prize/Prize").then((m) => ({ default: m.PrizeScreen })));
 const LevelUpChunk = retryable<object>(() => import("../screens/LevelUp/LevelUp").then((m) => ({ default: m.LevelUpScreen })));
 const BoutsChunk = retryable<object>(() => import("../screens/Bouts/Bouts").then((m) => ({ default: m.BoutsScreen })));
 /** The bout and the replay hold the fight screen and the whole stage: their own chunk, preloaded
@@ -262,7 +265,7 @@ function useFullRigAfterPaint(): void {
       timer = window.setTimeout(() => {
         void loadFullRig().catch((e: unknown) => console.warn("rig: the content art did not load yet", e));
         // the split screens too, so opening one later shows no loading frame
-        for (const c of [BoutChunk, ReplayChunk, LevelUpChunk, KitChunk, BoutsChunk, InventoryChunk, SettingsChunk, LookChunk]) c.preload();
+        for (const c of [BoutChunk, ReplayChunk, LevelUpChunk, KitChunk, BoutsChunk, InventoryChunk, SettingsChunk, LookChunk, LadderChunk, PrizeChunk]) c.preload();
       }, 0);
     });
     return () => { cancelAnimationFrame(frame); window.clearTimeout(timer); };
@@ -321,6 +324,8 @@ function Screen({ route }: { route: Route }) {
     case "bouts": return <LazyRoute key="bouts" chunk={BoutsChunk} label={UI.history.title} />;
     case "inventory": return <LazyRoute key="inventory" chunk={InventoryChunk} label={UI.inventory.title} />;
     case "look": return <LazyRoute key="look" chunk={LookChunk} label={LOOK_WORDS.title} />;
+    case "ladder": return <LazyRoute key="ladder" chunk={LadderChunk} label={UI.appName} />;
+    case "prize": return <LazyRoute key="prize" chunk={PrizeChunk} label={UI.appName} />;
     case "replay": return <LazyRoute key={`replay:${route.id}`} chunk={ReplayChunk} label={UI.appName} props={{ id: route.id }} />;
     case "sandbox": return <LazyRoute key="sandbox" chunk={SandboxChunk} label={UI.sandbox.title} />;
     case "settings": return <SettingsRoute />;

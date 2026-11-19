@@ -4,11 +4,11 @@
  * (0 to 1, from the fight clock): no CSS animation, no timer. In replay mode there is no XP:
  * the card names the winner and offers Replay and Locker.
  */
-import type { ResultCardData } from "../contracts";
+import type { ResultAction, ResultCardData } from "../contracts";
 import { Button } from "../ui/Button";
 import css from "./fight.module.css";
 
-export type ResultAction = "levelup" | "next" | "replay" | "locker";
+export type { ResultAction };
 
 const ease = (u: number): number => 1 - (1 - u) * (1 - u) * (1 - u);
 
@@ -44,7 +44,9 @@ export function ResultCard({ resultIn, data, winnerName, onAction, doneLabel = "
   const pct = data.xpToNext > 0 ? Math.min(1, xpNow / data.xpToNext) : 1;
   const buttons: { a: ResultAction; label: string }[] = [];
   if (data.levelUp) buttons.push({ a: "levelup", label: "Level up!" });
-  if (data.energy > 0) buttons.push({ a: "next", label: "Next bout" });
+  else if (data.rankUp !== undefined) buttons.push({ a: "prize", label: "Claim prize" });
+  if (data.boss === true) buttons.push({ a: "ladder", label: "Ladder" });
+  else if (data.energy > 0) buttons.push({ a: "next", label: "Next bout" });
   buttons.push({ a: "replay", label: "Replay" }, { a: "locker", label: "Locker" });
   return (
     <section className={css.result} style={style} aria-label="Result">
@@ -53,6 +55,9 @@ export function ResultCard({ resultIn, data, winnerName, onAction, doneLabel = "
         <p className={css.resultLine}>{data.line}</p>
         <LogLink onLog={onLog} />
       </div>
+      {data.rankUp !== undefined ? (
+        <p className={css.rankUp} data-testid="rank-up"><b>RANK UP!</b> <span>{data.rankUp.rank}: {data.rankUp.title}</span></p>
+      ) : null}
       <div className={css.xpRow}>
         <span>XP</span>
         <span className={css.xpTrack} role="progressbar" aria-label="XP" aria-valuemin={0} aria-valuemax={data.xpToNext} aria-valuenow={shown}>

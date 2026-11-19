@@ -61,11 +61,11 @@ describe.each(["aac2d64", "1681640"])("a schema-2 save written by build %s", (c)
     expect(changed).toBe(true);
   });
 
-  it("loads (now as schema 7), every scrapper keeping its level, picks, record, kit, stats and pets, with a full bar", () => {
+  it("loads (now as schema 8), every scrapper keeping its level, picks, record, kit, stats and pets, with a full bar", () => {
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(7);
+    expect(r.doc.schemaVersion).toBe(8);
     expect(r.doc.fighters.map((f) => f.id)).toEqual(fx.doc.fighters.map((f) => f.id));
     expect(r.doc.history).toHaveLength(2);
     for (const [k, f] of r.doc.fighters.entries()) {
@@ -129,11 +129,11 @@ describe("a schema-3 save written by build 74fc265 (sim version 7)", () => {
     expect(JSON.stringify(now.perks) !== JSON.stringify(was.perks) || JSON.stringify(four(now.stats)) !== JSON.stringify(four(was.stats))).toBe(true);
   });
 
-  it("loads (now as schema 7): every scrapper, active and retired, keeps its exact kit with Toughness 3 and Precision 3 added", () => {
+  it("loads (now as schema 8): every scrapper, active and retired, keeps its exact kit with Toughness 3 and Precision 3 added", () => {
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(7);
+    expect(r.doc.schemaVersion).toBe(8);
     expect(r.doc.retired.map((f) => f.name)).toEqual(["Kip Ladle"]);
     for (const f of [...r.doc.fighters, ...r.doc.retired]) {
       const old = [...fx.doc.fighters, ...fx.doc.retired].find((o) => o.id === f.id)!;
@@ -243,7 +243,7 @@ describe("a schema-4 save written by build b13cbf4 (sim version 8, content v3 ba
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(7);
+    expect(r.doc.schemaVersion).toBe(8);
     for (const rec of [...r.doc.fighters, ...r.doc.retired]) {
       const was = fx.expect[rec.name]!;
       const now = snapshotOf(rec);
@@ -321,7 +321,7 @@ describe("a schema-5 save written by build 77dc0d0 (sim version 9, content v3 ba
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(7);
+    expect(r.doc.schemaVersion).toBe(8);
     const byId = new Map(all.map((x) => [x.id, x]));
     for (const rec of [...r.doc.fighters, ...r.doc.retired]) {
       const was = fx.expect[rec.name]!;
@@ -379,11 +379,11 @@ describe("a schema-6 save written by build 436c0a8 (sim version 10, content v3 b
     for (const r of all) expect(fx.expect[r.name]!.look, r.name).toEqual(fx.looks[r.name]);
   });
 
-  it("loads as schema 7, every scrapper storing exactly the look it had, its kit, stats, loadout and talents unchanged", () => {
+  it("loads as schema 8, every scrapper storing exactly the look it had, its kit, stats, loadout and talents unchanged", () => {
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(7);
+    expect(r.doc.schemaVersion).toBe(8);
     const byId = new Map(all.map((x) => [x.id, x]));
     for (const rec of [...r.doc.fighters, ...r.doc.retired]) {
       const was = fx.expect[rec.name]!;

@@ -1,0 +1,269 @@
+/*
+ * The rank ladder (plan 13.10 item 1): two inked rails with the rungs between them, Rank 1 on top.
+ * Colours only from tokens.css, each text token on its own background.
+ */
+.energy {
+  min-width: 120px;
+  max-width: 170px;
+}
+.me {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 6px 10px;
+}
+.meText {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.meName {
+  font: 900 22px / 1 var(--font-display);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meRank {
+  font: 900 15px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--t-on-dark-hazard);
+}
+.meLevel {
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  color: var(--t-on-dark);
+}
+
+/* the rails: two thick ink lines down the sides, behind the rungs */
+.ladder {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 6px 12px;
+  list-style: none;
+}
+.ladder::before,
+.ladder::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  border: 3px solid var(--c-ink);
+  background: var(--c-dark);
+}
+.ladder::before {
+  left: 0;
+}
+.ladder::after {
+  right: 0;
+}
+.rungItem {
+  position: relative;
+  display: grid;
+}
+.rung {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 52px 60px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 76px;
+  padding: 6px 8px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  box-shadow: var(--shadow-hard);
+  background: var(--tex-halftone), var(--c-panel);
+  color: var(--t-on-panel);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+button.rung:active {
+  transform: translate(2px, 3px);
+  box-shadow: none;
+}
+.rung.ready {
+  background: var(--tex-halftone), var(--c-hazard);
+  color: var(--t-on-hazard);
+}
+.rung.locked {
+  background: var(--tex-halftone-light), var(--c-locked);
+  color: var(--t-on-locked);
+}
+.rung.locked .face {
+  filter: grayscale(1) brightness(0.55);
+}
+.rung.beaten {
+  background: var(--tex-halftone), var(--c-raised);
+  color: var(--t-on-raised);
+}
+.rung.zero {
+  grid-template-columns: 52px minmax(0, 1fr);
+  min-height: 56px;
+  background: var(--tex-halftone-light), var(--c-dark);
+  color: var(--t-on-dark);
+  cursor: default;
+}
+.rankBadge {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  width: 48px;
+  height: 52px;
+  border: 2px solid var(--c-ink);
+  clip-path: polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%);
+  background: var(--c-dark);
+  color: var(--t-on-dark-hazard);
+}
+.rankBadge b {
+  font: 900 26px / 0.9 var(--font-display);
+}
+.rankBadge span {
+  font: 900 10px / 1 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t-on-dark);
+}
+.face {
+  display: grid;
+  place-items: center;
+}
+.rungText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.bossName {
+  font: 900 21px / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rungTitle {
+  font: 700 14px / 1.1 var(--font-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gate {
+  font: 900 13px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.state {
+  padding: 4px 7px;
+  border: 2px solid var(--c-ink);
+  font: 900 13px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+.state-beaten {
+  background: var(--c-win);
+  color: var(--t-on-win);
+}
+.state-ready {
+  background: var(--c-action);
+  color: var(--t-on-action);
+}
+.state-locked {
+  background: var(--c-dark);
+  color: var(--t-on-dark-dim);
+}
+/* "You: Rank N" on a tape between the rails, under the player's own rung */
+.here {
+  justify-self: center;
+  z-index: 2;
+  margin-top: 4px;
+  padding: 3px 10px;
+  border: 2px solid var(--c-ink);
+  background: var(--c-sticker);
+  color: var(--t-on-sticker);
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transform: rotate(1.5deg);
+}
+@media (max-width: 360px) {
+  .rung {
+    grid-template-columns: 44px 52px minmax(0, 1fr);
+  }
+  .rankBadge {
+    width: 42px;
+  }
+  .state {
+    grid-column: 3;
+    justify-self: start;
+  }
+  .bossName {
+    font-size: 19px;
+  }
+}
+
+/* the boss card (the taunt), in the sheet */
+.card {
+  display: grid;
+  gap: 12px;
+}
+.cardStage {
+  position: relative;
+  overflow: hidden;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+}
+.cardTags {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+.cardRank {
+  padding: 3px 8px;
+  border: 2px solid var(--c-ink);
+  background: var(--c-dark);
+  color: var(--t-on-dark-hazard);
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.taunt {
+  position: relative;
+  margin: 0;
+  padding: 10px 14px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: 14px;
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+  font: 900 20px / 1.15 var(--font-display);
+  letter-spacing: 0.01em;
+}
+.taunt::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  right: 46px;
+  width: 18px;
+  height: 12px;
+  background: var(--c-ink);
+  clip-path: polygon(0 100%, 100% 100%, 70% 0);
+}
+.compare {
+  display: grid;
+  gap: 4px;
+}
+.note {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--t-on-panel-dim);
+}

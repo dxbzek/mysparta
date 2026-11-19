@@ -6,7 +6,7 @@
  */
 import { useMemo, useState } from "react";
 import type { HeldId, PerkId } from "@rankzero/core";
-import { ENERGY_MAX, perkKind } from "@rankzero/core";
+import { ENERGY_MAX, LADDER_RUNGS, perkKind } from "@rankzero/core";
 import { activeRecord } from "../../app/guards";
 import { useDoc, useGame } from "../../app/context";
 import { shownRecord, unwatchedOf } from "../../state/actions";
@@ -15,6 +15,7 @@ import { resultLine } from "../../text/results";
 import { LOCKER_WORDS, UI } from "../../text/ui";
 import { TALENT_WORDS } from "../../text/talents";
 import { LOOK_WORDS } from "../../text/looks";
+import { LADDER_WORDS, RUNG_TITLE, rankLabel, rankTitle } from "../../text/ladder";
 import { Button } from "../../ui/Button";
 import { LockerView, clockOf } from "../../ui/LockerView";
 import { useTick } from "../parts/EnergyMeter";
@@ -54,10 +55,12 @@ export function LockerScreen() {
       return { id: b.id, won, opponent: b.snapshotB.name, line: resultLine(b.lineId, won, b.snapshotA.name, b.snapshotB.name), xp: b.xp };
     });
     const stats = sheet.effective;
-    return { sheet, held, companions, bouts, stats, statScale: Math.max(10, ...Object.values(stats)) };
+    const ladder = core.ladderOf(shown);
+    return { sheet, held, companions, bouts, stats, statScale: Math.max(10, ...Object.values(stats)), ladder };
   }, [doc, rec, core]);
   if (!rec || !view || !energy) return null;
   const primary: LockerPrimary = view.sheet.levelUpWaiting ? { kind: "levelup" }
+    : view.ladder.prizeWaiting && !unwatchedOf(doc) ? { kind: "prize" }
     : energy.value > 0 ? { kind: "fight", energy: energy.value } : { kind: "done", backIn: clockOf(energy.nextMs ?? 0) };
   const pending = unwatchedOf(doc);
   const skip = (): void => {
@@ -98,7 +101,11 @@ export function LockerScreen() {
         onSelect={(id) => void actions.select(id).catch((e: Error) => toast(e.message))}
         onAdd={() => go({ name: "create" })}
         onSettings={() => go({ name: "settings" })}
-        onPrimary={() => go(primary.kind === "levelup" ? { name: "levelup" } : { name: "card" })}
+        onPrimary={() => go(primary.kind === "levelup" ? { name: "levelup" } : primary.kind === "prize" ? { name: "prize" } : { name: "card" })}
+        rank={{ label: rankLabel(view.ladder.rank), title: rankTitle(view.ladder.rank) }}
+        ladder={{ label: LADDER_WORDS.open, onOpen: () => go({ name: "ladder" }),
+          sub: LADDER_WORDS.openSub(rankLabel(view.ladder.rank),
+            view.ladder.rank >= LADDER_RUNGS ? null : `${core.bossSnapshot(view.ladder.rank + 1).name}, ${RUNG_TITLE[view.ladder.rank + 1]} (${LADDER_WORDS.gate(core.bossGate(view.ladder.rank + 1))})`) }}
         onKitItem={(id) => setPerk(id)}
         onSeeAllKit={() => go({ name: "kit", tab: "kit" })}
         onReplay={(id) => go({ name: "replay", id })}

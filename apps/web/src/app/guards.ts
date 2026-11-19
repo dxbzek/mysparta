@@ -5,7 +5,8 @@
  *   - while a level-up waits, Tonight's Card and every bout URL go back to the Locker;
  *   - with no energy, or a bout not yet watched, the Card goes back to the Locker;
  *   - an empty save only shows Create (and settings);
- *   - the level-up screen only opens while one waits.
+ *   - the level-up screen only opens while one waits;
+ *   - the boss prize screen only opens while a prize waits and no level-up waits first.
  * "Waiting" is read from the record AS SHOWN: while the bout that earned a level-up is unwatched,
  * the screens still show the old XP, so that bout can be watched first.
  */
@@ -51,6 +52,8 @@ export function guard(route: Route, doc: SaveDoc, nowMs: number, core: CoreApi =
     }
     case "levelup":
       return waiting ? route : locker;
+    case "prize":
+      return !waiting && core.ladderOf(shown).prizeWaiting && !unwatchedOf(doc) ? route : locker;
     case "replay":
       return doc.history.some((h) => h.id === route.id) ? route : { name: "bouts" };
     default:

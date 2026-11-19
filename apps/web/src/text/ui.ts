@@ -362,4 +362,5 @@ export const LOCKER_WORDS: LockerText = {
   xpGained: (n) => `+${n} XP`,
   tabs: { home: NAV.home, kit: NAV.kit, inventory: NAV.inventory, history: NAV.history },
   hero: (name) => `${name} waiting in the Yard`,
+  prize: "Claim prize",
 };

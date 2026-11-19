@@ -5,7 +5,7 @@
  * version 4 (CONTRACT_REV 7, content v3) has energy in place of the daily bout cap and six stats
  * (see `toEnergyAndSixStats`); version 5 (CONTRACT_REV 8) the loadout (`toLoadout`); version 6
  * (CONTRACT_REV 9) the talent tree (`toTalents`); version 7 (CONTRACT_REV 10) the stored look
- * (`pinLooks`).
+ * (`pinLooks`); version 8 (CONTRACT_REV 11) the rank ladder (`toLadder`).
  *
  * A document from a NEWER build (a higher version than this code knows) is not understood: it is
  * reported as corrupt, so its bytes are kept, never replaced as if the save were empty.
@@ -36,7 +36,22 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   5: (doc) => toTalents(doc),
   /** 6 to 7: every scrapper stores the look it was shown (the version-1 seeded roll). */
   6: (doc) => pinLooks(doc),
+  /** 7 to 8: every scrapper starts the ladder at Rank Zero, with no boss prize. */
+  7: (doc) => toLadder(doc),
 };
+
+/**
+ * Schema 7 to 8 (the rank ladder, plan 13.10 item 1). Each scrapper, active or retired, gets
+ * `ladder: { rank: 0, prizes: [] }`: Rank Zero, no boss beaten. Its kit, stats, loadout, talents and
+ * look stay as they were (no prize, so the Route walks as before). Stored bouts are kept; none is a
+ * boss bout.
+ */
+export function toLadder(doc: Obj): Obj {
+  const lift = (r: unknown): unknown => (isObj(r) && r.ladder === undefined ? { ...r, ladder: { rank: 0, prizes: [] } } : r);
+  return { ...doc,
+    fighters: Array.isArray(doc.fighters) ? doc.fighters.map(lift) : doc.fighters,
+    retired: Array.isArray(doc.retired) ? doc.retired.map(lift) : doc.retired };
+}
 
 /**
  * Schema 6 to 7 (content v3, batch 4, plan 13.9 and 13.12). LOOK_SPACE grew, so today's seeded roll
