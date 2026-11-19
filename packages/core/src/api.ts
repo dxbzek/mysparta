@@ -13,7 +13,7 @@ import { COMPANIONS } from "./content/companions";
 import { SKILLS } from "./content/skills";
 import { WEAPONS } from "./content/weapons";
 import { SHIELDS } from "./content/shields";
-import { checkName, createRecord, fighterSeed, randomName, rollLook } from "./progress/create";
+import { checkName, cleanLook, createRecord, fighterSeed, lookOf, randomName, rollLook, withLook } from "./progress/create";
 import { afterBout, energyNextMs, energyNow } from "./progress/energy";
 import { routeNode } from "./progress/route";
 import { rivalSnapshot, tonightsCard } from "./progress/rivals";
@@ -49,6 +49,8 @@ export const api: CoreApi = {
   randomName,
   fighterSeed,
   rollLook,
+  lookOf,
+  withLook,
   createRecord,
   sheetOf,
   snapshotOf,
@@ -79,7 +81,7 @@ export const api: CoreApi = {
 };
 
 export {
-  canonical, checkName, randomName, fighterSeed, rollLook, createRecord, sheetOf, snapshotOf, snapshotSheet,
+  canonical, checkName, randomName, fighterSeed, rollLook, lookOf, withLook, cleanLook, createRecord, sheetOf, snapshotOf, snapshotSheet,
   routeNode, xpToNext, xpForBout, energyNow, energyNextMs, afterBout, rivalSnapshot, tonightsCard, foundPerks,
   simulateFight, loadoutOf, withLoadout, defaultLoadout,
   talentPointsAt, talentBlock, spendTalent, canRespec, respecTalents, rivalTalents,

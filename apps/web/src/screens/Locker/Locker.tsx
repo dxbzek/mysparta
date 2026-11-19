@@ -62,7 +62,7 @@ export function LockerScreen() {
   const skip = (): void => {
     if (pending) void actions.markWatched(pending.id).catch((e: Error) => toast(e.message));
   };
-  const roster = doc.fighters.map((f) => ({ id: f.id, name: f.name, look: core.rollLook(f.seed, f.lookSalt, f.colourSalt) }));
+  const roster = doc.fighters.map((f) => ({ id: f.id, name: f.name, look: core.lookOf(f) }));
 
   return (
     <>

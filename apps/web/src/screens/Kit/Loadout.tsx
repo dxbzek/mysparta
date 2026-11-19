@@ -28,7 +28,7 @@ function useLoadout(rec: ScrapperRecord): { owned: PerkId[]; l: Loadout; maxHp: 
 
 function Preview({ rec, l }: { rec: ScrapperRecord; l: Loadout }) {
   const { core } = useGame();
-  const look = core.rollLook(rec.seed, rec.lookSalt, rec.colourSalt);
+  const look = core.lookOf(rec);
   return (
     <ActorStage className={css.preview} height={210} label={UI.loadout.preview(rec.name)} look={look} held={l.weapons[0] ?? null}
       shield={l.shield} gear={l.gear} companions={l.pets} window={{ w: 220, h: 150 }} floorAt={0.86} />

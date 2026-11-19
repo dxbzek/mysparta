@@ -4,7 +4,7 @@
  * Every function is pure: the same inputs give the same output on every engine.
  */
 import type { CompanionDef, GearDef, ShieldDef, SkillDef, TalentDef, WeaponDef } from "./content";
-import type { DayKey, TimeMs, FighterSnapshot, KitBase, Loadout, Look, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
+import type { DayKey, TimeMs, FighterSnapshot, KitBase, Loadout, Look, LookRoll, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
   SnapshotSheet, TalentRanks } from "./fighter";
 import type { CompanionId, GearId, HeldId, PerkId, ShieldId, SkillId, TalentId } from "./ids";
 import type { BoutLog } from "./log";
@@ -36,11 +36,19 @@ export interface CoreApi {
   randomName(n: number): string;
   /** hash(realmSalt + ":" + the lowercased, cleaned name). */
   fighterSeed(realmSalt: string, name: string): number;
-  /** Shapes come from (seed, lookSalt), colours from (seed, colourSalt). */
-  rollLook(seed: number, lookSalt: number, colourSalt: number): Look;
-  /** A new scrapper starts with a full energy bar, timed from `nowMs`. */
+  /** Shapes come from (seed, lookSalt), colours from (seed, colourSalt). `roll` (CONTRACT_REV 10):
+   *  1 draws inside LOOK_SPACE_V1 (the roll every record before the look editor was shown), 2 (the
+   *  default, LOOK_ROLL) inside today's LOOK_SPACE. */
+  rollLook(seed: number, lookSalt: number, colourSalt: number, roll?: LookRoll): Look;
+  /** The look a record shows (CONTRACT_REV 10): its stored `look`, each part brought inside
+   *  LOOK_SPACE, or, with none stored, the version-1 roll of its seed and salts. */
+  lookOf(rec: ScrapperRecord): Look;
+  /** The record with this look stored, each part brought inside LOOK_SPACE. Pure; stats unchanged. */
+  withLook(rec: ScrapperRecord, look: Look): ScrapperRecord;
+  /** A new scrapper starts with a full energy bar, timed from `nowMs`, and stores its look: `look`
+   *  when given (the look editor), else today's roll of its seed and salts. */
   createRecord(a: { id: string; name: string; realmSalt: string; lookSalt: number; colourSalt: number;
-                    today: DayKey; nowMs: TimeMs }): ScrapperRecord;
+                    today: DayKey; nowMs: TimeMs; look?: Look }): ScrapperRecord;
   sheetOf(rec: ScrapperRecord): ScrapperSheet;
   /** The bout's snapshot: its perks hold every skill it owns and only the weapons, shield, pets and
    *  gear of its loadout (`loadoutOf`), and its stats hold the worn gear's stat points. */

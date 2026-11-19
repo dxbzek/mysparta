@@ -9,7 +9,7 @@ import { gearSlot } from "../content/gear";
 import type { GearId, PerkId, ShieldId } from "../contracts/ids";
 import { PERK_IDS, isGearId, isShieldId, perkKind } from "../contracts/ids";
 import { combatValues } from "../sim/combatant";
-import { rollLook } from "./create";
+import { lookOf } from "./create";
 import { loadoutPerks, resolveLoadout, statsWithGear, wornGear } from "./loadout";
 import type { Kit } from "./route";
 import { walk } from "./route";
@@ -49,7 +49,7 @@ export function withLoadout(rec: ScrapperRecord, loadout: Loadout): ScrapperReco
  *  stats, and the talent ranks that hold (content v3 batch 3). */
 function snapshotFrom(rec: ScrapperRecord, kit: Kit, l: Loadout): FighterSnapshot {
   const { ranks } = talentsOf(rec);
-  return { id: rec.id, name: rec.name, look: rollLook(rec.seed, rec.lookSalt, rec.colourSalt), level: levelOf(rec),
+  return { id: rec.id, name: rec.name, look: lookOf(rec), level: levelOf(rec),
     stats: statsWithTalents(statsWithGear(kit.stats, wornGear(l)), ranks), perks: loadoutPerks(kit.perks, l), rulesVersion: 1,
     talents: ranks };
 }

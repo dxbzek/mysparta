@@ -113,7 +113,7 @@ function KitTabView({ rec, perks }: { rec: ScrapperRecord; perks: PerkId[] }) {
         <Panel title={UI.kit.retiredList}>
           <ul className={css.retired}>
             {doc.retired.slice(0, 20).map((r) => (
-              <li key={r.id}><Portrait look={core.rollLook(r.seed, r.lookSalt, r.colourSalt)} size={32} label="" /><span>{r.name}</span><span className={css.retiredLevel}>{UI.level(1 + r.picks.length)}</span></li>
+              <li key={r.id}><Portrait look={core.lookOf(r)} size={32} label="" /><span>{r.name}</span><span className={css.retiredLevel}>{UI.level(1 + r.picks.length)}</span></li>
             ))}
           </ul>
         </Panel>

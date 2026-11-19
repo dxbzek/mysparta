@@ -2,7 +2,7 @@
  * FROZEN CONTRACT (work package 0). The web app: saves, actions, and the seam between the fight
  * screen and the screens around it. Storage names use the prefix `rankzero.`.
  */
-import type { BoutLog, BoutResult, DayKey, FighterSnapshot, Loadout, Pick, ScrapperRecord, TalentBlock, TalentId } from "@rankzero/core";
+import type { BoutLog, BoutResult, DayKey, FighterSnapshot, Loadout, Look, Pick, ScrapperRecord, TalentBlock, TalentId } from "@rankzero/core";
 
 export type Result<T, E extends string> = { ok: true; value: T } | { ok: false; error: E };
 /** CONTRACT_REV 4: `speed` 3 is a VIP perk; `isVip` says whether this save has it (false until the
@@ -29,7 +29,10 @@ export interface BoutRecord { id: string; at: number; seed: number; rulesVersion
  *  "Old saves"). */
 /** Schema version 5 (CONTRACT_REV 8): the loadout and body equipment; migration 4 to 5 gives every
  *  scrapper the default loadout and `gearFrom` (docs/RULES.md, "Old saves"). */
-export interface SaveDoc { schemaVersion: 6; rev: number; updatedAt: number; settings: Settings;
+/** Schema version 6 (CONTRACT_REV 9): the talent tree. Schema version 7 (CONTRACT_REV 10, the look
+ *  editor): every scrapper stores its look (`ScrapperRecord.look`); migration 6 to 7 pins the seeded
+ *  look each one was shown (the version-1 roll), so nobody's look changes. */
+export interface SaveDoc { schemaVersion: 7; rev: number; updatedAt: number; settings: Settings;
 
   activeId: string | null;                                       // the scrapper shown in the Locker
   fighters: ScrapperRecord[]; retired: ScrapperRecord[]; history: BoutRecord[] }
@@ -41,8 +44,11 @@ export interface OpponentSource { hand(rec: ScrapperRecord, today: DayKey): Prom
 export interface Clock { now(): number; today(): DayKey }        // injected, so tests can move the time
 
 export interface GameActions {
-  create(name: string, lookSalt: number, colourSalt: number):
+  /** `look` (CONTRACT_REV 10): the look picked in the editor; without it, today's roll of the name. */
+  create(name: string, lookSalt: number, colourSalt: number, look?: Look):
     Promise<Result<ScrapperRecord, "bad-name" | "name-taken" /* by an ACTIVE scrapper only */ | "no-slot">>;
+  /** Stores the look picked in the editor (CONTRACT_REV 10). Cosmetic: stats stay as they are. */
+  setLook(id: string, look: Look): Promise<Result<void, "no-scrapper">>;
   select(id: string): Promise<void>;                             // sets SaveDoc.activeId
   startBout(id: string, opponent: FighterSnapshot):
     Promise<Result<BoutRecord, "level-up-waiting" | "no-energy" | "unwatched-bout">>;

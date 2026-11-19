@@ -14,8 +14,9 @@ import type { BoutRecord, SaveDoc, Settings } from "../contracts";
  *  CONTRACT_REV 7: energy in place of the daily bout cap, six stats (migration 3 to 4). 5 since
  *  CONTRACT_REV 8: the loadout and body equipment (`ScrapperRecord.loadout`, `gearFrom`; migration
  *  4 to 5). 6 since CONTRACT_REV 9: the talent tree (`ScrapperRecord.talents`, `FighterSnapshot.talents`;
- *  migration 5 to 6). */
-export const SCHEMA_VERSION = 6 as const;
+ *  migration 5 to 6). 7 since CONTRACT_REV 10: the look editor (`ScrapperRecord.look`; migration 6 to 7
+ *  pins each scrapper's seeded look). */
+export const SCHEMA_VERSION = 7 as const;
 /** Scrappers on one save. A fourth needs one retired first. */
 export const SLOT_LIMIT = 3;
 /** History: the last 50 bouts keep their logs, the last 200 are kept as summaries. */
@@ -173,6 +174,12 @@ function checkRecord(v: unknown, where: string, warn: (w: string) => void = () =
     const t = checkTalents(r.talents, warn);
     if (t !== null) rec.talents = t;
     else warn(`${where}: its talents could not be read: every point is unspent`);
+  }
+  // the look (schema 7): one that cannot be read falls back to the seeded look of its name
+  if (r.look !== undefined) {
+    const look = checkLook(r.look);
+    if (look !== null) rec.look = look;
+    else warn(`${where}: its look could not be read: the seeded look is shown`);
   }
   return rec;
 }
