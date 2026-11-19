@@ -106,13 +106,20 @@ export const SCRAPPER_RIG: RigDef = { id: "scrapper", height: 84, bones };
 export const ONE_WAY_JOINTS = ["armB.lo", "armF.lo", "legB.lo", "legF.lo"] as const;
 
 /**
- * Three builds from the same rig. `scale` sizes the whole body; `limb` and `torso` widen the
- * limbs and the trunk across their bones (lengths never change, so every clip fits every build).
+ * Five builds from the same rig (two more since content v3 batch 4, plan 13.9). `scale` sizes the
+ * whole body; `limb` and `torso` widen the limbs and the trunk across their bones (lengths never
+ * change, so every clip, every grip and every gear piece fits every build); `belly` pushes the front
+ * of the trunk out round the stomach (engine/build.ts). Heavy: a big man carrying weight, thick
+ * limbs, a deep chest and a belly over the belt. Wiry: sinew and bone, narrow limbs and trunk, so
+ * the hands, feet and head read big on him. Neither goes past the tall build's size, so every reach
+ * and aim range measured for the first three holds.
  */
 export const BUILDS = [
   { scale: 1, limb: 1, torso: 1 },          // lean
   { scale: 1.03, limb: 1.24, torso: 1.27 }, // stocky
   { scale: 1.08, limb: 0.94, torso: 0.96 }, // tall
+  { scale: 1.05, limb: 1.42, torso: 1.46, belly: 1.0, head: 1.1 }, // heavy
+  { scale: 1.02, limb: 0.78, torso: 0.8, head: 0.95 },              // wiry
 ] as const;
 
 /** A hand's grip turns the held item this far from the hand bone: with the arm hanging, an item

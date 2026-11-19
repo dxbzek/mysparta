@@ -267,7 +267,10 @@ export type FxDraw = (env: DrawEnv, progress: number, at: Place, seed: number, s
 export type StageDraw = (env: DrawEnv, layer: "back" | "floor", crowdBounce: number) => void;
 export interface Palette { top: string; bottom: string; shoes: string; accent: string }
 export interface AppearanceSet {            // list lengths may be under LOOK_SPACE in the gate pack; an index wraps
-  builds: readonly { scale: number; limb: number; torso: number }[];
+  /** `belly` (content v3 batch 4, optional): the front of the trunk pushed forward round the stomach
+   *  by this share of its depth (engine/build.ts), for a heavy build; `head` (optional) widens the
+   *  head and neck across the head bone (a heavy man's fuller face, a wiry one's gaunt one). */
+  builds: readonly { scale: number; limb: number; torso: number; belly?: number; head?: number }[];
   heads: readonly Shape[][]; hair: readonly Shape[][]; faces: readonly Record<FaceId, Shape[]>[];
   tops: readonly Shape[][]; bottoms: readonly Shape[][]; shoes: readonly Shape[][];
   accessories: readonly Shape[][]; hands: readonly Shape[];
