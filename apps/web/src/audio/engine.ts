@@ -340,7 +340,10 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
     },
     get music() { return director; },
     setVolumes(v) {
-      volumes = { music: Math.max(0, Math.min(1, v.music)), sfx: Math.max(0, Math.min(1, v.sfx)) };
+      const next = { music: Math.max(0, Math.min(1, v.music)), sfx: Math.max(0, Math.min(1, v.sfx)) };
+      // the fight screen sets them on every frame: only a change touches the buses
+      if (next.music === volumes.music && next.sfx === volumes.sfx) return;
+      volumes = next;
       const t = ctx?.currentTime ?? 0;
       if (sfxBus) ramp(sfxBus.gain, volumeGain(volumes.sfx), t, 0.05);
       if (musicBus) ramp(musicBus.gain, volumeGain(volumes.music), t, 0.05);
