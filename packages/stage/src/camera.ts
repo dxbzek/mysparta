@@ -26,6 +26,7 @@ import type { Tracks } from "./model";
 import type { CompanionId } from "@rankzero/core";
 import { FLOOR_Y, PET_FRAME_REACH, SCRAPPER_REACH, STAGE_H, STAGE_W } from "./layout";
 import { basePos, facingAt } from "./track";
+import { FRAMING } from "./tuning";
 
 /** Every number of the camera, in stage units and ms at 1x. */
 export const CAMERA = {
@@ -64,6 +65,25 @@ export const CAMERA = {
   bannerRoomPx: 98,
   /** A standing scrapper's head top over the floor line, with room for the win pose (units). */
   headTop: 110,
+  /** The fight screen is the stage only (owner, 19 Nov 2026): the canvas fills the screen in
+   *  portrait and in landscape, and the host's HUD (names, levels, HP bars: 52 px, labels.TOP_BAND)
+   *  lies over its top. The bout frame keeps the standing heads this far down (the HUD and a skill
+   *  tag's height over a head), and its floor room this far up from the bottom edge. */
+  hudRoomPx: 84,
+  lowRoomPx: 8,
+  /** A tall canvas (portrait) opens no wider than this for the pets at the far ends, so the
+   *  fighters stay large; the scrappers' own room (`must`) is always in. The choreography keeps
+   *  every place it uses inside this width (FRAMING.viewMin). */
+  tallViewW: FRAMING.viewMin,
+  /** On a tall canvas the height left over goes this share above the fighters and the rest below,
+   *  where the host's control bar and result card lie; the stage's 240 units are always whole
+   *  then, and the canvas beyond them is the dark the stage is drawn in (draw.ts). */
+  tallSpareAbove: 0.4,
+  /** The outro keeps the standing feet and the body on the floor this many CSS px clear of the
+   *  bottom, for the host's result card, on a tall and on a wide canvas (the web fight screen's
+   *  card: at most 170 px tall upright, one 76 px row turned); the floor room under the feet may
+   *  lie under the card. */
+  resultRoomPx: { tall: 176, wide: 80 },
 } as const;
 
 /** The part of the stage in view: its left and top edge in stage units, and stage units to CSS px. */
@@ -193,22 +213,38 @@ export function reframeAt(tr: Tracks, t: number): number {
   return u * u * (3 - 2 * u);
 }
 
-/** The view that fits a span on a canvas of `w x h`. */
+/** The view that fits a span on a canvas of `w x h` (any shape: a phone held upright or turned,
+ *  a desktop screen).
+ *  - Across: the whole span where the canvas can open that wide; a tall canvas opens at most
+ *    `tallViewW` (the scrappers' room always). A wide canvas whose height cannot hold the column
+ *    at that width shows more than the stage, with the night beside it.
+ *  - Up and down: the column from the standing heads (`headTop`) to the floor room (`bottom`) sits
+ *    between the HUD's room at the top (the outro: the banner's) and the floor's room at the bottom
+ *    (the outro: the feet, over the result card). A canvas taller than the stage shows all 240 units and the dark
+ *    beyond them; a shorter one stays inside the stage. */
 function fit(s: Span, w: number, h: number): CameraView {
-  const kFloor = Math.max(w / STAGE_W, h / STAGE_H);
-  // the outro leaves the banner its room above the heads (never wider than the whole stage)
-  const kHead = s.banner === true ? (h - CAMERA.bannerRoomPx) / Math.max(1, s.bottom - (FLOOR_Y - CAMERA.headTop)) : Infinity;
-  const k = Math.max(kFloor, Math.min(w / (s.x1 - s.x0), h / CAMERA.minVisibleH, kHead));
+  const tall = h > w;
+  const m = s.must ?? s;
+  const colTop = FLOOR_Y - CAMERA.headTop;
+  const outro = s.banner === true;
+  // (in the outro the card may cover the floor under the feet: the column ends at the floor line)
+  const colH = Math.max(1, (outro ? FLOOR_Y : s.bottom) - colTop);
+  const top = outro ? CAMERA.bannerRoomPx : CAMERA.hudRoomPx;
+  const low = outro ? (tall ? CAMERA.resultRoomPx.tall : CAMERA.resultRoomPx.wide) : CAMERA.lowRoomPx;
+  const spanW = Math.max(1, s.x1 - s.x0);
+  const wantW = tall ? Math.max(m.x1 - m.x0, Math.min(spanW, CAMERA.tallViewW)) : spanW;
+  const k = Math.min(w / wantW, h / CAMERA.minVisibleH, Math.max(1, h - top - low) / colH);
   const vw = w / k;
   let x0 = (s.x0 + s.x1) / 2 - vw / 2;
-  const m = s.must ?? s;
   // a tall canvas cannot always open wide enough: the scrappers (and a fallen body) stay in;
   // when even they do not fit, the fallen body's far end does
   if (vw < s.x1 - s.x0) {
     x0 = vw >= m.x1 - m.x0 ? Math.min(m.x0, Math.max(m.x1 - vw, x0))
       : s.keepAt === undefined ? (m.x0 + m.x1 - vw) / 2 : s.keep === "x1" ? s.keepAt - vw : s.keepAt;
   }
-  return clampView({ x0, y0: s.bottom - h / k, k }, w, h);
+  const spare = Math.max(0, h - top - low - colH * k);
+  const above = top + spare * (tall ? CAMERA.tallSpareAbove : 0.5);
+  return clampView({ x0, y0: colTop - above / k, k }, w, h);
 }
 
 /** The camera at `t` for a canvas of `view.w x view.h` CSS px. */
@@ -228,10 +264,13 @@ export function cameraAt(tr: Tracks, t: number, view: { w: number; h: number }, 
   return clampView({ x0: cx - w / k / 2, y0: by - h / k, k }, w, h);
 }
 
+/** Inside the stage on each axis the view is shorter than; the whole stage on an axis it is longer
+ *  than (the dark beyond it shows there). */
 function clampView(c: CameraView, w: number, h: number): CameraView {
   const vw = w / c.k;
   const vh = h / c.k;
-  const x0 = c.x0 < 0 ? 0 : c.x0 + vw > STAGE_W ? STAGE_W - vw : c.x0;
-  const y0 = c.y0 < 0 ? 0 : c.y0 + vh > STAGE_H ? STAGE_H - vh : c.y0;
+  const within = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
+  const x0 = vw <= STAGE_W ? within(c.x0, 0, STAGE_W - vw) : within(c.x0, STAGE_W - vw, 0);
+  const y0 = vh <= STAGE_H ? within(c.y0, 0, STAGE_H - vh) : within(c.y0, STAGE_H - vh, 0);
   return { x0, y0, k: c.k };
 }

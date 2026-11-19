@@ -2,8 +2,9 @@
  * Fight controls (brief 3.12): pause / play (Replay at the end), speed 1x / 2x / 3x, skip, sound.
  * 3x is a VIP perk (owner, 15 Nov 2026): without VIP its button shows a small lock and a tap
  * calls `onLocked` (the fight screen shows a toast) instead of changing speed.
- * Fight screen v2: they sit small over the top corners of the stage, out of the fight's way, as
- * ink discs with light glyphs. Every one is still a real 44 px button, labelled in words.
+ * Since the stage-only fight screen (owner, 19 Nov 2026) they sit in the bottom corners of the
+ * full-screen stage, as ink discs with light glyphs, with the LOG button last. Every one is a real
+ * 44 px button, labelled in words.
  */
 import type { ReactNode } from "react";
 import css from "./fight.module.css";
@@ -22,6 +23,8 @@ export interface ControlsProps {
   onLocked(): void;
   onSkip(): void;
   onSound(on: boolean): void;
+  /** The LOG button: opens the fight drawer (the log and the fighter cards). Absent: no button. */
+  onLog?(): void;
 }
 
 const Play = () => (<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /></svg>);
@@ -65,6 +68,7 @@ export function Controls(p: ControlsProps) {
       <div className={`${css.controls} ${css.controlsRight}`} role="toolbar" aria-label="More bout controls">
         <Ctl label="Skip to the end" onClick={p.onSkip} disabled={!p.canSkip}><Skip /></Ctl>
         <Ctl label={p.sound ? "Sound on" : "Sound off"} pressed={p.sound} onClick={() => p.onSound(!p.sound)}>{p.sound ? <SoundOn /> : <SoundOff />}</Ctl>
+        {p.onLog ? <Ctl label="Open the bout log and the fighter cards" wide onClick={p.onLog}><span className={css.ctlWord}>LOG</span></Ctl> : null}
       </div>
     </>
   );

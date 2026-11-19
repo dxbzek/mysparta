@@ -12,7 +12,7 @@ import type { CameraView } from "./camera";
 import { MARGIN, STICKER_H, TOP_BAND, fitView, layoutLabels, layoutNumbers, screenOf } from "./labels";
 export { MARGIN, STICKER_H, TOP_BAND, fitView };
 import type { NumSpot, Spot } from "./labels";
-import { INK } from "./palette";
+import { INK, VOID } from "./palette";
 import { drawSig } from "./sigs";
 
 /** Screen px of shake per unit of the tuning's shake size, under the camera: the tuning's shake
@@ -21,6 +21,89 @@ const SHAKE_PX = 1;
 /** Contact bursts drawn a little bigger under the camera: a short local burst at the contact. */
 const BIG_FX = { burst: 1.1, spark: 1.1 } as const;
 
+
+/** The stage seen on a canvas of another shape (owner, 19 Nov 2026: the fight screen is the stage
+ *  only, in portrait and in landscape). A tall canvas shows more than the stage's 240 units: below
+ *  the stage the floor goes on toward the viewer (its last `mirror.floor` units drawn again,
+ *  mirrored and stretched, so the ground meets itself at the edge), above it the wall goes up into
+ *  the night (its top `mirror.wall` units, the same way), and both sink into the night in flat
+ *  steps (the rig's style: flat shapes with alpha, no gradient). A canvas wider than the stage (a
+ *  very wide screen) has plain night at the sides, the stage's edge fading into it. */
+export const EDGE = { mirror: { floor: 44, wall: 30 }, sink: [0.3, 0.46, 0.6, 0.72, 0.82, 0.9, 0.95], fade: 22,
+  steps: [0.82, 0.6, 0.4, 0.22, 0.1] } as const;
+
+/** The part of the stage a camera shows on a `view` canvas, in stage units. */
+export function viewRect(cam: CameraView, view: { w: number; h: number }): { x0: number; y0: number; x1: number; y1: number } {
+  return { x0: cam.x0, y0: cam.y0, x1: cam.x0 + view.w / cam.k, y1: cam.y0 + view.h / cam.k };
+}
+
+type Rect = { x0: number; y0: number; x1: number; y1: number };
+
+/** The ground and the wall past the stage's top and bottom edges (see EDGE). */
+function drawBeyond(env: DrawEnv, rig: Rig, opts: PlayerOpts, r: Rect, crowd: number): void {
+  const c = env.ctx;
+  c.fillStyle = VOID;
+  c.fillRect(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0);
+  const x0 = Math.max(0, r.x0);
+  const x1 = Math.min(STAGE_W, r.x1);
+  const sink = (from: number, to: number): void => {
+    // bands from the edge (`from`) outward (`to`): each a little darker
+    const n = EDGE.sink.length;
+    const d = (to - from) / n;
+    c.fillStyle = VOID;
+    EDGE.sink.forEach((a, i) => {
+      c.globalAlpha = a;
+      const y = from + i * d;
+      c.fillRect(x0, Math.min(y, y + d), x1 - x0, Math.abs(d));
+    });
+    c.globalAlpha = 1;
+  };
+  if (r.y1 > STAGE_H) {
+    const depth = r.y1 - STAGE_H;
+    const k = depth / EDGE.mirror.floor;
+    c.save();
+    c.beginPath();
+    c.rect(x0, STAGE_H, x1 - x0, depth);
+    c.clip();
+    // y' = STAGE_H + (STAGE_H - y) k: the floor's last units, mirrored down and stretched
+    c.transform(1, 0, 0, -k, 0, STAGE_H * (1 + k));
+    rig.drawStage(env, opts.stage, "floor", crowd);
+    c.restore();
+    c.save();
+    sink(STAGE_H, r.y1);
+    c.restore();
+  }
+  if (r.y0 < 0) {
+    const depth = -r.y0;
+    const k = depth / EDGE.mirror.wall;
+    c.save();
+    c.beginPath();
+    c.rect(x0, r.y0, x1 - x0, depth);
+    c.clip();
+    // y' = -y k: the wall's top units, mirrored up and stretched
+    c.transform(1, 0, 0, -k, 0, 0);
+    rig.drawStage(env, opts.stage, "back", crowd);
+    c.restore();
+    c.save();
+    sink(0, r.y0);
+    c.restore();
+  }
+}
+
+/** A wide canvas: the stage's left and right edges fade into the night beside them. */
+function fadeSides(env: DrawEnv, r: Rect): void {
+  if (r.x0 >= 0 && r.x1 <= STAGE_W) return;
+  const c = env.ctx;
+  const d = EDGE.fade / EDGE.steps.length;
+  c.save();
+  c.fillStyle = VOID;
+  EDGE.steps.forEach((a, i) => {
+    c.globalAlpha = a;
+    if (r.x0 < 0) c.fillRect(i * d, 0, d, STAGE_H);
+    if (r.x1 > STAGE_W) c.fillRect(STAGE_W - (i + 1) * d, 0, d, STAGE_H);
+  });
+  c.restore();
+}
 
 function roundRect(env: DrawEnv, x: number, y: number, w: number, h: number, r: number): void {
   const c = env.ctx;
@@ -182,6 +265,10 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
   c.setTransform(1, 0, 0, 1, 0, 0);
   c.clearRect(0, 0, view.w * dpr, view.h * dpr);
   c.setTransform(k * dpr, 0, 0, k * dpr, ox * dpr, oy * dpr);
+  // a canvas taller (or wider) than the stage: the night round it
+  const shown = cam ? viewRect(cam, view) : null;
+  const beyond = shown !== null && (shown.y0 < 0 || shown.y1 > STAGE_H || shown.x0 < 0 || shown.x1 > STAGE_W);
+  if (beyond) drawBeyond(env, rig, opts, shown, f.crowd);
   c.save();
   c.beginPath();
   c.rect(0, 0, STAGE_W, STAGE_H);
@@ -192,6 +279,7 @@ export function drawFrame(env: DrawEnv, f: Frame, rig: Rig, opts: PlayerOpts, vi
   c.translate(f.shake.x * shakeK, f.shake.y * shakeK);
   rig.drawStage(env, opts.stage, "back", f.crowd);
   rig.drawStage(env, opts.stage, "floor", f.crowd);
+  if (beyond) fadeSides(env, shown);
   for (const p of f.floor) {
     c.save();
     c.globalAlpha = p.alpha;

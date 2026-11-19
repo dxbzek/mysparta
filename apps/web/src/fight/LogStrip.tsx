@@ -1,7 +1,7 @@
 /**
- * The log strip under the stage: the newest two sentences (more when the phone has room), the newest bold, skill and Move
- * names coloured, and the "Log" button that opens the full text log in a sheet. It shows the
- * steps below `HudFrame.stepsShown` and nothing else.
+ * The log's newest line (it was the strip under the stage until the stage-only fight screen, owner
+ * 19 Nov 2026): the sentence parts with a fired skill leading, and the visually hidden live region
+ * that reads the newest step aloud. It shows the steps below `HudFrame.stepsShown` and nothing else.
  */
 import { memo } from "react";
 import type { Side, Step } from "@rankzero/core";
@@ -10,7 +10,6 @@ import type { ActorNames } from "../text/log";
 import { logLine } from "../text/log";
 import { procName } from "../text/talents";
 import { NAMES } from "../text/names";
-import css from "./fight.module.css";
 
 export interface LogPart { text: string; skill?: Side }
 
@@ -41,50 +40,18 @@ export function stripSteps(steps: readonly Step[], stepsShown: number, n = 2): S
   return out;
 }
 
-/** Older lines shown under the newest two when the phone has spare height (review r2: the room
- *  under the cards was an empty band). They sit in a box that adds no height of its own, so on a
- *  short phone they simply do not show. */
-export const STRIP_MORE = 8;
-
-function Line({ step, names, cls }: { step: Step; names: ActorNames; cls: string | undefined }) {
+/** The live line: the newest sentence, read aloud as a polite live region when the "Read the bout
+ *  log aloud" setting is on (brief 3.15). Since the stage-only fight screen (owner, 19 Nov 2026)
+ *  nothing of the log shows under the stage, so this region is visually hidden; the full log is in
+ *  the fight drawer. Skill and Move names lead as in the log's own words. */
+function LiveLineView({ steps, stepsShown, names, live }: { steps: readonly Step[]; stepsShown: number; names: ActorNames; live: boolean }) {
+  const newest = stripSteps(steps, stepsShown, 1)[0];
   return (
-    <li className={cls}>
-      {stripParts(step, names).map((p, j) => (
-        <span key={j} className={p.skill === "a" ? css.skillA : p.skill === "b" ? css.skillB : undefined}>{p.text}</span>
-      ))}
-    </li>
-  );
-}
-
-function LogStripView({ steps, stepsShown, names, live, note = null, onOpen }: { steps: readonly Step[]; stepsShown: number; names: ActorNames; live: boolean; note?: string | null; onOpen(): void }) {
-  const all = stripSteps(steps, stepsShown, 2 + STRIP_MORE);
-  const lines = all.slice(0, 2);
-  const more = all.slice(2);
-  return (
-    <div className={css.strip}>
-      <div className={css.stripCol}>
-        {/* a short note (the locked 3x) shows here, never on the stage where the damage numbers
-            and tags are (owner: numbers and tags never overlap). The status box is always there,
-            so a screen reader hears the note when it fills. */}
-        <p className={note ? css.stripNote : "rz-visually-hidden"} role="status">{note ?? ""}</p>
-        <ol className={css.stripLines} aria-label="Latest in the bout" aria-live={live ? "polite" : "off"} aria-relevant="additions">
-          {lines.length === 0 ? <li className={css.stripLine}>&nbsp;</li> : null}
-          {lines.map((s, i) => <Line key={stepsShown - i} step={s} names={names} cls={`${css.stripLine} ${i === 0 ? css.stripNew : ""}`} />)}
-        </ol>
-        {/* earlier lines repeat what was already announced, and the full log is one tap away */}
-        <div className={css.stripMoreBox} aria-hidden="true">
-          <ol className={css.stripMore}>
-            {more.map((s, i) => <Line key={stepsShown - 2 - i} step={s} names={names} cls={css.stripLine} />)}
-          </ol>
-        </div>
-      </div>
-      <button type="button" className={css.logButton} onClick={onOpen} aria-label="Open the full bout log">
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" /></svg>
-        <span>Log</span>
-      </button>
-    </div>
+    <p className="rz-visually-hidden" aria-live={live ? "polite" : "off"} aria-atomic="true" data-live-line="">
+      {newest ? stripParts(newest, names).map((p) => p.text).join("") : ""}
+    </p>
   );
 }
 
 /** Re-renders only when the number of shown steps changes. */
-export const LogStrip = memo(LogStripView);
+export const LiveLine = memo(LiveLineView);

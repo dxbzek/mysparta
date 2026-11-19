@@ -1,5 +1,8 @@
 /**
- * The fight screen (brief 3.11 D, 3.12). It satisfies `FightScreenProps` and reads only three
+ * The fight screen (brief 3.11 D, 3.12; the stage only since the owner's 19 Nov 2026 call, "I dont
+ * want the ui below honestly"). The stage canvas fills the screen inside the safe areas, held
+ * upright or turned; the HUD lies over its top and the controls over its bottom corners; the log
+ * and the fighter cards open in a drawer over it (FightDrawer), closed by default. It satisfies `FightScreenProps` and reads only three
  * things from the stage player: `hud(t)`, `state(t)` and `timeline` (cues, step ends, result
  * time). One fight clock drives the canvas, the HUD, the bag strip, the log, the result card
  * and the sound. The frame loop is `requestAnimationFrame`; there is no other timer here.
@@ -24,11 +27,12 @@ import { rig as seamRig } from "../seams/rig";
 import { actorNames } from "../text/log";
 import { STAGE_TEXT } from "../text/stage";
 import { STAGE_FONTS } from "../ui/fonts";
-import { Sheet } from "../ui/Sheet";
 import { beatsOf, litAt } from "./beats";
 import { SPEED_NOTE_MS, holdForSheet, releaseSheet } from "./hold";
 import { FighterCard, cardInfo } from "./FighterCard";
-import { LogStrip } from "./LogStrip";
+import { LiveLine } from "./LogStrip";
+import { FightDrawer } from "./FightDrawer";
+import type { DrawerTab } from "./FightDrawer";
 import { StageOverlay } from "./StageOverlay";
 import { Controls } from "./Controls";
 import { Hud } from "./Hud";
@@ -179,18 +183,22 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
   const lit = litAt(beats, t);
   // lit tiles hold still (calm fight): no pulsing scale
   const pulse = 0;
-  const [logOpen, setLogOpen] = useState(false);
-  // The sheet holds the bout; closing puts the clock back as it was (paused stays paused).
+  // The drawer (the log and the fighter cards) holds the bout; closing puts the clock back as it
+  // was (paused stays paused).
+  const [drawer, setDrawer] = useState<DrawerTab | null>(null);
+  const [cardFocus, setCardFocus] = useState<Side | null>(null);
   const heldWas = useRef<boolean | null>(null);
-  const openLog = useCallback(() => {
+  const openDrawer = useCallback((tab: DrawerTab, side: Side | null = null) => {
     if (heldWas.current === null) heldWas.current = holdForSheet(clock);
-    setLogOpen(true);
+    setCardFocus(side);
+    setDrawer(tab);
   }, [clock]);
-  const closeLog = useCallback(() => {
+  const closeDrawer = useCallback(() => {
     if (heldWas.current !== null) releaseSheet(clock, heldWas.current);
     heldWas.current = null;
-    setLogOpen(false);
+    setDrawer(null);
   }, [clock]);
+  const wide = useWide();
   const winner = state.ended?.winner ?? hud.winner ?? log.result.winner;
 
   const onPlayPause = (): void => {
@@ -226,54 +234,85 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
 
   return (
     <div className={`${css.screen} ${mode === "replay" ? css.replayMode : ""}`} data-sfx-quiet="" data-phase={hud.phase} data-t={Math.round(t)}>
-      <Hud frame={hud} sides={sides} actors={log.init.actors} t={t} turn={state.turn} reduced={reduced} />
       <div className={css.stageArea}>
         <StageCanvas player={player} t={t} label={`${a.name} against ${b.name}`} />
         <StageOverlay beats={beats} t={t} reduced={reduced} resultIn={ended ? hud.resultIn : 0} />
-        <Controls
-          paused={paused}
-          ended={ended}
-          speed={playSpeed(settings)}
-          vip={settings.isVip}
-          sound={settings.sound}
-          canSkip={!ended && t < tl.resultAt - SKIP_HOLD_MS}
-          onPlayPause={onPlayPause}
-          onSpeed={(speed) => onSettings({ speed })}
-          onLocked={() => {
-            noteUntil.current = performance.now() + SPEED_NOTE_MS;
-            setSpeedNote(true);
-          }}
-          onSkip={onSkip}
-          onSound={(on) => {
-            if (on) void audio.unlock();
-            onSettings({ sound: on });
-          }}
-        />
-      </div>
-      {mode === "replay" ? (
-        <ReplayBar stepsShown={hud.stepsShown} total={log.steps.length} onSeekStep={(n) => seek(seekTimeFor(tl.stepEnd, n))} />
-      ) : null}
-      <LogStrip steps={log.steps} stepsShown={hud.stepsShown} names={names} live={settings.liveLog && !logOpen} note={speedNote ? UI.bout.vipSpeed : null} onOpen={openLog} />
-      <div className={css.lower}>
-        <div className={css.cards}>
-          {(["a", "b"] as const).map((side) => (
-            <FighterCard
-              key={side}
-              info={cards[side]}
-              frame={hud}
-              state={state.actors[`${side}0`]}
-              pets={cards[side].pets.map((p) => state.actors[p.id])}
-              bag={hud.bag[side]}
-              lit={lit}
-              pulse={pulse}
+        <Hud frame={hud} sides={sides} actors={log.init.actors} t={t} turn={state.turn} reduced={reduced} onCard={(side) => openDrawer("fighters", side)} />
+        <div className={css.bottom}>
+          {/* a short note (the locked 3x) sits over the speed buttons, never among the stage's
+              numbers and tags; the status box is always there, so a screen reader hears it fill */}
+          <p className={speedNote ? css.barNote : "rz-visually-hidden"} role="status">{speedNote ? UI.bout.vipSpeed : ""}</p>
+          {mode === "replay" ? (
+            <ReplayBar stepsShown={hud.stepsShown} total={log.steps.length} onSeekStep={(n) => seek(seekTimeFor(tl.stepEnd, n))} />
+          ) : null}
+          <div className={css.bar}>
+            <Controls
+              paused={paused}
+              ended={ended}
+              speed={playSpeed(settings)}
+              vip={settings.isVip}
+              sound={settings.sound}
+              canSkip={!ended && t < tl.resultAt - SKIP_HOLD_MS}
+              onPlayPause={onPlayPause}
+              onSpeed={(speed) => onSettings({ speed })}
+              onLocked={() => {
+                noteUntil.current = performance.now() + SPEED_NOTE_MS;
+                setSpeedNote(true);
+              }}
+              onSkip={onSkip}
+              onSound={(on) => {
+                if (on) void audio.unlock();
+                onSettings({ sound: on });
+              }}
+              onLog={() => openDrawer("log")}
             />
-          ))}
+          </div>
         </div>
-        {ended ? <ResultCard resultIn={hud.resultIn} data={mode === "replay" ? null : result} winnerName={sideNames[winner]} onAction={onResult} doneLabel={props.doneLabel} /> : null}
+        {ended ? <ResultCard resultIn={hud.resultIn} data={mode === "replay" ? null : result} winnerName={sideNames[winner]} onAction={onResult} doneLabel={props.doneLabel}
+          onLog={() => openDrawer("log")} /> : null}
       </div>
-      <Sheet open={logOpen} title="Bout log" onClose={closeLog} closeLabel="Close">
-        <TextLog steps={log.steps} stepsShown={hud.stepsShown} names={names} live={false} />
-      </Sheet>
+      <LiveLine steps={log.steps} stepsShown={hud.stepsShown} names={names} live={settings.liveLog && drawer === null} />
+      <FightDrawer
+        open={drawer !== null}
+        tab={drawer ?? "log"}
+        onTab={(tab) => setDrawer(tab)}
+        onClose={closeDrawer}
+        side={wide}
+        log={<TextLog steps={log.steps} stepsShown={hud.stepsShown} names={names} live={settings.liveLog} />}
+        fighters={
+          <div className={css.cards}>
+            {(["a", "b"] as const).map((side) => (
+              <FighterCard
+                key={side}
+                info={cards[side]}
+                frame={hud}
+                state={state.actors[`${side}0`]}
+                pets={cards[side].pets.map((p) => state.actors[p.id])}
+                bag={hud.bag[side]}
+                lit={lit}
+                pulse={pulse}
+                focus={cardFocus === side}
+              />
+            ))}
+          </div>
+        }
+      />
     </div>
   );
+}
+
+/** Whether the screen is turned (wider than tall): the drawer is a side panel then. Follows the
+ *  media query's change event, no timer. */
+function useWide(): boolean {
+  const query = "(orientation: landscape)";
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(query).matches);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return undefined;
+    const mq = window.matchMedia(query);
+    const on = (): void => setWide(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return wide;
 }

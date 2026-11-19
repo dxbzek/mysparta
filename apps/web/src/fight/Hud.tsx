@@ -1,5 +1,5 @@
 /**
- * The HUD over the stage (fight screen v2, after the owner's style-13 sample): mirrored name tapes
+ * The HUD over the stage (since 19 Nov 2026 an overlay on the full-screen stage; fight screen v2, after the owner's style-13 sample): mirrored name tapes
  * and level tags, HP bars with the trailing segment, big inked HP numbers and the turn badge in the
  * middle. It reads ONE thing that changes: the `HudFrame` for the current `t` (and `t` itself, for
  * a bar that was just hit). No timer, no state, no CSS animation.
@@ -28,6 +28,8 @@ export interface HudProps {
   /** The turn badge. Absent: no badge. */
   turn?: number;
   reduced?: boolean;
+  /** A tap on a side's name and HP bar opens that fighter's card (the fight drawer). Absent: plain. */
+  onCard?(side: Side): void;
 }
 
 const pct = (v: number, max: number): string => `${(max > 0 ? Math.max(0, Math.min(1, v / max)) * 100 : 0).toFixed(2)}%`;
@@ -39,13 +41,13 @@ export function hitGlow(now: number, trail: number, max: number): number {
   return g <= 0 ? 0 : g > 1 ? 1 : g;
 }
 
-function SideHud({ side, frame, info, levelLabel, reduced }: { side: Side; frame: HudFrame; info: HudSideInfo; levelLabel(n: number): string; reduced: boolean }) {
+function SideHud({ side, frame, info, levelLabel, reduced, onCard }: { side: Side; frame: HudFrame; info: HudSideInfo; levelLabel(n: number): string; reduced: boolean; onCard?(side: Side): void }) {
   const main = frame.hp[`${side}0` as ActorId];
   const max = main?.max ?? 0;
   const now = main ? Math.max(0, Math.round(main.now)) : 0;
   const g = hitGlow(main?.now ?? 0, main?.trail ?? 0, max);
-  return (
-    <div className={`${css.side} ${side === "b" ? css.sideB : css.sideA}`} data-side={side}>
+  const body = (
+    <>
       <div className={css.nameRow}>
         <Sticker size="small" tilt={side === "a" ? -1.5 : 1.5} slap={frame.namesIn} className={`${css.tape} ${sizeClass(info.name)}`}>{info.name}</Sticker>
         <span className={css.lvl}>{levelLabel(info.level)}</span>
@@ -62,8 +64,13 @@ function SideHud({ side, frame, info, levelLabel, reduced }: { side: Side; frame
         <span className={css.hpFill} style={{ width: pct(main?.now ?? 0, max || 1) }} />
         {g > 0 ? <span className={css.hpFlash} style={{ opacity: (reduced ? 0.25 : 0.4) * g }} /> : null}
       </span>
-    </div>
+    </>
   );
+  const cls = `${css.side} ${side === "b" ? css.sideB : css.sideA}`;
+  // over the stage the whole name-and-bar block is one 44 px button to that fighter's card
+  return onCard ? (
+    <button type="button" className={`${cls} ${css.sideButton}`} data-side={side} onClick={() => onCard(side)} aria-label={`${info.name}, ${levelLabel(info.level)}, ${now} of ${max} HP. Open the fighter card.`}>{body}</button>
+  ) : <div className={cls} data-side={side}>{body}</div>;
 }
 
 function hpOf(side: Side, frame: HudFrame): number {
@@ -76,10 +83,10 @@ function HpNumber({ side, frame }: { side: Side; frame: HudFrame }) {
   return <span className={`${css.hpNum} ${side === "b" ? css.hpNumB : css.hpNumA} ${now === 0 ? css.hpZero : ""}`} data-hp={now}>{now}</span>;
 }
 
-export function Hud({ frame, sides, levelLabel = (n) => `LV ${n}`, turn, reduced = false }: HudProps) {
+export function Hud({ frame, sides, levelLabel = (n) => `LV ${n}`, turn, reduced = false, onCard }: HudProps) {
   return (
     <header className={css.hud}>
-      <SideHud side="a" frame={frame} info={sides.a} levelLabel={levelLabel} reduced={reduced} />
+      <SideHud side="a" frame={frame} info={sides.a} levelLabel={levelLabel} reduced={reduced} onCard={onCard} />
       <div className={css.hudMid}>
         {turn !== undefined ? <span className={css.badge}>{turn > 0 ? `Turn ${turn}` : "Ready"}</span> : null}
         {/* review r2: two bare numbers side by side read as a score; each now wears its side's
@@ -90,7 +97,7 @@ export function Hud({ frame, sides, levelLabel = (n) => `LV ${n}`, turn, reduced
           <HpNumber side="b" frame={frame} />
         </div>
       </div>
-      <SideHud side="b" frame={frame} info={sides.b} levelLabel={levelLabel} reduced={reduced} />
+      <SideHud side="b" frame={frame} info={sides.b} levelLabel={levelLabel} reduced={reduced} onCard={onCard} />
     </header>
   );
 }

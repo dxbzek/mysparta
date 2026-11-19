@@ -1,5 +1,5 @@
 /**
- * One fighter's ink-framed card under the stage (owner, plan 13.7: "a proper skill view, proper
+ * One fighter's ink-framed card, in the fight drawer (it was under the stage until 19 Nov 2026) (owner, plan 13.7: "a proper skill view, proper
  * information, and stats"). Portrait, name, level and HP; Strength, Agility and Speed as bars with
  * icons and numbers; the weapon in hand with its drawing and numbers; the owned skills as tiles
  * that light up and pulse when they fire; each pet with its own HP bar; the shield; the bag.
@@ -86,6 +86,8 @@ export interface FighterCardProps {
   lit: ReadonlyMap<string, number>;
   /** A pulse phase from the fight clock (0 to 1) for lit tiles; 0 under reduced motion. */
   pulse: number;
+  /** Opened from this fighter's HP bar: the card is scrolled into view and marked. */
+  focus?: boolean;
 }
 
 function SkillTile({ id, glow, pulse, side }: { id: SkillId; glow: number; pulse: number; side: Side }) {
@@ -104,7 +106,7 @@ function SkillTile({ id, glow, pulse, side }: { id: SkillId; glow: number; pulse
   );
 }
 
-export function FighterCard({ info, frame, state, pets, bag, lit, pulse }: FighterCardProps) {
+export function FighterCard({ info, frame, state, pets, bag, lit, pulse, focus = false }: FighterCardProps) {
   const { side } = info;
   const hp = frame.hp[`${side}0` as ActorId];
   const now = hp ? Math.max(0, Math.round(hp.now)) : 0;
@@ -114,7 +116,8 @@ export function FighterCard({ info, frame, state, pets, bag, lit, pulse }: Fight
   const shown = info.skills.slice(0, info.skills.length > SKILL_TILES ? SKILL_TILES - 1 : SKILL_TILES);
   const more = info.skills.length - shown.length;
   return (
-    <section className={`${css.card} ${side === "a" ? css.cardA : css.cardB}`} aria-label={`${info.name}, level ${info.level}`} data-side={side}>
+    <section className={`${css.card} ${side === "a" ? css.cardA : css.cardB} ${focus ? css.cardFocus : ""}`} aria-label={`${info.name}, level ${info.level}`} data-side={side}
+      data-focus={focus ? "1" : undefined} ref={focus ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}>
       <div className={css.cardHead}>
         <span className={css.cardName} data-size={nameSize(info.name)}>{info.name}</span>
         <span className={css.cardLvl}>LV {info.level}</span>

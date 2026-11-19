@@ -115,6 +115,8 @@
   --c-flash: #fff3d6;            /* an HP bar flashing on a hit, the knockout flash */
   --c-ctl-glass: rgba(15, 22, 25, 0.72);   /* a control's disc over the stage */
   --c-night-scrim: rgba(8, 12, 14, 0.62);  /* under a banner's strap */
+  --c-void: #04181c;                       /* the night round the stage (stage palette VOID) */
+  --c-night-glass: rgba(4, 18, 22, 0.66);  /* the HUD band and the control bar over the stage */
   --tex-halftone-sodium: radial-gradient(circle at center, rgba(21, 17, 12, 0.24) 0 1px, transparent 1.4px) 0 0 / 4px 4px;
   --glow-sodium: 0 0 0 2px #15110c, 0 0 14px 2px rgba(242, 166, 90, 0.75);
   --glow-teal: 0 0 0 2px #0c1514, 0 0 14px 2px rgba(69, 194, 182, 0.75);

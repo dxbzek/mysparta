@@ -1,5 +1,6 @@
 /**
- * The result card. It slides up over the log and its XP bar fills, both from `HudFrame.resultIn`
+ * The result card, over the bottom of the full-screen stage (the camera keeps the outro clear of
+ * it: stage CAMERA.resultRoomPx). It slides up and its XP bar fills, both from `HudFrame.resultIn`
  * (0 to 1, from the fight clock): no CSS animation, no timer. In replay mode there is no XP:
  * the card names the winner and offers Replay and Locker.
  */
@@ -17,7 +18,11 @@ export function resultPose(resultIn: number): { slide: number; fill: number } {
   return { slide: ease(Math.min(1, u * 3)), fill: ease(Math.max(0, (u - 0.3) / 0.7)) };
 }
 
-export function ResultCard({ resultIn, data, winnerName, onAction, doneLabel = "Locker" }: { resultIn: number; data: ResultCardData | null; winnerName: string; onAction(a: ResultAction): void; doneLabel?: string }) {
+function LogLink({ onLog }: { onLog?(): void }) {
+  return onLog ? <button type="button" className={css.resultLog} onClick={onLog} aria-label="Open the bout log and the fighter cards">Log</button> : null;
+}
+
+export function ResultCard({ resultIn, data, winnerName, onAction, doneLabel = "Locker", onLog }: { resultIn: number; data: ResultCardData | null; winnerName: string; onAction(a: ResultAction): void; doneLabel?: string; onLog?(): void }) {
   const { slide, fill } = resultPose(resultIn);
   const style = { transform: `translateY(${((1 - slide) * 115).toFixed(2)}%)` };
   if (data === null) {
@@ -25,6 +30,7 @@ export function ResultCard({ resultIn, data, winnerName, onAction, doneLabel = "
       <section className={css.result} style={style} aria-label="Result">
         <div className={css.resultHead}>
           <h2 className={`${css.verdict} ${css.verdictWin}`}>{winnerName.toUpperCase()} WINS</h2>
+          <LogLink onLog={onLog} />
         </div>
         <div className={css.resultButtons}>
           <Button variant="primary" onClick={() => onAction("replay")}>Replay</Button>
@@ -44,8 +50,9 @@ export function ResultCard({ resultIn, data, winnerName, onAction, doneLabel = "
     <section className={css.result} style={style} aria-label="Result">
       <div className={css.resultHead}>
         <h2 className={`${css.verdict} ${data.won ? css.verdictWin : css.verdictLoss}`}>{data.won ? "WIN" : "LOSS"}</h2>
+        <p className={css.resultLine}>{data.line}</p>
+        <LogLink onLog={onLog} />
       </div>
-      <p className={css.resultLine}>{data.line}</p>
       <div className={css.xpRow}>
         <span>XP</span>
         <span className={css.xpTrack} role="progressbar" aria-label="XP" aria-valuemin={0} aria-valuemax={data.xpToNext} aria-valuenow={shown}>
