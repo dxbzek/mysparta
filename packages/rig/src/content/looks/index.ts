@@ -232,8 +232,10 @@ export const LOOK_ACCESSORIES: readonly Shape[][] = [
 
 /** Accessories worn on the head: head gear (a hard hat, a helmet, goggles, a bandana) takes them
  *  off. The cap and the beanie also cut the hair at their brim. */
-export const LOOK_HEADWEAR: readonly number[] = [4, 6, 7, 9, 10, 12];
+export const LOOK_HEADWEAR: readonly number[] = [4, 6, 7, 10, 12];
 export const LOOK_CROWNWEAR: readonly number[] = [6, 7];
+/** Dark glasses: goggles take them off. */
+export const LOOK_EYEWEAR: readonly number[] = [9];
 
 // -------------------------------------------------------------------------------------- tops
 function sleeves(out: Shape[], s: Side, opts: { bare?: boolean; short?: boolean; stripe?: boolean; cuff?: boolean }): void {
@@ -671,4 +673,5 @@ export const CONTENT_LOOKS: AppearanceSet = {
   palettes: LOOK_SWATCHES.palettes,
   headwear: LOOK_HEADWEAR,
   crownwear: LOOK_CROWNWEAR,
+  eyewear: LOOK_EYEWEAR,
 };

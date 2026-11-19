@@ -124,7 +124,7 @@ function buildsSheet(): void {
     label(c, `${BUILD_NAMES[b]}${b >= 3 ? " (new)" : ""}`, x, 70, 18, b >= 3 ? ORANGE : CREAM);
     fighter(env, c, looks[b]!, x + 80, 300, 2.3, {});
     fighter(env, c, looks[b]!, x + 80, 590, 2.3, { clip: "swing", t: contact, held: "pipe" });
-    fighter(env, c, looks[b]!, x + 110, 900, 2.3, { clip: "ko-fall", t: ko });
+    fighter(env, c, looks[b]!, x + 200, 900, 2.3, { clip: "ko-fall", t: ko });
     // the same look in the plain gate look, so the build reads without clothes changing
     fighter(env, c, { ...BASE, build: b }, x + 250, 300, 1.4, {});
   }

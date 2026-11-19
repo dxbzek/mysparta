@@ -727,11 +727,13 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       if (arm && armsTo !== undefined && (s.slot === "skin" || s.slot === "top")) recolour.set(s, armsTo);
       else if (topTo !== undefined && s.slot === "top") recolour.set(s, topTo);
     }
-    for (const s of bottoms) if (bottomTo !== undefined && s.slot === "bottom") recolour.set(s, bottomTo);
+    // trousers worn as gear cover the legs a short look part leaves bare (shorts, rolled hems)
+    for (const s of bottoms) if (bottomTo !== undefined && (s.slot === "bottom" || (s.slot === "skin" && s.bone.startsWith("leg")))) recolour.set(s, bottomTo);
     // an accessory worn on the head comes off under head gear; a hat (gear or accessory) cuts the
     // hair at its brim (content v3 batch 4)
     const acc = wrap(look?.accessory, looks.accessories.length);
-    const accOff = hide.has("accessory") || (hide.has("headwear") && (looks.headwear ?? []).includes(acc));
+    const accOff = hide.has("accessory") || (hide.has("headwear") && (looks.headwear ?? []).includes(acc))
+      || (hide.has("eyewear") && (looks.eyewear ?? []).includes(acc));
     const crown = hide.has("crown") || (!accOff && (looks.crownwear ?? []).includes(acc));
     const hair0 = hide.has("hair") ? [] : pick(looks.hair, look?.hair);
     const hairShapes = crown ? hair0.map((h) => ({ ...h, d: cutAbove(h.d, HAT_BRIM) })).filter((h) => h.d !== "") : hair0;

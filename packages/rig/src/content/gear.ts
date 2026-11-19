@@ -90,7 +90,7 @@ const HEAD_GEAR: Record<"bandana" | "beanie" | "hard-hat" | "goggles" | "welding
     headInk([[8.2, -21.2], [-9.4, -21.0]], 0.3, HZ + 0.15),
   ] },
   // work goggles over the eyes on a dark rubber strap round the head
-  goggles: { slot: "head", hide: ["headwear"], shapes: [
+  goggles: { slot: "head", hide: ["eyewear"], shapes: [
     head([[4.0, -15.0], [-11.2, -14.6], [-11.0, -11.8], [4.0, -12.0]], "rubber", HZ - 0.3),
     head([[2.6, -16.2], [9.8, -16.4], [11.6, -13.6], [10.8, -9.8], [2.8, -9.6], [1.8, -12.8]], "metal", HZ + 0.1),
     head([[4.2, -14.8], [9.2, -14.9], [10.0, -13.4], [9.4, -11.2], [4.4, -11.0], [3.6, -12.8]], "visor", HZ + 0.2),

@@ -209,8 +209,9 @@ export interface Dress { look?: Look; held: HeldId | null; shield: ShieldId | nu
  *  face and the accessory; boots hide the shoes). */
 export type LookPart = "hair" | "face" | "accessory" | "shoes"
   /** (content v3 batch 4) `crown`: the hair is cut at the brim (a hat sits over the crown);
-   *  `headwear`: an accessory worn on the head (`AppearanceSet.headwear`) is taken off. */
-  | "crown" | "headwear";
+   *  `headwear`: an accessory worn on the head (`AppearanceSet.headwear`) is taken off; `eyewear`:
+   *  glasses (`AppearanceSet.eyewear`) are taken off. */
+  | "crown" | "headwear" | "eyewear";
 /**
  * One piece of body equipment as it is drawn on the fighter (CONTRACT_REV 8). `shapes` sit on the
  * scrapper's own bones (head, torso, arms, hands, legs, feet; a hand shape may end in ":open" like
@@ -284,6 +285,8 @@ export interface AppearanceSet {            // list lengths may be under LOOK_SP
    *  headphones, a headband, a bandage). Head gear that hides "headwear" takes them off, so a hard hat
    *  never sits on a cap. */
   headwear?: readonly number[];
+  /** Accessories worn over the eyes (dark glasses): goggles take them off (LookPart "eyewear"). */
+  eyewear?: readonly number[];
   /** Accessories that sit over the crown (a cap, a beanie): the hair is cut at the brim under them,
    *  as under a hat worn as gear (LookPart "crown"). */
   crownwear?: readonly number[] }

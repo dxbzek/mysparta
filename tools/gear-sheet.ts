@@ -1,7 +1,10 @@
 /**
  * The gear sheet (content v3, batch 2): all 30 pieces of body equipment worn on a fighter, facing
  * right and facing left, at 2x and at fight size (91 px for a standing fighter, the phone stage),
- * with the 28 and 44 px icons. Run: pnpm gear-sheet [--out <file>] (default .review/gear-sheet.png).
+ * with the 28 and 44 px icons. Run: pnpm gear-sheet [--out <file>] (default .review/gear-sheet.png)
+ * [--build <0-4>] (every piece on that build: 3 heavy, 4 wiry) [--new] (worn over the batch-4 look
+ * parts: new heads, hair, tops, bottoms, shoes and accessories, so a hat over an afro or boots over
+ * runners can be checked).
  */
 import { resolve } from "node:path";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
@@ -26,10 +29,17 @@ async function svgImage(art: SvgArt, px: number) {
   return loadImage(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="${art.viewBox}">${body}</svg>`));
 }
 
-const LOOKS: Look[] = [
+const bi = args.indexOf("--build");
+const BUILD = bi >= 0 ? Number(args[bi + 1]) : null;
+const NEW = args.includes("--new");
+const LOOKS0: Look[] = NEW ? [
+  { build: 3, head: 6, hair: 11, face: 10, top: 9, bottom: 6, shoes: 4, accessory: 6, skin: 8, hairColor: 9, palette: 14 },
+  { build: 4, head: 8, hair: 12, face: 11, top: 11, bottom: 5, shoes: 5, accessory: 9, skin: 9, hairColor: 10, palette: 18 },
+] : [
   { build: 0, head: 0, hair: 0, face: 0, top: 0, bottom: 0, shoes: 0, accessory: 0, skin: 0, hairColor: 0, palette: 0 },
   { build: 1, head: 1, hair: 1, face: 1, top: 1, bottom: 1, shoes: 1, accessory: 0, skin: 1, hairColor: 2, palette: 2 },
 ];
+const LOOKS: Look[] = BUILD === null ? LOOKS0 : LOOKS0.map((l) => ({ ...l, build: BUILD }));
 const CELL_W = 330;
 const CELL_H = 300;
 const COLS = 6;
@@ -54,7 +64,7 @@ function fighter(gear: GearId, x: number, y: number, k: number, facing: 1 | -1, 
 
 c.fillStyle = "#F4F2EC";
 c.font = "bold 22px sans-serif";
-c.fillText("Rank Zero gear sheet: 30 pieces, facing right and left at 2x, at fight size (91 px), and the 28 / 44 px icons", 16, 36);
+c.fillText(`Rank Zero gear sheet: 30 pieces, facing right and left at 2x, at fight size (91 px), and the 28 / 44 px icons${BUILD !== null ? `, on the ${["lean", "stocky", "tall", "heavy", "wiry"][BUILD]} build` : ""}${NEW ? ", over batch-4 parts" : ""}`, 16, 36);
 for (let i = 0; i < GEAR_IDS.length; i++) {
   const id = GEAR_IDS[i]!;
   const col = i % COLS;

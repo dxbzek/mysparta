@@ -136,6 +136,7 @@ async function shootInner(browser, sizeName, base, ctx) {
   await page.getByRole("button", { name: "Previous hair", exact: true }).click();
   await page.getByRole("button", { name: "Previous top", exact: true }).click();
   await page.getByTestId("look-palette-14").click();
+  await page.evaluate(() => window.scrollTo(0, 0));
   await shot("create-look-editor", 600);
   await page.evaluate(() => window.scrollTo(0, 0));
   await btn("Step into the Yard").click();

@@ -19,6 +19,9 @@
  *      and the old energy until it is skipped (content v3: energy in place of the daily cap);
  *   5c. content v3 batch 3: the Locker's talent prompt and the Kit badge, spend on the real tree,
  *      respec once (a second the same day is refused), and the next bout's snapshot carries the ranks;
+ *   6a. content v3 batch 4: the look editor at creation (pick parts, make the scrapper, its first
+ *      bout's snapshot carries the look) and from home (the Locker's Change look, save, the next bout
+ *      carries the new look, the stats unchanged; the Kit's portrait opens it too);
  *   6. make three scrappers, see the fourth refused, retire one and see it kept in the save;
  *   7. check an old-build storage key planted at the start is still there, unchanged.
  * Exit code 1 on any failed check.
@@ -433,8 +436,92 @@ async function main() {
         await page.waitForURL(/#\/locker$/);
       }
 
+
+      // ---------------------------------------------------------------- 6a. the look editor (content v3 batch 4)
+      // At creation: open "Pick each part", change several parts, make the scrapper, and its stored look
+      // is the one picked; its first bout's snapshot (what the fight draws) carries it. From home: the
+      // Locker's "Change look", change more parts, save; the stats do not move, the next bout shows it.
+      {
+        const lookShown = async () => page.evaluate(() => {
+          const out = {};
+          for (const el of document.querySelectorAll("[data-testid^='look-'][data-index]")) out[el.getAttribute("data-testid").slice(5)] = Number(el.getAttribute("data-index"));
+          for (const k of ["skin", "hairColor", "palette"]) {
+            const on = document.querySelector(`[data-part='${k}'] [role=radio][aria-checked=true]`);
+            if (on) out[k] = Number(on.getAttribute("data-testid").split("-").pop());
+          }
+          return out;
+        });
+        const sameLook = (a, b) => a && b && Object.keys(b).length === 11 && Object.keys(b).every((k) => a[k] === b[k]);
+        const fightOnce = async () => {
+          await button("Fight").click();
+          await page.locator("button[aria-label$='Open the face-off.']").first().click();
+          await page.getByRole("dialog", { name: "Face-off" }).getByRole("button", { name: "Fight", exact: true }).click();
+          await page.waitForURL(/#\/bout\//);
+          await page.waitForTimeout(800);
+          const shownOnStage = await page.locator("canvas").count();
+          await page.getByRole("button", { name: "Skip to the end" }).click();
+          await page.getByRole("region", { name: "Result" }).waitFor();
+          const bout = (await readSave(page)).doc.history[0];
+          await page.getByRole("region", { name: "Result" }).getByRole("button", { name: "Locker", exact: true }).click();
+          await page.waitForURL(/#\/locker$/);
+          return { bout, shownOnStage };
+        };
+        await page.getByRole("button", { name: "New scrapper" }).click();
+        await page.locator("#rz-name").fill("Dez");
+        await button("Pick each part").click();
+        await page.getByTestId("look-editor").waitFor();
+        const rolled = await lookShown();
+        for (let i = 0; i < 3; i++) await button("Next build").click();
+        await button("Previous hair").click();
+        await button("Next top").click();
+        await button("Next top").click();
+        await button("Next extra").click();
+        await page.getByTestId("look-palette-20").click();
+        await page.getByTestId("look-skin-9").click();
+        const picked = await lookShown();
+        check(picked.build === (rolled.build + 3) % 5 && picked.palette === 20 && picked.skin === 9 && picked.hair === (rolled.hair + 17) % 18,
+          "the editor at creation steps each part and picks colours", `${JSON.stringify(rolled)} -> ${JSON.stringify(picked)}`);
+        const stepTargets = await page.locator("[data-testid=look-editor] button").evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return Math.min(r.width, r.height); }));
+        check(stepTargets.length > 0 && stepTargets.every((s) => s >= 44), "every editor control is a 44 px tap target", `smallest ${Math.min(...stepTargets).toFixed(1)} px`);
+        await button("Step into the Yard").click();
+        await button("To the Locker").click({ timeout: 10000 });
+        await page.waitForURL(/#\/locker$/);
+        let dez = (await readSave(page)).doc.fighters.find((f) => f.name === "Dez");
+        check(sameLook(dez?.look, picked), "the scrapper stores the look picked at creation", JSON.stringify(dez?.look));
+        const first = await fightOnce();
+        check(first.bout.snapshotA.name === "Dez" && sameLook(first.bout.snapshotA.look, picked) && first.shownOnStage > 0, "the fight draws the look picked at creation", JSON.stringify(first.bout.snapshotA.look));
+        // from home
+        await page.getByTestId("change-look").click();
+        await page.waitForURL(/#\/look$/);
+        await page.getByTestId("look-editor").waitFor();
+        check(sameLook(await lookShown(), picked), "the editor from home opens on the stored look");
+        await button("Previous build").click();
+        await button("Next head").click();
+        await button("Next face").click();
+        await button("Next shoes").click();
+        await page.getByTestId("look-hairColor-10").click();
+        const edited = await lookShown();
+        await button("Save look").click();
+        await page.waitForTimeout(400);
+        dez = (await readSave(page)).doc.fighters.find((f) => f.name === "Dez");
+        check(sameLook(dez?.look, edited) && edited.build === (picked.build + 4) % 5 && edited.hairColor === 10, "the look changed from home is saved", JSON.stringify(dez?.look));
+        await page.evaluate(() => { location.hash = "#/locker"; });
+        await page.waitForURL(/#\/locker$/);
+        const second = await fightOnce();
+        check(sameLook(second.bout.snapshotA.look, edited), "the next fight draws the new look", JSON.stringify(second.bout.snapshotA.look));
+        check(JSON.stringify(second.bout.snapshotA.stats) === JSON.stringify(first.bout.snapshotA.stats) || second.bout.snapshotA.level !== first.bout.snapshotA.level,
+          "the look is cosmetic: the stats are unchanged", JSON.stringify(second.bout.snapshotA.stats.points));
+        // the Kit's portrait opens it too
+        await page.evaluate(() => { location.hash = "#/kit"; });
+        await page.getByRole("button", { name: "Change Dez's look" }).click();
+        await page.waitForURL(/#\/look$/);
+        check(sameLook(await lookShown(), edited), "the Kit's portrait opens the editor on the saved look");
+        await page.evaluate(() => { location.hash = "#/locker"; });
+        await page.waitForURL(/#\/locker$/);
+      }
+
       // ---------------------------------------------------------------- 6. three slots, retire
-      for (const n of ["Dez", "Tug"]) {
+      for (const n of ["Tug"]) {
         await page.getByRole("button", { name: "New scrapper" }).click();
         await page.locator("#rz-name").fill(n);
         await button("Step into the Yard").click();
