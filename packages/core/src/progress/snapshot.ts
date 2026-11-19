@@ -3,7 +3,7 @@
  * from its record; a bout reads only a snapshot. Since content v3 batch 2 the snapshot holds only
  * what the record's loadout takes (progress/loadout.ts), with the worn gear's stat points.
  */
-import type { FighterSnapshot, Loadout, ScrapperRecord, ScrapperSheet, SnapshotSheet } from "../contracts/fighter";
+import type { FighterSnapshot, LadderPrize, Loadout, ScrapperRecord, ScrapperSheet, SnapshotSheet } from "../contracts/fighter";
 import { MAX_LOADOUT_WEAPONS } from "../contracts/fighter";
 import { gearSlot } from "../content/gear";
 import type { GearId, PerkId, ShieldId } from "../contracts/ids";
@@ -33,7 +33,15 @@ export function snapshotSheet(s: FighterSnapshot): SnapshotSheet {
 /** The record's kit, walked from its seed and picks (from its carried kit, and with no gear cards
  *  before `gearFrom`). */
 export function kitOf(rec: ScrapperRecord): Kit {
-  return walk(rec.seed, rec.picks, rec.base, rec.gearFrom ?? 0);
+  return walk(rec.seed, rec.picks, rec.base, rec.gearFrom ?? 0, prizesOf(rec));
+}
+
+/** The boss prizes a record holds (the ladder, CONTRACT_REV 11): at most one per boss beaten. */
+export function prizesOf(rec: ScrapperRecord): LadderPrize[] {
+  const l = rec.ladder;
+  if (l === undefined || !Array.isArray(l.prizes)) return [];
+  const rank = Number.isInteger(l.rank) ? Math.max(0, l.rank) : 0;
+  return l.prizes.slice(0, rank);
 }
 
 export function loadoutOf(rec: ScrapperRecord): Loadout {

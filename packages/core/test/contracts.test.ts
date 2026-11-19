@@ -86,7 +86,7 @@ describe("ids", () => {
   it("is at contract rev 10 (content v3, batch 4) and log version 2; the rules version stays 1", () => {
     expect(RULES_VERSION).toBe(1);
     expect(LOG_VERSION).toBe(2);
-    expect(CONTRACT_REV).toBe(10);
+    expect(CONTRACT_REV).toBe(11);
     expect(RIVALS_PER_LEVEL).toBe(240);
   });
 });

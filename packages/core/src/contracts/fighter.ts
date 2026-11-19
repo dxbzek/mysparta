@@ -101,7 +101,25 @@ export interface ScrapperRecord {
    *  look here (`rollLook(seed, lookSalt, colourSalt, 1)`). Absent: that version-1 roll (`lookOf`).
    *  Cosmetic only: the stats still come from the name (the seed). */
   look?: Look;
+  /** The rank ladder (CONTRACT_REV 11, plan 13.10 item 1). Absent: unranked (Rank Zero), no prize
+   *  taken. The save migration to schema 8 gives every older record `{ rank: 0, prizes: [] }`. */
+  ladder?: LadderState;
 }
+
+/** Rungs on the ladder: Rank 10 at the bottom up to Rank 1 at the top. A scrapper with none beaten
+ *  is at Rank Zero, the game's name. Rung n (1 to LADDER_RUNGS) is the boss whose win makes the
+ *  scrapper Rank (LADDER_RUNGS + 1 - n). */
+export const LADDER_RUNGS = 10;
+/** One boss prize taken: the card picked, given after the first `at` level-up picks of the Route
+ *  (the picks the record held when it was taken), so the kit walks the same every time. */
+export interface LadderPrize { at: number; card: RouteCard }
+/** The ladder of one scrapper (CONTRACT_REV 11): `rank` is the number of bosses beaten, 0 to
+ *  LADDER_RUNGS (0 = Rank Zero); a boss is beaten once. A prize waits while `prizes` is shorter
+ *  than `rank`. */
+export interface LadderState { rank: number; prizes: LadderPrize[] }
+/** Why a boss cannot be fought now (`CoreApi.bossBlock`): already beaten, a lower boss still
+ *  stands, or the scrapper is below the rung's level gate. */
+export type BossBlock = "beaten" | "rank" | "level";
 
 /** Whole percentages. See the derived-values table of the rules. */
 export interface DerivedValues { evade: number; block: number; aim: number; pierce: number;

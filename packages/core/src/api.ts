@@ -3,7 +3,8 @@
  * checks that with `const check: CoreApi = impl` at integration.
  */
 import type { ContentTables, CoreApi } from "./contracts/api";
-import type { DayKey, FighterSnapshot, KitBase, Pick as Side2, ScrapperRecord } from "./contracts/fighter";
+import type { DayKey, FighterSnapshot, KitBase, LadderPrize, Pick as Side2, ScrapperRecord } from "./contracts/fighter";
+import { afterBoss, bossBlock, bossGate, bossSnapshot, ladderOf, prizeOffer, takePrize } from "./progress/ladder";
 import { GEAR } from "./content/gear";
 import { TALENTS } from "./content/talents";
 import { canRespec, respecTalents, rivalTalents, spendTalent, talentBlock, talentPointsAt } from "./progress/talents";
@@ -64,7 +65,8 @@ export const api: CoreApi = {
   canRespec,
   respecTalents,
   rivalTalents,
-  routeNode: (seed: number, picks: readonly Side2[], base?: KitBase, gearFrom?: number) => routeNode(seed, picks, base, gearFrom ?? 0),
+  routeNode: (seed: number, picks: readonly Side2[], base?: KitBase, gearFrom?: number, prizes?: readonly LadderPrize[]) =>
+    routeNode(seed, picks, base, gearFrom ?? 0, prizes ?? []),
   route,
   xpToNext,
   xpForBout,
@@ -78,6 +80,13 @@ export const api: CoreApi = {
   boutSeed,
   simulateFight,
   canonical,
+  ladderOf,
+  bossSnapshot,
+  bossGate,
+  bossBlock,
+  afterBoss,
+  prizeOffer,
+  takePrize,
 };
 
 export {
@@ -85,7 +94,13 @@ export {
   routeNode, xpToNext, xpForBout, energyNow, energyNextMs, afterBout, rivalSnapshot, tonightsCard, foundPerks,
   simulateFight, loadoutOf, withLoadout, defaultLoadout,
   talentPointsAt, talentBlock, spendTalent, canRespec, respecTalents, rivalTalents,
+  ladderOf, bossSnapshot, bossGate, bossBlock, afterBoss, prizeOffer, takePrize,
 };
+/** The ladder's helpers for the tools and the app (plan 13.10 item 1). */
+export { GATE_EVERY, GATE_FIRST, PRIZE_STAT_POINTS, ladderState } from "./progress/ladder";
+export { prizesOf } from "./progress/snapshot";
+export { BOSSES } from "./content/bosses";
+export type { BossDef } from "./content/bosses";
 /** The talent tree's helpers for the tools and the app (content v3 batch 3). */
 export { TALENT_FROM, TALENT_EVERY, branchBuild, branchFit, branchOrder, cleanRanks, rankOf, statsWithTalents, talentsOf } from "./progress/talents";
 export { TALENTS, tn, branchNodes } from "./content/talents";

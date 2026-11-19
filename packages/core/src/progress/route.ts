@@ -2,7 +2,7 @@
  * The Route (work package 1). The two cards at each level-up are a pure function of the fighter
  * seed and the picks taken before it. Nothing is stored but the picks; the kit is walked again.
  */
-import type { KitBase, Pick as Side2, RouteCard, RouteNode, StatBlock, StatKey } from "../contracts/fighter";
+import type { KitBase, LadderPrize, Pick as Side2, RouteCard, RouteNode, StatBlock, StatKey } from "../contracts/fighter";
 import type { PerkId } from "../contracts/ids";
 import { combineSeed, makeRng } from "../prng";
 import { GEAR_CARD_PCT, allowed, fits, rollGear, rollPerk, weaponShare } from "./perks";
@@ -118,7 +118,7 @@ function applyCard(d: StatsDraft, perks: PerkId[], card: RouteCard): void {
 /** Starts a kit from the seed and walks the picks; with a carried kit (`base`, an earlier build's,
  *  contracts/fighter.ts `KitBase`) it starts from that kit after its picks and walks the rest. The
  *  Route then holds only the level-ups walked here: the cards of the carried ones are not known. */
-export function walk(seed: number, picks: readonly Side2[], base?: KitBase, gearFrom = 0): Kit {
+export function walk(seed: number, picks: readonly Side2[], base?: KitBase, gearFrom = 0, prizes: readonly LadderPrize[] = []): Kit {
   const from = base !== undefined && base.picks <= picks.length ? base : undefined;
   const start = from === undefined ? startKit(seed) : (() => {
     const perks = [...from.perks];
@@ -131,7 +131,16 @@ export function walk(seed: number, picks: readonly Side2[], base?: KitBase, gear
   // (a carried kit's counts of cards are read off it: its perks past the start ones were perk cards)
   let perkCards = from === undefined ? 0 : Math.max(0, from.perks.length - from.starts);
   let statCards = from === undefined ? 0 : Math.max(0, from.picks - perkCards);
-  for (let k = from?.picks ?? 0; k < picks.length; k++) {
+  // Boss prizes (the ladder, CONTRACT_REV 11) join the kit after the picks they were taken after,
+  // before the next level-up's cards are made, so those cards know what the kit owns. A prize is
+  // not a Route card: it counts as neither a stat card nor a perk card.
+  const first0 = from?.picks ?? 0;
+  const prizesAt = (k: number, upTo: boolean): void => {
+    for (const p of prizes) if (upTo ? p.at <= k : p.at === k) applyCard(d, perks, p.card);
+  };
+  if (prizes.length > 0) prizesAt(first0, true);
+  for (let k = first0; k < picks.length; k++) {
+    if (k > first0 && prizes.length > 0) prizesAt(k, false);
     const cards = nodeCards(seed, k, picksKey(picks, k), perks, statCards, perkCards, gearFrom);
     const taken = picks[k]!;
     const card = taken === "L" ? cards.left : cards.right;
@@ -140,12 +149,15 @@ export function walk(seed: number, picks: readonly Side2[], base?: KitBase, gear
     if (card.kind === "perk") perkCards += 1;
     nodes.push({ level: k + 2, left: cards.left, right: cards.right, taken });
   }
+  // (prizes taken after the last pick; a prize stored past the picks, from a damaged save, too)
+  if (prizes.length > 0) for (const p of prizes) if (p.at >= picks.length && p.at > first0) applyCard(d, perks, p.card);
   return { stats: freeze(d), perks, startPerk: first, startSkill: second, nodes, statCards, perkCards };
 }
 
 /** The two cards after the given picks (from a carried kit, when there is one). Never rerolls. */
-export function routeNode(seed: number, picks: readonly Side2[], base?: KitBase, gearFrom = 0): { left: RouteCard; right: RouteCard } {
-  const kit = walk(seed, picks, base, gearFrom);
+export function routeNode(seed: number, picks: readonly Side2[], base?: KitBase, gearFrom = 0,
+  prizes: readonly LadderPrize[] = []): { left: RouteCard; right: RouteCard } {
+  const kit = walk(seed, picks, base, gearFrom, prizes);
   return nodeCards(seed, picks.length, picksKey(picks, picks.length), kit.perks, kit.statCards, kit.perkCards, gearFrom);
 }
 

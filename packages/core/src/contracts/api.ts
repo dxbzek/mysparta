@@ -4,7 +4,7 @@
  * Every function is pure: the same inputs give the same output on every engine.
  */
 import type { CompanionDef, GearDef, ShieldDef, SkillDef, TalentDef, WeaponDef } from "./content";
-import type { DayKey, TimeMs, FighterSnapshot, KitBase, Loadout, Look, LookRoll, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
+import type { BossBlock, DayKey, LadderPrize, TimeMs, FighterSnapshot, KitBase, Loadout, Look, LookRoll, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
   SnapshotSheet, TalentRanks } from "./fighter";
 import type { CompanionId, GearId, HeldId, PerkId, ShieldId, SkillId, TalentId } from "./ids";
 import type { BoutLog } from "./log";
@@ -77,9 +77,10 @@ export interface CoreApi {
   respecTalents(rec: ScrapperRecord, today: DayKey): ScrapperRecord;
   /** The sim's own talent ranks for a kit owning `perks` at `level` (rivals, docs/RULES.md 3c). */
   rivalTalents(seed: number, perks: readonly PerkId[], level: number): TalentRanks;
-  /** The two cards after the given picks (from the record's carried kit, `base`, when it has one).
+  /** The two cards after the given picks (from the record's carried kit, `base`, when it has one;
+   *  with the record's boss prizes, `prizes`, CONTRACT_REV 11, in the kit).
    *  A pure function of its inputs: it never rerolls. */
-  routeNode(seed: number, picks: readonly Pick[], base?: KitBase, gearFrom?: number): { left: RouteCard; right: RouteCard };
+  routeNode(seed: number, picks: readonly Pick[], base?: KitBase, gearFrom?: number, prizes?: readonly LadderPrize[]): { left: RouteCard; right: RouteCard };
 
   /** Every level-up taken so far, oldest first. */
   route(rec: ScrapperRecord): RouteNode[];
@@ -101,6 +102,27 @@ export interface CoreApi {
   foundPerks(records: readonly ScrapperRecord[]): PerkId[];
   boutSeed(aId: string, bId: string, lifetimeBouts: number): number;
   simulateFight(seed: number, a: FighterSnapshot, b: FighterSnapshot, rulesVersion: 1): BoutLog;
+  /** The ladder of a record (CONTRACT_REV 11): bosses beaten (0 = Rank Zero) and whether a boss
+   *  prize waits to be picked. */
+  ladderOf(rec: ScrapperRecord): { rank: number; prizeWaiting: boolean };
+  /** The hand-made boss of rung `rung` (1 = the Rank 10 boss, up to LADDER_RUNGS = the Rank 1 boss):
+   *  a fixed snapshot, the same on every call. Throws on a rung off the ladder. */
+  bossSnapshot(rung: number): FighterSnapshot;
+  /** The level a scrapper needs to challenge the boss of `rung`. */
+  bossGate(rung: number): number;
+  /** Null when the record may fight the boss of `rung` now (the next rung up, at or over its gate),
+   *  else why not. Energy, a waiting level-up and a waiting prize are the app's checks. */
+  bossBlock(rec: ScrapperRecord, rung: number): BossBlock | null;
+  /** After a boss bout: `afterBout` (one energy, the bout counted, its XP), and on a win over the
+   *  next rung's boss one rank up. */
+  afterBoss(rec: ScrapperRecord, rung: number, won: boolean, xp: 1 | 2, nowMs: TimeMs): ScrapperRecord;
+  /** The two prize cards of the boss prize that waits (left: a piece of gear; right: a Rare or
+   *  better weapon, skill, shield or pet; a stat card where nothing fits), or null with none
+   *  waiting. A pure function of the record. */
+  prizeOffer(rec: ScrapperRecord): { left: RouteCard; right: RouteCard } | null;
+  /** The record with the waiting prize taken (stored with the picks it was taken after); the same
+   *  record when none waits. */
+  takePrize(rec: ScrapperRecord, pick: Pick): ScrapperRecord;
   /** Stable JSON of a log. The SHA-256 is done by the test or the tool. */
   canonical(log: BoutLog): string;
 }

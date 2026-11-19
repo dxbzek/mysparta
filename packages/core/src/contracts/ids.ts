@@ -27,7 +27,12 @@ export const LOG_VERSION = 2 as const;
  *  `ContentTables.talents`, `CoreApi.talentPoints`/`spendTalent`/`respecTalents`/`canRespec`/
  *  `rivalTalents`), a capstone may name itself in a proc (`ProcId` adds `CapstoneId`), rig
  *  `IconRef` adds `talent:<id>`; the save is schema version 6. */
-export const CONTRACT_REV = 10;
+/** 10: content v3, batch 4 (plan 13.9, 13.12): the look editor (`ScrapperRecord.look`, `LOOK_SPACE`
+ *  grows, `LookRoll`); the save is schema version 7. */
+/** 11: the rank ladder with bosses (plan 13.10 item 1): `ScrapperRecord.ladder` (`LadderState`,
+ *  `LadderPrize`, `LADDER_RUNGS`, `BossBlock`), `CoreApi.ladderOf`/`bossSnapshot`/`bossGate`/
+ *  `bossBlock`/`afterBoss`/`prizeOffer`/`takePrize`; the save is schema version 8. */
+export const CONTRACT_REV = 11;
 
 export const REALM_SALT = "yard-1";
 /** Rivals in the pool at each level, index 0 to 239. */

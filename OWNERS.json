@@ -59,6 +59,7 @@
       "!packages/core/test/contracts.test.ts",
       "tools/find-bout.ts",
       "tools/balance-report.ts",
+      "tools/ladder-report.ts",
       "tools/parity/**",
       "docs/RULES.md"
     ],
