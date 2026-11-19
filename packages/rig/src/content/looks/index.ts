@@ -18,7 +18,7 @@
  */
 import type { AppearanceSet, ColourSlot, FaceId, Shape } from "../../contracts";
 import { BUILDS, HAIR_PIVOT, K, PROPORTION } from "../../gate/skeleton";
-import { HAIR_COLOUR, HAIR_COLOUR_MORE, PALETTES, PALETTES_MORE, SKIN, SKIN_MORE } from "../../gate/style";
+import { LOOK_SWATCHES } from "../../gate/style";
 import type { Poly, Pt } from "../../gate/vocab";
 import { ellipsePoly, inkLine, limb } from "../../gate/vocab";
 import { FOOT, PELVIS, SOLE, TORSO, fk } from "../../gate/parts/clothes";
@@ -666,9 +666,9 @@ export const CONTENT_LOOKS: AppearanceSet = {
   shoes: LOOK_SHOES,
   accessories: LOOK_ACCESSORIES,
   hands: HANDS,
-  skin: [...SKIN, ...SKIN_MORE],
-  hairColor: [...HAIR_COLOUR, ...HAIR_COLOUR_MORE],
-  palettes: [...PALETTES, ...PALETTES_MORE],
+  skin: LOOK_SWATCHES.skin,
+  hairColor: LOOK_SWATCHES.hairColor,
+  palettes: LOOK_SWATCHES.palettes,
   headwear: LOOK_HEADWEAR,
   crownwear: LOOK_CROWNWEAR,
 };

@@ -156,8 +156,7 @@ function partSheet(part: PartKey, from = 0): void {
       c.strokeRect(3, y0 + 3, W - 6, rowH - 6);
       const isNew = i >= LOOK_SPACE_V1[part];
       label(c, `${part} ${i}${isNew ? " NEW" : ""}`, 12, y0 + 24, 16, isNew ? ORANGE : CREAM);
-      const look: Look = { ...BASE, palette: 4 + (i % 8), skin: i % 10, hairColor: i % 12, [part]: i };
-      if (part === "accessory" || part === "face") look.hair = 1;
+      const look: Look = { ...BASE, palette: 4 + (i % 8), skin: i % 10, hairColor: i % 12, ...(part === "accessory" || part === "face" ? { hair: 1 } : {}), [part]: i };
       const step = HEADY.has(part) ? 150 : 205;
       for (let b = 0; b < 5; b++) fighter(env, c, { ...look, build: b }, 70 + b * step, y0 + rowH - 16, 3, { t: b * 100, facing: 1 });
       if (HEADY.has(part)) {

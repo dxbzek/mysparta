@@ -1,12 +1,15 @@
 /**
  * A. Landing and create (brief 3.4, 3.11 A). The name is the seed: the preview changes as the
- * player types. Two dice: "Shape" and "Colours". Stats and kit stay hidden until the player
- * confirms; then the reveal plays (4 s or less, tap to skip) and "To the Locker" appears.
+ * player types. Two dice: "Shape" and "Colours". "Pick each part" opens the look editor (content v3
+ * batch 4, plan 13.12) under the preview; a part picked there stays while the name changes (the
+ * look is cosmetic, the stats still come from the name), and a die rolls its half of the look
+ * again. Stats and kit stay hidden until the player confirms; then the reveal plays (4 s or less,
+ * tap to skip) and "To the Locker" appears.
  */
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { RARITY_OF, REALM_SALT } from "@rankzero/core";
-import type { ScrapperRecord, StatKey } from "@rankzero/core";
+import type { Look, ScrapperRecord, StatKey } from "@rankzero/core";
 import { useDoc, useGame } from "../../app/context";
 import { SLOT_LIMIT } from "../../state/schema";
 import { STAT_KEYS } from "../../text/stats";
@@ -18,6 +21,8 @@ import { StatBar } from "../../ui/StatBar";
 import { Sticker } from "../../ui/Sticker";
 import { reducedFrom } from "../../fight/reduced";
 import { DiceGlyph } from "../parts/Glyphs";
+import { LookEditor, takeParts } from "../parts/LookEditor";
+import { LOOK_WORDS } from "../../text/looks";
 import { PerkRow } from "../parts/Perk";
 import { useCountUp, useShortScreen } from "../parts/motion";
 import common from "../common.module.css";
@@ -59,7 +64,18 @@ export function CreateScreen() {
   const [made, setMade] = useState<ScrapperRecord | null>(null);
   const placeholder = useMemo(() => core.randomName(Math.floor(clock.now() / 86_400_000)), [core, clock]);
   const seedName = name.trim() || placeholder;
-  const look = useMemo(() => core.rollLook(core.fighterSeed(REALM_SALT, seedName), lookSalt, colourSalt), [core, seedName, lookSalt, colourSalt]);
+  const rolled = useMemo(() => core.rollLook(core.fighterSeed(REALM_SALT, seedName), lookSalt, colourSalt), [core, seedName, lookSalt, colourSalt]);
+  // the look editor's pick: null until a part is picked, then it holds the whole look
+  const [picked, setPicked] = useState<Look | null>(null);
+  const [editing, setEditing] = useState(false);
+  const look = picked ?? rolled;
+  /** A die: a new salt for its half; a picked look takes that half of the new roll. */
+  const roll = (which: "shape" | "colour"): void => {
+    const ls = which === "shape" ? lookSalt + 1 : lookSalt;
+    const cs = which === "colour" ? colourSalt + 1 : colourSalt;
+    if (which === "shape") setLookSalt(ls); else setColourSalt(cs);
+    if (picked) setPicked(takeParts(picked, core.rollLook(core.fighterSeed(REALM_SALT, seedName), ls, cs), which));
+  };
   const canBack = doc.fighters.length > 0;
   const wide = useWide();
 
@@ -82,7 +98,7 @@ export function CreateScreen() {
     }
     setBusy(true);
     try {
-      const r = await actions.create(chosen, lookSalt, colourSalt);
+      const r = await actions.create(chosen, lookSalt, colourSalt, look);
       if (r.ok) setMade(r.value);
       else setError(r.error === "name-taken" ? UI.create.errors.taken : r.error === "no-slot" ? UI.create.errors.slot : UI.create.errors.length);
     } catch (err) {
@@ -102,16 +118,24 @@ export function CreateScreen() {
       </header>
       <main className={css.main}>
         <div className={css.stageWrap}>
-          <Panel tone="dark" flush className={css.stage}>
+          <Panel tone="dark" flush className={`${css.stage} ${editing ? css.stageSticky : ""}`}>
             <ActorStage look={look} height={260} floorAt={0.86} window={{ w: wide ? 330 : 200, h: 130 }} label={UI.create.preview(seedName)} />
             <div className={css.stageName}>
               <Sticker tilt={-2}>{seedName.replace(/\s+/g, " ")}</Sticker>
             </div>
           </Panel>
           <div className={css.dice}>
-            <Button onClick={() => setLookSalt((n) => n + 1)}><DiceGlyph />{UI.create.shape}</Button>
-            <Button onClick={() => setColourSalt((n) => n + 1)}><DiceGlyph />{UI.create.colours}</Button>
+            <Button onClick={() => roll("shape")}><DiceGlyph />{UI.create.shape}</Button>
+            <Button onClick={() => roll("colour")}><DiceGlyph />{UI.create.colours}</Button>
           </div>
+          <Button pressed={editing} onClick={() => setEditing((e) => !e)} aria-expanded={editing} aria-controls="rz-look-editor">
+            {editing ? LOOK_WORDS.hide : LOOK_WORDS.edit}
+          </Button>
+          {editing ? (
+            <Panel className={css.editor}>
+              <div id="rz-look-editor"><LookEditor look={look} onChange={setPicked} id="look-create" /></div>
+            </Panel>
+          ) : null}
         </div>
         <form className={css.form} onSubmit={submit} noValidate>
           <Panel className={css.namePanel}>

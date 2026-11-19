@@ -275,3 +275,14 @@
     margin: 0 auto;
   }
 }
+
+/* the look editor under the preview (content v3 batch 4) */
+.editor {
+  min-width: 0;
+}
+/* while the editor is open the preview stays on screen above the parts */
+.stageSticky {
+  position: sticky;
+  top: 4px;
+  z-index: 2;
+}

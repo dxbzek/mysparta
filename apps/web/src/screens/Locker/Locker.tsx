@@ -14,6 +14,7 @@ import { SLOT_LIMIT } from "../../state/schema";
 import { resultLine } from "../../text/results";
 import { LOCKER_WORDS, UI } from "../../text/ui";
 import { TALENT_WORDS } from "../../text/talents";
+import { LOOK_WORDS } from "../../text/looks";
 import { Button } from "../../ui/Button";
 import { LockerView, clockOf } from "../../ui/LockerView";
 import { useTick } from "../parts/EnergyMeter";
@@ -103,6 +104,8 @@ export function LockerScreen() {
         onReplay={(id) => go({ name: "replay", id })}
         onAllBouts={() => go({ name: "bouts" })}
         onTab={(t) => go(tabRoute(t))}
+        onLook={() => go({ name: "look" })}
+        lookLabel={LOOK_WORDS.open}
       />
       </div>
       <Sheet open={perk !== null} title={UI.locker.perkSheet} onClose={() => setPerk(null)}>

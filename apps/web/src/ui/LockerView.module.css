@@ -288,3 +288,25 @@
   font-size: var(--fs-small);
   color: var(--t-on-dark-dim);
 }
+
+/* the look editor's way in (content v3 batch 4): a paper tag on the hero's lower right */
+.lookButton {
+  position: absolute;
+  right: 10px;
+  bottom: 46px;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-sticker);
+  color: var(--t-on-sticker);
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-hard-sm);
+  cursor: pointer;
+}
+.lookButton:active {
+  transform: translate(2px, 3px);
+  box-shadow: none;
+}

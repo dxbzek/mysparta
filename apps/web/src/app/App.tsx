@@ -22,6 +22,7 @@ import { createBackups, createSaveStore, requestPersist } from "../state/slots";
 import { createGameStore } from "../state/store";
 import { encodeSave } from "../state/saveCode";
 import { UI } from "../text/ui";
+import { LOOK_WORDS } from "../text/looks";
 import { loadFonts } from "../ui/fonts";
 import { CardScreen } from "../screens/Card/Card";
 import { CreateScreen } from "../screens/Create/Create";
@@ -71,6 +72,8 @@ export function retryable<P extends object = object>(load: () => Promise<{ defau
 const InventoryChunk = retryable<object>(() => import("../screens/Inventory/Inventory").then((m) => ({ default: m.InventoryScreen })));
 const SandboxChunk = retryable<object>(() => import("./debug/Sandbox").then((m) => ({ default: m.SandboxScreen })));
 const KitChunk = retryable<{ tab: KitTab }>(() => import("../screens/Kit/Kit").then((m) => ({ default: m.KitScreen })));
+/** The look editor from home (content v3 batch 4). */
+const LookChunk = retryable<object>(() => import("../screens/Look/Look").then((m) => ({ default: m.LookScreen })));
 const LevelUpChunk = retryable<object>(() => import("../screens/LevelUp/LevelUp").then((m) => ({ default: m.LevelUpScreen })));
 const BoutsChunk = retryable<object>(() => import("../screens/Bouts/Bouts").then((m) => ({ default: m.BoutsScreen })));
 /** The bout and the replay hold the fight screen and the whole stage: their own chunk, preloaded
@@ -259,7 +262,7 @@ function useFullRigAfterPaint(): void {
       timer = window.setTimeout(() => {
         void loadFullRig().catch((e: unknown) => console.warn("rig: the content art did not load yet", e));
         // the split screens too, so opening one later shows no loading frame
-        for (const c of [BoutChunk, ReplayChunk, LevelUpChunk, KitChunk, BoutsChunk, InventoryChunk, SettingsChunk]) c.preload();
+        for (const c of [BoutChunk, ReplayChunk, LevelUpChunk, KitChunk, BoutsChunk, InventoryChunk, SettingsChunk, LookChunk]) c.preload();
       }, 0);
     });
     return () => { cancelAnimationFrame(frame); window.clearTimeout(timer); };
@@ -312,6 +315,7 @@ function Screen({ route }: { route: Route }) {
     case "kit": return <LazyRoute key="kit" chunk={KitChunk} label={UI.kit.title} props={{ tab: route.tab }} />;
     case "bouts": return <LazyRoute key="bouts" chunk={BoutsChunk} label={UI.history.title} />;
     case "inventory": return <LazyRoute key="inventory" chunk={InventoryChunk} label={UI.inventory.title} />;
+    case "look": return <LazyRoute key="look" chunk={LookChunk} label={LOOK_WORDS.title} />;
     case "replay": return <LazyRoute key={`replay:${route.id}`} chunk={ReplayChunk} label={UI.appName} props={{ id: route.id }} />;
     case "sandbox": return <LazyRoute key="sandbox" chunk={SandboxChunk} label={UI.sandbox.title} />;
     case "settings": return <SettingsRoute />;

@@ -85,6 +85,13 @@ export const PALETTES_MORE: readonly Palette[] = [
   { top: "#9A5A32", bottom: "#1E3438", shoes: "#E8B07A", accent: "#4A8FD0" },   // rust and deep teal
   { top: "#D8C8A8", bottom: "#3E4A3A", shoes: "#5E4232", accent: "#B8352A" },   // bone and moss
 ];
+/** The look's colour lists as the content pack holds them (skins, hair colours, outfit palettes), for
+ *  the look editor's swatches (content v3 batch 4): the same values the rig paints with. */
+export const LOOK_SWATCHES = {
+  skin: [...SKIN, ...SKIN_MORE] as readonly string[],
+  hairColor: [...HAIR_COLOUR, ...HAIR_COLOUR_MORE] as readonly string[],
+  palettes: [...PALETTES, ...PALETTES_MORE] as readonly Palette[],
+} as const;
 /** Fixed colours of the other slots. The item colours (review round 2, 16 Nov 2026: "the stop
  *  sign is brown and the cone is cream") are the real objects' own paint under the sodium lamp:
  *  a road sign's red, a cone's safety orange, a lawn flamingo's pink, a paint tin's blue label. */
