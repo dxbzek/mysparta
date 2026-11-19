@@ -127,6 +127,18 @@ async function shootInner(browser, sizeName, base, ctx) {
   await shot("create-empty", 300);
   await page.locator("#rz-name").fill("Marla");
   await shot("create");
+  // the look editor at creation (content v3 batch 4): open it, pick a few parts
+  await btn("Pick each part").click();
+  await page.getByTestId("look-editor").waitFor();
+  await page.getByRole("button", { name: "Next build", exact: true }).click();
+  await page.getByRole("button", { name: "Next build", exact: true }).click();
+  await page.getByRole("button", { name: "Next build", exact: true }).click();
+  await page.getByRole("button", { name: "Previous hair", exact: true }).click();
+  await page.getByRole("button", { name: "Previous top", exact: true }).click();
+  await page.getByTestId("look-palette-14").click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await shot("create-look-editor", 600);
+  await page.evaluate(() => window.scrollTo(0, 0));
   await btn("Step into the Yard").click();
   await shot("reveal-playing", 1600);
   await btn("To the Locker").waitFor({ timeout: 10000 });
@@ -134,6 +146,17 @@ async function shootInner(browser, sizeName, base, ctx) {
   await btn("To the Locker").click();
   await page.waitForURL(/#\/locker$/);
   await shot("locker");
+  // the look editor from home (content v3 batch 4)
+  await page.getByTestId("change-look").click();
+  await page.waitForURL(/#\/look$/);
+  await page.getByTestId("look-editor").waitFor();
+  await shot("look", 700);
+  await page.getByRole("button", { name: "Next extra", exact: true }).click();
+  await page.getByRole("button", { name: "Next face", exact: true }).click();
+  await shot("look-changed", 400);
+  await btn("Save look").click();
+  await page.waitForTimeout(300);
+  await hash("#/locker");
   await hash("#/settings");
   await shot("settings");
   await hash("#/locker");

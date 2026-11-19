@@ -6,4 +6,6 @@
 export * from "./contracts";
 export { createRig } from "./engine/createRig";
 export { gatePack, palette } from "./gate/pack";
+/** The look's colour lists for the look editor's swatches (content v3 batch 4). */
+export { LOOK_SWATCHES } from "./gate/style";
 export { contentPack } from "./content/pack";

@@ -4,7 +4,8 @@
  * (CONTRACT_REV 5) carries an earlier build's kit (`ScrapperRecord.base`, see `pinKits`);
  * version 4 (CONTRACT_REV 7, content v3) has energy in place of the daily bout cap and six stats
  * (see `toEnergyAndSixStats`); version 5 (CONTRACT_REV 8) the loadout (`toLoadout`); version 6
- * (CONTRACT_REV 9) the talent tree (`toTalents`).
+ * (CONTRACT_REV 9) the talent tree (`toTalents`); version 7 (CONTRACT_REV 10) the stored look
+ * (`pinLooks`).
  *
  * A document from a NEWER build (a higher version than this code knows) is not understood: it is
  * reported as corrupt, so its bytes are kept, never replaced as if the save were empty.
@@ -33,7 +34,26 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   4: (doc) => toLoadout(doc),
   /** 5 to 6: an empty talent tree for every scrapper: the points its level earns wait unspent. */
   5: (doc) => toTalents(doc),
+  /** 6 to 7: every scrapper stores the look it was shown (the version-1 seeded roll). */
+  6: (doc) => pinLooks(doc),
 };
+
+/**
+ * Schema 6 to 7 (content v3, batch 4, plan 13.9 and 13.12). LOOK_SPACE grew, so today's seeded roll
+ * would draw most names into another look. Each scrapper, active or retired, gets the look it was
+ * shown stored as `look`: the version-1 roll of its seed and salts (`rollLook(..., 1)`, the roll
+ * every build before this one made over the old counts). Its kit, stats, loadout and talents stay as
+ * they were; stored bouts keep their snapshots. A record this step cannot read is left as it is.
+ */
+export function pinLooks(doc: Obj): Obj {
+  const lift = (r: unknown): unknown => {
+    if (!isObj(r) || r.look !== undefined || typeof r.seed !== "number" || typeof r.lookSalt !== "number" || typeof r.colourSalt !== "number") return r;
+    return { ...r, look: api.rollLook(r.seed, r.lookSalt, r.colourSalt, 1) };
+  };
+  return { ...doc,
+    fighters: Array.isArray(doc.fighters) ? doc.fighters.map(lift) : doc.fighters,
+    retired: Array.isArray(doc.retired) ? doc.retired.map(lift) : doc.retired };
+}
 
 /**
  * Schema 5 to 6 (content v3, batch 3, plan 13.11). Talent points come with levels (1 at level 3 and

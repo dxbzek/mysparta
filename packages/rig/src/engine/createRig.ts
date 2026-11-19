@@ -33,6 +33,7 @@ import { twoBone } from "./ik";
 import type { BendAmount, Body } from "./sample";
 import { clipTime, frameAt, hullAt, poseAt, sampleRaw } from "./sample";
 import { companionPortraitArt, iconArt, portraitArt } from "./svg";
+import { HAT_BRIM, INNER_BELLY, bellyD, cutAbove } from "./build";
 
 /** Length of the back arm, shoulder to wrist (figure units). */
 const BACK_ARM = Math.hypot(SCRAPPER_RIG.bones[BONE.armBlo]!.x, SCRAPPER_RIG.bones[BONE.armBlo]!.y)
@@ -80,6 +81,8 @@ const wrap = (i: number | undefined, n: number): number => (n <= 0 ? 0 : (((i ??
 const pick = <T>(list: readonly T[], i: number | undefined): T => list[wrap(i, list.length)]!;
 const LIMB_BONES = new Set(["armB.up", "armB.lo", "armF.up", "armF.lo", "legB.up", "legB.lo", "legF.up", "legF.lo"]);
 const TRUNK_BONES = new Set(["torso", "pelvis"]);
+/** The head and its hair take the build's `head` width (a heavy man's fuller face and neck). */
+const HEAD_BONES = new Set(["head", "hair"]);
 const GATE_FX: ReadonlySet<string> = new Set(["burst", "dust", "spark", "whoosh"]);
 
 /** A shape's bone and drawn frame: "chest@3" is drawn on "chest" only in frame 3 of a pet drawn
@@ -239,7 +242,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
 
   // --------------------------------------------------------------------------- figures
   interface Fig {
-    fr: Xf[]; wa: number[]; map: Xf; s: number; build: { scale: number; limb: number; torso: number };
+    fr: Xf[]; wa: number[]; map: Xf; s: number; build: { scale: number; limb: number; torso: number; belly?: number; head?: number; seat?: number; leg?: number };
     rot: number[]; held: HeldId; art: WeaponArt | null; backLeads: boolean; facing: 1 | -1;
     /** 1 while the back hand holds a two-hand item's grip2, 0 once it has let go. */
     hold2: number;
@@ -724,12 +727,21 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       if (arm && armsTo !== undefined && (s.slot === "skin" || s.slot === "top")) recolour.set(s, armsTo);
       else if (topTo !== undefined && s.slot === "top") recolour.set(s, topTo);
     }
-    for (const s of bottoms) if (bottomTo !== undefined && s.slot === "bottom") recolour.set(s, bottomTo);
+    // trousers worn as gear cover the legs a short look part leaves bare (shorts, rolled hems)
+    for (const s of bottoms) if (bottomTo !== undefined && (s.slot === "bottom" || (s.slot === "skin" && s.bone.startsWith("leg")))) recolour.set(s, bottomTo);
+    // an accessory worn on the head comes off under head gear; a hat (gear or accessory) cuts the
+    // hair at its brim (content v3 batch 4)
+    const acc = wrap(look?.accessory, looks.accessories.length);
+    const accOff = hide.has("accessory") || (hide.has("headwear") && (looks.headwear ?? []).includes(acc))
+      || (hide.has("eyewear") && (looks.eyewear ?? []).includes(acc));
+    const crown = hide.has("crown") || (!accOff && (looks.crownwear ?? []).includes(acc));
+    const hair0 = hide.has("hair") ? [] : pick(looks.hair, look?.hair);
+    const hairShapes = crown ? hair0.map((h) => ({ ...h, d: cutAbove(h.d, HAT_BRIM) })).filter((h) => h.d !== "") : hair0;
     const shapes: Shape[] = [
-      ...pick(looks.heads, look?.head), ...(hide.has("hair") ? [] : pick(looks.hair, look?.hair)),
+      ...pick(looks.heads, look?.head), ...hairShapes,
       ...(hide.has("face") ? [] : (faces[pose.face as FaceId] ?? faces.neutral)),
       ...tops, ...bottoms, ...(hide.has("shoes") ? [] : pick(looks.shoes, look?.shoes)),
-      ...(hide.has("accessory") ? [] : pick(looks.accessories, look?.accessory)), ...looks.hands,
+      ...(accOff ? [] : looks.accessories[acc] ?? []), ...looks.hands,
       ...worn.flatMap((g) => g.shapes),
     ];
     for (const sh0 of shapes) {
@@ -747,14 +759,19 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
         if (boneId === "handF") z = sh.z - 40; else if (boneId === "handB") z = sh.z + 40;
         if (boneId.startsWith("armF")) z = sh.z - 40; else if (boneId.startsWith("armB")) z = sh.z + 40;
       }
-      const kx = LIMB_BONES.has(boneId) ? f.build.limb : TRUNK_BONES.has(boneId) ? f.build.torso : 1;
-      const xf = mul(mul(f.map, f.fr[bi]!), scaleXf(kx, 1));
+      const kx = LIMB_BONES.has(boneId) ? (boneId.startsWith("leg") ? (f.build.leg ?? f.build.limb) : f.build.limb) : TRUNK_BONES.has(boneId) ? f.build.torso : HEAD_BONES.has(boneId) ? (f.build.head ?? 1) : 1;
+      // a heavy build's seat: the pelvis drawn deeper too, so its wide thighs stay covered at the hip
+      const ky = boneId === "pelvis" ? (f.build.seat ?? 1) : 1;
+      const xf = mul(mul(f.map, f.fr[bi]!), scaleXf(kx, ky));
       const lit = slotColour(sh.slot, colours);
       const side = boneId.startsWith("arm") || boneId.startsWith("leg") ? boneId[3] : boneId.startsWith("hand") || boneId.startsWith("foot") ? boneId[4] : null;
       const isArm = boneId.startsWith("arm") || boneId.startsWith("hand");
       const veil = side !== null && side === (isArm && f.backLeads ? "F" : "B");
-      const p: Paint = { d: sh.d, z, xf, lit, shade: shadeOf(lit), ink: sh.slot === "ink", veil, tag: boneId, kx };
-      if (sh.shade !== undefined) p.extra = sh.shade;
+      // a layer under the top (the shirt in an open jacket) follows the belly a little less, so
+      // the jacket's own edge stays round it and the shirt shows inside the opening, not past it
+      const belly = boneId === "torso" ? (f.build.belly ?? 0) * (sh0.slot === "accent" || sh0.slot === "skin" ? INNER_BELLY : 1) : 0;
+      const p: Paint = { d: belly > 0 ? bellyD(sh.d, belly) : sh.d, z, xf, lit, shade: shadeOf(lit), ink: sh.slot === "ink", veil, tag: boneId, kx };
+      if (sh.shade !== undefined) p.extra = belly > 0 ? bellyD(sh.shade, belly) : sh.shade;
       parts.push(p);
     }
     // what the hands hold

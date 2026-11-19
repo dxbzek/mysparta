@@ -27,7 +27,7 @@ export const LOG_VERSION = 2 as const;
  *  `ContentTables.talents`, `CoreApi.talentPoints`/`spendTalent`/`respecTalents`/`canRespec`/
  *  `rivalTalents`), a capstone may name itself in a proc (`ProcId` adds `CapstoneId`), rig
  *  `IconRef` adds `talent:<id>`; the save is schema version 6. */
-export const CONTRACT_REV = 9;
+export const CONTRACT_REV = 10;
 
 export const REALM_SALT = "yard-1";
 /** Rivals in the pool at each level, index 0 to 239. */

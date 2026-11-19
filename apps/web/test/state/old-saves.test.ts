@@ -17,7 +17,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { FighterSnapshot, KitBase, PerkId, ScrapperRecord, StatBlock } from "@rankzero/core";
+import type { FighterSnapshot, KitBase, Look, PerkId, ScrapperRecord, StatBlock } from "@rankzero/core";
 import { COMPANION_IDS, ENERGY_MAX, api, routeNode, sheetOf, snapshotOf } from "@rankzero/core";
 import { readDoc } from "../../src/state/migrations";
 import { memGame } from "./helpers";
@@ -61,11 +61,11 @@ describe.each(["aac2d64", "1681640"])("a schema-2 save written by build %s", (c)
     expect(changed).toBe(true);
   });
 
-  it("loads (now as schema 6), every scrapper keeping its level, picks, record, kit, stats and pets, with a full bar", () => {
+  it("loads (now as schema 7), every scrapper keeping its level, picks, record, kit, stats and pets, with a full bar", () => {
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(6);
+    expect(r.doc.schemaVersion).toBe(7);
     expect(r.doc.fighters.map((f) => f.id)).toEqual(fx.doc.fighters.map((f) => f.id));
     expect(r.doc.history).toHaveLength(2);
     for (const [k, f] of r.doc.fighters.entries()) {
@@ -129,11 +129,11 @@ describe("a schema-3 save written by build 74fc265 (sim version 7)", () => {
     expect(JSON.stringify(now.perks) !== JSON.stringify(was.perks) || JSON.stringify(four(now.stats)) !== JSON.stringify(four(was.stats))).toBe(true);
   });
 
-  it("loads (now as schema 6): every scrapper, active and retired, keeps its exact kit with Toughness 3 and Precision 3 added", () => {
+  it("loads (now as schema 7): every scrapper, active and retired, keeps its exact kit with Toughness 3 and Precision 3 added", () => {
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(6);
+    expect(r.doc.schemaVersion).toBe(7);
     expect(r.doc.retired.map((f) => f.name)).toEqual(["Kip Ladle"]);
     for (const f of [...r.doc.fighters, ...r.doc.retired]) {
       const old = [...fx.doc.fighters, ...fx.doc.retired].find((o) => o.id === f.id)!;
@@ -243,7 +243,7 @@ describe("a schema-4 save written by build b13cbf4 (sim version 8, content v3 ba
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(6);
+    expect(r.doc.schemaVersion).toBe(7);
     for (const rec of [...r.doc.fighters, ...r.doc.retired]) {
       const was = fx.expect[rec.name]!;
       const now = snapshotOf(rec);
@@ -321,7 +321,7 @@ describe("a schema-5 save written by build 77dc0d0 (sim version 9, content v3 ba
     const r = readDoc(JSON.stringify(fx.doc));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.doc.schemaVersion).toBe(6);
+    expect(r.doc.schemaVersion).toBe(7);
     const byId = new Map(all.map((x) => [x.id, x]));
     for (const rec of [...r.doc.fighters, ...r.doc.retired]) {
       const was = fx.expect[rec.name]!;
@@ -350,5 +350,68 @@ describe("a schema-5 save written by build 77dc0d0 (sim version 9, content v3 ba
     const back = readDoc(JSON.stringify({ ...r.doc, fighters: r.doc.fighters.map((f) => (f.id === bo.id ? spent : f)) }));
     expect(back.ok && back.doc.fighters.find((f) => f.id === bo.id)!.talents).toEqual({ ranks: { "thick-skin": 1, brace: 1 } });
     void g;
+  });
+});
+
+/**
+ * Schema 6 to 7 (content v3, batch 4, plan 13.9 and 13.12). LOOK_SPACE grew and today's seeded roll
+ * draws most names into another look. The fixture is a save as build 436c0a8 (sim version 10, content
+ * v3 batch 3) wrote it through its own actions: Pax Hinge made, levelled to 5 and retired; Wren Bolt
+ * (level 10, talents spent), Ivo Crank (level 7, a stored loadout, talents spent) and Juno Spoke
+ * (level 4) made and fought there; the history cut to its newest 20 rows. `expect` holds that build's
+ * snapshotOf of each, `looks` its rollLook of each. With the migration each stores exactly the look it
+ * was shown, and keeps its kit, stats, loadout and talents.
+ */
+describe("a schema-6 save written by build 436c0a8 (sim version 10, content v3 batch 3)", () => {
+  interface Fixture6 { build: string; simVersion: number; doc: { fighters: ScrapperRecord[]; retired: ScrapperRecord[]; schemaVersion: number } & Record<string, unknown>;
+    expect: Record<string, FighterSnapshot>; looks: Record<string, Look> }
+  const fx = load<Fixture6>("436c0a8");
+  const all = [...fx.doc.fighters, ...fx.doc.retired];
+
+  it("is a real schema-6 save of sim version 10, and today's roll would change most of its looks (the test is not empty)", () => {
+    expect(fx.doc.schemaVersion).toBe(6);
+    expect(fx.simVersion).toBe(10);
+    expect(all.length).toBe(4);
+    expect(fx.doc.retired.length).toBe(1);
+    for (const r of all) expect("look" in r, r.name).toBe(false);   // no record stores a look yet (only bout snapshots do)
+    const moved = all.filter((r) => JSON.stringify(api.rollLook(r.seed, r.lookSalt, r.colourSalt)) !== JSON.stringify(fx.looks[r.name]));
+    expect(moved.length).toBeGreaterThanOrEqual(3);
+    for (const r of all) expect(fx.expect[r.name]!.look, r.name).toEqual(fx.looks[r.name]);
+  });
+
+  it("loads as schema 7, every scrapper storing exactly the look it had, its kit, stats, loadout and talents unchanged", () => {
+    const r = readDoc(JSON.stringify(fx.doc));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.doc.schemaVersion).toBe(7);
+    const byId = new Map(all.map((x) => [x.id, x]));
+    for (const rec of [...r.doc.fighters, ...r.doc.retired]) {
+      const was = fx.expect[rec.name]!;
+      expect(rec.look, rec.name).toEqual(fx.looks[rec.name]);
+      expect(api.lookOf(rec), rec.name).toEqual(fx.looks[rec.name]);
+      expect(snapshotOf(rec), rec.name).toEqual(was);
+      const old = byId.get(rec.id)!;
+      expect(rec.loadout, rec.name).toEqual(old.loadout);
+      expect(rec.talents, rec.name).toEqual(old.talents);
+      expect(rec.picks, rec.name).toEqual(old.picks);
+    }
+    expect(r.doc.history.length).toBe((fx.doc.history as unknown[]).length);
+    expect(r.doc.activeId).toBe(fx.doc.activeId);
+  });
+
+  it("keeps the pinned look through a save round trip, and the editor can change it after", async () => {
+    const r = readDoc(JSON.stringify(fx.doc));
+    if (!r.ok) throw new Error(r.why);
+    const back = readDoc(JSON.stringify(r.doc));
+    expect(back.ok).toBe(true);
+    if (!back.ok) return;
+    for (const rec of back.doc.fighters) expect(rec.look, rec.name).toEqual(fx.looks[rec.name]);
+    const wren = back.doc.fighters.find((f) => f.name === "Wren Bolt")!;
+    const picked: Look = { ...wren.look!, build: 3, hair: 15, top: 12 };
+    const changed = api.withLook(wren, picked);
+    expect(snapshotOf(changed).look).toEqual(picked);
+    expect(snapshotOf(changed).stats).toEqual(fx.expect["Wren Bolt"]!.stats);
+    const again = readDoc(JSON.stringify({ ...back.doc, fighters: back.doc.fighters.map((f) => (f.id === wren.id ? changed : f)) }));
+    expect(again.ok && again.doc.fighters.find((f) => f.id === wren.id)!.look).toEqual(picked);
   });
 });

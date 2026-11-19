@@ -110,6 +110,9 @@ export interface LockerViewProps {
   onReplay(id: string): void;
   onAllBouts(): void;
   onTab(tab: LockerTab): void;
+  /** The look editor (content v3 batch 4): a "Change look" button on the hero. */
+  onLook?(): void;
+  lookLabel?: string;
 }
 
 const KIT_SHOWN = 6;
@@ -144,6 +147,9 @@ export function LockerView(p: LockerViewProps) {
             <Sticker tilt={-2}>{p.name}</Sticker>
             <Sticker tone="hazard" tilt={1.5}>{t.level(p.level)}</Sticker>
           </div>
+          {p.onLook !== undefined ? (
+            <button type="button" className={css.lookButton} onClick={p.onLook} data-testid="change-look">{p.lookLabel ?? "Change look"}</button>
+          ) : null}
           <div className={css.xp}>
               <span className={css.xpLabel}>{t.xp}</span>
               <span className={css.xpTrack} role="progressbar" aria-label={t.xp} aria-valuemin={0} aria-valuemax={p.xpToNext} aria-valuenow={p.xp}>

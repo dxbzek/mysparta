@@ -14,12 +14,22 @@ export interface StatBlock {
 
 /**
  * How many choices each part of a look has. A Look holds one index per part, 0 to count - 1.
- * Builds are in the brief's order: 0 lean, 1 stocky, 2 tall. Accessory 0 is "none".
- * Shapes (build, head, hair, face, top, bottom, shoes, accessory) come from the look salt,
- * colours (skin, hairColor, palette) from the colour salt.
+ * Builds are in the brief's order: 0 lean, 1 stocky, 2 tall, then (content v3 batch 4) 3 heavy,
+ * 4 wiry. Accessory 0 is "none". Shapes (build, head, hair, face, top, bottom, shoes, accessory)
+ * come from the look salt, colours (skin, hairColor, palette) from the colour salt.
+ * Content v3 batch 4 (CONTRACT_REV 10, plan 13.9) grew every count; a part keeps its index (new
+ * parts are added at the end of each list), so a look written before still draws the same.
  */
-export const LOOK_SPACE = { build: 3, head: 6, hair: 10, face: 8, top: 8, bottom: 5, shoes: 4,
+export const LOOK_SPACE = { build: 5, head: 10, hair: 18, face: 14, top: 16, bottom: 10, shoes: 8,
+  accessory: 14, skin: 10, hairColor: 12, palette: 24 } as const;
+/** The counts before CONTRACT_REV 10. The seeded roll of version 1 (`rollLook(..., 1)`) draws inside
+ *  these, so a record from before the look editor keeps the look it was shown (save schema 7). */
+export const LOOK_SPACE_V1 = { build: 3, head: 6, hair: 10, face: 8, top: 8, bottom: 5, shoes: 4,
   accessory: 6, skin: 8, hairColor: 8, palette: 12 } as const;
+/** Which seeded roll: 1 draws in LOOK_SPACE_V1 (records from before CONTRACT_REV 10), 2 in LOOK_SPACE. */
+export type LookRoll = 1 | 2;
+/** The roll of today's content: rivals and a new scrapper's starting look. */
+export const LOOK_ROLL: LookRoll = 2;
 export type Look = { readonly [K in keyof typeof LOOK_SPACE]: number };
 /** One level-up choice: the left or the right card. (This name hides TypeScript's own `Pick<T, K>`
  *  in any file that imports it. Import it under another name where that utility type is needed.) */
@@ -86,6 +96,11 @@ export interface ScrapperRecord {
   gearFrom?: number;
   /** The talent tree (CONTRACT_REV 9). Absent: nothing spent, no respec used. */
   talents?: TalentPicks;
+  /** The look the player picked (CONTRACT_REV 10, the look editor, plan 13.12). A record made by
+   *  this build always has one; the save migration to schema 7 pins every older record's seeded
+   *  look here (`rollLook(seed, lookSalt, colourSalt, 1)`). Absent: that version-1 roll (`lookOf`).
+   *  Cosmetic only: the stats still come from the name (the seed). */
+  look?: Look;
 }
 
 /** Whole percentages. See the derived-values table of the rules. */

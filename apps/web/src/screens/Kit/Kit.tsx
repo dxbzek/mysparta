@@ -19,6 +19,7 @@ import { shownRecord } from "../../state/actions";
 import { DERIVED_CAP, DERIVED_KEYS, DERIVED_LINE, DERIVED_NAME, DERIVED_POINTS, HOW_BOUTS_WORK, STAT_KEYS, STAT_LINE } from "../../text/stats";
 import { LOCKER_WORDS, UI } from "../../text/ui";
 import { TALENT_WORDS } from "../../text/talents";
+import { LOOK_WORDS } from "../../text/looks";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
 import { Portrait } from "../../ui/Portrait";
@@ -42,7 +43,7 @@ export function KitScreen({ tab }: { tab: KitTab }) {
   const doc = useDoc();
   const rec = activeRecord(doc);
   const shown = rec ? shownRecord(doc, rec) : null;
-  const sheet = useMemo(() => (shown ? core.sheetOf(shown) : null), [core, shown?.id, shown?.picks.length, shown?.xp, JSON.stringify(shown?.loadout), JSON.stringify(shown?.talents)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sheet = useMemo(() => (shown ? core.sheetOf(shown) : null), [core, shown?.id, shown?.picks.length, shown?.xp, JSON.stringify(shown?.loadout), JSON.stringify(shown?.talents), JSON.stringify(shown?.look)]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!rec || !shown || !sheet) return null;
   return (
     <div className={`${common.screen} ${common.wide}`}>
@@ -52,7 +53,9 @@ export function KitScreen({ tab }: { tab: KitTab }) {
           <span className={common.kicker}>{rec.name} · {UI.level(sheet.level)}</span>
           <h1 className={common.h1}>{UI.kit.title}</h1>
         </div>
-        <Portrait look={sheet.look} size={44} label={rec.name} />
+        <button type="button" className={css.lookPortrait} onClick={() => go({ name: "look" })} aria-label={LOOK_WORDS.editLabel(rec.name)}>
+          <Portrait look={sheet.look} size={44} label={rec.name} />
+        </button>
       </header>
       <div className={css.tabs} role="tablist" aria-label={UI.kit.title}>
         {TABS.map((t) => (
@@ -113,7 +116,7 @@ function KitTabView({ rec, perks }: { rec: ScrapperRecord; perks: PerkId[] }) {
         <Panel title={UI.kit.retiredList}>
           <ul className={css.retired}>
             {doc.retired.slice(0, 20).map((r) => (
-              <li key={r.id}><Portrait look={core.rollLook(r.seed, r.lookSalt, r.colourSalt)} size={32} label="" /><span>{r.name}</span><span className={css.retiredLevel}>{UI.level(1 + r.picks.length)}</span></li>
+              <li key={r.id}><Portrait look={core.lookOf(r)} size={32} label="" /><span>{r.name}</span><span className={css.retiredLevel}>{UI.level(1 + r.picks.length)}</span></li>
             ))}
           </ul>
         </Panel>

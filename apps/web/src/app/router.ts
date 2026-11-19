@@ -15,6 +15,7 @@ export type Route =
   | { name: "kit"; tab: KitTab }        // #/kit, #/kit/talents, #/kit/route, #/kit/stats
   | { name: "bouts" }                   // #/bouts       History
   | { name: "inventory" }               // #/inventory   every perk, unlocked or not
+  | { name: "look" }                    // #/look        the look editor (content v3 batch 4)
   | { name: "replay"; id: string }      // #/replay/<id>
   | { name: "sandbox" }                 // #/sandbox     debug: a hand-built bout, never saved
   | { name: "unknown"; hash: string };
@@ -32,6 +33,7 @@ export function parseRoute(hash: string): Route {
     case "levelup": return { name: "levelup" };
     case "bouts": return { name: "bouts" };
     case "inventory": return { name: "inventory" };
+    case "look": return { name: "look" };
     case "sandbox": return { name: "sandbox" };
     case "kit": return { name: "kit", tab: b === "route" || b === "stats" || b === "loadout" || b === "gear" || b === "talents" ? b : "kit" };
     case "bout": return b ? { name: "bout", id: b } : { name: "unknown", hash };

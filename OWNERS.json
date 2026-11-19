@@ -69,6 +69,7 @@
       "packages/rig/test/gate/**",
       "tools/contact-sheet.ts",
       "tools/gear-sheet.ts",
+      "tools/look-sheet.ts",
       "tools/spacing-chart.ts",
       "docs/ART.md"
     ],
@@ -112,6 +113,7 @@
       "apps/web/src/text/results.ts",
       "apps/web/src/text/ui.ts",
       "apps/web/src/text/talents.ts",
+      "apps/web/src/text/looks.ts",
       "apps/web/test/state/**",
       "apps/web/test/app/**",
       "apps/web/test/screens/**",

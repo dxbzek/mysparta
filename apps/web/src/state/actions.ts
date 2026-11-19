@@ -11,7 +11,7 @@
  *     it is watched or skipped.
  */
 import { REALM_SALT, api } from "@rankzero/core";
-import type { CoreApi, FighterSnapshot, Loadout, Pick as Side2, ScrapperRecord, TalentBlock, TalentId } from "@rankzero/core";
+import type { CoreApi, FighterSnapshot, Loadout, Look, Pick as Side2, ScrapperRecord, TalentBlock, TalentId } from "@rankzero/core";
 import type { BoutRecord, Clock, GameActions, Result, SaveDoc, Settings } from "../contracts";
 import { decodeSave, encodeSave } from "./saveCode";
 import { SLOT_LIMIT, emptyDoc, trimHistory } from "./schema";
@@ -90,7 +90,7 @@ export function createGameActions(deps: ActionDeps): AppActions {
   };
 
   return {
-    create(name: string, lookSalt: number, colourSalt: number) {
+    create(name: string, lookSalt: number, colourSalt: number, look?: Look) {
       const checked = core.checkName(name);
       if (!checked.ok) return Promise.resolve(fail("bad-name" as const));
       const today = clock.today();
@@ -104,7 +104,7 @@ export function createGameActions(deps: ActionDeps): AppActions {
           if (i > 20) throw new Error("create: could not make a fresh id");
           id = newId(clock.now() + i + 1);
         }
-        const rec = core.createRecord({ id, name: checked.name, realmSalt: realm, lookSalt, colourSalt, today, nowMs });
+        const rec = core.createRecord({ id, name: checked.name, realmSalt: realm, lookSalt, colourSalt, today, nowMs, ...(look !== undefined ? { look } : {}) });
         return { doc: { ...doc, fighters: [...doc.fighters, rec], activeId: rec.id }, value: ok(rec) };
       });
     },
@@ -162,6 +162,16 @@ export function createGameActions(deps: ActionDeps): AppActions {
         const rec = find(doc, id);
         if (!rec) return { doc: null, value: fail("no-scrapper" as const) };
         return { doc: put(doc, core.withLoadout(rec, loadout)), value: ok(undefined) };
+      });
+    },
+
+    setLook(id: string, look: Look) {
+      return store.commit<Result<void, "no-scrapper">>((doc) => {
+        const rec = find(doc, id);
+        if (!rec) return { doc: null, value: fail("no-scrapper" as const) };
+        const next = core.withLook(rec, look);
+        if (JSON.stringify(next.look) === JSON.stringify(rec.look)) return { doc: null, value: ok(undefined) };
+        return { doc: put(doc, next), value: ok(undefined) };
       });
     },
 

@@ -393,6 +393,50 @@ The talent tree (plan 13.11) is drawn in the same style 13 as the rest: one scro
 - **The Level path** is a tree too: a wooden trunk down the middle of an asphalt panel, a tape knot per level, the card taken on a lit yellow limb to the left, the card left behind on a dashed dead limb to the right, greyed. A level that gave a talent point wears a small orange hex tag.
 - **On stage** a capstone that fires shows its tag like a skill's: its name and its icon.
 
+## Look variants (content v3, batch 4)
+
+`content/looks/index.ts` holds the full look space (plan 13.9), every part drawn in style 13 by one
+hand. **A part keeps its index**: new parts go at the end of each list, so a look stored before
+draws the same drawing (`test/content/looks.test.ts` pins a digest of the first entries, measured on
+build 436c0a8's own pack).
+
+- **Builds** (`BUILDS` in gate/skeleton.ts): lean, stocky, tall, then **heavy** (scale 1.05, arms
+  1.62, legs 1.45, trunk 1.72, a belly 0.85, head 1.22, seat 1.5; owner, 19 Nov 2026: heavy must read
+  apart from stocky at fight size) and **wiry** (scale 1.02, limbs 0.78, trunk 0.8, head
+  0.95). A build changes widths only, never lengths, so every clip, grip and aim fits it; none is
+  taller than the tall build. The belly (`engine/build.ts`) pushes the front of the trunk forward
+  round the stomach (and the back, the flanks, by a third of that), fullest just above the belt and
+  gone by the chest, point by point in the torso bone's frame: every top and every vest worn as gear
+  follow the same curve; a layer under the top (an open jacket's shirt) takes 80% of it, so the
+  jacket's edge rims the belly. `head` widens the head and neck across the head bone; `seat` draws
+  the pelvis deeper so wide thighs stay covered at the hip pins; `leg` sets the legs' width apart
+  from the arms'.
+- **Heads 10** (+ round and full with a double chin, a lantern jaw with a cleft, a boxer with a flat
+  nose and a cauliflower ear, a young narrow face), each outline on the gate head's 20 landmarks so
+  the faces sit on every head. **Faces 14** (+ tired, scowl, stubble as a scatter of fine dots, a
+  black eye in `bruise`, a stitched cheek, a smirk). **Hair 18** (+ long and loose, afro, locks, flat
+  top, cornrows, undercut, ponytail with a tie, bald on top).
+- **Tops 16** (+ zip hoodie open over a tee, puffer vest over a dark long sleeve, bomber, ribbed cream
+  tank top, work shirt with rolled sleeves, cut-off hoodie, anorak with a chest band, short-sleeve
+  work shirt with a name patch). **Bottoms 10** (+ cargo shorts, baggy jeans with turn-ups, camo,
+  rolled chinos showing the ankle, carpenter trousers). **Shoes 8** (+ runners, combat boots, slip-ons,
+  chelsea boots). A tall boot's shaft rides on the shin bone, so it bends at the ankle with the leg.
+- **Accessories 14** (+ cap, beanie with a bobble, a chain round the neck drawn over the collar and
+  under the arms, dark glasses, headphones, a neck tattoo, bandages, a hoop earring and a pale scar).
+- **Colours**: 10 skins, 12 hair colours (dark blond, platinum, ginger, a dyed slate blue added),
+  24 outfit palettes (`LOOK_SWATCHES` in gate/style.ts, also the look editor's swatches).
+- **Hats and gear over the new parts.** A cap or a beanie (`AppearanceSet.crownwear`) and a hat worn
+  as gear (`hide: ["crown"]`: hard hat, beanie) cut the hair at the brim (`HAT_BRIM`, the hair bone's
+  frame), so an afro or a mohawk never stands up through a hat; what hangs below stays. Head gear
+  that hides `headwear` takes off an accessory worn on the head (`AppearanceSet.headwear`), goggles
+  take off glasses (`eyewear`), a full-face helmet hides hair, face and accessory. Footwear hides the
+  shoes and a tall boot's shaft with them; trousers worn as gear repaint the bare legs a short bottom
+  leaves (shorts, rolled hems); jackets repaint bare arms; gloves the hands.
+- `pnpm look-sheet [--out dir] [--only part] [--new]`: 24 random looks at phone stage size and 2x,
+  the five builds in idle, a swing at contact and the KO, every part on the five builds with a head
+  close-up, and the colours. `pnpm gear-sheet --build 3|4` (all 30 pieces on heavy or wiry) and
+  `--new` (over the batch-4 parts). Open every sheet after a change.
+
 ## Checking art
 
 - `pnpm sheet --mode a1 | joints | keys | frames | onion | video | use | all` and

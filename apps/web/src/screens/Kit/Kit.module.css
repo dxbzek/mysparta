@@ -327,3 +327,15 @@
   font: 900 14px / 1 var(--font-display);
   box-shadow: var(--shadow-hard-sm);
 }
+
+/* the portrait in the header opens the look editor (content v3 batch 4) */
+.lookPortrait {
+  display: grid;
+  place-items: center;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}

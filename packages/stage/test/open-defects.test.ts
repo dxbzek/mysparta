@@ -129,9 +129,11 @@ describe("stage defects from the round-2 sim (versions 4 to 6)", () => {
 
   // sim version 8 (content v3)
   // sim version 10 (content v3 batch 3; under version 9: flinch in level 10 n 3 and level 30 n 19,
-  // 23, 30, 35, footwork in level 30 n 26, 52, 58, 81)
-  for (const [level, n, what] of [[10, 3, "flinch"], [30, 4, "flinch"], [30, 6, "flinch"], [30, 9, "flinch"],
-    [30, 30, "flinch"], [30, 32, "footwork"], [30, 41, "footwork"], [30, 52, "footwork"], [30, 58, "footwork"]] as const) {
+  // 23, 30, 35, footwork in level 30 n 26, 52, 58, 81). Re-pinned for content v3 batch 4: rivals roll
+  // today's looks (five builds), which moved two scenes away (level 30 n 9's flinch and n 52's
+  // footwork no longer slide); the same checks are pinned on level 30 n 21 and n 81.
+  for (const [level, n, what] of [[10, 3, "flinch"], [30, 4, "flinch"], [30, 6, "flinch"], [30, 21, "flinch"],
+    [30, 30, "flinch"], [30, 32, "footwork"], [30, 41, "footwork"], [30, 81, "footwork"], [30, 58, "footwork"]] as const) {
     it.fails(`no foot slides in a ${what} in find-bout level ${level} n ${n}`, () => {
       const p = foundPlayer(level, n);
       const bad = what === "flinch" ? slides(p, FULL, 1, { only: new Set(["hit-light", "hit-heavy"]) }) : slides(p, FULL);
