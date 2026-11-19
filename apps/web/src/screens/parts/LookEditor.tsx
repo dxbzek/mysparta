@@ -6,6 +6,7 @@
  * preview is the caller's (the Create stage, the Look screen's stage): the same rig the fight uses.
  * Looks are cosmetic: nothing here touches stats.
  */
+import { useLayoutEffect, useRef } from "react";
 import type { Look } from "@rankzero/core";
 import { LOOK_SPACE } from "@rankzero/core";
 import { LOOK_SWATCHES } from "@rankzero/rig";
@@ -33,6 +34,17 @@ function swatchFill(key: ColourKey, i: number): { a: string; b?: string; c?: str
 }
 
 export function LookEditor({ look, onChange, id = "look" }: LookEditorProps) {
+  // each swatch strip keeps its picked swatch in view (a die can pick one past the strip's edge)
+  const strips = useRef<Partial<Record<ColourKey, HTMLDivElement | null>>>({});
+  useLayoutEffect(() => {
+    for (const key of COLOUR_KEYS) {
+      const strip = strips.current[key];
+      const on = strip?.querySelector<HTMLElement>("[aria-checked=true]");
+      if (!strip || !on) continue;
+      const left = on.offsetLeft - strip.offsetLeft;
+      if (left < strip.scrollLeft || left + on.offsetWidth > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = Math.max(0, left - (strip.clientWidth - on.offsetWidth) / 2);
+    }
+  }, [look.skin, look.hairColor, look.palette]);
   return (
     <div className={css.editor} data-testid="look-editor">
       <ul className={css.rows}>
@@ -62,7 +74,7 @@ export function LookEditor({ look, onChange, id = "look" }: LookEditorProps) {
         return (
           <section key={key} className={css.colours} aria-labelledby={`${id}-${key}`} data-part={key}>
             <h3 className={css.colourTitle} id={`${id}-${key}`}>{part} <span className={css.count}>{LOOK_WORDS.count(look[key] + 1, n)}</span></h3>
-            <div className={css.strip} role="radiogroup" aria-labelledby={`${id}-${key}`}>
+            <div className={css.strip} role="radiogroup" aria-labelledby={`${id}-${key}`} ref={(el) => { strips.current[key] = el; }}>
               {Array.from({ length: n }, (_, i) => {
                 const f = swatchFill(key, i);
                 const on = look[key] === i;
