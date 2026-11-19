@@ -515,6 +515,7 @@ async function main() {
         await page.evaluate(() => { location.hash = "#/kit"; });
         await page.getByRole("button", { name: "Change Dez's look" }).click();
         await page.waitForURL(/#\/look$/);
+        await page.getByTestId("look-editor").waitFor();
         check(sameLook(await lookShown(), edited), "the Kit's portrait opens the editor on the saved look");
         await page.evaluate(() => { location.hash = "#/locker"; });
         await page.waitForURL(/#\/locker$/);
