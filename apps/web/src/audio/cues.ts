@@ -10,6 +10,7 @@
 import type { Cue } from "@rankzero/stage";
 import { cuesBetween, realAt } from "@rankzero/stage";
 import type { AudioEngine } from "./engine";
+import { intensityFromHp } from "./music";
 import { itemSet } from "./soundMap";
 
 /** `delayMs`: how long after now (real ms) the cue's moment comes; 0 or absent is now. */
@@ -70,8 +71,31 @@ export function soundFor(cue: Cue, size: (name: string) => number): { name: stri
   return n > 0 ? { name: cue.family, variant: pick % n } : null;
 }
 
-export const engineSink = (engine: AudioEngine): CueSink => ({
+/** The knockout blow: the heavy layer (`accent`) under the kill step's impact. */
+export const isKnockout = (cue: Cue, killStep: number): boolean => killStep >= 0 && cue.accent === true && cue.step === killStep;
+
+/** When the knockout lands on the fight clock (Infinity when the bout has none). */
+export function knockoutAt(cues: readonly Cue[], killStep: number): number {
+  for (const c of cues) if (isKnockout(c, killStep)) return c.at;
+  return Infinity;
+}
+
+/** The music scene and intensity at fight time `t` (plan 13.17): the fight loops until the
+ *  knockout, then "post" (the loops fade out under the ko sting). Intensity follows the lower HP of
+ *  the two scrappers (`a0`, `b0`). A seek back before the knockout is a fight again. */
+export function fightMusicAt(t: number, koAt: number, hp: Partial<Record<string, { now: number; max: number }>>): { scene: "fight" | "post"; intensity: number } {
+  const fr: number[] = [];
+  for (const id of ["a0", "b0"]) {
+    const h = hp[id];
+    if (h && h.max > 0) fr.push(Math.max(0, h.now) / h.max);
+  }
+  return { scene: t >= koAt ? "post" : "fight", intensity: intensityFromHp(fr) };
+}
+
+/** Plays each cue's sound; with `killStep`, the knockout blow also plays the music's ko sting. */
+export const engineSink = (engine: AudioEngine, killStep = -1): CueSink => ({
   play: (cue, delayMs) => {
+    if (isKnockout(cue, killStep)) engine.sting("ko");
     const s = soundFor(cue, (name) => engine.size(name));
     return s !== null && engine.play(s.name, s.variant, delayMs);
   },

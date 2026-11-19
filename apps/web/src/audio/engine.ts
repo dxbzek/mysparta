@@ -11,7 +11,15 @@
  * still happens on the first tap so that turning sound on is instant.
  *
  * Every sound goes through one master gain and a compressor set as a limiter, so overlapping
- * sounds cannot clip, and at most `MAX_VOICES` play at once (the oldest stops first).
+ * sounds cannot clip, and at most `MAX_VOICES` play at once (the oldest stops first). Effects go
+ * through an effects bus and music (music.ts) through a music bus, each with its own volume
+ * (Settings: Music and Effects sliders, plan 13.17). The music bus exists only in an engine made
+ * with `{ music: true }` (the app's shared engine).
+ *
+ * Music and the effects meet in three places: the win, loss and level-up sounds become the music's
+ * stings when music is on and the sting has loaded (else the sprite's jingle plays, so there is
+ * never a double jingle and never silence); a big impact (`DUCK_SETS`) dips the music briefly; and
+ * the knockout blow plays the ko sting (cues.ts).
  *
  * Mobile Safari: the context is created and resumed inside the gesture itself, a silent buffer
  * is played once to unlock output, and every later gesture, and the page becoming visible again,
@@ -26,6 +34,8 @@
  * the retry still happens. While a content file is on its way, later taps do not ask for it again.
  */
 import type { SfxFamily } from "@rankzero/stage";
+import type { MusicDirector, Scene, StingId } from "./music";
+import { createMusicDirector, createWebMixer, ramp } from "./music";
 
 /** Fight families plus the three app sounds the brief lists. */
 export type SfxName = SfxFamily | "ui-tap" | "card-flip" | "level-up";
@@ -57,6 +67,18 @@ export interface AudioHost {
   now?(): number;
 }
 export interface AudioParamLike { value: number }
+/** The sounds that become a music sting while music is on. */
+export const STING_FOR: Readonly<Partial<Record<string, StingId>>> = { win: "win", loss: "lose", "level-up": "level-up" };
+/** The impacts heavy enough to dip the music under them. */
+export const DUCK_SETS: ReadonlySet<string> = new Set(["hit-heavy", "hit-accent", "landing", "hit-brick", "hit-gore", "hit-paint", "move-slam", "move-haymaker-hit", "move-crackers"]);
+/** Slider value (0 to 1) to gain: squared, so the slider's middle sounds like the middle. */
+export const volumeGain = (v: number): number => Math.max(0, Math.min(1, v)) ** 2;
+export interface EngineOptions {
+  /** Build the music bus and player (the app's engine; tests of the effects leave it off). */
+  music?: boolean;
+  /** False keeps music off whatever the settings say (the browser's data saver). */
+  musicAllowed?: boolean;
+}
 export interface AudioNodeLike { connect(dest: unknown): unknown }
 export interface SourceLike {
   buffer: unknown;
@@ -101,6 +123,16 @@ export interface AudioEngine {
   readonly playing: number;
   /** Settles when the content sprite has loaded or failed (after `unlock`). */
   content(): Promise<void>;
+  /** Music and effects volumes, 0 to 1 (persisted in the settings). */
+  setVolumes(v: { music: number; sfx: number }): void;
+  /** Where the player is: the menus, a fight, or after the knockout. */
+  setScene(scene: Scene): void;
+  /** The fight's intensity, 0 (calm) to 1; crossfades the two fight layers. */
+  setIntensity(x: number): void;
+  /** Plays a music sting (ducking the loops); false when music cannot play it now. */
+  sting(id: StingId): boolean;
+  /** The music state machine (null in an engine made without music); for tests and debugging. */
+  readonly music: MusicDirector | null;
 }
 
 /** A fetch that throws on a response that is not ok, so a 404 page is never decoded as sound. */
@@ -123,10 +155,16 @@ const browserHost = (): AudioHost => ({
   fetchJson: browserFetchJson,
 });
 
-export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost()): AudioEngine {
+export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost(), opts: EngineOptions = {}): AudioEngine {
   let state: AudioEngine["state"] = "idle";
   let ctx: AudioContextLike | null = null;
-  let out: unknown = null;              // the master gain (the destination in a bare fake)
+  let out: unknown = null;              // the effects bus (the destination in a bare fake)
+  let sfxBus: (AudioNodeLike & { gain: AudioParamLike }) | null = null;
+  let musicBus: (AudioNodeLike & { gain: AudioParamLike }) | null = null;
+  let volumes = { music: 0.6, sfx: 1 };
+  let director: MusicDirector | null = null;
+  let scene: Scene = "menu";
+  let intensity = 0;
   const buffers: unknown[] = [];
   let map: SpriteMap | null = null;
   let loading: Promise<void> | null = null;
@@ -190,6 +228,27 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
         master.connect(lim);
         lim.connect(c.destination);
         out = master;
+        // the effects bus, and with music on the music bus, each with its own volume
+        const bus = c.createGain();
+        bus.gain.value = volumeGain(volumes.sfx);
+        bus.connect(master);
+        sfxBus = bus;
+        out = bus;
+        if (opts.music === true) {
+          const mbus = c.createGain();
+          mbus.gain.value = volumeGain(volumes.music);
+          mbus.connect(master);
+          musicBus = mbus;
+          const mixer = createWebMixer({
+            ctx: c, out: mbus, base: `${base}audio/`,
+            fetchJson: (url) => timed(url, (signal) => host.fetchJson(url, signal)),
+            fetchBytes: (url) => timed(url, (signal) => host.fetchBytes(url, signal)),
+            onLoaded: (id) => director?.onLoaded(id),
+            now,
+          });
+          director = createMusicDirector(mixer);
+          director.setScene(scene);
+        }
       }
       // iOS: one silent sample played inside the gesture unlocks output for the page
       if (c.createBuffer) {
@@ -204,6 +263,15 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
       console.warn("audio: Web Audio is not available", error);
       return false;
     }
+  };
+
+  /** Music plays when sound is on, its volume is over 0, it is allowed, and the core is in. */
+  const musicOn = (): boolean => enabled && volumes.music > 0 && opts.musicAllowed !== false && state === "ready";
+  const syncMusic = (): void => {
+    if (director === null) return;
+    director.setScene(scene);
+    director.setIntensity(intensity);
+    director.setOn(musicOn());
   };
 
   const wake = (): Promise<void> => {
@@ -238,6 +306,7 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
       map = (await timed(url, (signal) => host.fetchJson(url, signal))) as SpriteMap;
       await fetchFile(0);
       state = "ready";
+      syncMusic();
     } catch (error) {
       state = "failed";
       map = null;
@@ -267,6 +336,27 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
     set enabled(on: boolean) {
       if (enabled && !on) for (const s of active.splice(0)) stop(s);
       enabled = on;
+      syncMusic();
+    },
+    get music() { return director; },
+    setVolumes(v) {
+      volumes = { music: Math.max(0, Math.min(1, v.music)), sfx: Math.max(0, Math.min(1, v.sfx)) };
+      const t = ctx?.currentTime ?? 0;
+      if (sfxBus) ramp(sfxBus.gain, volumeGain(volumes.sfx), t, 0.05);
+      if (musicBus) ramp(musicBus.gain, volumeGain(volumes.music), t, 0.05);
+      syncMusic();
+    },
+    setScene(next) {
+      scene = next;
+      if (next === "fight") intensity = 0;
+      director?.setScene(next);
+    },
+    setIntensity(x) {
+      intensity = x;
+      director?.setIntensity(x);
+    },
+    sting(id) {
+      return director !== null && ctx !== null && ctx.state === "running" && director.sting(id);
     },
     get played() { return played; },
     get playing() { return active.length; },
@@ -297,6 +387,10 @@ export function createAudioEngine(baseUrl: string, host: AudioHost = browserHost
         return false;
       }
       if (!ready(entry)) return false;
+      // a win, loss or level-up becomes the music's sting while music plays it (no double jingle)
+      const st = STING_FOR[name];
+      if (st !== undefined && delayMs <= 0 && director?.sting(st)) { played += 1; return true; }
+      if (director !== null && (DUCK_SETS.has(name) || DUCK_SETS.has(map.families[name as SfxName] ?? ""))) director.impact();
       while (active.length >= MAX_VOICES) stop(active.shift()!);
       const src = ctx.createBufferSource();
       src.buffer = buffers[entry.f ?? 0];
@@ -338,8 +432,12 @@ export function unlockOnGestures(
 }
 
 let shared: AudioEngine | null = null;
-/** The app's one engine. The sprite path follows the site's base path. */
+/** The app's one engine, with music. The sprite path follows the site's base path. Music stays
+ *  off when the browser asks to save data (Network Information `saveData`). */
 export function sharedAudio(): AudioEngine {
-  if (shared === null) shared = createAudioEngine(import.meta.env.BASE_URL ?? "./");
+  if (shared === null) {
+    const saveData = (globalThis.navigator as { connection?: { saveData?: boolean } } | undefined)?.connection?.saveData === true;
+    shared = createAudioEngine(import.meta.env.BASE_URL ?? "./", browserHost(), { music: true, musicAllowed: !saveData });
+  }
   return shared;
 }

@@ -11,6 +11,17 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
+.volumeValue {
+  font: 700 var(--fs-small) / 1 var(--font-body, inherit);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--t-on-panel-dim);
+}
+.slider {
+  width: 100%;
+  min-height: 44px;
+  accent-color: var(--c-ink);
+}
 .choices {
   display: flex;
   flex-wrap: wrap;

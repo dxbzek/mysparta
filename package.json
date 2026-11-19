@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "pnpm --filter @rankzero/web dev",
-    "build": "pnpm -r build",
+    "build": "pnpm -r build && node tools/build-audio.mjs --overlay",
     "test": "pnpm -r --workspace-concurrency=1 test",
     "typecheck": "pnpm -r typecheck && tsc --noEmit -p tools/tsconfig.json",
     "check:terms": "node tools/check-banned-terms.mjs",

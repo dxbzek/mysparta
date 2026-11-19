@@ -17,7 +17,7 @@ import type { Cue, FightClock, FightPlayer } from "@rankzero/stage";
 import type { FightScreenProps, Settings } from "../contracts";
 import { playSpeed } from "../state/schema";
 import { UI } from "../text/ui";
-import { createCueDriver, engineSink } from "../audio/cues";
+import { createCueDriver, engineSink, fightMusicAt, knockoutAt } from "../audio/cues";
 import type { AudioEngine } from "../audio/engine";
 import { sharedAudio, unlockOnGestures } from "../audio/engine";
 import { rig as seamRig } from "../seams/rig";
@@ -75,7 +75,8 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
   );
   const tl = player.timeline;
   const clock: FightClock = useMemo(() => createFightClock(tl.durationMs, tl.holds), [tl]);
-  const cues = useMemo(() => createCueDriver(tl.cues, engineSink(audio)), [tl, audio]);
+  const cues = useMemo(() => createCueDriver(tl.cues, engineSink(audio, tl.killStep)), [tl, audio]);
+  const koAt = useMemo(() => knockoutAt(tl.cues, tl.killStep), [tl]);
   const [t, setT] = useState(0);
   const [paused, setPaused] = useState(props.startPaused ?? false);
   const finished = useRef(false);
@@ -94,8 +95,14 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
 
   clock.speed = playSpeed(settings);
   audio.enabled = settings.sound;
+  audio.setVolumes({ music: settings.musicVolume / 100, sfx: settings.sfxVolume / 100 });
 
   useEffect(() => unlockOnGestures(audio), [audio]);
+  // music: the fight loops while this screen is up, the menu loop again when it closes
+  useEffect(() => {
+    audio.setScene("fight");
+    return () => audio.setScene("menu");
+  }, [audio]);
 
   // The one frame loop: advance the clock, sound what it crossed, show the new time.
   useEffect(() => {
@@ -144,6 +151,11 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
 
   const hud = player.hud(t);
   const state = player.state(t);
+  const music = fightMusicAt(t, koAt, hud.hp);
+  useEffect(() => {
+    audio.setScene(music.scene);
+    audio.setIntensity(music.intensity);
+  }, [audio, music.scene, music.intensity]);
   const ended = hud.phase === "result";
 
   useEffect(() => {

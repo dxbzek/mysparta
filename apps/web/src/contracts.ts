@@ -9,7 +9,10 @@ export type Result<T, E extends string> = { ok: true; value: T } | { ok: false; 
  *  shop exists, plan 13.13; the Settings sheet has a temporary "VIP (test)" switch). A save that is
  *  not VIP never plays at 3x: the fight screen and the save check both drop it to 2x. */
 export interface Settings { sound: boolean; speed: 1 | 2 | 3; reducedMotion: "system" | "on" | "off"; liveLog: boolean;
-  isVip: boolean }
+  isVip: boolean;
+  /** Plan 13.17: the Music and Effects sliders, whole percent 0 to 100. A save written before them
+   *  loads with the defaults (the check fills them; no schema step). */
+  musicVolume: number; sfxVolume: number }
 /** One stored bout. `at` is a time in ms since 1970, from the injected `Clock`. `lineId` picks
  *  the one-line result text. */
 /** `logVersion` 1 is a row stored before content v2 (contract rev 2): its log is never kept. */

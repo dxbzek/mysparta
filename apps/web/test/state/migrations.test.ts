@@ -26,7 +26,7 @@ describe("migrations", () => {
   it("bad settings fall back to the defaults with a warning, not a failure", () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const r = readDoc(JSON.stringify({ ...emptyDoc(1), settings: { speed: 7, sound: false } }));
-    expect(r.ok && r.doc.settings).toEqual({ sound: false, speed: 1, reducedMotion: "system", liveLog: true, isVip: false });
+    expect(r.ok && r.doc.settings).toEqual({ sound: false, speed: 1, reducedMotion: "system", liveLog: true, isVip: false, musicVolume: 60, sfxVolume: 100 });
   });
   it("1 to 4: a version-1 save gets isVip false and keeps every other setting", () => {
     const v1 = { ...emptyDoc(7), schemaVersion: 1, settings: { sound: false, speed: 2, reducedMotion: "on", liveLog: false } };
@@ -34,10 +34,10 @@ describe("migrations", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.doc.schemaVersion).toBe(6);
-    expect(r.doc.settings).toEqual({ sound: false, speed: 2, reducedMotion: "on", liveLog: false, isVip: false });
+    expect(r.doc.settings).toEqual({ sound: false, speed: 2, reducedMotion: "on", liveLog: false, isVip: false, musicVolume: 60, sfxVolume: 100 });
     // settings that are not an object still fall back to the defaults
     const junk = readDoc(JSON.stringify({ ...v1, settings: "x" }));
-    expect(junk.ok && junk.doc.settings).toEqual({ sound: true, speed: 1, reducedMotion: "system", liveLog: true, isVip: false });
+    expect(junk.ok && junk.doc.settings).toEqual({ sound: true, speed: 1, reducedMotion: "system", liveLog: true, isVip: false, musicVolume: 60, sfxVolume: 100 });
   });
   it("3x is kept for a VIP save and dropped to 2x for one that is not", () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);

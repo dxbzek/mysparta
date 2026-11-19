@@ -293,9 +293,14 @@ function useMotionFlag(store: Game["store"]): void {
  */
 function useAppAudio(store: Game["store"]): void {
   const sound = useSyncExternalStore(store.subscribe, () => store.doc.settings.sound, () => store.doc.settings.sound);
+  const music = useSyncExternalStore(store.subscribe, () => store.doc.settings.musicVolume, () => store.doc.settings.musicVolume);
+  const sfx = useSyncExternalStore(store.subscribe, () => store.doc.settings.sfxVolume, () => store.doc.settings.sfxVolume);
   useEffect(() => {
     sharedAudio().enabled = sound;
   }, [sound]);
+  useEffect(() => {
+    sharedAudio().setVolumes({ music: music / 100, sfx: sfx / 100 });
+  }, [music, sfx]);
   useEffect(() => {
     const audio = sharedAudio();
     const off = [unlockOnGestures(audio), playUiSounds(audio, document)];

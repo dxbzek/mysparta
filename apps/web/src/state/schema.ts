@@ -22,7 +22,9 @@ export const SLOT_LIMIT = 3;
 export const HISTORY_LOGS = 50;
 export const HISTORY_ROWS = 200;
 
-export const DEFAULT_SETTINGS: Settings = { sound: true, speed: 1, reducedMotion: "system", liveLog: true, isVip: false };
+export const DEFAULT_SETTINGS: Settings = { sound: true, speed: 1, reducedMotion: "system", liveLog: true, isVip: false, musicVolume: 60, sfxVolume: 100 };
+/** A volume setting: a whole percent 0 to 100, or null when it is not one. */
+const volumeOf = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : null);
 
 /** The speed a bout really plays at: 3x is a VIP perk, so a save that is not VIP plays 3x as 2x. */
 export function playSpeed(s: Pick<Settings, "speed" | "isVip">): 1 | 2 | 3 {
@@ -86,6 +88,8 @@ function checkSettings(v: unknown, warn: (w: string) => void): Settings {
   if (v.speed === 1 || v.speed === 2 || v.speed === 3) s.speed = playSpeed({ speed: v.speed, isVip: s.isVip });
   if (v.reducedMotion === "system" || v.reducedMotion === "on" || v.reducedMotion === "off") s.reducedMotion = v.reducedMotion;
   if (typeof v.liveLog === "boolean") s.liveLog = v.liveLog;
+  s.musicVolume = volumeOf(v.musicVolume) ?? s.musicVolume;
+  s.sfxVolume = volumeOf(v.sfxVolume) ?? s.sfxVolume;
   return s;
 }
 

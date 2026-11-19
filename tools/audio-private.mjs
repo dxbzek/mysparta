@@ -104,9 +104,10 @@ export function privateLayer(layer) {
 export function applySetOverrides(sets, manifest) {
   if (manifest === null) return { sets, replaced: [] };
   const replaced = [];
-  const out = sets.map(([name, maxMs, target, variants, opts]) => {
+  const out = sets.map((set) => {
+    const [name, maxMs, target, , opts] = set;
     const mine = manifest.sets[name];
-    if (!mine) return [name, maxMs, target, variants, opts];
+    if (!mine) return set;
     replaced.push(name);
     return [name, maxMs, target, mine.map((v) => String(v).split(" + ").map(privateLayer).join(" + ")), opts];
   });

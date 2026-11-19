@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { useDoc, useGame } from "../../app/context";
+import { sharedAudio } from "../../audio/engine";
 import type { Settings } from "../../contracts";
 import { summaryOf } from "../../state/actions";
 import type { SaveSummary } from "../../state/actions";
@@ -25,6 +26,23 @@ function Choice<T extends string | boolean>({ label, value, options, onPick }: {
         ))}
       </span>
     </div>
+  );
+}
+
+/** A volume slider, 0 to 100 in steps of 5. It moves the sound live while dragged and saves when
+ *  let go (one write, not one per pixel). */
+function Volume({ label, value, disabled, onLive, onCommit }: { label: string; value: number; disabled: boolean; onLive(v: number): void; onCommit(v: number): void }) {
+  const [v, setV] = useState(value);
+  useEffect(() => setV(value), [value]);
+  const commit = (): void => { if (v !== value) onCommit(v); };
+  return (
+    <label className={css.setting}>
+      <span className={css.settingName}>{label} <span className={css.volumeValue}>{UI.settings.volume(v)}</span></span>
+      <input className={css.slider} type="range" min={0} max={100} step={5} value={v} disabled={disabled} aria-label={label}
+        aria-valuetext={UI.settings.volume(v)}
+        onChange={(e) => { const n = Number(e.currentTarget.value); setV(n); onLive(n); }}
+        onPointerUp={commit} onKeyUp={commit} onBlur={commit} />
+    </label>
   );
 }
 
@@ -61,6 +79,10 @@ export function SettingsSheet({ open, onClose }: { open: boolean; onClose(): voi
     <Sheet open={open} title={UI.settings.title} onClose={onClose}>
       <div className={css.body}>
         <Choice label={UI.settings.sound} value={s.sound} options={onOff} onPick={(v) => set({ sound: v })} />
+        <Volume label={UI.settings.music} value={s.musicVolume} disabled={!s.sound}
+          onLive={(n) => sharedAudio().setVolumes({ music: n / 100, sfx: s.sfxVolume / 100 })} onCommit={(n) => set({ musicVolume: n })} />
+        <Volume label={UI.settings.effects} value={s.sfxVolume} disabled={!s.sound}
+          onLive={(n) => sharedAudio().setVolumes({ music: s.musicVolume / 100, sfx: n / 100 })} onCommit={(n) => set({ sfxVolume: n })} />
         <Choice label={UI.settings.motion} value={s.reducedMotion} options={[{ v: "system", label: UI.settings.motionSystem }, { v: "on", label: UI.settings.on }, { v: "off", label: UI.settings.off }] as const} onPick={(v) => set({ reducedMotion: v })} />
         <Choice label={UI.settings.liveLog} value={s.liveLog} options={onOff} onPick={(v) => set({ liveLog: v })} />
 
