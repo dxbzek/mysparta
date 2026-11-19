@@ -832,6 +832,29 @@ Owner amendment 13.12 (the Weapon loadout and Body equipment bullets), built sec
 
 Gate (`pnpm balance`, full sample, levels 2, 3, 5, 10 and 30): PASS, no limit broken. Nearest to a limit: with-and-without at level 30, Screwdrivers 47.2%, Bike Chain 47.4%, Monkey Wrench 47.6%, Rubber Chicken 47.8% (line 47%); level-up policy always-perk 54.9% at level 20 (band 45 to 55).
 
+### Content v3, batch 3: the talent tree (19 November 2026)
+
+Owner amendment 13.11, built third of content v3 by 13.15. The rules are in section 3c.
+
+**What changed, and why:**
+- **The tree** (section 3c): 10 points by level 30, five branches of six nodes, capstones from the 6th point. Rivals spend theirs down one branch that fits their kit, and the balance tool's level-up policy players by the same rule, so a level's pool stays one population. A scrapper that spends nothing wins about 34 to 36% against the level-30 pool (39% at 20, 47% at 10): the points are worth having, and the Locker and the Kit say when some are waiting.
+- **The gate grew two tests** (`pnpm balance`): each capstone with-and-without at levels 20 and 30 (every point down its branch against the same kit with the capstone's point on the next rank instead; limit 50 to 62%: worth its point, never a must-have), and branch-only builds at levels 10, 20 and 30 (a kit the branch fits, every point in it, against the pool; 50 +/- 5%, like the level-up policy: no branch dominates and none is a trap).
+- **Tuning on the way** (first numbers, then why): Fresh Steel +50% to +30% (64.5% with-and-without at level 20); Pack's nodes up (Good Boy and Sharp Teeth 10 to 25 a rank, Quick Paws 5 to 10, Second Bowl from "pets after the costliest" to every pet 25%: the Pack branch-only build won 41.7% at level 20); Thick Skin Toughness 1 to 2 and Brace 3 to 4 (Iron Wall 46.6% at level 20); Follow-Through 4 to 3 and Bruiser 4 to 3 (Brawler 54.3% at level 30); Weapon Care 5 to 4 (Arsenal 55% at level 20); Strong Arm 8 to 10 and back to 8, Dead Eye 6 to 8 (Thrower 41.5% at level 20 before Thrower stopped fitting kits with no Thrown weapon or throwing skill). Light Feet's ownership share at level 3 was 61.7% before the tree and 62.2% with it (cap 62%); with Gym Rat as the Brawler branch's first node (Iron Knuckles was first) it is 61.4%. Light Feet's own numbers were left alone: an old save's carried kit is walked with them.
+- **Weapon Master** was renamed **Steel Guard** (the old word is banned in player text).
+- **Sim version 10.** Golden digests regenerated; the stage tests' find-bout cases moved to new bouts with the same checks.
+
+**Results** (sim version 9 / now; full gate sample, the levels run as separate processes of the same tool):
+
+| | Before | Now |
+|---|---|---|
+| Always the perk card, win %, levels 5 / 10 / 20 / 30 | 49.5 / 49.9 / 54.9 / 50.5 | 49.2 / 50.1 / 54.4 / 52.1 |
+| Always the stat card, the same | 48.4 / 48.5 / 54.5 / 48.4 | 48.4 / 49.4 / 52.4 / 45.6 |
+| Capstone with-and-without, levels 20 / 30 | - | Knockdown 50.0 / 52.1, Fresh Steel 57.7 / 58.0, Bullseye 54.8 / 56.0, Loyal Pack 52.6 / 55.0, Unbreakable 53.1 / 54.0 |
+| Branch-only build vs the pool, levels 10 / 20 / 30 | - | Brawler 52.4 / 50.1 / 51.7, Arsenal 48.0 / 52.8 / 51.6, Thrower 48.3 / 48.8 / 47.8, Pack 48.5 / 46.9 / 52.8, Iron Wall 52.2 / 48.5 / 50.6 |
+| The same kits with no point spent | - | 46.7 to 48.0 / 38.0 to 39.5 / 33.3 to 36.0 |
+
+Gate: PASS at levels 2, 3, 5, 10 and 30, no limit broken. Nearest to a limit: Knockdown's with-and-without at level 20, 50.0% (line 50%); always-stat at level 30, 45.6% (band 45 to 55); Light Feet's ownership share at level 3, 61.4% (cap 62%); with-and-without at level 30, Bike Chain 47.4% and Screwdrivers 47.9% (line 47%). Median turns 12, 12, 12, 13, 17 at levels 2, 3, 5, 10, 30.
+
 ### Old saves (round-2 close, 18 November 2026)
 
 A save stores a scrapper's seed and picks, never its kit: the kit is walked again from them under the tables of the build that reads the save. The start pass, the pet pass and the round-2 passes changed the start perks, the card offers, the rerolls and the weapon cap, so an old save's picks walked into a different kit: tested on saves made by the builds of 15 November (sim version 3) and 16 November (sim version 4), a scrapper lost two weapons and gained others it never took, another gained a skill. Nothing in a save said which build wrote it.
@@ -854,3 +877,5 @@ What cannot be carried:
 - **Its kit, kept:** gear cards came onto the Route, so walked today an old save's picks could meet a gear card where they took another card. Each scrapper, active or retired, gets `gearFrom` = the picks it has taken: no gear card is offered before it, so its kit walks exactly as the schema-4 build walked it (checked on a save written by that build's own code, b13cbf4). Its next level-up can offer gear.
 - **The default loadout** (section 3b) stored as its loadout: every weapon it owns up to 5, its shield, its pets. It owns no gear, so it wears none.
 - Everything else (level, picks, XP, energy, bout counts, history, settings) is carried unchanged.
+
+**Schema 5 to 6** (content v3, batch 3): talent points are never stored, so a scrapper of an old save already holds the points its level earns. Each one, active or retired, gets an empty tree (`talents: { ranks: {} }`, no respec used); every point waits unspent and the Locker (a "talent points to spend" button) and the Kit (a count on its tab and on the Talents tab) prompt until they are spent. Kit, picks and loadout stay as they were. Tested on a schema-5 save written by build 77dc0d0's own actions.
