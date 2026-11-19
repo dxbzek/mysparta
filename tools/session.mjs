@@ -22,6 +22,9 @@
  *   6a. content v3 batch 4: the look editor at creation (pick parts, make the scrapper, its first
  *      bout's snapshot carries the look) and from home (the Locker's Change look, save, the next bout
  *      carries the new look, the stats unchanged; the Kit's portrait opens it too);
+ *   5d. the rank ladder: Marla at level 5 (the first gate is 3) opens the Ladder from the Locker, reads
+ *      the first boss's taunt, fights it until she wins (a loss costs one energy and no rank), takes the
+ *      boss prize, and after a reload the Locker shows Rank 10 and the Ladder marks the boss beaten;
  *   6. make three scrappers, see the fourth refused, retire one and see it kept in the save;
  *   6b. set the Music and Effects sliders, see both saved and shown again after a reload, and off
  *      with sound off (plan 13.17);
@@ -554,6 +557,110 @@ async function main() {
         await page.waitForURL(/#\/look$/);
         await page.getByTestId("look-editor").waitFor();
         check(sameLook(await lookShown(), edited), "the Kit's portrait opens the editor on the saved look");
+        await page.evaluate(() => { location.hash = "#/locker"; });
+        await page.waitForURL(/#\/locker$/);
+      }
+
+      // ---------------------------------------------------------------- 5d. the rank ladder (plan 13.10 item 1)
+      // Marla is put at the first boss's gate and over it (level 5, two over the gate of 3) with a
+      // full bar, written as the app writes a save; then she climbs one rung on the real screens.
+      {
+        const patchMarla = (fields) => page.evaluate((f) => new Promise((done, fail) => {
+          const r = indexedDB.open("rankzero.save", 1);
+          r.onerror = () => fail(r.error);
+          r.onsuccess = () => {
+            const db = r.result;
+            const tx = db.transaction("kv", "readwrite");
+            const store = tx.objectStore("kv");
+            const keys = ["rankzero.slot.0", "rankzero.slot.1"];
+            const reads = keys.map((key) => store.get(key));
+            tx.oncomplete = () => { db.close(); done(null); };
+            reads[1].onsuccess = () => {
+              const docs = reads.map((g) => { try { return JSON.parse(g.result); } catch { return null; } });
+              const top = docs[0] && (!docs[1] || docs[0].rev >= docs[1].rev) ? 0 : 1;
+              const doc = docs[top];
+              const m = doc.fighters.find((x) => x.name === "Marla");
+              if (f.pad) while (m.picks.length < f.pad) m.picks.push("L");
+              if (f.keep) { m.picks = m.picks.slice(0, f.keep); delete m.loadout; }
+              m.xp = 0;
+              m.energy = 6;
+              if (f.unranked) m.ladder = { rank: 0, prizes: [] };
+              doc.history = doc.history.map((h) => ({ ...h, watched: true }));
+              store.put(JSON.stringify({ ...doc, rev: doc.rev + 1 }), keys[1 - top]);
+            };
+          };
+        }), fields);
+        const marla = async () => (await readSave(page)).doc.fighters.find((f) => f.name === "Marla");
+        await page.evaluate(() => { location.hash = "#/locker"; });
+        await page.waitForURL(/#\/locker$/);
+        await patchMarla({ keep: 4, pad: 4, unranked: true });
+        await page.goto(`${app.url}${ENTRY}?shift=0.3#/locker`);
+        await settle(page);
+        const heroRank = page.locator("[data-testid=hero-rank]");
+        check(/Rank Zero/.test(await heroRank.getAttribute("aria-label") ?? ""), "the Locker shows Rank Zero under the name", await heroRank.getAttribute("aria-label"));
+        const ladderButton = page.locator("[data-testid=ladder-button]");
+        const lb = await ladderButton.boundingBox();
+        check(lb !== null && lb.height >= 44 && lb.width >= 200, "the Locker has a big Ladder button", JSON.stringify(lb));
+        await ladderButton.click();
+        await page.waitForURL(/#\/ladder$/);
+        await page.locator("button[data-rung='1']").waitFor();
+        check(await page.locator("button[data-rung='1']").getAttribute("data-state") === "ready" && await page.locator("button[data-rung='2']").getAttribute("data-state") === "locked",
+          "the Ladder shows the first boss ready at level 5 and the next one locked");
+        let won = false;
+        let losses = 0;
+        let lossChecked = false;
+        for (let tries = 0; tries < 8 && !won; tries++) {
+          if (tries > 0) {
+            await patchMarla({});
+            await page.goto(`${app.url}${ENTRY}?shift=0.${31 + tries}#/ladder`);
+            await settle(page);
+          }
+          await page.locator("button[data-rung='1']").click();
+          const card = page.locator("[data-testid=taunt-card]");
+          await card.waitFor();
+          if (tries === 0) check(/gutter/i.test(await card.locator("blockquote").textContent() ?? ""), "tapping the boss opens its card with its taunt");
+          await card.getByRole("button", { name: "Fight", exact: true }).click();
+          await page.waitForURL(/#\/bout\//);
+          if (tries === 0) {
+            await page.locator("[data-testid=boss-banner]").waitFor({ timeout: 5000 }).catch(() => undefined);
+            check(await page.locator("[data-testid=boss-banner]").count() === 1, "a boss bout opens with the boss banner");
+            check(await page.locator("[data-testid=hud-rank-a]").textContent() === "Rank Zero" && await page.locator("[data-testid=hud-rank-b]").textContent() === "Rank 10",
+              "the HUD shows both ranks");
+          }
+          await page.getByRole("button", { name: "Skip to the end" }).click();
+          const result = page.getByRole("region", { name: "Result" });
+          await result.waitFor();
+          const m = await marla();
+          won = (await readSave(page)).doc.history[0].result.winner === "a";
+          if (won) {
+            check(m.ladder.rank === 1, "a won boss bout moves the scrapper up one rank in the save", JSON.stringify(m.ladder));
+            check(await result.locator("[data-testid=rank-up]").count() === 1, "the result card shows the rank-up");
+            await result.getByRole("button", { name: "Claim prize", exact: true }).click();
+            await page.waitForURL(/#\/prize$/);
+            await page.locator("main button[aria-pressed]").first().click();
+            await button("Take it").click();
+            await button("To the Locker").click();
+            await page.waitForURL(/#\/locker$/);
+          } else {
+            losses++;
+            if (!lossChecked) {
+              check(m.ladder.rank === 0 && m.energy === 5, "a lost boss bout costs one energy and leaves the rank", JSON.stringify({ ladder: m.ladder, energy: m.energy }));
+              lossChecked = true;
+            }
+            await result.getByRole("button", { name: "Ladder", exact: true }).click();
+            await page.waitForURL(/#\/ladder$/);
+          }
+        }
+        check(won, "Marla beats the first boss within 8 tries", `${losses} losses first`);
+        const after = await marla();
+        check(after.ladder.rank === 1 && after.ladder.prizes.length === 1, "the boss prize is taken and stored", JSON.stringify(after.ladder));
+        await page.reload();
+        await settle(page);
+        check(/Rank 10/.test(await page.locator("[data-testid=hero-rank]").getAttribute("aria-label") ?? ""), "after a reload the Locker shows Rank 10",
+          await page.locator("[data-testid=hero-rank]").getAttribute("aria-label"));
+        await page.locator("[data-testid=ladder-button]").click();
+        await page.waitForURL(/#\/ladder$/);
+        check(await page.locator("button[data-rung='1']").getAttribute("data-state") === "beaten", "the Ladder marks the first boss beaten");
         await page.evaluate(() => { location.hash = "#/locker"; });
         await page.waitForURL(/#\/locker$/);
       }

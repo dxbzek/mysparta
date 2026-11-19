@@ -211,6 +211,9 @@ button.rung:active {
   .bossName {
     font-size: 19px;
   }
+  .rungTitle {
+    padding-right: 62px;
+  }
 }
 
 /* the boss card (the taunt), in the sheet */

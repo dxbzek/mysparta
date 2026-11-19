@@ -67,7 +67,9 @@ export function LadderScreen() {
     const fonts = (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts;
     if (fonts) void fonts.ready.then(() => requestAnimationFrame(go));
     else requestAnimationFrame(go);
-    return () => { live = false; };
+    // and once more after the portraits and the route have settled
+    const again = window.setTimeout(go, 400);
+    return () => { live = false; window.clearTimeout(again); };
   }, []);
   if (!rec || !shown || !info) return null;
   const { ladder, sheet } = info;

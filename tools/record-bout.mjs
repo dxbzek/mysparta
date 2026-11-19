@@ -26,7 +26,9 @@
  * music volume (60%, squared). The sync check runs on the effects alone, before the music goes in.
  * An agent cannot hear: a person must still listen (brief 3.13).
  *
- * Flags: --fixture <name> | --seed <n> | --find <n> --level <L> (a find-bout candidate), --speed 1|2|3,
+ * Flags: --fixture <name> | --seed <n> | --find <n> --level <L> (a find-bout candidate) | --boss <rung> [--find <n>]
+ * [--level <L>] (a boss bout of the ladder: pool rival n of realm "ladder-test" at level L, default the
+ * rung's gate, against that rung's boss, with the boss banner, both ranks and the rank-up card), --speed 1|2|3,
  * --canvas WxH (the page size of the video, default 390x844; the fight screen is the whole page, so
  * 844x390 records a phone turned and 1280x720 a desktop; pages wider than 1000 px are taken at scale 1),
  * --at <ms,ms,...> extra phone shots [--only-at], --out-dir <dir>, --fps <n> (60), --out <file.mp4>,
@@ -91,8 +93,11 @@ function debugUrl(base, extra) {
   const fixture = arg("fixture");
   const seed = arg("seed");
   const find = arg("find");
+  const boss = arg("boss");
   const q = new URLSearchParams();
-  if (find) { q.set("find", find); q.set("level", arg("level", "1")); }
+  // a boss bout (the ladder): pool rival --find (default 0) at --level (default the rung's gate) against the boss
+  if (boss) { q.set("boss", boss); q.set("find", find ?? "0"); q.set("level", arg("level", String(3 * Number(boss)))); }
+  else if (find) { q.set("find", find); q.set("level", arg("level", "1")); }
   else if (seed) q.set("seed", seed); else q.set("fixture", fixture ?? "bout-gate");
   if (flag("reduced")) q.set("reduced", "1");
   for (const [k, v] of Object.entries(extra)) q.set(k, String(v));
@@ -357,7 +362,8 @@ async function recordVideo(browser, base) {
   const fps = Number(arg("fps", 60));
   const size = videoSize();
   const speed = [2, 3].includes(Number(arg("speed", 1))) ? Number(arg("speed", 1)) : 1;
-  const name = arg("find") ? `find-${arg("find")}-l${arg("level", "1")}` : arg("seed") ? `seed-${arg("seed")}` : arg("fixture", "bout-gate");
+  const name = arg("boss") ? `boss-${arg("boss")}-find-${arg("find", "0")}-l${arg("level", String(3 * Number(arg("boss"))))}`
+    : arg("find") ? `find-${arg("find")}-l${arg("level", "1")}` : arg("seed") ? `seed-${arg("seed")}` : arg("fixture", "bout-gate");
   mkdirSync(OUT_DIR, { recursive: true });
   const out = resolve(arg("out", join(OUT_DIR, `${name}-capsule${size === PHONE ? "" : `-${size.width}x${size.height}`}${flag("reduced") ? "-reduced" : ""}${speed > 1 ? `-${speed}x` : ""}.mp4`)));
   const page = await openPage(browser, size, { reducedMotion: flag("reduced") });

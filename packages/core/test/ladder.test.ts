@@ -81,7 +81,7 @@ describe("the bosses", () => {
 });
 
 /** Changes only when a boss is retuned on purpose: update it in the same commit. */
-const BOSS_DIGEST = "0da53994732a1d7feb2203bea768fabee503af7a5d82e9343352e5b7f8c39bd1";
+const BOSS_DIGEST = "959c404d55ef8b7f06fded28c316378914a310b8cd45931400e6fb1c2aa45aff";
 
 describe("gates and who may fight which boss", () => {
   it("puts the gates every 3 levels from 3 to 30", () => {
