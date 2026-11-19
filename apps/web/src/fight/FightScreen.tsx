@@ -292,6 +292,7 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
                 lit={lit}
                 pulse={pulse}
                 focus={cardFocus === side}
+                tiles={Infinity}
               />
             ))}
           </div>

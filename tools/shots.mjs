@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Screenshots of every app screen (work package 5, acceptance 18) at 390 x 844, 1280 x 800 and
- * 320 wide, from a real session in real Chrome. Each shot is also measured: horizontal scroll of
+ * Screenshots of every app screen (work package 5, acceptance 18) at 390 x 844, 1280 x 800, 320
+ * wide and a phone turned (844 x 390), from a real session in real Chrome. Each shot is also measured: horizontal scroll of
  * the page, and any visible text box whose content is wider than its box (clipped text).
  *
  *   pnpm shots                    all three sizes
- *   pnpm shots --size phone       one size: phone | desktop | narrow
+ *   pnpm shots --size phone       one size: phone | desktop | narrow | turned
  *   pnpm shots --url <base>       use a running dev server
  *
  * Output: <main checkout>/.review/wp5/shots/<size>/<nn>-<screen>.png and a report.json. The
@@ -15,7 +15,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DESKTOP, NARROW, PHONE, openPage, settle, withBrowser } from "./lib/browser.mjs";
+import { DESKTOP, NARROW, PHONE, TURNED, openPage, settle, withBrowser } from "./lib/browser.mjs";
 import { ENTRY, startApp } from "./session.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -33,7 +33,8 @@ function mainCheckout() {
 /** RZ_SHOTS_OUT sends the shots somewhere else (a scratch folder), so a worktree run writes nothing
  *  into the main checkout. */
 export const OUT = process.env.RZ_SHOTS_OUT ? resolve(process.env.RZ_SHOTS_OUT) : resolve(mainCheckout(), ".review/wp5/shots");
-const SIZES = { phone: PHONE, desktop: DESKTOP, narrow: NARROW };
+/** `turned`: a phone on its side (the fight screen is the stage only and works turned, owner 19 Nov 2026). */
+const SIZES = { phone: PHONE, desktop: DESKTOP, narrow: NARROW, turned: TURNED };
 
 /** Horizontal scroll, and text that does not fit its box. Runs in the page. */
 export function measure() {
@@ -169,6 +170,12 @@ async function shootInner(browser, sizeName, base, ctx) {
   await faceFight().click();
   await page.waitForURL(/#\/bout\//);
   await shot("bout", 2600);
+  // the log and the fighter cards, in the drawer over the stage (closed by default)
+  await page.getByRole("button", { name: "Open the bout log and the fighter cards" }).first().click();
+  await shot("bout-drawer-log", 200);
+  await page.getByRole("tab", { name: "Fighters" }).click();
+  await shot("bout-drawer-fighters", 200);
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await page.getByRole("button", { name: "Skip to the end" }).click();
   await result().waitFor();
   await shot("bout-result", 1500);

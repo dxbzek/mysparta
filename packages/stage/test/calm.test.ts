@@ -1,6 +1,6 @@
 /**
  * Calm screen (owner, 15 Nov 2026: "I'm getting dizzy watching it"). Over every 60 fps frame of
- * the three fixture bouts, on a phone canvas and a desktop one, in full and reduced motion:
+ * the three fixture bouts, on a phone canvas upright and turned and a desktop one, in full and reduced motion:
  *  - the camera holds still; outside the one knockout push-in it eases no faster than 3% zoom a
  *    second; the push-in starts at the knockout, zooms at most 25%/s, pans at most 140 px/s with
  *    at most 600 px/s2 of acceleration, and never turns back;
@@ -13,15 +13,20 @@
 import { describe, expect, it } from "vitest";
 import { cameraAt } from "../src/camera";
 import { CALM, calmProblems, motionStats } from "./lib/calm";
+import { PHONE_TALL, PHONE_TURNED } from "./lib/canvases";
 import { FIXTURE_NAMES, fixturePlayer } from "./lib/setup";
 
-const PHONE = { w: 390, h: 470 };
+/** The full-screen stage's canvases (lib/canvases.ts): a phone upright and turned, and a desktop
+ *  window. The limits are CSS px, set for a phone: the same knockout reframe on a 1280 x 720 screen
+ *  is the same share of the screen but 164 px/s of pan (bout-gate, bout-cap), so the desktop here
+ *  is the old 760 x 520 window (camera.test.ts and knockout.test.ts frame 1280 x 720 and 1920 x 1080). */
+const PHONE = PHONE_TALL;
 const DESK = { w: 760, h: 520 };
 
 describe("calm screen, measured on every frame", () => {
   for (const name of FIXTURE_NAMES) {
     for (const reduced of [false, true]) {
-      for (const [label, view] of [["phone", PHONE], ["desktop", DESK]] as const) {
+      for (const [label, view] of [["phone", PHONE], ["turned phone", PHONE_TURNED], ["desktop", DESK]] as const) {
         it(`${name}, ${label}${reduced ? ", reduced motion" : ""}: camera, shake and flash inside the limits`, () => {
           const p = fixturePlayer(name, "capsule", reduced);
           const s = motionStats(p, view, reduced);

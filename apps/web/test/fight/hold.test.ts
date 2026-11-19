@@ -21,14 +21,14 @@ describe("the log sheet holds the bout", () => {
     releaseSheet(clock, was);
     expect(clock.paused).toBe(true);
   });
-  it("the fight screen wires the sheet to the hold and puts the 3x note in the log strip, not on the stage or in the app toast", () => {
+  it("the fight screen wires the drawer to the hold and puts the 3x note over the speed buttons, not among the stage's numbers or in the app toast", () => {
     const src = readFileSync(fileURLToPath(new URL("../../src/fight/FightScreen.tsx", import.meta.url)), "utf8");
     expect(src).toMatch(/holdForSheet\(clock\)/);
     expect(src).toMatch(/releaseSheet\(clock,/);
     expect(src).not.toMatch(/game\?\.toast\(UI\.bout\.vipSpeed\)/);
     // the stage holds the floating numbers and tags: the note must not be drawn there (checker r2)
     expect(src).not.toMatch(/css\.speedNote/);
-    expect(src).toMatch(/<LogStrip[^>]*note=\{speedNote \? UI\.bout\.vipSpeed : null\}/);
+    expect(src).toMatch(/className=\{speedNote \? css\.barNote : "rz-visually-hidden"\} role="status">\{speedNote \? UI\.bout\.vipSpeed : ""\}/);
   });
 });
 
@@ -52,20 +52,33 @@ describe("a fired skill's tile stays lit long enough to read at 1x (review r2)",
   });
 });
 
-describe("the log strip shows the outcome of a long sentence (checker r2)", () => {
+describe("the stage only (owner, 19 Nov 2026: \"I dont want the ui below honestly\")", () => {
+  const src = readFileSync(fileURLToPath(new URL("../../src/fight/FightScreen.tsx", import.meta.url)), "utf8");
   const cssText = readFileSync(fileURLToPath(new URL("../../src/fight/fight.module.css", import.meta.url)), "utf8");
-  const clampIn = (block: string) => Number(/\.stripNew\s*\{[^}]*line-clamp:\s*(\d)/.exec(block)?.[1]);
-  it("the newest line takes up to four lines on a tall phone", () => {
-    expect(clampIn(cssText)).toBe(4);
+  it("nothing is laid out under the stage: the log and the fighter cards are in the drawer, closed by default", () => {
+    expect(src).not.toMatch(/<LogStrip|css\.lower|css\.strip/);
+    expect(src).toMatch(/useState<DrawerTab \| null>\(null\)/);
+    expect(src).toMatch(/<FightDrawer[\s\S]*fighters=\{[\s\S]*<FighterCard/);
   });
-  it("a short phone reserves three lines, so the stage never changes size", () => {
-    const short = cssText.slice(cssText.indexOf("@media (max-height: 760px)"));
-    expect(clampIn(short)).toBe(3);
-    expect(/\.stripNew\s*\{[^}]*min-height:\s*calc\(3 \* 1\.3em\)/.test(short)).toBe(true);
+  it("the HUD, the controls and the result card lie over the stage", () => {
+    const rule = (cls: string): string => new RegExp(`\\n\\.${cls} \\{([^}]*)\\}`).exec(cssText)?.[1] ?? "";
+    for (const cls of ["hud", "bottom", "result"]) expect(rule(cls), cls).toMatch(/position: absolute/);
+    expect(rule("stageArea")).toMatch(/height: 100%/);
   });
-  it("earlier lines wrap instead of ending in an ellipsis on one line", () => {
-    const rule = /\n\.stripLine\s*\{([^}]*)\}/.exec(cssText)![1]!;
-    expect(rule).not.toMatch(/nowrap/);
-    expect(rule).toMatch(/line-clamp:\s*2/);
+  it("the HUD band is at most 52 px (labels.TOP_BAND: the stage's numbers stay under it)", () => {
+    expect(/\n\.hud \{[^}]*max-height: 52px/.test(cssText)).toBe(true);
+  });
+});
+
+import { SWIPE_CLOSE_PX, swipeCloses } from "../../src/fight/FightDrawer";
+describe("the drawer closes on a swipe toward its edge", () => {
+  it("down for the sheet, right for the side panel, and not on a short or crosswise drag", () => {
+    const o = { x: 100, y: 100 };
+    expect(swipeCloses(o, { x: 100, y: 100 + SWIPE_CLOSE_PX }, false)).toBe(true);
+    expect(swipeCloses(o, { x: 100, y: 100 + SWIPE_CLOSE_PX - 1 }, false)).toBe(false);
+    expect(swipeCloses(o, { x: 100, y: 100 - SWIPE_CLOSE_PX * 2 }, false)).toBe(false);
+    expect(swipeCloses(o, { x: 100 + SWIPE_CLOSE_PX, y: 100 }, true)).toBe(true);
+    expect(swipeCloses(o, { x: 100 + SWIPE_CLOSE_PX, y: 100 + SWIPE_CLOSE_PX * 2 }, true)).toBe(false);
+    expect(swipeCloses(o, { x: 100, y: 100 + SWIPE_CLOSE_PX }, true)).toBe(false);
   });
 });

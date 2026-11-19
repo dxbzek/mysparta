@@ -119,6 +119,14 @@ async function main() {
         await page.getByRole("dialog", { name: "Face-off" }).getByRole("button", { name: "Fight", exact: true }).click();
         await page.waitForURL(/#\/bout\//);
         if (i === 0) await check("bout (fight-screen lane)");
+        if (i === 0) {
+          // the log and the fighter cards, in the drawer over the stage
+          await page.getByRole("button", { name: "Open the bout log and the fighter cards" }).first().click();
+          await check("bout drawer, log");
+          await page.getByRole("tab", { name: "Fighters" }).click();
+          await check("bout drawer, fighters");
+          await page.keyboard.press("Escape");
+        }
         await page.getByRole("button", { name: "Skip to the end" }).click();
         await page.getByRole("region", { name: "Result" }).waitFor();
         if (i === 0) await check("bout result (fight-screen lane)");

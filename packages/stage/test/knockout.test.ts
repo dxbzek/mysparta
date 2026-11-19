@@ -14,6 +14,7 @@ import { drawnBox } from "../src/bounds";
 import { CAMERA, cameraAt } from "../src/camera";
 import { SCRAPPER_REACH, STAGE_W } from "../src/layout";
 import { OUTRO } from "../src/tuning";
+import { CANVASES } from "./lib/canvases";
 import { playerFor } from "./lib/setup";
 
 const FULL = createRig(gatePack, contentPack);
@@ -70,7 +71,7 @@ describe("the knockout fall (real art)", () => {
       expect(winner).toBeDefined();
       expect(f.stand).toBeCloseTo(winner.place.x, 6);
       const wb = drawnBox(FULL, FULL.samplePose(winner.rig, winner.clip, winner.clipT, winner.aim), winner.dress, winner.place);
-      for (const view of [{ w: 390, h: 470 }, { w: 760, h: 520 }, { w: 720, h: 480 }]) {
+      for (const view of [...CANVASES, { w: 720, h: 480 }]) {
         const cam = cameraAt(p.tracks, end, view, false);
         const x1 = cam.x0 + view.w / cam.k;
         const tag = `${view.w}x${view.h}`;

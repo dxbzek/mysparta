@@ -156,6 +156,39 @@ async function main() {
       check(forced <= 6000, "the waits the game forces before the first bout are 6 s or less", `${forced} ms, reveal ${reveal} ms`);
       check(/#\/bout\//.test(page.url()), "the bout screen is on", page.url());
 
+      // ---------------------------------------------------------------- 1b. the stage only (owner, 19 Nov 2026)
+      {
+        const vp = page.viewportSize();
+        const canvas = await page.locator("canvas").first().boundingBox();
+        check(canvas !== null && canvas.width >= vp.width - 1 && canvas.height >= vp.height - 1, "the fight screen is the stage: the canvas fills the screen", JSON.stringify(canvas));
+        const drawer = page.locator("[data-drawer]");
+        check(await drawer.count() === 0, "the log and the fighter cards are closed by default");
+        const cardsUnder = await page.locator("[data-side] [data-card-hp], section[data-side]").count();
+        check(cardsUnder === 0, "no fighter card and no log under the stage", `${cardsUnder} cards`);
+        const tBefore = Number(await page.locator("[data-phase]").getAttribute("data-t"));
+        await page.getByRole("button", { name: "Open the bout log and the fighter cards" }).first().click();
+        await page.getByRole("dialog", { name: "Bout log" }).waitFor();
+        check(await page.getByRole("dialog", { name: "Bout log" }).locator("li").count() > 0, "LOG opens the drawer on the bout log");
+        await page.waitForTimeout(500);
+        const tHeld = Number(await page.locator("[data-phase]").getAttribute("data-t"));
+        await page.waitForTimeout(500);
+        check(Number(await page.locator("[data-phase]").getAttribute("data-t")) === tHeld && tHeld >= tBefore, "the bout holds while the drawer is open", `${tBefore} -> ${tHeld}`);
+        await page.getByRole("tab", { name: "Fighters" }).click();
+        check(await page.locator("[data-drawer] section[data-side]").count() === 2, "the Fighters tab shows both fighter cards");
+        // a tap outside the drawer (on the scrim over the stage's top) closes it
+        await page.mouse.click(Math.round(vp.width / 2), 8);
+        await page.waitForTimeout(200);
+        check(await drawer.count() === 0, "a tap outside the drawer closes it");
+        await page.locator("button[data-side='b']").click();
+        await page.locator("[data-drawer] section[data-side='b'][data-focus='1']").waitFor({ timeout: 3000 }).catch(() => undefined);
+        check(await page.locator("[data-drawer] section[data-side='b'][data-focus='1']").count() === 1, "tapping a fighter's HP bar opens that fighter's card");
+        await page.keyboard.press("Escape");
+        await page.waitForTimeout(200);
+        check(await drawer.count() === 0, "Escape closes the drawer");
+        await page.waitForTimeout(400);
+        check(Number(await page.locator("[data-phase]").getAttribute("data-t")) > tHeld, "the bout plays on once the drawer is closed");
+      }
+
       // ---------------------------------------------------------------- 2. spend the day
       let bouts = 0;
       let levelUps = 0;

@@ -1,5 +1,6 @@
 /**
- * Review round 2 (16 Nov 2026), on the app's phone canvas (390 x 467 CSS px) and the full rig, in
+ * Review round 2 (16 Nov 2026), on the app's phone canvas (then 390 x 467 CSS px; since the stage-only
+ * fight screen of 19 Nov 2026 the canvases of lib/canvases.ts, upright and turned) and the full rig, in
  * real level-30 and level-3 bouts the reviewer recorded:
  *  - the knockout's last shot holds the winner whole, standing over the body (it was cut at the
  *    edge while "X WINS" showed);
@@ -34,12 +35,12 @@ import type { FrameActor } from "../src/frame";
 import { AVOID, avoidOf, birthsFor, layoutLabels, screenOf } from "../src/labels";
 import { BODY_GAP } from "../src/layout";
 import { BLEND, MOVE, OUTRO } from "../src/tuning";
+import { CANVASES, PHONE_TALL, isTall, label } from "./lib/canvases";
 import { optsFor } from "./lib/setup";
 
 const rig = createRig(gatePack, contentPack);
-const PHONE = { w: 390, h: 467 };
-/** The phone canvas once the fight screen caps the stage at 9:10 (the web lane's round 2 layout). */
-const PHONE_SHORT = { w: 390, h: 351 };
+/** The tall phone canvas: the narrowest view (the old 390 x 467 band showed the same 200 units). */
+const PHONE = PHONE_TALL;
 
 const cache = new Map<string, { log: BoutLog; a: FighterSnapshot; b: FighterSnapshot; p: StagePlayer }>();
 function bout(level: number, n: number) {
@@ -81,12 +82,14 @@ describe("review round 2: framing and skill effects on the phone", () => {
     const { log, p } = bout(level, n);
     const end = p.timeline.durationMs;
     const f = p.frame(end);
-    const v = view(p, end);
     const winner = f.actors.find((a) => a.id === (log.result.winner === "a" ? "a0" : "b0"))!;
     const wb = box(p, winner, end);
-    // (the win pose may raise its weapon a little past its body box: 4 units)
-    expect(wb.x0, "winner's left edge").toBeGreaterThanOrEqual(v.x0 - 4);
-    expect(wb.x1, "winner's right edge").toBeLessThanOrEqual(v.x1 + 4);
+    for (const canvas of CANVASES) {
+      const v = view(p, end, canvas);
+      // (the win pose may raise its weapon a little past its body box: 4 units)
+      expect(wb.x0, `${label(canvas)} winner's left edge`).toBeGreaterThanOrEqual(v.x0 - 4);
+      expect(wb.x1, `${label(canvas)} winner's right edge`).toBeLessThanOrEqual(v.x1 + 4);
+    }
     const ko = p.tracks.koFocus!;
     // (by the body: 80 units from its mark on clear floor; a knocked-out pet lying before the body
     // moves him off it, level 30 n 0 and n 25, never further than OUTRO.standSearch)
@@ -97,17 +100,19 @@ describe("review round 2: framing and skill effects on the phone", () => {
     const { p } = bout(level, n);
     const ko = p.tracks.koFocus?.at ?? p.timeline.durationMs;
     const out: string[] = [];
-    for (const canvas of [PHONE, PHONE_SHORT]) {
-      for (let t = 1500; t < ko; t += 50) {
-        const v = view(p, t, canvas);
-        for (const a of p.frame(t).actors) {
+    // (the frame is fixed until the knockout: one view per canvas)
+    const views = CANVASES.map((canvas) => ({ canvas, v: view(p, 1500, canvas) }));
+    for (let t = 1500; t < ko; t += 50) {
+      const actors = p.frame(t).actors;
+      for (const { canvas, v } of views) {
+        for (const a of actors) {
           if (a.rig !== "scrapper" || a.clip.startsWith("ko")) continue;
           // its middle at least CAMERA.excursion inside: the body without the back arm's shield
-          // (the old riposte stood with its middle 11 px outside). The tall canvas shows 200 units
+          // (the old riposte stood with its middle 11 px outside). A tall canvas shows 200 units
           // at most: when both fighters stood far off their marks in one bout (level 30 n 25: 204
           // units) each gives up to 4 of them
-          const k = (CAMERA.excursion - (canvas === PHONE ? 4 : 0)) * (a.dress.scale > 0 ? a.dress.scale : 1) - 0.5;
-          if (a.place.x < v.x0 + k || a.place.x > v.x1 - k) out.push(`${canvas.h} ${t} ${a.id} ${a.clip} at ${a.place.x.toFixed(0)} (view ${v.x0.toFixed(0)}-${v.x1.toFixed(0)})`);
+          const k = (CAMERA.excursion - (isTall(canvas) ? 4 : 0)) * (a.dress.scale > 0 ? a.dress.scale : 1) - 0.5;
+          if (a.place.x < v.x0 + k || a.place.x > v.x1 - k) out.push(`${label(canvas)} ${t} ${a.id} ${a.clip} at ${a.place.x.toFixed(0)} (view ${v.x0.toFixed(0)}-${v.x1.toFixed(0)})`);
         }
       }
     }
@@ -118,8 +123,10 @@ describe("review round 2: framing and skill effects on the phone", () => {
     for (const [level, n] of WIDE) {
       const { p } = bout(level, n);
       const ko = p.tracks.koFocus?.at ?? p.timeline.durationMs;
-      const c0 = cameraAt(p.tracks, 0, PHONE, false);
-      for (let t = 0; t < ko; t += 500) expect(cameraAt(p.tracks, t, PHONE, false), `${level}/${n} at ${t}`).toEqual(c0);
+      for (const canvas of CANVASES) {
+        const c0 = cameraAt(p.tracks, 0, canvas, false);
+        for (let t = 0; t < ko; t += 500) expect(cameraAt(p.tracks, t, canvas, false), `${level}/${n} ${label(canvas)} at ${t}`).toEqual(c0);
+      }
       const must = frameSpan(p.tracks).must!;
       // the scrappers' marks are 140 and 220, their own room 40 each side: no more than 30 further
       expect(must.x0, `${level}/${n}`).toBeGreaterThanOrEqual(70);

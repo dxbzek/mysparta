@@ -27,6 +27,8 @@
  * An agent cannot hear: a person must still listen (brief 3.13).
  *
  * Flags: --fixture <name> | --seed <n> | --find <n> --level <L> (a find-bout candidate), --speed 1|2|3,
+ * --canvas WxH (the page size of the video, default 390x844; the fight screen is the whole page, so
+ * 844x390 records a phone turned and 1280x720 a desktop; pages wider than 1000 px are taken at scale 1),
  * --at <ms,ms,...> extra phone shots [--only-at], --out-dir <dir>, --fps <n> (60), --out <file.mp4>,
  * --reduced, --audio, --realtime [--seconds 8], --shots, --port <n>, --copy-to <file>.
  * Output defaults to <main checkout>/.review/wp4/.
@@ -343,13 +345,22 @@ async function mixCues({ cues, contacts, durationMs, speed, holds = [], music = 
 
 // ------------------------------------------------------------------ modes
 
+/** The page size of the video: --canvas WxH, else the phone held upright. */
+function videoSize() {
+  const m = /^(\d{3,4})x(\d{3,4})$/.exec(arg("canvas", ""));
+  if (!m) return PHONE;
+  const width = Number(m[1]);
+  return { width, height: Number(m[2]), deviceScaleFactor: width > 1000 ? 1 : 2 };
+}
+
 async function recordVideo(browser, base) {
   const fps = Number(arg("fps", 60));
+  const size = videoSize();
   const speed = [2, 3].includes(Number(arg("speed", 1))) ? Number(arg("speed", 1)) : 1;
   const name = arg("find") ? `find-${arg("find")}-l${arg("level", "1")}` : arg("seed") ? `seed-${arg("seed")}` : arg("fixture", "bout-gate");
   mkdirSync(OUT_DIR, { recursive: true });
-  const out = resolve(arg("out", join(OUT_DIR, `${name}-capsule${flag("reduced") ? "-reduced" : ""}${speed > 1 ? `-${speed}x` : ""}.mp4`)));
-  const page = await openPage(browser, PHONE, { reducedMotion: flag("reduced") });
+  const out = resolve(arg("out", join(OUT_DIR, `${name}-capsule${size === PHONE ? "" : `-${size.width}x${size.height}`}${flag("reduced") ? "-reduced" : ""}${speed > 1 ? `-${speed}x` : ""}.mp4`)));
+  const page = await openPage(browser, size, { reducedMotion: flag("reduced") });
   await page.goto(debugUrl(base, { paused: 1, t: 0, sound: 0 }));
   await waitReady(page);
   // the Moves the clock plays at 1x at 2x and 3x (Timeline.holds), when the debug page exposes them
@@ -369,7 +380,7 @@ async function recordVideo(browser, base) {
     const t = speed === 1 || info.holds.length === 0 ? Math.min(info.durationMs, (i * 1000 * speed) / fps)
       : presentOf((i * 1000) / fps, speed, info.holds, info.durationMs);
     await page.evaluate((tt) => window.__rz.seek(tt), t);
-    const shot = await cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 90, clip: { x: 0, y: 0, width: PHONE.width, height: PHONE.height, scale: 2 } });
+    const shot = await cdp.send("Page.captureScreenshot", { format: "jpeg", quality: 90, clip: { x: 0, y: 0, width: size.width, height: size.height, scale: size.deviceScaleFactor } });
     if (!ff.stdin.write(Buffer.from(shot.data, "base64"))) await new Promise((r) => ff.stdin.once("drain", r));
     if (i % 300 === 0) process.stdout.write(`frame ${i}/${frames}\n`);
   }

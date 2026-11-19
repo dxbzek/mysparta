@@ -261,16 +261,20 @@ export function cameraAt(tr: Tracks, t: number, view: { w: number; h: number }, 
   const k = start.k * Math.pow(end.k / start.k, u);
   const cx = start.x0 + w / start.k / 2 + (end.x0 + w / end.k / 2 - (start.x0 + w / start.k / 2)) * u;
   const by = start.y0 + h / start.k + (end.y0 + h / end.k - (start.y0 + h / start.k)) * u;
-  return clampView({ x0: cx - w / k / 2, y0: by - h / k, k }, w, h);
+  // (not clamped on the way: both ends are, and a clamp that starts to bite half way would put a
+  // kink in the move; on the way the view may show a little of the night past the stage's edge)
+  return { x0: cx - w / k / 2, y0: by - h / k, k };
 }
 
-/** Inside the stage on each axis the view is shorter than; the whole stage on an axis it is longer
- *  than (the dark beyond it shows there). */
+/** Inside the stage across when the view is narrower than it, the whole stage when wider; the
+ *  stage's top always in or above the view, the floor going on past its bottom when the view needs
+ *  it (the night and the floor beyond the stage: draw.ts EDGE). */
 function clampView(c: CameraView, w: number, h: number): CameraView {
   const vw = w / c.k;
   const vh = h / c.k;
   const within = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
   const x0 = vw <= STAGE_W ? within(c.x0, 0, STAGE_W - vw) : within(c.x0, STAGE_W - vw, 0);
-  const y0 = vh <= STAGE_H ? within(c.y0, 0, STAGE_H - vh) : within(c.y0, STAGE_H - vh, 0);
+  // (a short view may go past the stage's bottom: the floor goes on there, draw.ts EDGE)
+  const y0 = vh <= STAGE_H ? Math.max(0, c.y0) : within(c.y0, STAGE_H - vh, 0);
   return { x0, y0, k: c.k };
 }

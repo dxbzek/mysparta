@@ -88,6 +88,8 @@ export interface FighterCardProps {
   pulse: number;
   /** Opened from this fighter's HP bar: the card is scrolled into view and marked. */
   focus?: boolean;
+  /** How many skill tiles show before the "+N" tile (the drawer scrolls, so it shows them all). */
+  tiles?: number;
 }
 
 function SkillTile({ id, glow, pulse, side }: { id: SkillId; glow: number; pulse: number; side: Side }) {
@@ -106,14 +108,14 @@ function SkillTile({ id, glow, pulse, side }: { id: SkillId; glow: number; pulse
   );
 }
 
-export function FighterCard({ info, frame, state, pets, bag, lit, pulse, focus = false }: FighterCardProps) {
+export function FighterCard({ info, frame, state, pets, bag, lit, pulse, focus = false, tiles = SKILL_TILES }: FighterCardProps) {
   const { side } = info;
   const hp = frame.hp[`${side}0` as ActorId];
   const now = hp ? Math.max(0, Math.round(hp.now)) : 0;
   const held: HeldId = state?.held ?? "fists";
   const shield: ShieldId | null = state?.shield ?? null;
   const down = state?.status === "ko" || now === 0;
-  const shown = info.skills.slice(0, info.skills.length > SKILL_TILES ? SKILL_TILES - 1 : SKILL_TILES);
+  const shown = info.skills.slice(0, info.skills.length > tiles ? tiles - 1 : tiles);
   const more = info.skills.length - shown.length;
   return (
     <section className={`${css.card} ${side === "a" ? css.cardA : css.cardB} ${focus ? css.cardFocus : ""}`} aria-label={`${info.name}, level ${info.level}`} data-side={side}

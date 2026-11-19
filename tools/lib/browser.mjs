@@ -27,6 +27,8 @@ export const LOCK_FILE = join(tmpdir(), "rankzero-browser.lock");
 export const PHONE = { width: 390, height: 844, deviceScaleFactor: 2 };
 export const DESKTOP = { width: 1280, height: 800, deviceScaleFactor: 1 };
 export const NARROW = { width: 320, height: 720, deviceScaleFactor: 2 };
+/** A phone on its side: the fight screen fills it (the stage only, owner 19 Nov 2026). */
+export const TURNED = { width: 844, height: 390, deviceScaleFactor: 2 };
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 

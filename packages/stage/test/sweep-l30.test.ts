@@ -1,6 +1,7 @@
 /**
  * Every level-30 find-bout bout from n 0 to 399 (tools/find-bout.ts: rivals 2n and 2n + 1, bout
- * seed hash("find-bout", n)), on the full rig and the app's phone canvases, for two stage defects
+ * seed hash("find-bout", n)), on the full rig and the app's canvases (lib/canvases.ts: since the
+ * stage-only fight screen of 19 Nov 2026, phones upright and turned and desktops), for two stage defects
  * the content v3 re-pin found (content v3, batch 2):
  *  - a blow at a snared pet behind its owner pushed a fighter out of the frame (18 of 400): the
  *    owner stepped back past his pet up to 90 units from his mark, past the tall phone's 200-unit
@@ -23,25 +24,28 @@ import { buildPlayer } from "../src/createFightPlayer";
 import type { StagePlayer } from "../src/createFightPlayer";
 import { BODY_GAP } from "../src/layout";
 import { BLEND } from "../src/tuning";
+import { CANVASES, isTall, label } from "./lib/canvases";
 import { optsFor } from "./lib/setup";
 
 const rig = createRig(gatePack, contentPack);
-const PHONE = { w: 390, h: 467 };
-const PHONE_SHORT = { w: 390, h: 351 };
 const BOUTS = 400;
 const SWINGS = new Set(["attack", "riposte", "intercept"]);
 
 /** The first frame (every 50 ms) in which a standing fighter's middle is outside the view. */
 function outOfFrame(p: StagePlayer): string | null {
   const ko = p.tracks.koFocus?.at ?? p.timeline.durationMs;
-  for (const canvas of [PHONE, PHONE_SHORT]) {
-    for (let t = 1500; t < ko; t += 50) {
-      const c = cameraAt(p.tracks, t, canvas, false);
-      const v = { x0: c.x0, x1: c.x0 + canvas.w / c.k };
-      for (const a of p.frame(t).actors) {
+  // (the frame is fixed until the knockout: one view per canvas)
+  const views = CANVASES.map((canvas) => {
+    const c = cameraAt(p.tracks, 1500, canvas, false);
+    return { canvas, v: { x0: c.x0, x1: c.x0 + canvas.w / c.k } };
+  });
+  for (let t = 1500; t < ko; t += 50) {
+    const actors = p.frame(t).actors;
+    for (const { canvas, v } of views) {
+      for (const a of actors) {
         if (a.rig !== "scrapper" || a.clip.startsWith("ko")) continue;
-        const k = (CAMERA.excursion - (canvas === PHONE ? 4 : 0)) * (a.dress.scale > 0 ? a.dress.scale : 1) - 0.5;
-        if (a.place.x < v.x0 + k || a.place.x > v.x1 - k) return `${canvas.h} px at ${t} ms: ${a.id} ${a.clip} at ${a.place.x.toFixed(0)}, view ${v.x0.toFixed(0)}-${v.x1.toFixed(0)}`;
+        const k = (CAMERA.excursion - (isTall(canvas) ? 4 : 0)) * (a.dress.scale > 0 ? a.dress.scale : 1) - 0.5;
+        if (a.place.x < v.x0 + k || a.place.x > v.x1 - k) return `${label(canvas)} at ${t} ms: ${a.id} ${a.clip} at ${a.place.x.toFixed(0)}, view ${v.x0.toFixed(0)}-${v.x1.toFixed(0)}`;
       }
     }
   }
