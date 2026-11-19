@@ -150,7 +150,7 @@ describe("a schema-3 save written by build 74fc265 (sim version 7)", () => {
     expect(r.doc.history).toHaveLength(fx.doc.history.length);
     for (const h of r.doc.history) expect(h.before).toEqual({ xp: h.before.xp, energy: ENERGY_MAX, energyAt: 0 });
     expect(r.doc.activeId).toBe(fx.doc.activeId);
-    expect(r.doc.settings).toEqual(fx.doc.settings);
+    expect(r.doc.settings).toEqual({ ...fx.doc.settings, musicVolume: 60, sfxVolume: 100 });   // plan 13.17: the volume sliders arrive at their defaults
   });
 
   it("its power stays about where it was: as many stat points as a new kit of its level", () => {
