@@ -128,9 +128,10 @@ describe("stage defects from the round-2 sim (versions 4 to 6)", () => {
   });
 
   // sim version 8 (content v3)
-  // sim version 9 (content v3 batch 2)
-  for (const [level, n, what] of [[10, 3, "flinch"], [30, 19, "flinch"], [30, 23, "flinch"], [30, 30, "flinch"],
-    [30, 35, "flinch"], [30, 26, "footwork"], [30, 52, "footwork"], [30, 58, "footwork"], [30, 81, "footwork"]] as const) {
+  // sim version 10 (content v3 batch 3; under version 9: flinch in level 10 n 3 and level 30 n 19,
+  // 23, 30, 35, footwork in level 30 n 26, 52, 58, 81)
+  for (const [level, n, what] of [[10, 3, "flinch"], [30, 4, "flinch"], [30, 6, "flinch"], [30, 9, "flinch"],
+    [30, 30, "flinch"], [30, 32, "footwork"], [30, 41, "footwork"], [30, 52, "footwork"], [30, 58, "footwork"]] as const) {
     it.fails(`no foot slides in a ${what} in find-bout level ${level} n ${n}`, () => {
       const p = foundPlayer(level, n);
       const bad = what === "flinch" ? slides(p, FULL, 1, { only: new Set(["hit-light", "hit-heavy"]) }) : slides(p, FULL);

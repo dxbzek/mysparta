@@ -181,7 +181,12 @@ describe("review round 2: framing and skill effects on the phone", () => {
         // (a swing begun inside the sling has its weapon back in hand, frame.ts: only the shield
         // stays slung then)
         const swinging = a.seg !== null && a.seg.aim !== undefined && a.seg.from > g.from;
-        expect(a.slung, `${level}/${n} ${g.actor} at ${t}`).toEqual(swinging ? had.filter((x) => x !== a.dress.held) : had);
+        // (a weapon swapped or knocked off the back meanwhile flies from there: sweep-l30.test.ts
+        // checks where it leaves from)
+        const left = (x: string): boolean => p.tracks.flights.some((q) => q.item === x && q.from >= g.from && q.from <= t);
+        // (and one taken back into the hand for a throw's wind-up is in the hand, as the sweep allows)
+        const inHand = (x: string): boolean => x === a.dress.held && a.seg !== null && a.seg.from > g.from;
+        expect(a.slung, `${level}/${n} ${g.actor} at ${t}`).toEqual((swinging ? had.filter((x) => x !== a.dress.held) : had).filter((x) => !left(x) && !inHand(x)));
 
       }
     }

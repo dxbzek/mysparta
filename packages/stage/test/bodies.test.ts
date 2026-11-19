@@ -67,9 +67,9 @@ describe("downed bodies lie clear of the feet and inside the frame (real art)", 
 
 describe("a blow at a pinned pet behind its owner (real art)", () => {
   // level 30 n 70 under sim version 7 (a sledgehammer at a pinned goose); the same scene under sim
-  // version 8 is level 30 n 66
-  it("level 30 n 66: the owner gives room past his pinned pet, not between it and the attacker", () => {
-    const b = found(30, 66);
+  // version 8 is level 30 n 66, and under version 10 (content v3 batch 3) level 30 n 168
+  it("level 30 n 168: the owner gives room past his pinned pet, not between it and the attacker", () => {
+    const b = found(30, 168);
     const p = playerFor(b.log, b.a, b.b, FULL);
     // every blow at a pinned pet: at its contact the two fighters are a body gap and a body apart
     let checked = 0;

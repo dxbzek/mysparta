@@ -148,7 +148,7 @@ describe("room between bodies, measured on every frame (real art)", () => {
     ["find-bout level 30 n 3", found(30, 3)],
     // a0 hits a pet while it is snared behind its owner: it cannot come out, so he gives room.
     // n 212 since sim version 8 (content v3); it was n 4, then n 53, then n 96, then n 58.
-    ["find-bout level 30 n 212 (snared pet)", found(30, 9)]] as const) {
+    ["find-bout level 30 n 212 (snared pet)", found(30, 68)]] as const) {
     it(`${name}: the same, in a real bout`, () => {
       const p = playerFor(bout.log, bout.a, bout.b, FULL);
       const r = spacing(p, bout.log);
@@ -167,9 +167,10 @@ describe("room between bodies, measured on every frame (real art)", () => {
 // a0 swings at the snared pet b1 standing behind b0.
 describe("a snared pet behind its owner (verifier, 15 Nov 2026: level 30 n 4, step 57; now n 212, step 20)", () => {
   it("the owner steps back past it, and its tarp is drawn with the pet, under him", () => {
-    const { log, a, b } = found(30, 9);
+    // (level 30 n 9, step 20 under sim version 9; level 30 n 68, step 18 under version 10)
+    const { log, a, b } = found(30, 68);
     const p = playerFor(log, a, b, FULL);
-    const c = p.timeline.contacts.find((x) => x.step === 20)!;
+    const c = p.timeline.contacts.find((x) => x.step === 18)!;
     expect(c).toBeDefined();
     const f = p.frame(c.at);
     const atk = f.actors.find((x) => x.id === "a0")!;

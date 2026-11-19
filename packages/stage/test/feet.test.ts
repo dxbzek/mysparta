@@ -38,11 +38,11 @@ function found(level: number, n: number): { log: BoutLog; a: FighterSnapshot; b:
 }
 const BOUTS: readonly { name: string; log: BoutLog; a: FighterSnapshot; b: FighterSnapshot }[] = [
   ...FIXTURE_NAMES.map((name) => ({ ...BOUT_FIXTURES[name], name })),
-  // sim version 9 (content v3 batch 2): clean bouts with the same footwork (they were level 10 n 5,
-  // level 30 n 0 and n 35 under version 8)
-  { name: "find-bout level 10 n 44", ...found(10, 44) },
-  { name: "find-bout level 30 n 68", ...found(30, 68) },
-  { name: "find-bout level 30 n 6", ...found(30, 6) },
+  // sim version 10 (content v3 batch 3): clean bouts with the same footwork (they were level 10 n
+  // 44, level 30 n 68 and n 6 under version 9)
+  { name: "find-bout level 10 n 4", ...found(10, 4) },
+  { name: "find-bout level 30 n 0", ...found(30, 0) },
+  { name: "find-bout level 30 n 8", ...found(30, 8) },
 ];
 const cache = new Map<string, StagePlayer>();
 function player(name: string, internal?: Internal): StagePlayer {
@@ -108,7 +108,7 @@ describe("feet on the floor in real bouts, measured on the drawn feet", () => {
     // pet spacing fix: an attacked pet now steps out in front of its owner, so the attacker no
     // longer runs past him to reach it; the runs are counted over all the bouts above). The level-30
     // candidate is 35 under sim version 8 (9 before, which also had a dodged pet attack).
-    const l30 = player("find-bout level 30 n 6").tracks.actors.flatMap((tr) => tr.segs.map((g) => g.clip));
+    const l30 = player("find-bout level 30 n 8").tracks.actors.flatMap((tr) => tr.segs.map((g) => g.clip));
     for (const clip of ["shuffle", "slip", "evade"]) expect(l30, clip).toContain(clip);
   });
 
