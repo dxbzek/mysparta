@@ -18,7 +18,12 @@
  * contact, no two impact cues within 60 ms, every impact sound found in the mixed track within 30 ms
  * of its contact (a check of where the cues put each sound in the mix, not of the live player or the
  * picture; a match on the edge of the search window fails), the peak below clipping, and
- * the longest silence.
+ * the longest silence. With music (the default; --no-music leaves it out) the fight's music is mixed
+ * under the cues as the live player plays it (apps/web/src/audio/music.ts): the two fight layers in
+ * step, crossfaded by the HP the page reports (`__rz.music(t)`), faded out at the knockout, the ko
+ * sting on the knockout blow, the win and loss cues played as the music's stings in place of the
+ * sprite's jingles, the loops ducked under the stings and under big impacts, all at the default
+ * music volume (60%, squared). The sync check runs on the effects alone, before the music goes in.
  * An agent cannot hear: a person must still listen (brief 3.13).
  *
  * Flags: --fixture <name> | --seed <n> | --find <n> --level <L> (a find-bout candidate), --speed 1|2|3,
@@ -177,7 +182,61 @@ function decodeMp3(file, rate) {
   return new Float32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4).slice();
 }
 
-async function mixCues({ cues, contacts, durationMs, speed, holds = [] }) {
+/** The music mix (see the header): `music` is { samples: [{ r, scene, intensity }], koAt }, r in real ms. */
+async function mixMusic(out, RATE, { samples, koAt, speed, holds, stings, ducks }) {
+  const { FADE, DUCK, loopTargets } = await import("../apps/web/src/audio/music.ts");
+  const { volumeGain } = await import("../apps/web/src/audio/engine.ts");
+  const mj = JSON.parse(readFileSync(join(WEB, "public/audio/music.json"), "utf8"));
+  const dec = {};
+  for (const [id, t] of [...Object.entries(mj.tracks), ...Object.entries(mj.stings)]) dec[id] = decodeMp3(join(WEB, "public/audio", t.file), RATE);
+  const vol = volumeGain(0.6);
+  const n = out.length;
+  // the loop gains: target from the nearest earlier sample, approached linearly over its fade
+  const calm = mj.tracks["fight-calm"]; const intense = mj.tracks["fight-intense"];
+  const len = Math.round((calm.loopEnd - calm.loopStart) * RATE);
+  const g = { "fight-calm": 0, "fight-intense": 0 };
+  let k = 0;
+  // the duck envelope, 1 = no duck
+  const duck = new Float32Array(n).fill(1);
+  const dip = (atS, depth, attack, hold, release) => {
+    const a = Math.round(atS * RATE); const b = a + Math.round(attack * RATE); const c = b + Math.round(hold * RATE); const d = c + Math.round(release * RATE);
+    for (let i = Math.max(0, a); i < Math.min(n, d); i++) {
+      const v = i < b ? 1 - (1 - depth) * ((i - a) / Math.max(1, b - a)) : i < c ? depth : depth + (1 - depth) * ((i - c) / Math.max(1, d - c));
+      duck[i] = Math.min(duck[i], v);
+    }
+  };
+  let stingUntil = -Infinity;
+  for (const st of stings) {
+    const dur = mj.stings[st.id].dur;
+    dip(st.r / 1000, DUCK.sting, DUCK.stingAttack, dur, DUCK.stingRelease);
+    stingUntil = Math.max(stingUntil, st.r / 1000 + DUCK.stingAttack + dur + DUCK.stingRelease);
+  }
+  for (const r of ducks) if (r / 1000 >= stingUntil || !stings.some((st) => r >= st.r && r / 1000 < st.r / 1000 + mj.stings[st.id].dur + 1)) dip(r / 1000, DUCK.impact, DUCK.impactAttack, DUCK.impactHold, DUCK.impactRelease);
+  for (let i = 0; i < n; i++) {
+    const rMs = (i / RATE) * 1000;
+    while (k + 1 < samples.length && samples[k + 1].r <= rMs) k++;
+    const s0 = samples[k] ?? { scene: "fight", intensity: 0 };
+    const tgt = loopTargets(s0.scene, s0.intensity, true);
+    const fade = s0.scene === "post" ? FADE.post : i < FADE.scene * RATE ? FADE.scene : FADE.layer;
+    const step = 1 / (fade * RATE);
+    for (const id of ["fight-calm", "fight-intense"]) {
+      const d = tgt[id] - g[id];
+      g[id] += Math.abs(d) <= step ? d : Math.sign(d) * step;
+    }
+    const pos = i % len;
+    const a = dec["fight-calm"][Math.round(calm.loopStart * RATE) + pos] ?? 0;
+    const b = dec["fight-intense"][Math.round(intense.loopStart * RATE) + pos] ?? 0;
+    out[i] += vol * duck[i] * (g["fight-calm"] * a + g["fight-intense"] * b);
+  }
+  for (const st of stings) {
+    const e = mj.stings[st.id]; const buf = dec[st.id];
+    const at = Math.round((st.r / 1000) * RATE); const from = Math.round(e.start * RATE); const L = Math.round(e.dur * RATE);
+    for (let i = 0; i < L && at + i < n; i++) out[at + i] += vol * (buf[from + i] ?? 0);
+  }
+  return { koAtMs: Number.isFinite(koAt) ? Math.round(realOf(koAt, speed, holds)) : null, stings: stings.map((st) => `${st.id}@${Math.round(st.r)}ms`), ducks: ducks.length };
+}
+
+async function mixCues({ cues, contacts, durationMs, speed, holds = [], music = null }) {
   const RATE = 44100;
   const map = JSON.parse(readFileSync(join(WEB, "public/audio/sfx.json"), "utf8"));
   const sprites = map.files.map((f) => decodeMp3(join(WEB, "public/audio", f), RATE));
@@ -191,8 +250,18 @@ async function mixCues({ cues, contacts, durationMs, speed, holds = [] }) {
   let lastImpact = -Infinity;
   const spans = [];
   const placed = [];
+  const stings = [];
+  const ducks = [];
+  const { DUCK_SETS, STING_FOR } = await import("../apps/web/src/audio/engine.ts");
   for (const c of cues) {
     const pick = soundFor(c, size);
+    if (music) {
+      const r = realOf(c.at, speed, holds);
+      if (c.accent === true && Number.isFinite(music.koAt) && c.at === music.koAt) stings.push({ id: "ko", r });
+      // the live engine plays the win and loss cues as the music's stings (no double jingle)
+      if (pick && STING_FOR[pick.name]) { stings.push({ id: STING_FOR[pick.name], r }); continue; }
+      if (pick && (DUCK_SETS.has(pick.name) || DUCK_SETS.has(map.families[pick.name] ?? ""))) ducks.push(r);
+    }
     const e = pick === null ? undefined : listOf(pick.name)?.[pick.variant];
     if (!e) { problems.push(`no sound for ${c.family}[${c.variant}] ${c.item ?? ""}`); continue; }
     const sprite = sprites[e.f ?? 0];
@@ -249,6 +318,7 @@ async function mixCues({ cues, contacts, durationMs, speed, holds = [] }) {
   const sync = { checks: "cue placement in the mix only: not the live player, not the picture", impacts: offsets.length, unmatched,
     medianMs: abs.length ? Number(abs[abs.length >> 1].toFixed(1)) : null, worstMs: abs.length ? Number(abs[abs.length - 1].toFixed(1)) : null };
 
+  const musicReport = music ? await mixMusic(out, RATE, { ...music, speed, holds, stings, ducks }) : null;
   let peak = 0;
   let clippedSamples = 0;
   for (const v of out) { const a = Math.abs(v); if (a > peak) peak = a; if (a >= 1) clippedSamples++; }
@@ -267,7 +337,7 @@ async function mixCues({ cues, contacts, durationMs, speed, holds = [] }) {
   h.writeUInt32LE(RATE * 2, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34); h.write("data", 36); h.writeUInt32LE(pcm.length, 40);
   return {
     wav: Buffer.concat([h, pcm]),
-    report: { cues: cues.length, sync, problems, peak: Number(peak.toFixed(3)), clippedSamples, limiterGain: Number(gain.toFixed(3)), longestSilenceMs: Math.round((longest / RATE) * 1000) },
+    report: { cues: cues.length, music: musicReport, sync, problems, peak: Number(peak.toFixed(3)), clippedSamples, limiterGain: Number(gain.toFixed(3)), longestSilenceMs: Math.round((longest / RATE) * 1000) },
   };
 }
 
@@ -308,7 +378,19 @@ async function recordVideo(browser, base) {
   const played = await page.evaluate(() => window.__rz.played);
   let report = null;
   if (flag("audio")) {
-    const { wav, report: r } = await mixCues({ ...info, speed });
+    // the music scene and intensity the page reports for every frame's fight time (real ms)
+    const music = flag("no-music") ? null : { koAt: await page.evaluate(() => window.__rz.koAt ?? null) ?? Infinity, samples: [] };
+    if (music) {
+      const samples = [];
+      for (let i = 0; i < frames; i += 6) {
+        const r = (i * 1000) / fps;
+        const t = speed === 1 || info.holds.length === 0 ? Math.min(info.durationMs, r * speed) : presentOf(r, speed, info.holds, info.durationMs);
+        const m = await page.evaluate((tt) => (window.__rz.music ? window.__rz.music(tt) : { scene: "fight", intensity: 0 }), t);
+        samples.push({ r, ...m });
+      }
+      music.samples = samples;
+    }
+    const { wav, report: r } = await mixCues({ ...info, speed, music });
     report = r;
     writeFileSync(join(work, "cues.wav"), wav);
     writeFileSync(out.replace(/\.mp4$/, ".wav"), wav);

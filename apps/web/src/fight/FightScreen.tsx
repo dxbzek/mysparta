@@ -43,7 +43,11 @@ export interface FightHandle { durationMs: number; seek(tMs: number): void; read
   /** The timeline's sound cues and contact marks, for the recording tool's audio check. */
   readonly cues: readonly Cue[]; readonly contacts: readonly { step: number; at: number }[];
   /** The Moves the clock plays at 1x at 2x and 3x (the stage's `Timeline.holds`), for the recording tool. */
-  readonly holds: readonly (readonly [from: number, to: number])[] }
+  readonly holds: readonly (readonly [from: number, to: number])[];
+  /** The music scene and intensity at fight time `t` (plan 13.17), for the recording tool's mix. */
+  music(tMs: number): { scene: "fight" | "post"; intensity: number };
+  /** When the knockout blow lands (Infinity with none): the ko sting's moment. */
+  readonly koAt: number }
 
 export interface FightScreenExtraProps {
   rig?: Rig;
@@ -145,9 +149,11 @@ export function FightScreen(props: FightScreenProps & FightScreenExtraProps) {
       cues: tl.cues,
       contacts: tl.contacts.map((c) => ({ step: c.step, at: c.at })),
       holds: tl.holds ?? [],
+      music: (tMs: number) => fightMusicAt(tMs, koAt, player.hud(tMs).hp),
+      koAt,
     });
     return () => onHandle(null);
-  }, [onHandle, tl, seek, clock, audio]);
+  }, [onHandle, tl, seek, clock, audio, koAt, player]);
 
   const hud = player.hud(t);
   const state = player.state(t);

@@ -81,6 +81,8 @@ function DebugBout({ route }: { route: Extract<DebugRoute, { page: "bout" }> }) 
       cues: handle.cues,
       contacts: handle.contacts,
       holds: handle.holds,
+      music: (tMs: number) => handle.music(tMs),
+      koAt: handle.koAt,
     };
     window.__rz = h;
   }, [handle, fontsReady]);

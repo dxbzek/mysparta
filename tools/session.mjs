@@ -20,6 +20,8 @@
  *   5c. content v3 batch 3: the Locker's talent prompt and the Kit badge, spend on the real tree,
  *      respec once (a second the same day is refused), and the next bout's snapshot carries the ranks;
  *   6. make three scrappers, see the fourth refused, retire one and see it kept in the save;
+ *   6b. set the Music and Effects sliders, see both saved and shown again after a reload, and off
+ *      with sound off (plan 13.17);
  *   7. check an old-build storage key planted at the start is still there, unchanged.
  * Exit code 1 on any failed check.
  */
@@ -453,6 +455,37 @@ async function main() {
       const after = (await readSave(page)).doc;
       check(after.fighters.length === 2 && after.retired.length === 1 && after.retired[0].name === "Tug", "a retired scrapper stays in the save", `${after.fighters.length} active, ${after.retired.length} retired`);
       check(await page.getByRole("button", { name: "New scrapper" }).count() === 1, "retiring frees the slot");
+
+      // ---------------------------------------------------------------- 6b. music and effects volume (plan 13.17)
+      await page.evaluate(() => { location.hash = "#/settings"; });
+      const music = page.getByRole("slider", { name: "Music" });
+      const effects = page.getByRole("slider", { name: "Effects" });
+      await music.waitFor({ state: "visible", timeout: 10000 });
+      check(await music.inputValue() === "60" && await effects.inputValue() === "100", "the Music and Effects sliders start at 60% and 100%", `${await music.inputValue()} / ${await effects.inputValue()}`);
+      await music.focus();
+      await page.keyboard.press("Home");
+      for (let i = 0; i < 4; i++) await page.keyboard.press("ArrowRight");
+      await effects.focus();
+      await page.keyboard.press("End");
+      for (let i = 0; i < 2; i++) await page.keyboard.press("ArrowLeft");
+      await page.keyboard.press("Tab");
+      await page.waitForTimeout(400);
+      let vol = (await readSave(page)).doc.settings;
+      check(vol.musicVolume === 20 && vol.sfxVolume === 90, "the two sliders save their own volumes", `music ${vol.musicVolume}, effects ${vol.sfxVolume}`);
+      await page.reload();
+      await settle(page);
+      await page.evaluate(() => { location.hash = "#/settings"; });
+      await music.waitFor({ state: "visible", timeout: 10000 });
+      check(await music.inputValue() === "20" && await effects.inputValue() === "90", "after a reload the sliders show the saved volumes", `${await music.inputValue()} / ${await effects.inputValue()}`);
+      await page.getByRole("radiogroup", { name: "Sound" }).getByRole("radio", { name: "Off" }).click();
+      await page.waitForTimeout(300);
+      check(await music.isDisabled() && await effects.isDisabled(), "with sound off both sliders are off too");
+      await page.getByRole("radiogroup", { name: "Sound" }).getByRole("radio", { name: "On" }).click();
+      await page.waitForTimeout(300);
+      vol = (await readSave(page)).doc.settings;
+      check(vol.sound === true && vol.musicVolume === 20, "sound back on keeps the music volume", `sound ${vol.sound}, music ${vol.musicVolume}`);
+      await page.keyboard.press("Escape");
+      await page.evaluate(() => { location.hash = "#/locker"; });
 
       // ---------------------------------------------------------------- 7. the old key
       const old = await page.evaluate((k) => localStorage.getItem(k), OLD_KEY);
