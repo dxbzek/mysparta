@@ -103,7 +103,7 @@ describe("content looks: batch 4", () => {
   });
   it("covers the legs a short bottom leaves bare with the trousers worn as gear", () => {
     for (const b of [3, 5, 8]) {
-      const skin = (gear?: Dress["gear"]) => parts({ ...base, bottom: b }, gear).filter((p) => p.tag.startsWith("leg") && p.lit === L.skin[base.skin]).length;
+      const skin = (gear?: Dress["gear"]) => parts({ ...base, bottom: b }, gear).filter((p) => (p.tag ?? "").startsWith("leg") && p.lit === L.skin[base.skin]).length;
       expect(skin(), `bottom ${b}`).toBeGreaterThan(0);
       expect(skin({ legs: "track-pants" }), `bottom ${b}`).toBe(0);
     }
