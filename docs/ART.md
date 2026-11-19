@@ -400,13 +400,17 @@ hand. **A part keeps its index**: new parts go at the end of each list, so a loo
 draws the same drawing (`test/content/looks.test.ts` pins a digest of the first entries, measured on
 build 436c0a8's own pack).
 
-- **Builds** (`BUILDS` in gate/skeleton.ts): lean, stocky, tall, then **heavy** (scale 1.05, limbs
-  1.38, trunk 1.44, a belly 0.62, head 1.1) and **wiry** (scale 1.02, limbs 0.78, trunk 0.8, head
+- **Builds** (`BUILDS` in gate/skeleton.ts): lean, stocky, tall, then **heavy** (scale 1.05, arms
+  1.62, legs 1.45, trunk 1.72, a belly 0.85, head 1.22, seat 1.5; owner, 19 Nov 2026: heavy must read
+  apart from stocky at fight size) and **wiry** (scale 1.02, limbs 0.78, trunk 0.8, head
   0.95). A build changes widths only, never lengths, so every clip, grip and aim fits it; none is
   taller than the tall build. The belly (`engine/build.ts`) pushes the front of the trunk forward
-  round the stomach, fullest just above the belt and gone by the chest, point by point in the torso
-  bone's frame: every top and every vest worn as gear follow the same curve. `head` widens the head
-  and its hair across the head bone (a heavy man's fuller face, a wiry one's gaunt one).
+  round the stomach (and the back, the flanks, by a third of that), fullest just above the belt and
+  gone by the chest, point by point in the torso bone's frame: every top and every vest worn as gear
+  follow the same curve; a layer under the top (an open jacket's shirt) takes 80% of it, so the
+  jacket's edge rims the belly. `head` widens the head and neck across the head bone; `seat` draws
+  the pelvis deeper so wide thighs stay covered at the hip pins; `leg` sets the legs' width apart
+  from the arms'.
 - **Heads 10** (+ round and full with a double chin, a lantern jaw with a cleft, a boxer with a flat
   nose and a cauliflower ear, a young narrow face), each outline on the gate head's 20 landmarks so
   the faces sit on every head. **Faces 14** (+ tired, scowl, stubble as a scatter of fine dots, a
