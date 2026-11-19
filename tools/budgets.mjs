@@ -15,6 +15,10 @@
  *                                        (15 Nov 2026) because a sound per weapon, shield and pet
  *                                        (owner: "it depends on the weapon too") does not fit one
  *                                        300 KB file at 64 kbps; the core alone covers every cue.
+ *   Music loop             1024 KB each   audio/music/{menu,fight-calm,fight-intense}.mp3 (plan 13.17).
+ *                                        Not in the first load: each loads after the first tap,
+ *                                        only when its screen needs it, and never with music off.
+ *   Music sting             160 KB each   audio/music/{ko,win,lose,level-up}.mp3, same rule.
  *
  * Not measured here: Lighthouse, frame rate, draw time, memory. Those need a browser or a person.
  */
@@ -78,6 +82,9 @@ const images = all.filter((f) => [".png", ".jpg", ".jpeg", ".webp", ".gif", ".av
 const sprite = join(DIST, "audio", "sfx.mp3");
 const content = join(DIST, "audio", "sfx-content.mp3");
 const audio = all.filter((f) => [".mp3", ".ogg", ".wav", ".m4a", ".webm"].includes(extname(f).toLowerCase()));
+const LOOPS = ["menu", "fight-calm", "fight-intense"];
+const STINGS = ["ko", "win", "lose", "level-up"];
+const musicFile = (slot) => join(DIST, "audio", "music", `${slot}.mp3`);
 
 const jsGz = sum(initialJs, gz);
 const cssGz = sum(css, gz);
@@ -91,6 +98,8 @@ const rows = [
   ["First load, total transfer", firstLoad, 300 * KB, "html + JS + CSS + fonts + icon"],
   ["Audio core sprite", existsSync(sprite) ? raw(sprite) : 0, 300 * KB, existsSync(sprite) ? "audio/sfx.mp3" : "no sprite in the build yet"],
   ["Audio content sprite", existsSync(content) ? raw(content) : 0, 300 * KB, existsSync(content) ? "audio/sfx-content.mp3, after the core" : "no content sprite in the build"],
+  ...LOOPS.map((s) => [`Music loop ${s}`, existsSync(musicFile(s)) ? raw(musicFile(s)) : 0, 1024 * KB, existsSync(musicFile(s)) ? "lazy, after the first tap" : "not in the build"]),
+  ...STINGS.map((s) => [`Music sting ${s}`, existsSync(musicFile(s)) ? raw(musicFile(s)) : 0, 160 * KB, existsSync(musicFile(s)) ? "lazy, after the first tap" : "not in the build"]),
 ];
 const broken = [];
 console.log("budgets: apps/web/dist");
@@ -103,8 +112,9 @@ const rel = (f) => relative(DIST, f).replaceAll("\\", "/");
 if (images.length > 0) { broken.push("Images"); console.log(`  OVER  Images: none are allowed, found ${images.map(rel).join(", ")}`); }
 else console.log("  ok    Images: none");
 if (otherFonts.length > 0) { broken.push("Font format"); console.log(`  OVER  Fonts must be woff2 only, found ${otherFonts.map(rel).join(", ")}`); }
-const strayAudio = audio.filter((f) => f !== sprite && f !== content);
-if (strayAudio.length > 0) { broken.push("Audio files"); console.log(`  OVER  The two audio sprites only, found ${strayAudio.map(rel).join(", ")}`); }
+const known = new Set([sprite, content, ...[...LOOPS, ...STINGS].map(musicFile)]);
+const strayAudio = audio.filter((f) => !known.has(f));
+if (strayAudio.length > 0) { broken.push("Audio files"); console.log(`  OVER  The two audio sprites and the music files only, found ${strayAudio.map(rel).join(", ")}`); }
 
 if (broken.length > 0) {
   console.error(`budgets FAILED: ${broken.join(", ")}`);
