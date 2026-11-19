@@ -118,7 +118,7 @@ export const BUILDS = [
   { scale: 1, limb: 1, torso: 1 },          // lean
   { scale: 1.03, limb: 1.24, torso: 1.27 }, // stocky
   { scale: 1.08, limb: 0.94, torso: 0.96 }, // tall
-  { scale: 1.05, limb: 1.42, torso: 1.46, belly: 1.0, head: 1.1 }, // heavy
+  { scale: 1.05, limb: 1.42, torso: 1.46, belly: 0.62, head: 1.1 }, // heavy
   { scale: 1.02, limb: 0.78, torso: 0.8, head: 0.95 },              // wiry
 ] as const;
 

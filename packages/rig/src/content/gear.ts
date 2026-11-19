@@ -65,7 +65,7 @@ function gloveCuff(s: Side, slot: ColourSlot, long: number, flare: number): Shap
 // ---------------------------------------------------------------------------------- head
 const HEAD_GEAR: Record<"bandana" | "beanie" | "hard-hat" | "goggles" | "welding-mask" | "motorbike-helmet", GearArt> = {
   // a red cloth band round the brow, knotted at the back with two tails
-  bandana: { slot: "head", shapes: [
+  bandana: { slot: "head", hide: ["headwear"], shapes: [
     head([[9.9, -15.2], [10.0, -18.4], [4, -20.2], [-4, -20.0], [-10.6, -17.8], [-11.2, -14.6], [-4, -16.2], [3, -16.4]], "sign"),
     head([[-10.4, -17.4], [-15.8, -13.4], [-14.8, -11.2], [-10.2, -14.6]], "sign", HZ - 1.2),
     head([[-10.6, -16.4], [-13.4, -9.4], [-11.4, -8.8], [-9.8, -14.4]], "sign", HZ - 1.1),
@@ -74,7 +74,7 @@ const HEAD_GEAR: Record<"bandana" | "beanie" | "hard-hat" | "goggles" | "welding
     headInk([[-1.5, -19.2], [-0.6, -17.2]], 0.26), headInk([[4.6, -19.4], [5.4, -17.4]], 0.26),
   ] },
   // a green knitted cap over the crown, a ribbed cuff over the brow
-  beanie: { slot: "head", hide: [], shapes: [
+  beanie: { slot: "head", hide: ["crown", "headwear"], shapes: [
     head([[9.2, -17.0], [8.8, -23.2], [4.2, -27.4], [-3.2, -27.9], [-9.4, -24.6], [-11.8, -18.4], [-11.6, -15.6]], "green"),
     head([[10.3, -14.6], [10.0, -18.6], [-12.0, -18.0], [-11.8, -14.4], [-2, -16.0]], "green", HZ + 0.1),
     headInk([[6.4, -18.2], [6.6, -15.6]], 0.3, HZ + 0.3), headInk([[2.4, -18.4], [2.4, -15.9]], 0.3, HZ + 0.3),
@@ -83,14 +83,14 @@ const HEAD_GEAR: Record<"bandana" | "beanie" | "hard-hat" | "goggles" | "welding
     headInk([[4, -24.6], [-2, -25.4], [-7.4, -22.6]], 0.28),
   ] },
   // a yellow builder's hard hat: a dome with a ridge and a short brim all round
-  "hard-hat": { slot: "head", shapes: [
+  "hard-hat": { slot: "head", hide: ["crown", "headwear"], shapes: [
     head([[9.6, -18.6], [8.4, -24.4], [3.2, -28.6], [-4.2, -28.6], [-9.8, -24.6], [-11.2, -18.6]], "yellow"),
     head([[14.6, -19.0], [14.4, -17.2], [-12.8, -17.4], [-12.6, -19.4]], "yellow", HZ + 0.2),
     head([[1.0, -28.8], [-1.8, -28.9], [-2.2, -19.0], [0.6, -19.0]], "yellow", HZ + 0.1),
     headInk([[8.2, -21.2], [-9.4, -21.0]], 0.3, HZ + 0.15),
   ] },
   // work goggles over the eyes on a dark rubber strap round the head
-  goggles: { slot: "head", shapes: [
+  goggles: { slot: "head", hide: ["headwear"], shapes: [
     head([[4.0, -15.0], [-11.2, -14.6], [-11.0, -11.8], [4.0, -12.0]], "rubber", HZ - 0.3),
     head([[2.6, -16.2], [9.8, -16.4], [11.6, -13.6], [10.8, -9.8], [2.8, -9.6], [1.8, -12.8]], "metal", HZ + 0.1),
     head([[4.2, -14.8], [9.2, -14.9], [10.0, -13.4], [9.4, -11.2], [4.4, -11.0], [3.6, -12.8]], "visor", HZ + 0.2),

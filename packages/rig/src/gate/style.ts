@@ -58,8 +58,10 @@ export const PALETTES: readonly Palette[] = [
 ];
 /** The content pack's further skin tones, hair colours and clothing palettes (the full
  *  LOOK_SPACE: 8 skins, 8 hair colours, 12 palettes), all under the same sodium light. */
-export const SKIN_MORE = ["#D9935A", "#B06A38", "#7E4628", "#5C3220"] as const;
-export const HAIR_COLOUR_MORE = ["#3A2418", "#6E625A", "#A8742E", "#6A2A16"] as const;
+export const SKIN_MORE = ["#D9935A", "#B06A38", "#7E4628", "#5C3220",
+  "#F4C89A", "#4A2616"] as const;                       // content v3 batch 4: fair, very dark
+export const HAIR_COLOUR_MORE = ["#3A2418", "#6E625A", "#A8742E", "#6A2A16",
+  "#D2A65A", "#E4D4AE", "#B4441E", "#4E6A8E"] as const; // content v3 batch 4: dark blond, platinum, ginger, dyed slate blue
 export const PALETTES_MORE: readonly Palette[] = [
   { top: "#2E5A5E", bottom: "#3A3430", shoes: "#1E1A16", accent: "#C35E26" },
   { top: "#5A3A28", bottom: "#2C3A3C", shoes: "#6A4A30", accent: "#E0A060" },
@@ -69,12 +71,25 @@ export const PALETTES_MORE: readonly Palette[] = [
   { top: "#6A2A26", bottom: "#4E4436", shoes: "#2A1A0E", accent: "#D2B46A" },
   { top: "#1E3438", bottom: "#6E5632", shoes: "#8C5E30", accent: "#E8923E" },
   { top: "#8C6A4A", bottom: "#2E2A26", shoes: "#C88A50", accent: "#3A2A20" },
+  // content v3 batch 4: 12 more, from work and street clothes under the lamp
+  { top: "#4E6A8E", bottom: "#2A2A2E", shoes: "#E2D4B4", accent: "#E8923E" },   // denim blue, black, cream
+  { top: "#6E7A3A", bottom: "#4A3A2A", shoes: "#2A1A0E", accent: "#C8A050" },   // olive drab
+  { top: "#B8352A", bottom: "#2E3A4A", shoes: "#F2D4A8", accent: "#1E1A16" },   // red and navy
+  { top: "#E2D4B4", bottom: "#5A4A34", shoes: "#6A4A30", accent: "#8E3A2A" },   // cream and brown
+  { top: "#2A2A30", bottom: "#4E6A8E", shoes: "#B8352A", accent: "#E8662A" },   // black and denim
+  { top: "#E8662A", bottom: "#3A3430", shoes: "#2A2420", accent: "#F2D4A8" },   // safety orange
+  { top: "#7A3E62", bottom: "#2A2420", shoes: "#C8A050", accent: "#E2789A" },   // plum
+  { top: "#3E7A6E", bottom: "#E2D4B4", shoes: "#3E2A1C", accent: "#1E3438" },   // teal and stone
+  { top: "#C8A050", bottom: "#6A2A26", shoes: "#1E1A16", accent: "#2E5A5E" },   // mustard and oxblood
+  { top: "#5A5650", bottom: "#A8955E", shoes: "#4E8A3E", accent: "#F2B83A" },   // grey and khaki
+  { top: "#9A5A32", bottom: "#1E3438", shoes: "#E8B07A", accent: "#4A8FD0" },   // rust and deep teal
+  { top: "#D8C8A8", bottom: "#3E4A3A", shoes: "#5E4232", accent: "#B8352A" },   // bone and moss
 ];
 /** Fixed colours of the other slots. The item colours (review round 2, 16 Nov 2026: "the stop
  *  sign is brown and the cone is cream") are the real objects' own paint under the sodium lamp:
  *  a road sign's red, a cone's safety orange, a lawn flamingo's pink, a paint tin's blue label. */
 export const FIXED: Readonly<Record<"metal" | "wood" | "white" | "ink" | "sign" | "cone" | "pink" | "paint"
-  | "yellow" | "denim" | "rubber" | "green" | "leather" | "khaki" | "suede" | "visor", string>> = {
+  | "yellow" | "denim" | "rubber" | "green" | "leather" | "khaki" | "suede" | "visor" | "bruise", string>> = {
   metal: "#E8B07A",       // steel under a sodium lamp
   wood: "#9A5A2A",
   white: "#F2D4A8",       // cream, never pure white on a figure
@@ -92,6 +107,7 @@ export const FIXED: Readonly<Record<"metal" | "wood" | "white" | "ink" | "sign" 
   khaki: "#A8955E",       // cargo trousers, a canvas work vest
   suede: "#C89058",       // welding gauntlets, work gloves
   visor: "#2A3E52",       // a helmet's dark visor, a welding mask's slot
+  bruise: "#7A3E62",      // a black eye under the sodium lamp (a look's face, content v3 batch 4)
 };
 
 /** The flash: the target's parts redrawn in this for 60 ms. */

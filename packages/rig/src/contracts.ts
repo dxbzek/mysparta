@@ -87,7 +87,9 @@ export type ColourSlot = "ink" | "skin" | "hair" | "top" | "bottom" | "shoes" | 
   | "sign" | "cone" | "pink" | "paint"
   /** Body equipment's own colours (CONTRACT_REV 8): a hard hat's and a rubber glove's yellow, denim,
    *  tyre rubber, a rain boot's green, black leather, khaki, suede, a dark visor. */
-  | "yellow" | "denim" | "rubber" | "green" | "leather" | "khaki" | "suede" | "visor";
+  | "yellow" | "denim" | "rubber" | "green" | "leather" | "khaki" | "suede" | "visor"
+  /** Content v3 batch 4: a black eye's bruise (a look's face). */
+  | "bruise";
 export type Ease = "linear" | "in" | "out" | "inOut" | "back" | "snap";
 
 /** One bone. `limit` is the range its own rotation may take, in degrees, lowest first: the way a
@@ -205,7 +207,10 @@ export interface Dress { look?: Look; held: HeldId | null; shield: ShieldId | nu
 
 /** The look parts a piece of gear may hide while it is worn (a full-face helmet hides the hair, the
  *  face and the accessory; boots hide the shoes). */
-export type LookPart = "hair" | "face" | "accessory" | "shoes";
+export type LookPart = "hair" | "face" | "accessory" | "shoes"
+  /** (content v3 batch 4) `crown`: the hair is cut at the brim (a hat sits over the crown);
+   *  `headwear`: an accessory worn on the head (`AppearanceSet.headwear`) is taken off. */
+  | "crown" | "headwear";
 /**
  * One piece of body equipment as it is drawn on the fighter (CONTRACT_REV 8). `shapes` sit on the
  * scrapper's own bones (head, torso, arms, hands, legs, feet; a hand shape may end in ":open" like
@@ -274,7 +279,14 @@ export interface AppearanceSet {            // list lengths may be under LOOK_SP
   heads: readonly Shape[][]; hair: readonly Shape[][]; faces: readonly Record<FaceId, Shape[]>[];
   tops: readonly Shape[][]; bottoms: readonly Shape[][]; shoes: readonly Shape[][];
   accessories: readonly Shape[][]; hands: readonly Shape[];
-  skin: readonly string[]; hairColor: readonly string[]; palettes: readonly Palette[] }
+  skin: readonly string[]; hairColor: readonly string[]; palettes: readonly Palette[];
+  /** Content v3 batch 4 (optional): accessories worn on the head (a cap, a beanie, glasses,
+   *  headphones, a headband, a bandage). Head gear that hides "headwear" takes them off, so a hard hat
+   *  never sits on a cap. */
+  headwear?: readonly number[];
+  /** Accessories that sit over the crown (a cap, a beanie): the hair is cut at the brim under them,
+   *  as under a hat worn as gear (LookPart "crown"). */
+  crownwear?: readonly number[] }
 
 export interface GatePack {                 // the rig lane: packages/rig/src/gate/pack.ts
   scrapper: RigDef;

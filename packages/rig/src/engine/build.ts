@@ -10,7 +10,7 @@ import type { Pt } from "../gate/vocab";
 import { dPoly, parsePolys } from "../gate/vocab";
 
 /** Where the belly is fullest on the trunk (torso-bone y), and how far up and down it fades. */
-export const BELLY = { y: -5.6, up: 9.5, down: 5.5 } as const;
+export const BELLY = { y: -4.8, up: 9.0, down: 5.0 } as const;
 /** The trunk's edges are cut into pieces no longer than this before the push, so the belly is a
  *  curve, not a point. */
 const STEP = 0.8;
@@ -46,4 +46,40 @@ export function bellyD(d: string, belly: number): string {
   if (cache.size > 4000) cache.clear();
   cache.set(key, out);
   return out;
+}
+
+/**
+ * The hair under a hat (content v3 batch 4): a cap, a beanie or a hard hat sits over the crown, and
+ * any hair that stood above it (an afro, a mohawk, a flat top, a quiff) would poke up through the
+ * hat. Under a hat the hair is cut along the hat's brim, a line across the head at `HAT_BRIM` (the
+ * hair bone's own frame, a little under the brim so a fringe still shows below it); what hangs below
+ * (the sides, a ponytail, long hair, locks) stays. The cut is made once per shape (cached).
+ */
+export const HAT_BRIM = 1.4;
+const cutCache = new Map<string, string>();
+/** The part of a polygon path below y = `line` (y down), each polygon clipped on its own. */
+export function cutAbove(d: string, line: number): string {
+  const key = `${line}|${d}`;
+  const hit = cutCache.get(key);
+  if (hit !== undefined) return hit;
+  const out: string[] = [];
+  for (const poly of parsePolys(d)) {
+    const kept: Pt[] = [];
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i]!;
+      const b = poly[(i + 1) % poly.length]!;
+      const ina = a[1] >= line;
+      const inb = b[1] >= line;
+      if (ina) kept.push(a);
+      if (ina !== inb) {
+        const u = (line - a[1]) / (b[1] - a[1]);
+        kept.push([a[0] + (b[0] - a[0]) * u, line]);
+      }
+    }
+    if (kept.length >= 3) out.push(dPoly(kept));
+  }
+  const res = out.join("");
+  if (cutCache.size > 2000) cutCache.clear();
+  cutCache.set(key, res);
+  return res;
 }

@@ -33,7 +33,7 @@ import { twoBone } from "./ik";
 import type { BendAmount, Body } from "./sample";
 import { clipTime, frameAt, hullAt, poseAt, sampleRaw } from "./sample";
 import { companionPortraitArt, iconArt, portraitArt } from "./svg";
-import { bellyD } from "./build";
+import { HAT_BRIM, bellyD, cutAbove } from "./build";
 
 /** Length of the back arm, shoulder to wrist (figure units). */
 const BACK_ARM = Math.hypot(SCRAPPER_RIG.bones[BONE.armBlo]!.x, SCRAPPER_RIG.bones[BONE.armBlo]!.y)
@@ -728,11 +728,18 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
       else if (topTo !== undefined && s.slot === "top") recolour.set(s, topTo);
     }
     for (const s of bottoms) if (bottomTo !== undefined && s.slot === "bottom") recolour.set(s, bottomTo);
+    // an accessory worn on the head comes off under head gear; a hat (gear or accessory) cuts the
+    // hair at its brim (content v3 batch 4)
+    const acc = wrap(look?.accessory, looks.accessories.length);
+    const accOff = hide.has("accessory") || (hide.has("headwear") && (looks.headwear ?? []).includes(acc));
+    const crown = hide.has("crown") || (!accOff && (looks.crownwear ?? []).includes(acc));
+    const hair0 = hide.has("hair") ? [] : pick(looks.hair, look?.hair);
+    const hairShapes = crown ? hair0.map((h) => ({ ...h, d: cutAbove(h.d, HAT_BRIM) })).filter((h) => h.d !== "") : hair0;
     const shapes: Shape[] = [
-      ...pick(looks.heads, look?.head), ...(hide.has("hair") ? [] : pick(looks.hair, look?.hair)),
+      ...pick(looks.heads, look?.head), ...hairShapes,
       ...(hide.has("face") ? [] : (faces[pose.face as FaceId] ?? faces.neutral)),
       ...tops, ...bottoms, ...(hide.has("shoes") ? [] : pick(looks.shoes, look?.shoes)),
-      ...(hide.has("accessory") ? [] : pick(looks.accessories, look?.accessory)), ...looks.hands,
+      ...(accOff ? [] : looks.accessories[acc] ?? []), ...looks.hands,
       ...worn.flatMap((g) => g.shapes),
     ];
     for (const sh0 of shapes) {
