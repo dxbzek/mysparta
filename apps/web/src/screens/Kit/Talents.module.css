@@ -1,0 +1,331 @@
+/* The talent tree (content v3 batch 3): asphalt panels, ink links, hex-nut nodes. */
+.wrap {
+  display: grid;
+  gap: 14px;
+}
+
+/* ------------------------------------------------------------ head */
+.head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 12px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius);
+  box-shadow: var(--shadow-hard);
+  background: var(--tex-halftone-light), var(--c-dark);
+  color: var(--t-on-dark);
+}
+.points {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+.pointsBig {
+  display: inline-grid;
+  place-items: center;
+  min-width: 52px;
+  height: 52px;
+  padding: 0 8px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--tex-halftone), var(--c-hazard);
+  color: var(--t-on-hazard);
+  font: 900 36px / 1 var(--font-display);
+  transform: rotate(-2deg);
+}
+.pointsWord {
+  font: 900 24px / 1 var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--t-on-dark-hazard);
+}
+.headLine {
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--t-on-dark-dim);
+}
+.respec {
+  min-height: 40px;
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+/* ------------------------------------------------------------ branch chips */
+.jump {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px 0;
+  background: var(--c-page);
+  scrollbar-width: none;
+}
+.jumpChip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-panel);
+  color: var(--t-on-panel);
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  box-shadow: var(--shadow-hard-sm);
+}
+.jumpChip::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid var(--c-ink);
+  transform: rotate(45deg);
+  background: var(--branch);
+}
+.jumpN {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--c-dark);
+  color: var(--t-on-dark);
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------ branch panel */
+.branch,
+.jumpChip {
+  --branch: var(--c-branch-brawler);
+}
+[data-branch="arsenal"] { --branch: var(--c-branch-arsenal); }
+[data-branch="thrower"] { --branch: var(--c-branch-thrower); }
+[data-branch="pack"] { --branch: var(--c-branch-pack); }
+[data-branch="iron-wall"] { --branch: var(--c-branch-iron-wall); }
+
+.branch {
+  scroll-margin-top: 48px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius);
+  box-shadow: var(--shadow-hard);
+  overflow: hidden;
+  background:
+    var(--tex-halftone-light),
+    var(--tex-lamp-glow),
+    var(--c-dark);
+  color: var(--t-on-dark);
+}
+.branchHead {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 10px 12px 8px;
+  border-bottom: var(--line-thin) solid var(--c-ink);
+  box-shadow: inset 6px 0 0 var(--branch);
+}
+.branchSpent {
+  justify-self: end;
+  font: 900 16px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--t-on-dark-hazard);
+}
+.branchLine {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--fs-small);
+  color: var(--t-on-dark-dim);
+}
+.tree {
+  position: relative;
+  margin: 16px 0 0;
+}
+.links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.linkDark {
+  stroke: var(--c-link-dead);
+  stroke-width: 5;
+  stroke-dasharray: 7 6;
+}
+.linkLit {
+  stroke: var(--branch);
+  stroke-width: 6;
+}
+.gate {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) rotate(-1.5deg);
+  padding: 2px 7px;
+  border: var(--line-thin) solid var(--c-ink);
+  background: var(--c-locked);
+  color: var(--t-on-locked-dim);
+  font: 900 12px / 1.2 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  z-index: 1;
+}
+.gateOpen {
+  background: var(--c-tape);
+  color: var(--t-on-tape);
+}
+
+/* ------------------------------------------------------------ nodes */
+.node {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  width: 128px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+.disc {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: 50%;
+  background: var(--tex-halftone), var(--c-card-deep);
+  box-shadow: var(--shadow-hard-sm);
+}
+.cap .disc {
+  width: 96px;
+  height: 96px;
+}
+.node[data-state="open"] .disc {
+  box-shadow: var(--glow-open);
+}
+:global(html[data-motion="full"]) .node[data-state="open"][data-waiting="1"] .disc {
+  animation: rzTalentPulse 1.6s ease-in-out infinite;
+}
+.node[data-state="ranked"] .disc {
+  box-shadow: 0 0 0 3px var(--branch), var(--shadow-hard-sm);
+}
+.node[data-state="full"] .disc {
+  box-shadow: 0 0 0 3px var(--c-hazard), var(--shadow-hard-sm);
+  background: var(--tex-halftone-sodium), var(--c-node-full);
+}
+.cap[data-state="full"] .disc {
+  box-shadow: var(--glow-mythic);
+}
+.node[data-state="locked"] .disc {
+  background: var(--c-locked);
+  box-shadow: none;
+}
+.dimArt {
+  filter: grayscale(1) brightness(0.45) contrast(1.2);
+}
+.lock {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 50%;
+  background: var(--c-panel);
+  color: var(--c-ink);
+}
+.name {
+  display: grid;
+  max-width: 128px;
+  padding: 2px 6px;
+  border: var(--line-thin) solid var(--c-ink);
+  background: var(--c-sticker);
+  color: var(--t-on-sticker);
+  font: 900 14px / 1.05 var(--font-display);
+  letter-spacing: 0.03em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.node[data-state="locked"] .name {
+  background: var(--c-locked);
+  color: var(--t-on-locked-dim);
+}
+.capWord {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--t-on-panel-action);
+}
+.node[data-state="locked"] .capWord {
+  color: var(--t-on-locked-dim);
+}
+.pips {
+  display: flex;
+  gap: 4px;
+}
+.pip,
+.pipOn {
+  width: 12px;
+  height: 8px;
+  border: 1.5px solid var(--c-ink);
+  background: var(--c-hp-back);
+  transform: skewX(-12deg);
+}
+.pipOn {
+  background: var(--c-hazard);
+}
+@keyframes rzTalentPulse {
+  0%, 100% { box-shadow: var(--glow-open-dim); }
+  50% { box-shadow: var(--glow-open-big); }
+}
+
+/* ------------------------------------------------------------ sheet */
+.detail {
+  display: grid;
+  gap: 10px;
+}
+.detail p {
+  margin: 0;
+}
+.detailTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.detailIcon {
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: 50%;
+  background: var(--tex-halftone), var(--c-card-deep);
+}
+.detailBranch {
+  font: 900 15px / 1.1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.detailRank {
+  font: 900 24px / 1.1 var(--font-display);
+  text-transform: uppercase;
+}
+.detailNote {
+  padding: 6px 10px;
+  border: var(--line-thin) dashed var(--c-ink);
+  font-size: var(--fs-small);
+}

@@ -1,0 +1,2 @@
+# One line ending in the repo and in every checkout, so a Windows worktree and CI read the same bytes.
+* text=auto eol=lf

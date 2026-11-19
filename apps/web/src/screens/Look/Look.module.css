@@ -1,0 +1,27 @@
+/* The Look screen: the preview stays on screen while the parts scroll under it. */
+.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-top: 4px;
+  background: var(--c-page);
+}
+.stage {
+  height: 230px;
+  overflow: hidden;
+}
+.tools {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.tools > button {
+  min-width: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+  font-size: 14px;
+}
+.actions {
+  display: grid;
+  gap: 10px;
+}

@@ -1,0 +1,133 @@
+/* The Bag and Gear tabs of the Kit (content v3 batch 2). */
+.wrap {
+  display: grid;
+  gap: 14px;
+}
+.stage {
+  position: relative;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius);
+  box-shadow: var(--shadow-hard);
+  overflow: hidden;
+  background: var(--c-dark);
+}
+.preview {
+  display: block;
+}
+.hp {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  padding: 3px 8px;
+  border: var(--line-thin) solid var(--c-ink);
+  background: var(--c-dark);
+  color: var(--t-on-dark);
+  font: 900 16px / 1.1 var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.title,
+.slotTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 6px;
+  font: 900 24px / 1 var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--t-on-page);
+}
+.slotTitle {
+  font-size: 21px;
+}
+.slotWorn {
+  margin-left: auto;
+  font: 700 var(--fs-small) / 1.2 var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--t-on-page);
+}
+.count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  height: 26px;
+  padding: 0 6px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 2px;
+  background: var(--c-dark);
+  color: var(--t-on-dark);
+  font-size: 16px;
+}
+.sub {
+  margin: 0 0 8px;
+  font-size: var(--fs-small);
+  color: var(--t-on-page);
+}
+.empty {
+  margin: 0;
+  padding: 10px 12px;
+  border: var(--line-thin) dashed var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  color: var(--t-on-page);
+}
+.list {
+  display: grid;
+  gap: 8px;
+}
+.slot {
+  display: grid;
+}
+.tile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+  padding: 8px 10px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-panel);
+  color: var(--t-on-panel);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  opacity: 0.72;
+}
+.tile.on {
+  opacity: 1;
+  background: var(--tex-halftone-light), var(--c-dark);
+  color: var(--t-on-dark);
+  box-shadow: inset 6px 0 0 var(--c-action), var(--shadow-hard-sm);
+}
+.tile:active {
+  transform: translate(2px, 3px);
+}
+.tileText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.tileName {
+  font: 900 18px / 1.05 var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.tileLine {
+  font-size: var(--fs-small);
+  line-height: 1.25;
+}
+.tileCost {
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--c-action);
+}
+.tile.on .tileCost {
+  color: var(--t-on-dark-hazard);
+}
+.mark {
+  font: 900 13px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}

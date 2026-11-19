@@ -1,0 +1,288 @@
+.screen {
+  padding-bottom: 18px;
+  /* a slam or a flip in flight must never widen the page (a phone then zooms out) */
+  overflow-x: clip;
+}
+.logo {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  height: 80px;
+  padding: 0 var(--gutter);
+  text-align: center;
+}
+.title {
+  margin: 0;
+  font: 900 44px / 0.9 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-on-page);
+  text-shadow: 3px 3px 0 var(--c-hazard);
+}
+.tagline {
+  margin: 4px 0 0;
+  font: 900 17px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-on-page-dim);
+}
+.main {
+  display: grid;
+  gap: 12px;
+  padding: 0 var(--gutter);
+}
+.stageWrap {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.stage {
+  position: relative;
+  height: 260px;
+  overflow: hidden;
+}
+.stageName {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  right: 10px;
+  pointer-events: none;
+}
+.dice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.form {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.namePanel {
+  display: grid;
+  gap: 6px;
+}
+.label {
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.count {
+  color: var(--t-on-panel-dim);
+  font: 700 var(--fs-small) / 1 var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+.countFull {
+  color: var(--t-on-panel);
+}
+.nameRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 12px;
+}
+.bullets {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 700;
+  color: var(--t-on-page);
+}
+.bullets li::before {
+  content: "\2022";
+  display: inline-block;
+  width: 1.1em;
+  font-weight: 900;
+}
+
+/* ------------------------------------------------------------ reveal */
+.reveal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 100dvh;
+  padding: 12px var(--gutter) 0;
+}
+.revealStage {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+}
+.drop {
+  height: 100%;
+}
+/* the heading is a hazard sticker slapped across the foot of the stage */
+.revealTitle {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  max-width: calc(100% - 20px);
+  margin: 0;
+  padding: 5px 10px 3px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  box-shadow: var(--shadow-hard);
+  background: var(--c-hazard);
+  color: var(--t-on-hazard);
+  font: 900 26px / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  transform: rotate(-3deg);
+}
+.revealStats {
+  display: grid;
+  gap: 6px;
+}
+.hpRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 6px;
+  border-bottom: var(--line-thin) dashed var(--c-ink);
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.hpRow strong {
+  font-size: 34px;
+  font-variant-numeric: tabular-nums;
+}
+.bar {
+  min-width: 0;
+}
+.perk {
+  transform-origin: 50% 50%;
+}
+.perkLabel {
+  margin: 0 0 6px;
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-on-page);
+}
+/* the action stays on screen on a short phone and inside a framed page */
+.revealAction {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: grid;
+  margin-top: auto;
+  padding: 8px 0 calc(12px + env(safe-area-inset-bottom));
+}
+.skip {
+  margin: 0;
+  min-height: var(--tap-primary);
+  display: grid;
+  place-items: center;
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-on-page-dim);
+}
+/* rarity glow on the starting perk */
+.glow-uncommon > :last-child { box-shadow: var(--shadow-hard), 0 0 0 3px var(--c-rarity-uncommon); }
+.glow-rare > :last-child { box-shadow: var(--shadow-hard), 0 0 0 3px var(--c-rarity-rare), 0 0 18px 2px var(--c-rarity-rare); }
+.glow-epic > :last-child { box-shadow: var(--shadow-hard), 0 0 0 3px var(--c-rarity-epic), 0 0 22px 4px var(--c-rarity-epic); }
+.glow-mythic > :last-child { box-shadow: var(--shadow-hard), 0 0 0 3px var(--c-rarity-mythic), 0 0 26px 6px var(--c-rarity-mythic); }
+
+:global(html[data-motion="full"]) .drop {
+  animation: drop 560ms cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+:global(html[data-motion="full"]) .revealStage {
+  animation: thud 320ms 500ms ease-out both;
+}
+:global(html[data-motion="full"]) .revealTitle {
+  animation: slam 420ms 600ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+:global(html[data-motion="full"]) .perk {
+  animation: flip 600ms ease-out both;
+}
+:global(html[data-motion="full"]) .toLocker {
+  animation: popIn 320ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.revealDone .drop,
+.revealDone .revealStage,
+.revealDone .revealTitle,
+.revealDone .perk {
+  animation: none !important;
+}
+@keyframes drop {
+  0% { transform: translateY(-105%); }
+  80% { transform: translateY(3%); }
+  100% { transform: translateY(0); }
+}
+@keyframes thud {
+  0% { transform: translateY(0); }
+  25% { transform: translateY(6px) scaleY(0.98); }
+  55% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+@keyframes slam {
+  from { transform: scale(2.4) rotate(-12deg); opacity: 0; }
+  to { transform: scale(1) rotate(-3deg); opacity: 1; }
+}
+@keyframes flip {
+  from { transform: perspective(600px) rotateY(90deg); opacity: 0; }
+  to { transform: perspective(600px) rotateY(0deg); opacity: 1; }
+}
+@keyframes popIn {
+  from { transform: scale(0.8); }
+  to { transform: scale(1); }
+}
+@media (max-height: 700px) {
+  .revealStage {
+    height: 180px;
+  }
+  .reveal {
+    gap: 8px;
+    padding-top: 8px;
+  }
+  .revealTitle {
+    font-size: 22px;
+  }
+  .hpRow strong {
+    font-size: 28px;
+  }
+}
+
+/* ------------------------------------------------------------ desktop */
+@media (min-width: 900px) {
+  .screen {
+    max-width: 480px;
+  }
+}
+@media (min-width: 1100px) {
+  .screen {
+    max-width: 1060px;
+  }
+  .main {
+    grid-template-columns: 520px minmax(0, 480px);
+    justify-content: center;
+    align-items: start;
+    gap: 24px;
+  }
+  .reveal {
+    max-width: 560px;
+    margin: 0 auto;
+  }
+}
+
+/* the look editor under the preview (content v3 batch 4) */
+.editor {
+  min-width: 0;
+}
+/* while the editor is open the preview stays on screen above the parts */
+.stageSticky {
+  position: sticky;
+  top: 4px;
+  z-index: 2;
+}

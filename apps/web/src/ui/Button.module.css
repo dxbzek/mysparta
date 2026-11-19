@@ -1,0 +1,65 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: 0 16px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  box-shadow: var(--shadow-hard-sm);
+  font: 900 var(--fs-label) / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.button:active {
+  transform: translate(2px, 3px);
+  box-shadow: none;
+}
+.button:disabled {
+  cursor: default;
+  box-shadow: none;
+}
+
+.primary {
+  min-height: var(--tap-primary);
+  width: 100%;
+  font-size: 24px;
+  background: var(--tex-halftone-light), var(--c-action);
+  color: var(--t-on-action);
+  box-shadow: var(--shadow-hard);
+}
+.primary:active {
+  transform: translate(4px, 5px);
+  background: var(--c-action-press);
+  color: var(--t-on-action-press);
+}
+
+.secondary {
+  background: var(--c-panel);
+  color: var(--t-on-panel);
+}
+
+.hazard {
+  background: var(--c-hazard);
+  color: var(--t-on-hazard);
+}
+
+.dark {
+  background: var(--c-dark);
+  color: var(--t-on-dark);
+}
+
+.icon {
+  padding: 0;
+  width: var(--tap);
+  height: var(--tap);
+}
+.on {
+  background: var(--c-hazard);
+  color: var(--t-on-hazard);
+}

@@ -1,0 +1,1168 @@
+/*
+ * The fight screen: the stage only (owner, 19 Nov 2026: "I dont want the ui below honestly").
+ * Gritty comic under a sodium streetlight (owner amendment 13.7). The stage canvas fills the screen
+ * inside the safe areas, held upright or turned; over it lie the HUD (names, levels, HP bars, the
+ * HP numbers) at the top, the controls in the bottom corners with the LOG button, and at the end
+ * the result card at the bottom. The log and the fighter cards open in the drawer over the stage.
+ * The stage camera keeps the fighters clear of these (packages/stage camera.ts CAMERA.hudRoomPx,
+ * resultRoomPx): the HUD is at most 52 px tall (labels.TOP_BAND), the result card at most 186 px
+ * on a phone held upright and 130 px turned.
+ *
+ * NO CSS animation or transition in this folder (a test checks): everything that moves is set
+ * from the fight clock's `t` through inline styles.
+ */
+.screen {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: var(--c-void);
+  color: var(--t-on-night);
+}
+.replayMode {
+  /* the scrub bar sits over the stage above the control bar (.replay) */
+  --replay: 1;
+}
+
+/* ------------------------------------------------------------------ 1. HUD */
+/* an overlay band over the top of the stage, 52 px at most (labels.TOP_BAND) */
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+  max-height: 52px;
+  padding: 3px 6px 4px;
+  background: var(--c-night-glass);
+  border-bottom: var(--line-thin) solid var(--c-ink);
+}
+/* a side's name and HP bar are one 44 px button to its fighter card */
+.sideButton {
+  min-height: var(--tap);
+  align-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  min-width: 0;
+}
+.sideB {
+  justify-items: end;
+}
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+}
+.sideB .nameRow {
+  flex-direction: row-reverse;
+}
+/* A name never loses letters (finding 36): long names step down a size, and the longest legal
+   name (14 letters) may break onto a second line instead of ending in "…". */
+.tape {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1;
+  background: var(--c-tape);
+  color: var(--t-on-tape);
+  font-size: 16px;
+}
+/* beats the sticker's own nowrap + ellipsis */
+.nameRow > .tape {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
+.tape.nameMid { font-size: 15px; }
+.tape.nameLong { font-size: 13px; }
+.lvl {
+  flex: none;
+  padding: 2px 5px 1px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  font: 900 13px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+}
+.sideA .lvl { background: var(--c-sodium); color: var(--t-on-sodium); }
+.sideB .lvl { background: var(--c-teal); color: var(--t-on-teal); }
+.hpBar {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 13px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 2px;
+  background: var(--c-bar-back);
+  overflow: hidden;
+  box-shadow: 2px 2px 0 var(--c-ink);
+}
+.hpTrail,
+.hpFill,
+.hpFlash {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+.sideB .hpTrail,
+.sideB .hpFill {
+  left: auto;
+  right: 0;
+}
+.hpTrail { background: var(--c-hp-hit); }
+.sideA .hpFill { background: var(--tex-halftone-sodium), var(--c-sodium); }
+.sideB .hpFill { background: var(--tex-halftone-sodium), var(--c-teal); }
+.hpFlash {
+  right: 0;
+  background: var(--c-flash);
+}
+.hudMid {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+.badge {
+  padding: 2px 8px 1px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 3px 3px 7px 7px;
+  background: var(--c-card-deep);
+  color: var(--t-on-card-deep);
+  font: 900 11px / 1.1 var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.hpNums {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.hpNum {
+  min-width: 34px;
+  color: var(--t-on-night);
+  font: 900 27px / 0.95 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-shadow: var(--ink-text);
+}
+.hpNumA {
+  color: var(--t-on-night-sodium);
+}
+.hpNumB {
+  text-align: left;
+  color: var(--t-on-night-teal);
+}
+.hpSep {
+  align-self: center;
+  padding: 2px 3px 1px;
+  border-left: 2px solid var(--t-on-night-dim);
+  border-right: 2px solid var(--t-on-night-dim);
+  color: var(--t-on-night-dim);
+  font: 900 11px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+}
+.hpZero {
+  color: var(--t-on-night-dim);
+}
+
+/* ------------------------------------------------------------------ 2. stage */
+.stageArea {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--c-void);
+}
+.stageWrap {
+  position: absolute;
+  inset: 0;
+}
+.stage {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.combo {
+  position: absolute;
+  top: 44%;
+  display: grid;
+  justify-items: center;
+  font: 900 44px / 0.85 var(--font-display);
+  text-shadow: var(--ink-text);
+}
+.combo small {
+  font-size: 15px;
+  letter-spacing: 0.1em;
+}
+.comboA { left: 6%; color: var(--t-on-night-sodium); }
+.comboB { right: 6%; color: var(--t-on-night-teal); }
+.koStamp {
+  position: absolute;
+  left: 50%;
+  top: 53%;
+  margin-left: -1.6em;
+  width: 3.2em;
+  padding: 2px 0 0;
+  border: 5px solid var(--c-ink);
+  border-radius: 6px;
+  background: var(--c-stamp);
+  color: var(--t-on-stamp);
+  box-shadow: 6px 7px 0 var(--c-ink);
+  font: 900 54px / 1 var(--font-display);
+  text-align: center;
+  text-shadow: var(--ink-text);
+}
+
+/* the bottom of the stage: the 3x note, the replay scrub bar and the control bar, stacked */
+.bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0 2px 2px;
+  pointer-events: none;
+}
+.bottom > * {
+  pointer-events: auto;
+}
+.bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+/* controls: small ink discs in the stage's bottom corners, each a 44 px button */
+.controls {
+  display: flex;
+  gap: 0;
+}
+.controlsLeft,
+.controlsRight {
+  flex: none;
+}
+.barNote {
+  align-self: flex-start;
+  margin: 0 0 0 6px;
+  padding: 4px 9px 3px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-card-deep);
+  color: var(--t-on-card-deep);
+  font: 700 13px / 1.2 var(--font-body);
+  box-shadow: var(--shadow-hard-sm);
+}
+.ctl {
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--t-on-ctl);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.ctlWide { width: 52px; }
+.ctlDisc {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: var(--line-thin) solid var(--t-on-ctl);
+  border-radius: 50%;
+  background: var(--c-ctl-glass);
+  box-shadow: 0 0 0 2px var(--c-ink);
+}
+.ctlWide .ctlDisc {
+  width: 44px;
+  border-radius: 18px;
+}
+.ctlHot .ctlDisc {
+  border-color: var(--c-ink);
+  background: var(--c-sodium);
+  color: var(--t-on-sodium);
+}
+.ctl:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.ctl:active .ctlDisc {
+  transform: translate(1px, 2px);
+}
+.ctlWord {
+  font: 900 17px / 1 var(--font-display);
+  letter-spacing: 0.03em;
+}
+/* speed 1x / 2x / 3x: three discs side by side; 3x shows a lock until VIP */
+.speeds { display: flex; }
+.speeds .ctlWord { font-size: 15px; }
+.ctlDisc { position: relative; }
+.ctlLocked .ctlWord { opacity: 0.55; }
+.ctlLock {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  padding: 1px;
+  border-radius: 4px;
+  background: var(--c-ink);
+  color: var(--c-sodium);
+  box-sizing: content-box;
+}
+
+/* replay scrub bar, over the stage above the control bar */
+.replay {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  width: min(100%, 560px);
+  box-sizing: border-box;
+  align-self: center;
+  height: 46px;
+  padding: 0 10px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-card);
+  color: var(--t-on-card);
+  font: 900 16px / 1 var(--font-display);
+}
+.scrub {
+  width: 100%;
+  min-height: var(--tap);
+  accent-color: var(--c-sodium);
+}
+
+/* the full log, in the drawer */
+.log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--t-on-panel);
+}
+.logLine {
+  padding: 5px 0 6px;
+  border-bottom: 1px dashed var(--c-ink);
+  font-size: var(--fs-small);
+  line-height: 1.35;
+}
+.logLine:first-child {
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------------ 4. fighter cards (in the drawer) */
+.cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+}
+/* opened from this fighter's HP bar */
+.cardFocus {
+  outline: 3px solid var(--c-focus);
+  outline-offset: 1px;
+}
+.card {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 6px 4px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--tex-halftone-light), var(--c-card);
+  color: var(--t-on-card);
+  box-shadow: var(--shadow-hard-sm);
+}
+.cardA { border-top: 5px solid var(--c-sodium); }
+.cardB { border-top: 5px solid var(--c-teal); }
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+  padding-top: 3px;
+}
+.cardName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font: 900 19px / 1 var(--font-display);
+  text-transform: uppercase;
+}
+.cardName[data-size="mid"] { font-size: 16px; }
+.cardName[data-size="long"] { font-size: 14px; }
+.cardLvl {
+  flex: none;
+  padding: 1px 4px 0;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 3px;
+  font: 900 11px / 1.1 var(--font-display);
+}
+.cardA .cardLvl { background: var(--c-sodium); color: var(--t-on-sodium); }
+.cardB .cardLvl { background: var(--c-teal); color: var(--t-on-teal); }
+.cardHp {
+  margin-left: auto;
+  flex: none;
+  font: 900 22px / 1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+.cardA .cardHp { color: var(--t-on-card-sodium); }
+.cardB .cardHp { color: var(--t-on-card-teal); }
+.cardHp small {
+  margin-left: 1px;
+  font-size: 11px;
+}
+.cardBody {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+.portraitWrap {
+  position: relative;
+  display: inline-grid;
+}
+.koStampSmall {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  padding: 1px 3px 0;
+  border: var(--line-thin) solid var(--c-ink);
+  background: var(--c-stamp);
+  color: var(--t-on-stamp);
+  font: 900 15px / 1 var(--font-display);
+}
+.stats {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.stat {
+  display: grid;
+  grid-template-columns: 14px 26px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 3px;
+}
+.statIcon { display: block; }
+.statKey {
+  font: 900 12px / 1 var(--font-display);
+  letter-spacing: 0.03em;
+}
+.statTrack {
+  position: relative;
+  height: 7px;
+  border: 1px solid var(--c-ink);
+  background: var(--c-bar-back);
+  overflow: hidden;
+}
+.statFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+}
+.cardA .statFill { background: var(--c-sodium); }
+.cardB .statFill { background: var(--c-teal); }
+.statNum {
+  font: 900 14px / 1 var(--font-display);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.weapon {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 1px 4px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 3px;
+  background: var(--c-card-deep);
+  color: var(--t-on-card-deep);
+}
+.weaponText,
+.skillText {
+  display: grid;
+  min-width: 0;
+}
+.weaponName {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: 900 14px / 1.05 var(--font-display);
+  text-transform: uppercase;
+}
+/* A skill name is never cut (finding 35): one tile per row gives it the card's full width, and a
+   name too long even for that wraps at a space ("Sharpening / Stone") instead of losing letters. */
+.skillName {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  font: 900 13px / 1.05 var(--font-display);
+  text-transform: uppercase;
+}
+.weaponLine,
+.skillKind {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--t-on-card-deep-dim);
+  font: 600 11px / 1.2 var(--font-body);
+}
+.shield {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  display: inline-grid;
+}
+/* the "+N" tile sits beside the tiles in its own narrow column, so a long list costs no row */
+.skills {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.skill {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 24px;
+  padding: 0 3px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 3px;
+  background: var(--c-card-deep);
+  color: var(--t-on-card-deep);
+}
+.shieldOnA > span { box-shadow: var(--glow-sodium); background: var(--c-sodium); }
+.shieldOnB > span { box-shadow: var(--glow-teal); background: var(--c-teal); }
+.skillOnA {
+  background: var(--tex-halftone-sodium), var(--c-sodium);
+  color: var(--t-on-sodium);
+  box-shadow: var(--glow-sodium);
+}
+.skillOnB {
+  background: var(--tex-halftone-sodium), var(--c-teal);
+  color: var(--t-on-teal);
+  box-shadow: var(--glow-teal);
+}
+.skillKind { display: none; }
+.skillOnA .skillKind { color: var(--t-on-sodium); }
+.skillOnB .skillKind { color: var(--t-on-teal); }
+.skill > [role="img"] { width: 22px; height: 22px; }
+.skill > [role="img"] svg { width: 18px; height: 18px; }
+.skill { grid-column: 1; }
+.skillMore {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  color: var(--t-on-card-deep-dim);
+  font: 900 13px / 1 var(--font-display);
+  text-transform: uppercase;
+}
+.empty {
+  margin: 0;
+  padding: 3px 4px;
+  border: var(--line-thin) dashed var(--t-on-card-dim);
+  border-radius: 3px;
+  color: var(--t-on-card-dim);
+  font: 900 12px / 1.2 var(--font-display);
+  text-transform: uppercase;
+  text-align: center;
+}
+.pet {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px 2px 2px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 3px;
+  background: var(--c-card-deep);
+  color: var(--t-on-card-deep);
+}
+/* two or three pets share one row as chips (finding 34): portrait, bar, HP left */
+.petStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 3px;
+}
+.petStrip[data-pets="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.petStrip[data-pets="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.petChip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "face bar" "face num";
+  align-items: center;
+  column-gap: 3px;
+  row-gap: 1px;
+  min-width: 0;
+  padding: 1px 3px 1px 1px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 3px;
+  background: var(--c-card-deep);
+  color: var(--t-on-card-deep);
+}
+.petChip > :first-child { grid-area: face; }
+.petChip .petBar { grid-area: bar; height: 6px; }
+.petChip .petNum { grid-area: num; font-size: 11px; }
+.petGone { opacity: 0.6; }
+.petName {
+  font: 900 13px / 1 var(--font-display);
+  text-transform: uppercase;
+}
+.petBar {
+  position: relative;
+  height: 8px;
+  border: 1px solid var(--c-ink);
+  background: var(--c-bar-back);
+  overflow: hidden;
+}
+.petTrail,
+.petFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+}
+.petTrail { background: var(--c-hp-hit); }
+.cardA .petFill { background: var(--c-sodium); }
+.cardB .petFill { background: var(--c-teal); }
+.petNum {
+  font: 900 12px / 1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+.bagRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+}
+.bagLabel,
+.bagEmpty {
+  color: var(--t-on-card-dim);
+  font: 900 11px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* eight equal icon cells that shrink with the card, then the "+N" chip at the width its number
+   needs, so "+43" is never cut at the card edge (finding 60): never an overflow */
+.cardBag {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr)) auto;
+  gap: 1px;
+  min-width: 0;
+}
+.cardBag > * {
+  width: 100%;
+  max-width: 20px;
+  height: auto;
+  aspect-ratio: 1;
+}
+.cardBag svg {
+  width: 78%;
+  height: 78%;
+}
+.cardBag .chip {
+  width: auto;
+  max-width: none;
+  min-width: 18px;
+  padding: 0 2px;
+  margin: 0;
+  font-size: 11px;
+  aspect-ratio: auto;
+  height: 18px;
+}
+
+/* the bag strip (debug page and tools: each side's bag on one 28 px row) */
+.bag {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  height: 28px;
+  padding: 0 3px;
+  background: var(--c-night);
+  border-bottom: var(--line-thin) solid var(--c-ink);
+}
+.bagSide {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+.bagSideB {
+  flex-direction: row-reverse;
+}
+.chip {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 20px;
+  margin: 0 1px;
+  border: 1px solid var(--c-ink);
+  border-radius: 3px;
+  background: var(--c-sodium);
+  color: var(--t-on-sodium);
+  font: 900 13px / 1 var(--font-display);
+}
+
+
+/* ------------------------------------------------------------------ 5. the drawer (the log and the cards) */
+.drawerScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: var(--c-scrim);
+}
+.drawer {
+  position: absolute;
+  z-index: 11;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  border: var(--line) solid var(--c-ink);
+  background: var(--c-panel);
+  color: var(--t-on-panel);
+  box-shadow: var(--shadow-hard);
+}
+.drawer:focus {
+  outline: none;
+}
+/* a phone held upright: a sheet over the bottom of the stage */
+.drawerSheet {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 560px;
+  max-height: 78%;
+  margin: 0 auto;
+  border-bottom: none;
+  border-radius: 10px 14px 0 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+/* turned, or a desktop: a panel down the right side */
+.drawerSide {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: min(440px, 64%);
+  border-right: none;
+  border-radius: 12px 0 0 10px;
+  padding-right: env(safe-area-inset-right);
+}
+.drawerHead {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px 6px 10px;
+  border-bottom: var(--line-thin) solid var(--c-ink);
+  touch-action: none;
+}
+.drawerGrip {
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  width: 44px;
+  height: 4px;
+  margin-left: -22px;
+  border-radius: 2px;
+  background: var(--t-on-panel-dim);
+}
+.drawerSide .drawerGrip {
+  left: 3px;
+  top: 50%;
+  width: 4px;
+  height: 44px;
+  margin: -22px 0 0;
+}
+.drawerTabs {
+  display: flex;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.drawerTab {
+  min-height: var(--tap);
+  min-width: 88px;
+  padding: 0 14px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+  font: 900 17px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.drawerTabOn {
+  background: var(--c-dark);
+  color: var(--t-on-dark);
+  box-shadow: 2px 3px 0 var(--c-ink);
+}
+.drawerClose {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 50%;
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+  cursor: pointer;
+}
+.drawerBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 10px 12px;
+  overscroll-behavior: contain;
+}
+
+/* ------------------------------------------------------------------ result card (over the bottom of the stage) */
+/* at most 186 px tall upright, 130 px turned (stage CAMERA.resultRoomPx keeps the outro clear) */
+.result {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  box-sizing: border-box;
+  width: min(100%, 560px);
+  margin: 0 auto;
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+  border: var(--line) solid var(--c-ink);
+  border-bottom: none;
+  border-radius: 8px 12px 0 0;
+  background: var(--c-panel);
+  color: var(--t-on-panel);
+  box-shadow: var(--shadow-hard);
+}
+.resultHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.verdict {
+  flex: none;
+  margin: 0;
+  font: 900 40px / 0.9 var(--font-display);
+  letter-spacing: 0.02em;
+}
+.verdictWin {
+  color: var(--t-on-panel);
+  text-shadow: 3px 3px 0 var(--c-sodium);
+}
+.verdictLoss {
+  color: var(--t-on-panel);
+  text-shadow: 3px 3px 0 var(--c-action);
+}
+.resultLine {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: var(--t-on-panel-dim);
+  font-size: 14px;
+  line-height: 1.25;
+}
+.resultLog {
+  flex: none;
+  margin-left: auto;
+  min-width: var(--tap);
+  height: var(--tap);
+  padding: 0 10px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+  font: 900 15px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.xpRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font: 900 16px / 1 var(--font-display);
+}
+.xpTrack {
+  position: relative;
+  height: 12px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 2px;
+  background: var(--c-xp-back);
+  overflow: hidden;
+}
+.xpFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--tex-halftone), var(--c-xp);
+}
+.resultButtons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 6px;
+}
+/* one row of plain 44 px buttons (the primary's 56 px would make the card taller than the camera's
+   room for it) */
+.resultButtons > button {
+  min-height: var(--tap);
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+/* ------------------------------------------------------------------ turned phones and desktops */
+/* turned: the card is one row, 76 px at most (verdict | line over XP | buttons | log) */
+@media (orientation: landscape) {
+  .result {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 4px;
+    width: min(100% - 16px, 900px);
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+  .resultHead {
+    display: contents;
+  }
+  .verdict {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    font-size: 34px;
+  }
+  .resultLine {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    font-size: 13px;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+  .xpRow {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    margin: 0;
+    font-size: 14px;
+  }
+  .resultButtons {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(84px, auto);
+    grid-template-columns: none;
+  }
+  .resultLog {
+    grid-column: 4;
+    grid-row: 1 / span 2;
+    margin: 0;
+  }
+  /* the replay card: the verdict and the buttons */
+  .result > .resultHead + .resultButtons {
+    grid-column: 3;
+  }
+}
+/* a big desktop screen: larger words in the same 52 px band (labels.TOP_BAND keeps the stage's
+   numbers and tags under it) */
+@media (orientation: landscape) and (min-width: 1000px) and (min-height: 600px) {
+  .hud { padding: 3px 18px 4px; }
+  .tape,
+  .tape.nameMid { font-size: 19px; }
+  .tape.nameLong { font-size: 16px; }
+  .hpBar { height: 15px; }
+  .hpNum { font-size: 32px; }
+}
+
+/* ------------------------------------------------------------------ narrow phones (320 px) */
+@media (max-width: 360px) {
+  .tape { font-size: 15px; }
+  .hpNum { font-size: 24px; min-width: 28px; }
+  .cardName { font-size: 16px; }
+  .tape.nameLong { font-size: 12px; }
+  /* the level is on the card right below; the name gets the room instead */
+  .nameRow > .lvl { display: none; }
+  .cardName[data-size="mid"] { font-size: 14px; }
+  .cardName[data-size="long"] { font-size: 13px; }
+  .cardHp { font-size: 18px; }
+  .statKey { display: none; }
+  .skillName { font-size: 11.5px; }
+  .skill { gap: 3px; padding: 2px; }
+  .skill > [role="img"] { width: 20px; height: 20px; }
+  .skill > [role="img"] svg { width: 16px; height: 16px; }
+  .stat { grid-template-columns: 14px minmax(0, 1fr) 16px; }
+  .cards { gap: 4px; }
+  .card { padding: 0 4px 5px; }
+}
+
+
+/* ------------------------------------------------------------------ the ladder (plan 13.10 item 1) */
+/* the rank tag beside the level in the HUD */
+.side {
+  position: relative;
+}
+.rankTag {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  padding: 2px 6px 1px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-dark);
+  color: var(--t-on-dark-hazard);
+  font: 900 12px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.sideB .rankTag {
+  left: auto;
+  right: 0;
+}
+/* the boss banner over the first seconds of a boss bout, under the HUD */
+.bossBanner {
+  position: absolute;
+  left: 50%;
+  top: 84px;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: min(92%, 420px);
+  margin-left: max(-46%, -210px);
+  pointer-events: none;
+}
+.bossTag {
+  padding: 2px 10px 1px;
+  border: var(--line-thin) solid var(--c-ink);
+  background: var(--c-action);
+  color: var(--t-on-action);
+  font: 900 16px / 1 var(--font-display);
+  letter-spacing: 0.16em;
+  transform: rotate(-2deg);
+}
+.bossName {
+  padding: 4px 14px 2px;
+  border: var(--line) solid var(--c-ink);
+  background: var(--c-tape);
+  color: var(--t-on-tape);
+  box-shadow: 4px 4px 0 var(--c-ink);
+  font: 900 34px / 1 var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  transform: rotate(-1.5deg);
+}
+.bossTitle {
+  padding: 2px 8px 1px;
+  border: var(--line-thin) solid var(--c-ink);
+  background: var(--c-dark);
+  color: var(--t-on-dark-hazard);
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.bossTaunt {
+  max-width: 100%;
+  padding: 6px 12px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: 12px;
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+  font: 900 17px / 1.15 var(--font-display);
+  text-align: center;
+}
+/* the rank reached, on a won boss bout's result card */
+.rankUp {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding: 4px 10px;
+  border: var(--line-thin) solid var(--c-ink);
+  background: var(--tex-halftone), var(--c-hazard);
+  color: var(--t-on-hazard);
+  font: 900 16px / 1.1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.rankUp b {
+  font-size: 20px;
+}
+/* the banner keeps off the FIGHT card and the fighters: on a short phone it sits low, over the
+   floor; turned, it stands in the free wall on the left */
+@media (orientation: portrait) and (max-height: 700px) {
+  .bossBanner { top: auto; bottom: 64px; }
+  .bossName { font-size: 28px; }
+}
+@media (orientation: landscape) {
+  .bossBanner {
+    left: 12px;
+    top: 78px;
+    width: min(30%, 260px);
+    margin-left: 0;
+    justify-items: start;
+  }
+  .bossName { font-size: 24px; }
+  .bossTaunt { font-size: 14px; text-align: left; }
+  /* turned, the card stays one band: the rank-up takes the boss's line's place */
+  .rankUp {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    margin: 0;
+    padding: 2px 8px;
+    font-size: 14px;
+  }
+  .rankUp b {
+    font-size: 16px;
+  }
+  .result:has(.rankUp) .resultLine {
+    display: none;
+  }
+}

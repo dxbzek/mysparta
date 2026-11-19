@@ -1,87 +1,15 @@
-import { Component, StrictMode, type ReactNode } from "react";
-import { createRoot } from "react-dom/client";
-import { App } from "./App.js";
-import { activeSlot, backupSlot, encodeSave, loadSlot, wipe } from "./save.js";
-import "./fonts.css";
-import "./styles.css";
-
 /**
- * The last line of defence. Without this, one render exception tears React
- * down to a blank page — and because the save persists BEFORE the render that
- * consumes it, a poisoned save turns that blank page into a permanent crash
- * loop that is indistinguishable from total data loss. The boundary's whole
- * job is to keep the hunter recoverable: show the rescue code, offer a
- * reload, and make wiping the slot an explicit last resort.
+ * SEAM FILE (work package 0). Only the Lead edits it, at integration points.
+ *   I1: #/debug/ routes mount the debug pages.  I2 (now): everything else mounts the app.
+ * The debug pages are their own chunk (loaded only on a #/debug/ hash), so the first screen's
+ * JS stays inside its 180 KB budget.
  */
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null as Error | null };
+import { isDebugHash } from "./debug/route";
+import { mountApp } from "./app/App";
 
-  static getDerivedStateFromError(error: Error) {
-    return { error };
-  }
-
-  render() {
-    if (!this.state.error) return this.props.children;
-    let code: string | null = null;
-    try {
-      const save = loadSlot(activeSlot());
-      if (save) code = encodeSave(save);
-    } catch {
-      // even the save is unreadable — the raw string may still help support
-      try {
-        code = localStorage.getItem("agoge.save.v1");
-      } catch {
-        code = null;
-      }
-    }
-    return (
-      <div className="shell">
-        <main className="content">
-          <div className="card" style={{ maxWidth: 560, margin: "40px auto", padding: 20 }}>
-            <h2>The Rift flickered.</h2>
-            <p className="muted">
-              Something broke while drawing the game. Your hunter is still saved in this browser —
-              copy the rescue code below somewhere safe, then reload.
-            </p>
-            {code && (
-              <textarea
-                className="rescue-out"
-                readOnly
-                value={code}
-                onFocus={(e) => e.currentTarget.select()}
-                aria-label="Rescue code — select and copy it"
-              />
-            )}
-            <p className="muted small">{String(this.state.error)}</p>
-            <div className="draft-actions">
-              <button className="btn primary" onClick={() => location.reload()}>
-                Reload
-              </button>
-              <button
-                className="btn tiny danger"
-                onClick={() => {
-                  // Explicit last resort — only after the code above is theirs.
-                  // Even then the bytes are copied aside first (save.ts: `.prev`
-                  // for a save that reads, `.bak` for one that does not).
-                  backupSlot();
-                  wipe();
-                  location.reload();
-                }}
-              >
-                Reset this hunter
-              </button>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
+const root = document.getElementById("root")!;
+if (isDebugHash(location.hash)) {
+  void import("./debug/mount").then((m) => m.mountDebug(root));
+} else {
+  mountApp(root);
 }
-
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </StrictMode>,
-);

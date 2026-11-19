@@ -1,20 +1,22 @@
 {
-  "name": "@agoge/core",
+  "name": "@rankzero/core",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./fixtures": "./src/fixtures/index.ts"
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "build": "tsc --noEmit"
   },
   "devDependencies": {
-    "typescript": "^5.7.2",
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.0",
     "vitest": "^3.0.5"
   }
 }

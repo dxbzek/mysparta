@@ -1,0 +1,44 @@
+/* A slapped-on paper label: names, tags, card titles. */
+.sticker {
+  display: inline-block;
+  max-width: 100%;
+  padding: 2px 8px 1px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 2px;
+  box-shadow: var(--shadow-hard-sm);
+  font: 900 var(--fs-label) / 1.1 var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform-origin: 50% 60%;
+}
+.paper {
+  background: var(--c-sticker);
+  color: var(--t-on-sticker);
+}
+.hazard {
+  background: var(--c-hazard);
+  color: var(--t-on-hazard);
+}
+.action {
+  background: var(--c-action);
+  color: var(--t-on-action);
+}
+.win {
+  background: var(--c-win);
+  color: var(--t-on-win);
+}
+.loss {
+  background: var(--c-loss);
+  color: var(--t-on-loss);
+}
+.small {
+  font-size: 15px;
+  padding: 1px 6px 0;
+}
+.big {
+  font-size: var(--fs-h2);
+  padding: 2px 10px 1px;
+}

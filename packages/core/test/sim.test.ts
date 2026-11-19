@@ -1,201 +1,104 @@
-import { describe, expect, it } from "vitest";
-import {
-  DEFAULT_PLAN,
-  applyDraft,
-  arenaBoard,
-  combineSeed,
-  costToNext,
-  createChampion,
-  cumulativeXp,
-  generateDraft,
-  makeRival,
-  maxHp,
-  simulateFight,
-  snapshot,
-  TICK_CAP,
-} from "../src/index.js";
-import type { BattlePlan, FateOffer } from "../src/index.js";
-
-const PLAN_A: BattlePlan = { stance: "aggressive", gambit: "close_the_gap" };
-const PLAN_G: BattlePlan = { stance: "guarded", gambit: "hold_ground" };
-
-describe("determinism", () => {
-  it("identical inputs produce identical fights", () => {
-    const a = makeRival("Kassandra", 12, 1).snapshot;
-    const b = makeRival("Leonidas", 12, 2).snapshot;
-    const r1 = simulateFight({ seed: 123456, attacker: a, defender: b });
-    const r2 = simulateFight({ seed: 123456, attacker: a, defender: b });
-    expect(JSON.stringify(r1)).toBe(JSON.stringify(r2));
-  });
-
-  it("different seeds diverge somewhere across a batch", () => {
-    const a = makeRival("Kassandra", 10, 1).snapshot;
-    const b = makeRival("Leonidas", 10, 2).snapshot;
-    const logs = new Set<string>();
-    for (let seed = 1; seed <= 10; seed++) {
-      logs.add(JSON.stringify(simulateFight({ seed, attacker: a, defender: b }).events));
-    }
-    expect(logs.size).toBeGreaterThan(1);
-  });
-
-  it("name-seeded creation is deterministic and case/space-insensitive", () => {
-    const a = createChampion("  Kassia  ");
-    const b = createChampion("kassia");
-    expect(a.seed).toBe(b.seed);
-    expect(a.omen).toBe(b.omen);
-    expect(a.stats).toEqual(b.stats);
-  });
-});
-
-describe("fight invariants", () => {
-  it("200 random matchups terminate with a valid winner within the tick cap", () => {
-    for (let i = 0; i < 200; i++) {
-      const la = 1 + (i % 20);
-      const lb = Math.max(1, la + ((i * 7) % 5) - 2);
-      const a = makeRival(`TesterA${i}`, la, i).snapshot;
-      const b = makeRival(`TesterB${i}`, lb, i + 999).snapshot;
-      const r = simulateFight({ seed: combineSeed("inv", i), attacker: a, defender: b });
-      expect(r.winner === 0 || r.winner === 1).toBe(true);
-      expect(r.ticks).toBeLessThanOrEqual(TICK_CAP);
-      expect(r.events.at(-1)?.type).toBe("end");
-      const loser = r.winner === 0 ? 1 : 0;
-      if (r.reason === "ko") expect(r.hp[loser]).toBe(0);
-    }
-  });
-
-  it("HP formula matches canon: 50 + 6×Grit + 2×level", () => {
-    expect(maxHp(1, 9, [], false)).toBe(50 + 54 + 2);
-    expect(maxHp(30, 20, [], false)).toBe(50 + 120 + 60);
-    // Nemean Cub taxes 6 Grit.
-    expect(maxHp(10, 12, ["nemean_cub"], false)).toBe(50 + 36 + 20);
-    // Beast Bond reduces each tax by 1.
-    expect(maxHp(10, 12, ["nemean_cub"], true)).toBe(50 + 42 + 20);
-  });
-});
-
-/*
- * The first two bands are the GDD's (§6.2) verbatim. The third was a flat
- * level+20, which made 29->30 jump 31 -> 50 in one step; it ramps now, so the
- * anchors past 30 are ours and are pinned here deliberately.
+/**
+ * Whole-bout properties of the sim (work package 1): invariants over 10,000 random bouts, bout
+ * length, overtime, level-1 variety, and speed.
  */
-describe("XP curve", () => {
-  it("hits the anchors", () => {
-    expect(cumulativeXp(10)).toBe(54);
-    expect(cumulativeXp(30)).toBe(484);
-    expect(cumulativeXp(50)).toBe(1524);
-    expect(costToNext(2)).toBe(3);
-    expect(costToNext(10)).toBe(12);
-    expect(costToNext(29)).toBe(31);
-    expect(costToNext(30)).toBe(33);
-    expect(costToNext(49)).toBe(71);
-  });
-});
+import { createHash } from "node:crypto";
+import { describe, expect, it } from "vitest";
+import type { BoutLog } from "../src/contracts/log";
+import { REALM_SALT } from "../src/contracts/ids";
+import { checkLog } from "../src/contracts/check";
+import { combineSeed, makeRng } from "../src/prng";
+import { canonical } from "../src/canonical";
+import { rivalSnapshot } from "../src/progress/rivals";
+import { simulateFight } from "../src/sim/simulate";
+import { TURN_CAP } from "../src/sim/simulate";
+import { beatsOf } from "../src/sim/beats";
 
-describe("Threads of Fate draft rules (02-gdd-core.md §6.3)", () => {
-  it("first draft is fixed: stat+3, stat+2/+1, weapon", () => {
-    const c = createChampion("Prodromos");
-    const offers = generateDraft(c, 2, 0);
-    expect(offers.map((o) => o.kind).sort()).toEqual(["stat21", "stat3", "weapon"]);
-  });
+const sha = (s: string): string => createHash("sha256").update(s, "utf8").digest("hex");
+const POOL = 1_000_000;
 
-  it("every draft has ≥1 stat offer, 3 distinct offers, unowned pools only", () => {
-    const c = createChampion("Dokimastes");
-    for (let level = 2; level <= 40; level++) {
-      const offers = generateDraft(c, level, 0);
-      expect(offers).toHaveLength(3);
-      const keys = offers.map((o) => JSON.stringify(o));
-      expect(new Set(keys).size).toBe(3);
-      expect(offers.some((o) => o.kind === "stat3" || o.kind === "stat21")).toBe(true);
-      for (const o of offers) {
-        if (o.kind === "weapon") expect(c.weapons).not.toContain(o.weapon);
-        if (o.kind === "skill") expect(c.skills).not.toContain(o.skill);
-      }
-      const pick = pickFirstStat(offers);
-      applyDraft(c, offers, pick, false);
-    }
-  });
-
-  it("milestone guarantees: weapon at 5, skill at 10", () => {
-    const c = createChampion("Horistes");
-    for (let level = 2; level <= 10; level++) {
-      const offers = generateDraft(c, level, 0);
-      if (level === 5) expect(offers.some((o) => o.kind === "weapon")).toBe(true);
-      if (level === 10) expect(offers.some((o) => o.kind === "skill")).toBe(true);
-      applyDraft(c, offers, pickFirstStat(offers), false);
-    }
-  });
-
-  it("milestone levels grant Favour, capped at 6", () => {
-    const c = createChampion("Eunoia");
-    for (let level = 2; level <= 40; level++) {
-      const offers = generateDraft(c, level, 0);
-      applyDraft(c, offers, pickFirstStat(offers), false);
-    }
-    expect(c.level).toBe(40);
-    expect(c.favour).toBe(6); // 5,10,15,20,25,30,35,40 → capped at 6
-    expect(c.tapestry).toHaveLength(39);
-  });
-
-  it("rerolls redraw deterministically per nonce", () => {
-    const c = createChampion("Metastrofi");
-    const base = generateDraft(c, 2, 0);
-    const reroll = generateDraft(c, 2, 1);
-    expect(JSON.stringify(generateDraft(c, 2, 1))).toBe(JSON.stringify(reroll));
-    expect(JSON.stringify(base)).not.toBe(JSON.stringify(reroll));
-  });
-});
-
-describe("arena board", () => {
-  it("is deterministic per day and refresh, 6 distinct rivals", () => {
-    const c = createChampion("Kassia");
-    const b1 = arenaBoard(c, "2026-08-01", 0);
-    const b2 = arenaBoard(c, "2026-08-01", 0);
-    expect(b1.map((r) => r.snapshot.name)).toEqual(b2.map((r) => r.snapshot.name));
-    expect(new Set(b1.map((r) => r.snapshot.name)).size).toBe(6);
-    const b3 = arenaBoard(c, "2026-08-02", 0);
-    expect(JSON.stringify(b1.map((r) => r.snapshot.name))).not.toBe(
-      JSON.stringify(b3.map((r) => r.snapshot.name)),
-    );
-  });
-
-  it("rivals carry usable snapshots (fightable end to end)", () => {
-    const c = createChampion("Kassia");
-    for (let l = 2; l <= 6; l++) {
-      const offers = generateDraft(c, l, 0);
-      applyDraft(c, offers, 0, false);
-    }
-    const board = arenaBoard(c, "2026-08-01", 0);
-    const me = snapshot(c, PLAN_A);
-    for (const rival of board) {
-      const r = simulateFight({ seed: combineSeed(c.seed, rival.snapshot.name), attacker: me, defender: rival.snapshot });
-      expect(r.events.length).toBeGreaterThan(3);
-    }
-  });
-});
-
-describe("battle plans matter", () => {
-  it("stance changes fight outcomes across a seed batch", () => {
-    const a = makeRival("Machetes", 15, 5);
-    const b = makeRival("Amyntor", 15, 6);
-    let diff = 0;
-    for (let seed = 1; seed <= 40; seed++) {
-      const agg = simulateFight({
-        seed,
-        attacker: { ...a.snapshot, plan: PLAN_A },
-        defender: b.snapshot,
-      });
-      const grd = simulateFight({
-        seed,
-        attacker: { ...a.snapshot, plan: PLAN_G },
-        defender: b.snapshot,
-      });
-      if (JSON.stringify(agg.events) !== JSON.stringify(grd.events)) diff++;
-    }
-    expect(diff).toBeGreaterThan(30);
-  });
-});
-
-function pickFirstStat(offers: FateOffer[]): number {
-  const i = offers.findIndex((o) => o.kind === "stat3" || o.kind === "stat21");
-  return i >= 0 ? i : 0;
+function bout(rng: ReturnType<typeof makeRng>, level: number): { seed: number; log: BoutLog; a: ReturnType<typeof rivalSnapshot>; b: ReturnType<typeof rivalSnapshot> } {
+  const a = rivalSnapshot(REALM_SALT, level, rng.int(POOL));
+  const b = rivalSnapshot(REALM_SALT, level, rng.int(POOL));
+  const seed = rng.int(0x7fffffff);
+  return { seed, a, b, log: simulateFight(seed, a, b, 1) };
 }
+function median(xs: number[]): number {
+  const s = [...xs].sort((x, y) => x - y);
+  return s[s.length >> 1]!;
+}
+
+describe("10,000 random bouts", () => {
+  it("all end before turn 150 with one end, HP in range, one loser, and the same seed gives the same digest", () => {
+    const rng = makeRng(combineSeed("invariants", 1));
+    let maxTurns = 0;
+    for (let i = 0; i < 10000; i++) {
+      const level = 1 + rng.int(40);
+      const { seed, a, b, log } = bout(rng, level);
+      expect(checkLog(log), `bout ${i}`).toEqual([]);
+      maxTurns = Math.max(maxTurns, log.result.turns);
+      expect(log.result.turns).toBeLessThan(TURN_CAP);
+      expect(log.steps.filter((s) => s.t === "end")).toHaveLength(1);
+      expect(log.steps[log.steps.length - 1]!.t).toBe("end");
+      const loser = log.result.winner === "a" ? "b" : "a";
+      expect(log.result.hpPct[log.result.winner]).toBeGreaterThan(0);
+      if (log.result.reason === "ko") expect(log.result.hpPct[loser]).toBe(0);
+      if (i % 10 === 0) expect(sha(canonical(simulateFight(seed, a, b, 1)))).toBe(sha(canonical(log)));
+    }
+    expect(maxTurns).toBeLessThan(TURN_CAP);
+  }, 120000);
+});
+
+describe("bout length and variety", () => {
+  for (const [level, lo, hi] of [[1, 10, 20], [10, 12, 20], [30, 12, 20]] as const) {
+    it(`level ${level}: median turns ${lo} to ${hi}, under 2% overtime`, () => {
+      const rng = makeRng(combineSeed("length", level));
+      const turns: number[] = [];
+      let overtime = 0;
+      const N = 3000;
+      for (let i = 0; i < N; i++) {
+        const { log } = bout(rng, level);
+        turns.push(log.result.turns);
+        if (log.steps.some((s) => s.t === "overtime")) overtime += 1;
+      }
+      const m = median(turns);
+      expect(m).toBeGreaterThanOrEqual(lo);
+      expect(m).toBeLessThanOrEqual(hi);
+      expect(overtime / N).toBeLessThan(0.02);
+    }, 120_000);
+  }
+
+  it("level 1 over 2,000 random bouts: 85% show 3 or more beat types, 40% show 5 or more", () => {
+    const rng = makeRng(combineSeed("variety", 1));
+    let three = 0;
+    let five = 0;
+    const N = 2000;
+    for (let i = 0; i < N; i++) {
+      const n = beatsOf(bout(rng, 1).log).size;
+      if (n >= 3) three += 1;
+      if (n >= 5) five += 1;
+    }
+    expect(three / N).toBeGreaterThanOrEqual(0.85);
+    expect(five / N).toBeGreaterThanOrEqual(0.4);
+  }, 120_000);
+});
+
+describe("speed", () => {
+  it("simulateFight takes a median of 3 ms or less, and 10,000 bouts take under 30 s", () => {
+    const rng = makeRng(combineSeed("speed", 1));
+    const pairs = Array.from({ length: 10000 }, () => {
+      const level = 1 + rng.int(40);
+      return { a: rivalSnapshot(REALM_SALT, level, rng.int(POOL)), b: rivalSnapshot(REALM_SALT, level, rng.int(POOL)), seed: rng.int(0x7fffffff) };
+    });
+    const times: number[] = [];
+    const t0 = performance.now();
+    for (const p of pairs) {
+      const s = performance.now();
+      simulateFight(p.seed, p.a, p.b, 1);
+      times.push(performance.now() - s);
+    }
+    const total = performance.now() - t0;
+    expect(median(times)).toBeLessThanOrEqual(3);
+    expect(total).toBeLessThan(30000);
+  }, 120000);
+});

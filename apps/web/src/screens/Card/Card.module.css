@@ -1,0 +1,203 @@
+.layout {
+  display: grid;
+  gap: 12px;
+}
+.me {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+.meStrip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 6px 10px;
+}
+.meText {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.meName {
+  font: 900 22px / 1 var(--font-display);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meLevel {
+  font: 900 15px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--t-on-dark-hazard);
+}
+.meNums {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 1px 10px;
+  font: 900 14px / 1.1 var(--font-display);
+  letter-spacing: 0.04em;
+  color: var(--t-on-dark-dim);
+  text-align: right;
+}
+.meNums b {
+  color: var(--t-on-dark);
+  font-size: 16px;
+}
+/* the energy bar in the header (content v3), in place of the "N bouts left" sticker */
+.energy {
+  min-width: 132px;
+  max-width: 180px;
+}
+.meStage {
+  display: none;
+  overflow: hidden;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.rival {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  min-width: 0;
+  min-height: 170px;
+  padding: 8px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius);
+  box-shadow: var(--shadow-hard);
+  background: var(--c-panel);
+  color: var(--t-on-panel);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.rival:active {
+  transform: translate(2px, 3px);
+  box-shadow: var(--shadow-hard-sm);
+}
+.rivalTop {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+.rivalId {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.rivalName {
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.rivalLevel {
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  color: var(--t-on-panel-dim);
+}
+.hp {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--t-on-panel-action);
+}
+.hp b {
+  font: 900 22px / 1 var(--font-display);
+}
+.hp span {
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--t-on-panel-dim);
+}
+.bars {
+  display: grid;
+  gap: 2px;
+}
+.counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font: 900 17px / 1 var(--font-display);
+}
+.hint {
+  margin: 10px 0 0;
+  font-size: var(--fs-small);
+  color: var(--t-on-page-dim);
+}
+
+/* face-off sheet */
+.faceoff {
+  display: grid;
+  gap: 12px;
+}
+.stages {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+.side {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-dark);
+  padding-bottom: 8px;
+}
+.vs {
+  font: 900 30px / 1 var(--font-display);
+  color: var(--t-on-panel-action);
+}
+.compare {
+  display: grid;
+  gap: 4px;
+}
+
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: 320px minmax(0, 1fr);
+    align-items: start;
+  }
+  .me {
+    position: sticky;
+    top: 12px;
+  }
+  .meStage {
+    display: block;
+  }
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* the rivals are dealt onto the table, one after another */
+:global(html[data-motion="full"]) .rival {
+  animation: deal 360ms cubic-bezier(0.2, 1.3, 0.4, 1) backwards;
+}
+:global(html[data-motion="full"]) .rival:nth-child(2) { animation-delay: 60ms; }
+:global(html[data-motion="full"]) .rival:nth-child(3) { animation-delay: 120ms; }
+:global(html[data-motion="full"]) .rival:nth-child(4) { animation-delay: 180ms; }
+:global(html[data-motion="full"]) .rival:nth-child(5) { animation-delay: 240ms; }
+:global(html[data-motion="full"]) .rival:nth-child(6) { animation-delay: 300ms; }
+@keyframes deal {
+  from { transform: translateY(24px) rotate(-3deg) scale(0.92); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}

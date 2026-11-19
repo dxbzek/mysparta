@@ -1,14 +1,43 @@
 {
-  "name": "agoge",
+  "name": "rank-zero",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "dev": "pnpm --filter @agoge/web dev",
-    "build": "pnpm -r build",
-    "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck"
+    "dev": "pnpm --filter @rankzero/web dev",
+    "build": "pnpm -r build && node tools/build-audio.mjs --overlay",
+    "test": "pnpm -r --workspace-concurrency=1 test",
+    "typecheck": "pnpm -r typecheck && tsc --noEmit -p tools/tsconfig.json",
+    "check:terms": "node tools/check-banned-terms.mjs",
+    "check:owners": "node tools/check-ownership.mjs",
+    "smoke": "tsx tools/smoke-canvas.ts",
+    "sheet": "tsx tools/contact-sheet.ts",
+    "gear-sheet": "tsx tools/gear-sheet.ts",
+    "look-sheet": "tsx tools/look-sheet.ts",
+    "spacing": "tsx tools/spacing-chart.ts",
+    "render-bout": "tsx tools/render-bout.ts",
+    "audit": "tsx tools/timeline-audit.ts",
+    "find-bout": "tsx tools/find-bout.ts",
+    "balance": "tsx tools/balance-report.ts",
+    "ladder": "tsx tools/ladder-report.ts",
+    "parity": "node tools/parity/run.mjs",
+    "record-bout": "tsx tools/record-bout.mjs",
+    "build-audio": "node tools/build-audio.mjs",
+    "subset-fonts": "node tools/subset-fonts.mjs",
+    "session": "node tools/session.mjs",
+    "shots": "node tools/shots.mjs",
+    "a11y": "node tools/a11y.mjs",
+    "budgets": "node tools/budgets.mjs"
   },
   "devDependencies": {
-    "playwright-core": "^1.62.1"
+    "@napi-rs/canvas": "^1.1.1",
+    "@rankzero/core": "workspace:*",
+    "@rankzero/rig": "workspace:*",
+    "@rankzero/stage": "workspace:*",
+    "@types/node": "^24.19.2",
+    "playwright-core": "^1.62.1",
+    "subset-font": "^2.9.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.0"
   }
 }

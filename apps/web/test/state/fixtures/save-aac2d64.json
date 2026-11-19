@@ -1,0 +1,383 @@
+{
+ "build": "aac2d64",
+ "simVersion": 3,
+ "doc": {
+  "schemaVersion": 2,
+  "rev": 37,
+  "updatedAt": 1794830400000,
+  "settings": {
+   "sound": true,
+   "speed": 2,
+   "reducedMotion": "system",
+   "liveLog": true,
+   "isVip": false
+  },
+  "activeId": "01JRANKZEROOLDSAVEA0000001",
+  "fighters": [
+   {
+    "id": "01JRANKZEROOLDSAVEA0000001",
+    "name": "Mona Grit",
+    "seed": 827195806,
+    "lookSalt": 3,
+    "colourSalt": 5,
+    "picks": [
+     "L",
+     "R",
+     "R",
+     "L",
+     "L",
+     "R",
+     "L",
+     "R",
+     "R"
+    ],
+    "xp": 0,
+    "createdDay": "2026-11-15",
+    "day": "2026-11-16",
+    "boutsUsed": 2,
+    "lifetimeBouts": 49
+   },
+   {
+    "id": "01JRANKZEROOLDSAVEB0000002",
+    "name": "Kip Ladle",
+    "seed": 824623431,
+    "lookSalt": 3,
+    "colourSalt": 5,
+    "picks": [
+     "R",
+     "R",
+     "L",
+     "L",
+     "R",
+     "L",
+     "L",
+     "R"
+    ],
+    "xp": 0,
+    "createdDay": "2026-11-15",
+    "day": "2026-11-16",
+    "boutsUsed": 2,
+    "lifetimeBouts": 46
+   }
+  ],
+  "retired": [],
+  "history": [
+   {
+    "id": "bout-01JRANKZEROOLDSAVEA0000001",
+    "at": 1794830399000,
+    "seed": 4126477466,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "01JRANKZEROOLDSAVEA0000001",
+     "name": "Mona Grit",
+     "look": {
+      "build": 2,
+      "head": 2,
+      "hair": 3,
+      "face": 0,
+      "top": 2,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 2,
+      "skin": 2,
+      "hairColor": 2,
+      "palette": 8
+     },
+     "level": 10,
+     "stats": {
+      "points": {
+       "health": 5,
+       "strength": 9,
+       "agility": 4,
+       "speed": 9
+      },
+      "mult": {
+       "health": 100,
+       "strength": 140,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "pipe",
+      "crow",
+      "heavy-hands",
+      "broom",
+      "quick-swap"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:10:7",
+     "name": "Vic Nugget",
+     "look": {
+      "build": 0,
+      "head": 0,
+      "hair": 9,
+      "face": 0,
+      "top": 4,
+      "bottom": 4,
+      "shoes": 3,
+      "accessory": 0,
+      "skin": 4,
+      "hairColor": 7,
+      "palette": 4
+     },
+     "level": 10,
+     "stats": {
+      "points": {
+       "health": 8,
+       "strength": 5,
+       "agility": 4,
+       "speed": 5
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "broom",
+      "paint-can",
+      "plastic-bottle",
+      "knuckle-dusters",
+      "energy-drink",
+      "rubber-ball"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "a",
+     "reason": "ko",
+     "turns": 17,
+     "hpPct": {
+      "a": 34,
+      "b": 0
+     }
+    },
+    "role": "attacker",
+    "fighterId": "01JRANKZEROOLDSAVEA0000001",
+    "xp": 1,
+    "lineId": 0,
+    "watched": true,
+    "before": {
+     "xp": 0,
+     "boutsUsed": 1
+    }
+   },
+   {
+    "id": "bout-01JRANKZEROOLDSAVEB0000002",
+    "at": 1794830398000,
+    "seed": 2535196783,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "01JRANKZEROOLDSAVEB0000002",
+     "name": "Kip Ladle",
+     "look": {
+      "build": 1,
+      "head": 0,
+      "hair": 3,
+      "face": 7,
+      "top": 6,
+      "bottom": 2,
+      "shoes": 2,
+      "accessory": 5,
+      "skin": 5,
+      "hairColor": 6,
+      "palette": 0
+     },
+     "level": 7,
+     "stats": {
+      "points": {
+       "health": 5,
+       "strength": 2,
+       "agility": 8,
+       "speed": 5
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "rubber-ball",
+      "paint-can",
+      "pocket-knife",
+      "bin-lid"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:7:7",
+     "name": "Moe Oats",
+     "look": {
+      "build": 2,
+      "head": 1,
+      "hair": 1,
+      "face": 2,
+      "top": 3,
+      "bottom": 4,
+      "shoes": 2,
+      "accessory": 3,
+      "skin": 4,
+      "hairColor": 4,
+      "palette": 8
+     },
+     "level": 7,
+     "stats": {
+      "points": {
+       "health": 7,
+       "strength": 5,
+       "agility": 3,
+       "speed": 3
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "folding-chair",
+      "sledgehammer",
+      "bin-lid",
+      "darts",
+      "broom"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "b",
+     "reason": "ko",
+     "turns": 16,
+     "hpPct": {
+      "a": 0,
+      "b": 33
+     }
+    },
+    "role": "attacker",
+    "fighterId": "01JRANKZEROOLDSAVEB0000002",
+    "xp": 1,
+    "lineId": 0,
+    "watched": true,
+    "before": {
+     "xp": 0,
+     "boutsUsed": 1
+    }
+   }
+  ]
+ },
+ "expect": {
+  "a": {
+   "id": "01JRANKZEROOLDSAVEA0000001",
+   "name": "Mona Grit",
+   "look": {
+    "build": 2,
+    "head": 2,
+    "hair": 3,
+    "face": 0,
+    "top": 2,
+    "bottom": 0,
+    "shoes": 3,
+    "accessory": 2,
+    "skin": 2,
+    "hairColor": 2,
+    "palette": 8
+   },
+   "level": 10,
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 9,
+     "agility": 4,
+     "speed": 9
+    },
+    "mult": {
+     "health": 100,
+     "strength": 140,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "perks": [
+    "pipe",
+    "crow",
+    "heavy-hands",
+    "broom",
+    "quick-swap"
+   ],
+   "rulesVersion": 1
+  },
+  "b": {
+   "id": "01JRANKZEROOLDSAVEB0000002",
+   "name": "Kip Ladle",
+   "look": {
+    "build": 1,
+    "head": 0,
+    "hair": 3,
+    "face": 7,
+    "top": 6,
+    "bottom": 2,
+    "shoes": 2,
+    "accessory": 5,
+    "skin": 5,
+    "hairColor": 6,
+    "palette": 0
+   },
+   "level": 9,
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 2,
+     "agility": 8,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "perks": [
+    "rubber-ball",
+    "paint-can",
+    "pocket-knife",
+    "bin-lid",
+    "quick-swap",
+    "raccoon"
+   ],
+   "rulesVersion": 1
+  },
+  "bAtBout": {
+   "level": 7,
+   "perks": [
+    "rubber-ball",
+    "paint-can",
+    "pocket-knife",
+    "bin-lid"
+   ],
+   "stats": {
+    "points": {
+     "health": 5,
+     "strength": 2,
+     "agility": 8,
+     "speed": 5
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   }
+  }
+ }
+}

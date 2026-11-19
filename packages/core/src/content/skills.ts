@@ -1,182 +1,70 @@
-import type { SkillDef } from "../types.js";
+/**
+ * The skill table (work package 1). Each skill has named numbers; what the numbers do is sim code
+ * keyed by the skill id. The card text of the app is built from these same numbers.
+ * Every number that differs from the starting table is listed in docs/RULES.md.
+ */
+import type { SkillId } from "../contracts/ids";
+import type { SkillDef } from "../contracts/content";
+import { RARITY_OF } from "../contracts/content";
 
-/** The 30 launch skills (02-gdd-core.md §5.3), numbers verbatim. */
-export const SKILLS: SkillDef[] = [
-  // --- Boons (12): always-on passives ---
-  { id: "bronze_hide", name: "Bronze Hide", kind: "boon", text: "+4 Armour", mods: { armour: 4 } },
-  { id: "winged_heels", name: "Winged Heels", kind: "boon", text: "+10 Evasion", mods: { eva: 10 } },
-  { id: "eagle_eye", name: "Eagle Eye", kind: "boon", text: "+10 Accuracy", mods: { acc: 10 } },
-  {
-    id: "hoplite_drill",
-    name: "Hoplite Drill",
-    kind: "boon",
-    text: "+10 Block with a shield equipped; +5 without",
-    // Conditional bonus applied in derive().
-  },
-  {
-    id: "pankration",
-    name: "Pankration",
-    kind: "boon",
-    text: "Fists become a true weapon: damage 10, Might scale 100%, interval 220, Combo +10",
-  },
-  {
-    id: "titan_grip",
-    name: "Titan Grip",
-    kind: "boon",
-    text: "Axe interval −15%; cannot be disarmed while wielding an axe",
-  },
-  { id: "keen_edge", name: "Keen Edge", kind: "boon", text: "+6 Crit", mods: { crit: 6 } },
-  { id: "serpent_reflex", name: "Serpent Reflex", kind: "boon", text: "+10 Counter", mods: { counter: 10 } },
-  {
-    id: "iron_wrists",
-    name: "Iron Wrists",
-    kind: "boon",
-    text: "+25 disarm resistance; +10 Disarm",
-    mods: { disarmResist: 25, disarm: 10 },
-  },
-  {
-    id: "marathon_lungs",
-    name: "Marathon Lungs",
-    kind: "boon",
-    text: "Every 500 ticks, recover 3 + floor(Grit / 2) HP",
-  },
-  {
-    id: "beast_bond",
-    name: "Beast Bond",
-    kind: "boon",
-    text: "Each beast's Grit tax −1; beasts gain +15% HP",
-  },
-  {
-    id: "endless_quiver",
-    name: "Endless Quiver",
-    kind: "boon",
-    text: "Thrown ammo +3 per weapon; thrown damage +10%",
-  },
-
-  // --- Techniques (10): auto-triggered actives ---
-  {
-    id: "whirl_of_bronze",
-    name: "Whirl of Bronze",
-    kind: "technique",
-    text: "Once per fight, when facing 2+ enemies: strike every enemy for 8 + floor(Might / 2)",
-  },
-  {
-    id: "shield_slam",
-    name: "Shield Slam",
-    kind: "technique",
-    text: "After a successful block, 40% chance (max once per 400 ticks): bash for 60% weapon damage; foe's next action +80 ticks",
-  },
-  {
-    id: "perfect_riposte",
-    name: "Perfect Riposte",
-    kind: "technique",
-    text: "Your first riposte each fight deals double damage",
-  },
-  {
-    id: "hamstring",
-    name: "Hamstring",
-    kind: "technique",
-    text: "Your first crit each fight also slows the foe: interval +15% for 400 ticks",
-  },
-  {
-    id: "second_breath",
-    name: "Second Breath",
-    kind: "technique",
-    text: "Once per fight, on dropping below 30% HP: heal 25% of HP lost",
-  },
-  {
-    id: "rope_and_net",
-    name: "Rope and Net",
-    kind: "technique",
-    text: "Once per fight, on your first attack after tick 300: entangle the foe for 200 ticks — no acting, evading or blocking",
-  },
-  {
-    id: "skyfall",
-    name: "Skyfall",
-    kind: "technique",
-    text: "Once per fight, when the foe drops below 35% HP: leap strike for 150% weapon damage; cannot be evaded or blocked",
-  },
-  {
-    id: "twin_fangs",
-    name: "Twin Fangs",
-    kind: "technique",
-    text: "Your first combo each fight extends by 2 guaranteed chain hits",
-  },
-  {
-    id: "beasts_fury",
-    name: "Beast's Fury",
-    kind: "technique",
-    text: "When one of your beasts falls: +20% damage for the rest of the fight",
-  },
-  {
-    id: "stone_wall",
-    name: "Stone Wall",
-    kind: "technique",
-    text: "The first three hits against you each fight deal −50% damage",
-  },
-
-  // --- Trumps (8): player-conditioned ultimates, once per fight ---
-  {
-    id: "wrath_of_herakles",
-    name: "Wrath of Herakles",
-    kind: "trump",
-    text: "Your next 3 attacks within 400 ticks: +100% damage, unblockable (counters and ripostes count)",
-  },
-  {
-    id: "aegis_of_dawn",
-    name: "Aegis of Dawn",
-    kind: "trump",
-    text: "For 600 ticks, automatically block every incoming melee hit; your ripostes still roll",
-  },
-  {
-    id: "gorgons_glare",
-    name: "Gorgon's Glare",
-    kind: "trump",
-    text: "The foe is frozen for 250 ticks (their beasts are unaffected)",
-  },
-  {
-    id: "chirons_mending",
-    name: "Chiron's Mending",
-    kind: "trump",
-    text: "Heal 40% of missing HP; cleanse slows and entangles",
-  },
-  {
-    id: "hermes_rush",
-    name: "Hermes' Rush",
-    kind: "trump",
-    text: "For 500 ticks: interval −40%, +15 Evasion",
-  },
-  {
-    id: "brontes_bolt",
-    name: "Bronte's Bolt",
-    kind: "trump",
-    text: "20 + floor(Grace / 2) damage to the foe and all their beasts; ignores Armour",
-  },
-  {
-    id: "cast_down",
-    name: "Cast Down",
-    kind: "trump",
-    text: "Disarm the foe's held weapon; their next draw is delayed 300 ticks",
-  },
-  {
-    id: "moiras_thread",
-    name: "Moira's Thread",
-    kind: "trump",
-    text: "The next killing blow against you leaves you at 1 HP instead; your damage +25% thereafter",
-  },
-];
-
-const byId = new Map(SKILLS.map((s) => [s.id, s] as const));
-
-export function skill(id: string): SkillDef {
-  const s = byId.get(id);
-  if (!s) {
-    console.warn(`Unknown skill: ${id}`);
-    return SKILLS[0]!;
-  }
-  return s;
+type Kind = SkillDef["kind"];
+function def(id: SkillId, kind: Kind, nums: Record<string, number>, move?: { weight: number; uses: number }): SkillDef {
+  const rarity = RARITY_OF[id];
+  return move === undefined ? { id, kind, rarity, tiers: [nums] } : { id, kind, rarity, tiers: [nums], move };
 }
 
-export const BOONS = SKILLS.filter((s) => s.kind === "boon");
-export const TECHNIQUES = SKILLS.filter((s) => s.kind === "technique");
-export const TRUMPS = SKILLS.filter((s) => s.kind === "trump");
+export const SKILLS: Readonly<Record<SkillId, SkillDef>> = {
+  // Boosters: change the stats for good when picked. Points are added, multipliers are whole percent.
+  "big-heart": def("big-heart", "booster", { health: 2, healthMult: 35 }),
+  "heavy-hands": def("heavy-hands", "booster", { strength: 2, strengthMult: 50 }),
+  "light-feet": def("light-feet", "booster", { agility: 2, agilityMult: 45 }),
+  "fast-twitch": def("fast-twitch", "booster", { speed: 3, speedMult: 40 }),
+  "glass-cannon": def("glass-cannon", "booster", { strengthMult: 100, healthMult: -30 }),
+  "mountain": def("mountain", "booster", { healthMult: 150, agilityMult: -20, speedMult: -20, startClock: 150 }),
+
+  // Passives: always on in a bout.
+  "padding": def("padding", "passive", { armor: 10 }),
+  "anticipation": def("anticipation", "passive", { intercept: 20 }),
+  "sharpening-stone": def("sharpening-stone", "passive", { bladeDamage: 40 }),
+  "bare-knuckle": def("bare-knuckle", "passive", { fistDamage: 200, unarmedCombo: 20, drawSlack: 12 }),
+  "payback": def("payback", "passive", { riposte: 25 }),
+  "flurry": def("flurry", "passive", { combo: 32 }),
+  "firm-grip": def("firm-grip", "passive", { resist: 80, swapChance: 15 }),
+  "head-start": def("head-start", "passive", { startClock: -150 }),
+  "sharp-eye": def("sharp-eye", "passive", { aim: 16, pierce: 16 }),
+  "parry": def("parry", "passive", { block: 10, riposteAfterBlock: 80 }),
+  "heavy-lifter": def("heavy-lifter", "passive", { heavyTime: -30, heavyAim: 10 }),
+  "pitcher": def("pitcher", "passive", { thrownDamage: 40, throwChance: 35 }),
+  "plate-vest": def("plate-vest", "passive", { armor: 22, speedMult: -15 }),
+  "knock-loose": def("knock-loose", "passive", { disarm: 40 }),
+  "last-stand": def("last-stand", "passive", { saves: 1 }),
+  "stubborn": def("stubborn", "passive", { chance: 95 }),
+  "slippery": def("slippery", "passive", { evade: 25 }),
+  // content v2 passives
+  "quick-swap": def("quick-swap", "passive", { drawSlack: 2, swapChance: 50, swapTime: -30 }),
+  "pet-lover": def("pet-lover", "passive", { petHp: 30, petDamage: 50 }),
+  "junk-collector": def("junk-collector", "passive", { returnChance: 90, throwChance: 65 }),
+  "trick-shot": def("trick-shot", "passive", { ricochet: 50 }),
+
+  // Moves: fire by weighted chance at the start of a turn, limited uses per bout.
+  // `cost` is in beats; `costPct` is a share of one normal turn of that scrapper.
+  "haymaker": def("haymaker", "move", { damageMult: 200, crit: 15, usesPerStrength: 25, cost: 0 }, { weight: 5, uses: 1 }),
+  "energy-drink": def("energy-drink", "move", { healMin: 25, healMax: 40, belowHpPct: 50, cost: 30 }, { weight: 16, uses: 1 }),
+  "tarp": def("tarp", "move", { skips: 3, costPct: 20 }, { weight: 5, uses: 1 }),
+  "whistle": def("whistle", "move", { healPct: 60, belowHpPct: 90, cost: 10 }, { weight: 20, uses: 2 }),
+  "firecrackers": def("firecrackers", "move", { damageMin: 12, damageMax: 20, companionPct: 40, costPct: 50 }, { weight: 4, uses: 2 }),
+  "snatch": def("snatch", "move", { cost: 0 }, { weight: 22, uses: 1 }),
+  "air-horn": def("air-horn", "move", { fleeChance: 50, clockPush: 40, clockPushNoPet: 60, cost: 20 }, { weight: 8, uses: 1 }),
+  "body-slam": def("body-slam", "move", { base: 19, perStrength: 4, extraCost: 40 }, { weight: 12, uses: 1 }),
+  // content v2 Moves
+  "sand-in-the-eyes": def("sand-in-the-eyes", "move", { aimLoss: 25, costPct: 30 }, { weight: 4, uses: 1 }),
+  "taunt": def("taunt", "move", { riposte: 40, cost: 0 }, { weight: 4, uses: 1 }),
+  "second-wind": def("second-wind", "move", { healPct: 15, belowHpPct: 50, cost: 0 }, { weight: 16, uses: 1 }),
+  "grapple": def("grapple", "move", { base: 8, perStrength: 2, holds: 1 }, { weight: 16, uses: 1 }),
+};
+
+/** A named number of a skill. A missing name is a programming error in this package; it gives 0. */
+export function sk(id: SkillId, name: string): number {
+  const v = SKILLS[id].tiers[0][name];
+  return v === undefined ? 0 : v;
+}

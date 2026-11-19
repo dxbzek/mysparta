@@ -1,0 +1,184 @@
+/* The Level path tree (content v3 batch 3): a trunk, a knot per level, lit and dead limbs. */
+.intro {
+  margin: 0;
+  color: var(--t-on-page);
+}
+.legend {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font: 900 13px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.legendTaken,
+.legendLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--t-on-page);
+}
+.legendTaken::before,
+.legendLeft::after {
+  content: "";
+  width: 26px;
+  height: 0;
+  border-top: 5px solid var(--c-hazard);
+  box-shadow: 0 0 0 1.5px var(--c-ink);
+}
+.legendLeft::after {
+  border-top: 4px dashed var(--c-limb-dead);
+  box-shadow: none;
+}
+.tree {
+  position: relative;
+  margin: 0;
+  padding: 14px 8px 18px;
+  list-style: none;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius);
+  box-shadow: var(--shadow-hard);
+  background:
+    var(--tex-halftone-light),
+    var(--tex-lamp-glow),
+    var(--c-dark);
+  color: var(--t-on-dark);
+}
+/* the trunk */
+.tree::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 30px;
+  bottom: 30px;
+  width: 8px;
+  transform: translateX(-50%);
+  border: 2px solid var(--c-ink);
+  background: var(--tex-trunk);
+}
+.root {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.rootKnot {
+  display: grid;
+  place-items: center;
+  min-width: 76px;
+  height: 34px;
+  padding: 0 10px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--tex-halftone), var(--c-hazard);
+  color: var(--t-on-hazard);
+  font: 900 18px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.rootPerks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.startPerk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 5px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+  box-shadow: var(--shadow-hard-sm);
+}
+.startName {
+  font: 900 16px / 1 var(--font-display);
+  text-transform: uppercase;
+}
+.row {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 0;
+  padding: 7px 0;
+}
+.taken,
+.left {
+  position: relative;
+  min-width: 0;
+}
+/* the limbs from the knot to each card */
+.taken::after,
+.left::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 14px;
+}
+.taken {
+  padding-right: 10px;
+}
+.taken::after {
+  right: -4px;
+  height: 7px;
+  margin-top: -3.5px;
+  background: var(--c-hazard);
+  box-shadow: var(--glow-limb);
+}
+.left {
+  padding-left: 10px;
+  opacity: 0.62;
+  filter: grayscale(0.7);
+}
+.left::before {
+  left: -4px;
+  border-top: 4px dashed var(--c-limb-dead);
+}
+.knot {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+.knotLevel {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 30px;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: 40% 46% 42% 48%;
+  background: var(--c-tape);
+  color: var(--t-on-tape);
+  font: 900 15px / 1 var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.talentTag {
+  white-space: nowrap;
+  display: grid;
+  place-items: center;
+  height: 18px;
+  padding: 0 5px;
+  border: 1.5px solid var(--c-ink);
+  clip-path: polygon(12% 0, 88% 0, 100% 50%, 88% 100%, 12% 100%, 0 50%);
+  background: var(--c-sodium);
+  color: var(--t-on-sodium);
+  font: 900 11px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+/* the card chips shrink to fit half the phone width */
+.row :global(*) {
+  min-width: 0;
+}
+.taken > span,
+.left > span {
+  padding: 4px;
+  gap: 5px;
+}

@@ -1,0 +1,128 @@
+/**
+ * FROZEN CONTRACT (work package 0). The shape the sim lane must export from
+ * packages/core/src/api.ts. The package index checks it with `const check: CoreApi = impl`.
+ * Every function is pure: the same inputs give the same output on every engine.
+ */
+import type { CompanionDef, GearDef, ShieldDef, SkillDef, TalentDef, WeaponDef } from "./content";
+import type { BossBlock, DayKey, LadderPrize, TimeMs, FighterSnapshot, KitBase, Loadout, Look, LookRoll, Pick, RouteCard, RouteNode, ScrapperRecord, ScrapperSheet,
+  SnapshotSheet, TalentRanks } from "./fighter";
+import type { CompanionId, GearId, HeldId, PerkId, ShieldId, SkillId, TalentId } from "./ids";
+import type { BoutLog } from "./log";
+
+/** The four number tables of the rules, as total Records. The screens read every number they
+ *  print from here (card lines, the Kit screen), so no number is typed twice. Read-only. */
+export interface ContentTables {
+  weapons: Readonly<Record<HeldId, WeaponDef>>;
+  skills: Readonly<Record<SkillId, SkillDef>>;
+  companions: Readonly<Record<CompanionId, CompanionDef>>;
+  shields: Readonly<Record<ShieldId, ShieldDef>>;
+  /** Body equipment (CONTRACT_REV 8). */
+  gear: Readonly<Record<GearId, GearDef>>;
+  /** The talent tree (CONTRACT_REV 9). */
+  talents: Readonly<Record<TalentId, TalentDef>>;
+}
+
+/** Why a talent rank cannot be spent now. */
+export type TalentBlock = "no-points" | "maxed" | "locked";
+
+export interface CoreApi {
+  /** The number tables. The only way the app reaches them: it never imports a content file. */
+  readonly content: ContentTables;
+  /** Trims, collapses inner spaces, then checks 3 to 14 characters of letters, digits, space, hyphen. */
+  checkName(raw: string): { ok: true; name: string } | { ok: false; why: "length" | "chars" };
+  /** A name built from the game's own name lists, for the "Random name" link. Pure: the same `n`
+   *  gives the same name, and any whole number is accepted (the app passes a random one).
+   *  Every result passes `checkName`. */
+  randomName(n: number): string;
+  /** hash(realmSalt + ":" + the lowercased, cleaned name). */
+  fighterSeed(realmSalt: string, name: string): number;
+  /** Shapes come from (seed, lookSalt), colours from (seed, colourSalt). `roll` (CONTRACT_REV 10):
+   *  1 draws inside LOOK_SPACE_V1 (the roll every record before the look editor was shown), 2 (the
+   *  default, LOOK_ROLL) inside today's LOOK_SPACE. */
+  rollLook(seed: number, lookSalt: number, colourSalt: number, roll?: LookRoll): Look;
+  /** The look a record shows (CONTRACT_REV 10): its stored `look`, each part brought inside
+   *  LOOK_SPACE, or, with none stored, the version-1 roll of its seed and salts. */
+  lookOf(rec: ScrapperRecord): Look;
+  /** The record with this look stored, each part brought inside LOOK_SPACE. Pure; stats unchanged. */
+  withLook(rec: ScrapperRecord, look: Look): ScrapperRecord;
+  /** A new scrapper starts with a full energy bar, timed from `nowMs`, and stores its look: `look`
+   *  when given (the look editor), else today's roll of its seed and salts. */
+  createRecord(a: { id: string; name: string; realmSalt: string; lookSalt: number; colourSalt: number;
+                    today: DayKey; nowMs: TimeMs; look?: Look }): ScrapperRecord;
+  sheetOf(rec: ScrapperRecord): ScrapperSheet;
+  /** The bout's snapshot: its perks hold every skill it owns and only the weapons, shield, pets and
+   *  gear of its loadout (`loadoutOf`), and its stats hold the worn gear's stat points. */
+  snapshotOf(rec: ScrapperRecord): FighterSnapshot;
+  /** The loadout a record takes into a bout (CONTRACT_REV 8): its own, with anything it does not own
+   *  left out, the bag cut to MAX_LOADOUT_WEAPONS and given one weapon when it would be empty while
+   *  any is owned; or, with none stored, `defaultLoadout` of what it owns. */
+  loadoutOf(rec: ScrapperRecord): Loadout;
+  /** The record with this loadout stored, cleaned as `loadoutOf` reads it. Pure. */
+  withLoadout(rec: ScrapperRecord, loadout: Loadout): ScrapperRecord;
+  /** The sim's own loadout for a kit that owns `perks` (rivals, and a record with none stored). */
+  defaultLoadout(perks: readonly PerkId[]): Loadout;
+  /** Max HP, effective stats, derived values and companion cost of any snapshot: a rival on
+   *  Tonight's Card, either side of the face-off sheet, a sandbox snapshot. It holds the HP
+   *  formula and the companion cost, so no screen copies a rule. */
+  snapshotSheet(s: FighterSnapshot): SnapshotSheet;
+  /** Talent points earned at a level: 1 at level 3 and 1 every 3 levels after (CONTRACT_REV 9). */
+  talentPointsAt(level: number): number;
+  /** Null when one more rank of `id` can be spent now, else why not. */
+  talentBlock(rec: ScrapperRecord, id: TalentId): TalentBlock | null;
+  /** The record with one more rank of `id`, or the same record when `talentBlock` says no. Pure. */
+  spendTalent(rec: ScrapperRecord, id: TalentId): ScrapperRecord;
+  /** True when the free respec of `today` is not used yet and any rank is spent. */
+  canRespec(rec: ScrapperRecord, today: DayKey): boolean;
+  /** Every rank back to unspent, the day's respec used; the same record when `canRespec` says no. */
+  respecTalents(rec: ScrapperRecord, today: DayKey): ScrapperRecord;
+  /** The sim's own talent ranks for a kit owning `perks` at `level` (rivals, docs/RULES.md 3c). */
+  rivalTalents(seed: number, perks: readonly PerkId[], level: number): TalentRanks;
+  /** The two cards after the given picks (from the record's carried kit, `base`, when it has one;
+   *  with the record's boss prizes, `prizes`, CONTRACT_REV 11, in the kit).
+   *  A pure function of its inputs: it never rerolls. */
+  routeNode(seed: number, picks: readonly Pick[], base?: KitBase, gearFrom?: number, prizes?: readonly LadderPrize[]): { left: RouteCard; right: RouteCard };
+
+  /** Every level-up taken so far, oldest first. */
+  route(rec: ScrapperRecord): RouteNode[];
+  xpToNext(level: number): number;
+  xpForBout(won: boolean, ownLevel: number, oppLevel: number): 1 | 2;
+  /** Energy now (content v3, in place of the daily bout cap): the stored points plus one per
+   *  ENERGY_REFILL_MS since `energyAt`, at most ENERGY_MAX. A clock behind `energyAt` refills nothing. */
+  energyNow(rec: ScrapperRecord, nowMs: TimeMs): number;
+  /** Milliseconds until the next energy point, or null when the bar is full. */
+  energyNextMs(rec: ScrapperRecord, nowMs: TimeMs): number | null;
+  /** Spends one energy point, counts the bout and adds its XP. */
+  afterBout(rec: ScrapperRecord, xp: 1 | 2, nowMs: TimeMs): ScrapperRecord;
+  afterPick(rec: ScrapperRecord, pick: Pick): ScrapperRecord;
+  rivalSnapshot(realmSalt: string, level: number, index: number): FighterSnapshot;
+  /** 6 rivals at the scrapper's level, drawn from (seed, today, lifetime bouts). At levels 1 to 3 the last one is an easy rival: armed, 3 stat
+   *  points fewer (round 2; it replaced 2 unarmed rivals, which were 96% free wins). */
+  tonightsCard(rec: ScrapperRecord, realmSalt: string, today: DayKey): FighterSnapshot[];
+  /** Every perk any of these records has owned. For the "Found N of 92" list. */
+  foundPerks(records: readonly ScrapperRecord[]): PerkId[];
+  boutSeed(aId: string, bId: string, lifetimeBouts: number): number;
+  simulateFight(seed: number, a: FighterSnapshot, b: FighterSnapshot, rulesVersion: 1): BoutLog;
+  /** The ladder of a record (CONTRACT_REV 11): bosses beaten (0 = Rank Zero) and whether a boss
+   *  prize waits to be picked. */
+  ladderOf(rec: ScrapperRecord): { rank: number; prizeWaiting: boolean };
+  /** The hand-made boss of rung `rung` (1 = the Rank 10 boss, up to LADDER_RUNGS = the Rank 1 boss):
+   *  a fixed snapshot, the same on every call. Throws on a rung off the ladder. */
+  bossSnapshot(rung: number): FighterSnapshot;
+  /** The level a scrapper needs to challenge the boss of `rung`. */
+  bossGate(rung: number): number;
+  /** Null when the record may fight the boss of `rung` now (the next rung up, at or over its gate),
+   *  else why not. Energy, a waiting level-up and a waiting prize are the app's checks. */
+  bossBlock(rec: ScrapperRecord, rung: number): BossBlock | null;
+  /** After a boss bout: `afterBout` (one energy, the bout counted, its XP), and on a win over the
+   *  next rung's boss one rank up. */
+  afterBoss(rec: ScrapperRecord, rung: number, won: boolean, xp: 1 | 2, nowMs: TimeMs): ScrapperRecord;
+  /** The two prize cards of the boss prize that waits (left: a piece of gear; right: a Rare or
+   *  better weapon, skill, shield or pet; a stat card where nothing fits), or null with none
+   *  waiting. A pure function of the record. */
+  prizeOffer(rec: ScrapperRecord): { left: RouteCard; right: RouteCard } | null;
+  /** The record with the waiting prize taken (stored with the picks it was taken after); the same
+   *  record when none waits. */
+  takePrize(rec: ScrapperRecord, pick: Pick): ScrapperRecord;
+  /** Stable JSON of a log. The SHA-256 is done by the test or the tool. */
+  canonical(log: BoutLog): string;
+}

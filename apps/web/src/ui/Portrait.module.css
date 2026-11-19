@@ -1,0 +1,14 @@
+.frame {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  overflow: hidden;
+  border: var(--line-thin) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--tex-halftone), var(--c-panel);
+  box-shadow: var(--shadow-hard-sm);
+}
+.active {
+  outline: 3px solid var(--c-action);
+  outline-offset: 1px;
+}

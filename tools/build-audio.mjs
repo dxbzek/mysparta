@@ -1,0 +1,928 @@
+#!/usr/bin/env node
+/**
+ * Build the sound sprite and the music (fight-screen lane).
+ *   pnpm build-audio [--src <dir>] [--out <dir>]            CC0 only, into apps/web/public/audio (tracked)
+ *   pnpm build-audio --overlay [--private <dir>] [--out <dir>]  the private files mixed in, into
+ *                                                          apps/web/dist/audio (never a tracked path)
+ *
+ * Writes apps/web/public/audio/sfx.mp3 (the core sprite: every set a stage family falls back to),
+ * sfx-content.mp3 (the per-weapon, shield and pet sets), each a mono MP3 under a 300 KB cap, and
+ * sfx.json (which file, where each sound starts and how long it is, in ms, plus where every
+ * sound came from and its licence), and rewrites the sound table in CREDITS.md from the same rows.
+ *
+ * Sources: free sound packs with a clear licence (CC0 or CC BY), each fetched from its own page
+ * on OpenGameArt and pinned by SHA-256. `PACKS` holds the page, author, licence and fetch date
+ * of every pack; CREDITS.md has the same rows. No pack is ripped game audio or AI-generated sound.
+ *
+ * Paid audio (Envato Elements) never enters the repo (it is public; the Envato licence forbids
+ * redistributing an item or letting anyone extract it, clause 12 b and e). It lives in a private
+ * folder outside the repo (tools/audio-private.mjs) and `pnpm build-audio --overlay` (run by the
+ * root `pnpm build` after the web build) mixes it into apps/web/dist/audio only. Without that
+ * folder the overlay does nothing and the built site plays the CC0 files from public/audio.
+ *
+ * Music (plan 13.17): the same run writes music/<slot>.mp3 and music.json: three loops (menu,
+ * fight-calm, fight-intense; the two fight loops share tempo and length so the player crossfades
+ * them in sync) and four stings (ko, win, lose, level-up). In the repo they are synthesised here
+ * (tools/audio-music.mjs, CC0); the overlay swaps in the owner's tracks. Each loop is encoded with
+ * a copy of its own end before it and of its start after it, so the loop points sit in the middle
+ * of the MP3 (no encoder padding at the seam) and the loop plays with no gap; music.json holds the
+ * loop points measured on the decoded file.
+ *
+ * The sprite holds named sound sets (`SETS`): one per weapon, shield or pet where an own sound
+ * fits, else one per material group (owner, 15 Nov 2026: "it depends on the weapon too"). The web
+ * app picks the set from the cue's `item` (apps/web/src/audio/soundMap.ts); `ALIASES` gives every
+ * stage family and app sound the set it falls back to. sfx.json version 2: `sets` and `families`.
+ *
+ * Every sound was picked by measurement, not by its file name (length, peak, loudness, energy
+ * per frequency band, decay; see the notes on each slot): a punch has a low thump under 150 Hz
+ * and a crack over 2 kHz, a pipe rings in the 500 Hz to 6 kHz range for 150 ms or more, a body
+ * fall is mostly under 150 Hz. A slot may layer two files (" + "), lined up on their onsets.
+ *
+ * Processing per sound: start at the onset (first sample at half the peak, minus 5 ms) so the
+ * hit lands on the cue time, or at a fixed "@ms" for a window cut from a long recording; cut to
+ * the family's length; trim the quiet tail; fade out; peak-normalise to -1 dBFS; then turn it
+ * down to its family's loudness target, so variants of one family match and the families sit in
+ * a fixed balance (impacts loudest, crowd quietest). A set marked `lift` may also be turned UP by
+ * up to that many dB, through a soft limiter that keeps the peak under -1 dBFS (a thin, peaky
+ * sound such as the knife stab would otherwise stay under its target).
+ *
+ * A window cut from a long recording ("@ms") starts at the first sample of that window that
+ * reaches half the window's peak, minus 10 ms, so a pet's call lands on its cue, not after it.
+ *
+ * Offsets are measured AFTER encoding: the MP3 is decoded back and the encoder's shift is found
+ * by cross-correlation, because the encoder adds padding at the start. The JSON holds those
+ * measured offsets, never the planned ones.
+ *
+ * Three sounds are synthesised here, not recorded (pack "synth", CC0, no source file): the air horn,
+ * the referee's pea whistle and the goose's honk (the CC0 stand-in for the Envato goose, which
+ * moved to the private folder on 19 Nov 2026). No CC0 recording of either was on hand and the build has no web
+ * access; each is a small physical recipe (`SYNTH`), deterministic, so the sprite is the same on
+ * every build. Swap in a recording (Envato or CC0) by replacing the layer in its set.
+ *
+ * The build fails when a sound ends more than `LOUD_TOL` dB under its set's loudness target (the
+ * balance cannot drift silently: the paint can sat 4 dB under a punch), or a swish or throw is
+ * shorter than `SWISH_MIN_MS` (two fist swishes of three were a 57-65 ms tick).
+ *
+ * Phone speakers: the game is played on a phone, and a phone speaker gives back little under
+ * 400 Hz. Full-band loudness cannot see that (the Taunt shout met its -15 dB target and was
+ * 14 dB quieter over 400 Hz: under the crowd murmur on a phone). So every sound is also measured
+ * over `PHONE_HZ` (`phone` in sfx.json). A sound whose phone band sits too far under its loudness
+ * gets a presence shelf (see `prepare`; `shelf` in sfx.json is the dB added), and the build fails
+ * when a sound's phone band ends more than `PHONE_GAP` dB (or the set's own `phone`) under the
+ * set's target. A punch sits 4 to 7 dB under; the voiced Move sounds are held to 4 or 5.
+ *
+ * Needs ffmpeg on PATH, and tar (Windows bsdtar reads zip and 7z) or unzip / 7z to unpack.
+ */
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { basename, dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { MUSIC_RATE, MUSIC_SYNTH } from "./audio-music.mjs";
+import { MUSIC_STINGS, MUSIC_TRACKS, applySetOverrides, gitCommonDirOf, isTrackedPath, musicPlan, readManifest, resolvePrivateRoot } from "./audio-private.mjs";
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const arg = (name) => {
+  const i = process.argv.indexOf(`--${name}`);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+};
+const OVERLAY = process.argv.includes("--overlay");
+const PUBLIC_OUT = resolve(join(ROOT, "apps/web/public/audio"));
+const OUT = resolve(arg("out") ?? (OVERLAY ? join(ROOT, "apps/web/dist/audio") : PUBLIC_OUT));
+const SRC = resolve(arg("src") ?? join(tmpdir(), "rankzero-audio-src-v2"));
+const RATE = 44100;
+const BITRATE = "64k";
+const GAP_MS = 50;
+const CAP = 300 * 1024;
+const PEAK = 10 ** (-1 / 20);            // -1 dBFS
+const LOUD_TOL = 1.5;                     // dB a sound may end under its target
+const SWISH_MIN_MS = 150;
+const PRESENCE_HZ = 600;
+const PRESENCE_MAX = 18;                  // dB, the most the presence shelf may add
+const PHONE_MARGIN = 1;                   // dB the shelf aims inside the gate
+const PHONE_HZ = 400;                     // a phone speaker gives back little under this
+const PHONE_GAP = 9;                      // dB a sound's phone-band loudness may sit under its target
+
+/** Music limits: a loop of at most this long (memory on a phone: a decoded 60 s stereo loop is
+ *  about 21 MB), loops at this RMS, stings at this loudness, and the file caps budgets.mjs checks. */
+const MUSIC = { loopMaxMs: 60_000, padMs: 500, loopRmsDb: -20, stingLoudDb: -13, loopCapKb: 1024, stingCapKb: 160 };
+
+const OGA = "https://opengameart.org/sites/default/files/";
+const CC0 = { licence: "CC0 1.0", licenceUrl: "https://creativecommons.org/publicdomain/zero/1.0/" };
+const BY3 = { licence: "CC BY 3.0", licenceUrl: "https://creativecommons.org/licenses/by/3.0/" };
+const ENVATO = { licence: "Envato Elements licence", licenceUrl: "https://elements.envato.com/license-terms" };
+const BY4 = { licence: "CC BY 4.0", licenceUrl: "https://creativecommons.org/licenses/by/4.0/" };
+const FETCHED = "2026-11-15";
+
+/** Every pack: its page (where the licence was read), the file, the author and the licence. */
+export const PACKS = [
+  { id: "hits37", name: "37 hits/punches", page: "https://opengameart.org/content/37-hitspunches", url: `${OGA}independent_nu_ljudbank-hits_and_punches.7z`, sha256: "641c65d2e1a00002171c23e2c6fa14e925ae4c12db09d3f79d130a4538916032", author: "Independent.nu (submitted by qubodup)", ...CC0 },
+  { id: "qpunch", name: "Punch", page: "https://opengameart.org/content/punch", url: `${OGA}qubodupPunch.7z`, sha256: "757795e8778acc377abacea902052c2dc707583c69d00b8baa2e76b670a02398", author: "Iwan 'qubodup' Gabovitch", ...CC0 },
+  { id: "battle", name: "Battle Sound Effects", page: "https://opengameart.org/content/battle-sound-effects", url: `${OGA}battle_sound_effects_0.zip`, sha256: "44e3d26b2378d2eb3a4f28b4c5cbc71908ad13c7389038348dbe9b8cde4f4c05", author: "artisticdude", ...CC0, note: "page offers CC BY 3.0, CC BY-SA 3.0, GPL 2/3 or CC0; used under CC0" },
+  { id: "castiron", name: "33 metal clang sounds from cast iron pans", page: "https://opengameart.org/content/33-metal-clang-sounds-cast-iron-pans", url: `${OGA}cast_iron_clangs.7z`, sha256: "dcbf7d0873b580ba6fda03e9ab96188f4ceb8d8f40ce7abe30ce150932b979aa", author: "bart", ...CC0 },
+  { id: "wood35", name: "35 wooden cracks/hits/destructions", page: "https://opengameart.org/content/35-wooden-crackshitsdestructions", url: `${OGA}independent_nu_ljudbank-wood_crack_hit_destruction.7z`, sha256: "2f9723be0147c32ea07db8ef7406229fb8f1a6ce8feabdf0dbf2dc5ee2aacd1a", author: "Independent.nu", ...CC0 },
+  { id: "break75", name: "75 CC0 breaking / falling / hit sfx", page: "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx", url: `${OGA}sfx_breaking_and_falling.zip`, sha256: "e6ee04d91c5f4d30cfda1260d2c9d1faf96fda36319287215fbd07bcb1a80451", author: "rubberduck", ...CC0 },
+  { id: "rpg80", name: "80 CC0 RPG SFX", page: "https://opengameart.org/content/80-cc0-rpg-sfx", url: `${OGA}80-CC0-RPG-SFX_0.zip`, sha256: "1c2f06ff4e8563b5b8b745b23cf213c1474142a69bb82bd8f5e10d9b3f7a7bbd", author: "rubberduck", ...CC0 },
+  { id: "shields", name: "10 Impact/Shield Blocks", page: "https://opengameart.org/content/10-impactshield-blocks", url: `${OGA}impact_-_starninjas.zip`, sha256: "4592764795344ae010561b0191b059a0e7ed8c2d2e6c0e96171debaa346cf311", author: "StarNinjas", ...CC0 },
+  { id: "swishes", name: "Swishes Sound Pack", page: "https://opengameart.org/content/swishes-sound-pack", url: `${OGA}swishes.zip`, sha256: "7980215241b739a787dcf26f660ce510bb237900968789395a86911619795693", author: "artisticdude", ...CC0 },
+  { id: "sword20", name: "20 Sword Sound Effects (Attacks and Clashes)", page: "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes", url: `${OGA}sword_-_starninjas_1.zip`, sha256: "87a1fe1cfeee5f282fe06a7a9c25ab9ebf24b7674fe19171b7f2762dffb628c1", author: "StarNinjas", ...CC0 },
+  { id: "crowdshout", name: "Crowd Shouting/Speaking Ambience", page: "https://opengameart.org/content/crowd-shoutingspeaking-ambience", url: `${OGA}crowd_shouting.ogg`, sha256: "a2c23a64c127c77717cbe4abb21f138bac9d9aa6cb3cc89d62bab5d0d96dd7ca", author: "StarNinjas", ...CC0 },
+  { id: "cheer", name: "Free Crowd Cheering Sounds", page: "https://opengameart.org/content/free-crowd-cheering-sounds", url: `${OGA}gregor_quendel_-_free_crowd_cheering_sounds_-_mp3.zip`, sha256: "4438762aceadab7bf8c89acaa5009611eefbfcdb2adda78e9c1ee0b2eaffc874", author: "Gregor Quendel", ...BY4 },
+  { id: "doggrunt", name: "Dog Grunt", page: "https://opengameart.org/content/dog-grunt", url: `${OGA}dog-frieda-grunt-96khz-01.flac`, sha256: "9bb77982583ab69a3417cbdfa6085e2cd95947d3d6199bb587cdc7220f1a0529", author: "qubodup", ...CC0 },
+  { id: "dogsounds", name: "Dog sounds", page: "https://opengameart.org/content/dog-sounds", url: `${OGA}dog.7z`, sha256: "ecee65b849048790e963952dd15c74889c89d7c948a629e041caa631886d7662", author: "pauliuw", ...CC0 },
+  { id: "crowcaw", name: "Crow caw", page: "https://opengameart.org/content/crow-caw", url: `${OGA}crow_caw.wav`, sha256: "bba22883209b435905471d057160f1badae59b89a62e9a8b3199d7e327b17339", author: "zeroisnotnull", ...CC0 },
+  { id: "winjingle", name: "Win Jingle", page: "https://opengameart.org/content/win-jingle", url: `${OGA}winjingle.zip`, sha256: "fef26adc010e7e7d6f2ab586f400188831152530f8f3adcd179f26435d69ce6b", author: "Fupi", ...CC0 },
+  { id: "rpgaudio", name: "RPG Audio (Kenney)", page: "https://opengameart.org/content/50-rpg-sound-effects", url: `${OGA}RPGsounds_Kenney.zip`, sha256: "3ae398ad63e293f9c450bda22d5d81c3af69c74df66fc1400f33c012c0bbc231", author: "Kenney", ...CC0 },
+  { id: "interface", name: "Interface Sounds (Kenney)", page: "https://opengameart.org/content/interface-sounds", url: `${OGA}kenney_interfaceSounds.zip`, sha256: "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232", author: "Kenney", ...CC0 },
+  { id: "jingles", name: "Music Jingles (Kenney)", page: "https://opengameart.org/content/85-short-music-jingles", url: `${OGA}jingleSounds_Kenney.zip`, sha256: "be324b6cf26e35c95c2a344569a2470512819d0246cc81328bef3499de3682e5", author: "Kenney", ...CC0 },
+  { id: "metalwood", name: "100 CC0 metal and wood SFX", page: "https://opengameart.org/content/100-cc0-metal-and-wood-sfx", url: `${OGA}100-CC0-wood-metal-SFX.zip`, sha256: "be6eba63b03409ac0c77787a956b1503a7c186403d04aef9725c52644a4b7878", author: "rubberduck", ...CC0 },
+  { id: "sfx100", name: "100 CC0 SFX", page: "https://opengameart.org/content/100-cc0-sfx", url: `${OGA}100-CC0-SFX_0.zip`, sha256: "a5c135878c132f1c59cca54e60061c296cd0ac27ad031ca2c41b8cd5cab3c706", author: "rubberduck", ...CC0 },
+  { id: "metalint", name: "Metal Interactions", page: "https://opengameart.org/content/metal-interactions", url: `${OGA}metal_interactions.7z`, sha256: "f9443ead6d1346d89c899e7916494ebc88f050073e1604f1e2f27851dba35a34", author: "qubodup", ...CC0 },
+  { id: "thwack", name: "Thwack Sounds", page: "https://opengameart.org/content/thwack-sounds", url: `${OGA}thwack-1.0.zip`, sha256: "8edb002735a01369ef4d6259573be4885f9fe32c9a9efa89dfbbb14067c8c8e5", author: "Jordan Irwin (AntumDeluge)", ...CC0 },
+  { id: "squeakyrat", name: "Squeaky Rat", page: "https://opengameart.org/content/squeaky-rat", url: `${OGA}qubodupSqueakyRat.7z`, sha256: "966649ba0e136ec2d473623e15d11710b7fcc8f73a30897758453e8d43bb75a7", author: "qubodup", ...CC0 },
+  { id: "pop5", name: "Pop sounds (pop5)", page: "https://opengameart.org/content/pop-sounds", url: `${OGA}pop5.ogg`, sha256: "0433b2f016b2521df36a7e0dde006c0839af4fb97df7ca626f5fb7a4c4eb561e", author: "cogitollc", ...CC0 },
+  { id: "pop7", name: "Pop sounds (pop7)", page: "https://opengameart.org/content/pop-sounds", url: `${OGA}pop7.ogg`, sha256: "ac3147642a0d078d6a380ece05ebae519ab64eeccdaab8f24bd7829304e990e6", author: "cogitollc", ...CC0 },
+  { id: "spin", name: "Spin", page: "https://opengameart.org/content/spin", url: `${OGA}car_spinning.wav`, sha256: "0e611fd149ee0b1460853d88d3e6099b4158a1d077f9342b800e5e4ede615f19", author: "Rocha57", ...CC0 },
+  { id: "dogsnarl", name: "Dog Snarl Grunt Grumble", page: "https://opengameart.org/content/dog-snarl-grunt-grumble", url: `${OGA}dog_0.7z`, sha256: "fbd39c35b8743651f48e423d61ca3cee4e67f33ae3a28b5ef4eef0dd46bb043e", author: "qubodup", ...CC0 },
+  { id: "crow", name: "Crow", page: "https://opengameart.org/content/crow", url: `${OGA}crow.ogg`, sha256: "06bbdf748798ae303ed35be76f15feae95a0fba98f3e2c802bc6ed30e978cd11", author: "fvcalderan", ...CC0 },
+  { id: "bikehorn", name: "Bicycle Horn", page: "https://opengameart.org/content/bicycle-horn", url: `${OGA}bicycle-horn-1.wav`, sha256: "14f39499ae93be9cc88d7db8e22297108599c902b03a1417fb8ca93e47bbdb1f", author: "Jordan Irwin (AntumDeluge)", ...CC0 },
+  { id: "creature80", name: "80 CC0 creature SFX", page: "https://opengameart.org/content/80-cc0-creature-sfx", url: `${OGA}80-CC0-creature-SFX_0.zip`, sha256: "5d4002eea42f278e76543bb36e8ddd2cb978588a13271984191d8228f5d26768", author: "rubberduck", ...CC0 },
+  { id: "pig", name: "Pig SFX Pack (pig_hit1)", page: "https://opengameart.org/content/pig-sfx-pack", url: `${OGA}pig_hit1.mp3`, sha256: "946d396a0cdfdd57448363d7d3053f9ae9270b6cac723743cefe4ad1e712f671", author: "Vinrax", ...BY3 },
+  { id: "pig2", name: "Pig SFX Pack (pig_hit2)", page: "https://opengameart.org/content/pig-sfx-pack", url: `${OGA}pig_hit2.mp3`, sha256: "bf6eea8b67053fbe2a0a62ed75fff5e59d91c931eb881d5e4a90c806e5f55ca8", author: "Vinrax", ...BY3 },
+  { id: "catsfx", name: "Cat SFX (Cat 7)", page: "https://opengameart.org/content/cat-sfx", url: `${OGA}Cat%207.wav`, sha256: "80dde593cd3ea081a89373e557d9990b240de85f08bb6f852aef66512ade30a9", author: "Dan Knoflicek (Macro)", ...BY3 },
+  { id: "catsfx8", name: "Cat SFX (Cat 8)", page: "https://opengameart.org/content/cat-sfx", url: `${OGA}Cat%208.wav`, sha256: "89c8edaec94f6cfc7e0e8711772085ed45c3423eed6d9a8fbcaec36403f19712", author: "Dan Knoflicek (Macro)", ...BY3 },
+  // made by this script (see `SYNTH`); no file is fetched
+  { id: "synth", name: "Synthesised in tools/build-audio.mjs", page: "tools/build-audio.mjs", synth: true, author: "Rank Zero", ...CC0, fetched: "2026-11-16" },
+].map((p) => ({ fetched: FETCHED, ...p }));
+
+/** A small seeded random source, so a synthesised sound is the same on every build. */
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+/** A second-order (Butterworth) high-pass; returns a new array. */
+function highpass2(x, hz) {
+  const w = (2 * Math.PI * hz) / RATE;
+  const c = Math.cos(w);
+  const al = Math.sin(w) / Math.SQRT2;
+  const b0 = (1 + c) / 2 / (1 + al);
+  const b1 = -(1 + c) / (1 + al);
+  const a1 = (-2 * c) / (1 + al);
+  const a2 = (1 - al) / (1 + al);
+  const y = new Float32Array(x.length);
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  for (let i = 0; i < x.length; i++) {
+    const v = b0 * x[i] + b1 * x1 + b0 * x2 - a1 * y1 - a2 * y2;
+    x2 = x1; x1 = x[i]; y2 = y1; y1 = v; y[i] = v;
+  }
+  return y;
+}
+/** One-pole filters and a fade envelope, in place. */
+function lowpass(x, hz) {
+  const k = 1 - Math.exp((-2 * Math.PI * hz) / RATE);
+  let y = 0;
+  for (let i = 0; i < x.length; i++) { y += k * (x[i] - y); x[i] = y; }
+  return x;
+}
+function highpass(x, hz) {
+  const lo = lowpass(Float32Array.from(x), hz);
+  for (let i = 0; i < x.length; i++) x[i] -= lo[i];
+  return x;
+}
+function envelope(x, attack, release) {
+  const a = Math.round(attack * RATE);
+  const r = Math.round(release * RATE);
+  for (let i = 0; i < Math.min(a, x.length); i++) x[i] *= i / a;
+  for (let i = 0; i < Math.min(r, x.length); i++) x[x.length - 1 - i] *= 0.5 - 0.5 * Math.cos((Math.PI * i) / r);
+  return x;
+}
+function gooseHonk(dur, f0, f1, f2, seed) {
+  const n = Math.round(dur * RATE);
+  const out = new Float32Array(n);
+  const rand = rng(seed);
+  let ph = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / n;
+    const f = t < 0.3 ? f0 + (f1 - f0) * (t / 0.3) : f1 + (f2 - f1) * ((t - 0.3) / 0.7);
+    ph += (2 * Math.PI * f) / RATE;
+    let v = 0;
+    for (let k = 1; k <= 15; k++) {
+      const fk = f * k;
+      // a formant near 1.1 kHz on top of a falling spectrum; odd harmonics louder (nasal buzz)
+      const form = 1 + 2.5 * Math.exp(-(((fk - 1100) / 450) ** 2));
+      v += (Math.sin(k * ph) * form * (k % 2 === 1 ? 1 : 0.45)) / k;
+    }
+    out[i] = Math.tanh(1.4 * v) + 0.05 * (rand() * 2 - 1);
+  }
+  return envelope(lowpass(highpass(out, 220), 4500), 0.02, 0.06);
+}
+
+/**
+ * The synthesised sounds. Each returns mono samples at RATE.
+ *  air-horn: a handheld can air horn. Two brass reeds a few hertz apart (the beating of a real
+ *    horn), each a band-limited sawtooth of 16 harmonics at 392 and 396.5 Hz, gliding up from 90%
+ *    pitch in the first 40 ms (the reed catching), driven into a soft clip (the rasp), with a little
+ *    air noise, high-passed at 180 Hz and low-passed at 5 kHz. 620 ms, 12 ms attack.
+ *  pea-whistle: a referee's pea whistle. A tone near 2.9 kHz whose pitch and level the pea shakes
+ *    27 times a second (+-150 Hz, 35% level), a little second harmonic, breath noise high-passed at
+ *    1.8 kHz under it, rising from 2.6 kHz in the first 30 ms. 480 ms, 15 ms attack.
+ */
+const SYNTH = {
+  /** goose-honk / goose-honk-2: a goose's nasal honk. A reed tone whose pitch rises then falls
+   *  (330 -> 420 -> 300 Hz; the second call lower and shorter), odd harmonics strong (a clarinet-
+   *  like nasal buzz), a formant near 1.1 kHz, a little breath noise, driven into a soft clip.
+   *  CC0, made for this game: the stand-in for the licensed goose that lives in the private folder. */
+  "goose-honk": () => gooseHonk(0.36, 330, 420, 300, 41),
+  "goose-honk-2": () => gooseHonk(0.28, 290, 370, 270, 43),
+  "air-horn": () => {
+    const n = Math.round(0.62 * RATE);
+    const out = new Float32Array(n);
+    const rand = rng(17);
+    const reeds = [[392, 1], [396.5, 0.75]];
+    const ph = reeds.map(() => 0);
+    for (let i = 0; i < n; i++) {
+      const t = i / RATE;
+      const glide = 0.9 + 0.1 * Math.min(1, t / 0.04);
+      let v = 0;
+      reeds.forEach(([f, g], r) => {
+        ph[r] += (2 * Math.PI * f * glide) / RATE;
+        for (let k = 1; k <= 16; k++) v += (g * Math.sin(k * ph[r])) / k ** 0.85;
+      });
+      out[i] = Math.tanh(0.9 * v) + 0.06 * (rand() * 2 - 1);
+    }
+    return envelope(lowpass(highpass(out, 180), 5000), 0.012, 0.07);
+  },
+  "pea-whistle": () => {
+    const n = Math.round(0.48 * RATE);
+    const out = new Float32Array(n);
+    const rand = rng(29);
+    const noise = new Float32Array(n);
+    for (let i = 0; i < n; i++) noise[i] = rand() * 2 - 1;
+    highpass(noise, 1800);
+    let ph = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / RATE;
+      const pea = Math.sin(2 * Math.PI * 27 * t);
+      const f = 2600 + 300 * Math.min(1, t / 0.03) + 150 * pea;
+      ph += (2 * Math.PI * f) / RATE;
+      const amp = 0.65 + 0.35 * Math.sin(2 * Math.PI * 27 * t + 0.6);
+      out[i] = amp * (Math.sin(ph) + 0.12 * Math.sin(2 * ph)) + 0.12 * amp * noise[i];
+    }
+    return envelope(out, 0.015, 0.05);
+  },
+};
+
+// [set name, max length ms, loudness target (dBFS, loudest 50 ms RMS), [variants]].
+// A set is the sound of one thing (a weapon's hit, a shield's block, a pet's voice, a swing's
+// swish) or of one material group when no own sound fits; apps/web/src/audio/soundMap.ts says
+// which set each held item, shield and pet uses. `ALIASES` gives each stage family and app sound
+// the set it falls back to when a cue names no item.
+// A variant is one or more layers joined by " + ". A layer is "pack:path", optionally
+// "@<ms>" (a fixed start inside a long recording, with a 40 ms fade-in) and "*<gain>".
+// The note above each line is what was measured on the source: band shares in %, decay in ms.
+const HIT = (n) => `hits37:hits/hit${n}.mp3.flac`;
+const QP = (n) => `qpunch:qubodupPunch/qubodupPunch0${n}.flac`;
+const IRON = (n) => `castiron:cast iron clangs - Marker #${n}.wav`;
+const MW = (f) => `metalwood:${f}.ogg`;
+const S100 = (f) => `sfx100:${f}.ogg`;
+const CHEER = "cheer:Gregor Quendel - Free Crowd Cheering Sounds - MP3/Gregor Quendel - Crowd Cheering Sounds - 03 - Strong cheering - I.mp3";
+export const SETS = [
+  // ---- hits on the body, by weapon
+  // fists: thump <150 Hz + crack >2 kHz: hit10 71/20, hit11 54/26, qubodup 05 65/11
+  ["hit-fist", 360, -12.5, [HIT(10), HIT(11), `${QP(5)} + break75:bfh1_hit_10.ogg*0.35`]],
+  // knuckle dusters: the punch plus a short metal tick (metal_hit_01 113 ms, 61% over 2 kHz)
+  ["hit-knuckle", 360, -12.5, [`${HIT(10)} + ${MW("metal_hit_01")}*0.5`, `${QP(5)} + ${MW("metal_hit_05")}*0.45`]],
+  // small blade stab "shk": bright and short, cut to 110 ms, no low ring (75-99% over 2 kHz)
+  // with a short body thud under it (a stab lands in a body), lifted up to its target: alone it
+  // measured -16 to -20 dB, 5-8 dB under a punch
+  ["hit-blade-small", 150, -13.5, [`rpgaudio:OGG/knifeSlice2.ogg + ${QP(4)}*0.45`, `rpg80:blade_01.ogg + ${QP(2)}*0.45`, `rpg80:blade_03.ogg + ${QP(4)}*0.45`], { lift: 9 }],
+  // machete, hand axe: chop (64% 500-2k) or slice over a heavier thud
+  ["hit-blade-big", 360, -13, [`rpgaudio:OGG/chop.ogg + ${QP(4)}*0.6`, `rpg80:blade_02.ogg + ${QP(2)}*0.7`], { lift: 4 }],
+  // pipe group: cast-iron ring over a body thump (#11 75% 500-2k; #9 62% 500-2k; metal_07 59% 150-500)
+  ["hit-pipe", 600, -14, [`${IRON(11)} + ${QP(2)}*0.7`, `${IRON(9)} + ${QP(4)}*0.7`, `${S100("metal_07")} + ${QP(2)}*0.6`]],
+  // wood: hollow knocks (wood_hit_09 34% <150 + 60% 150-500; wood_hammer_02 71% 150-500; wood_hit_08)
+  ["hit-wood", 420, -13, [`${MW("wood_hit_09")} + ${QP(3)}*0.5`, `${MW("wood_hammer_02")} + ${QP(4)}*0.5`, `${MW("wood_hit_08")} + ${QP(2)}*0.5`]],
+  // sledgehammer, anvil, ball and chain: deep bong (gong_02 73% 150-500) or heavy metal slam over a thud
+  ["hit-heavy", 650, -12, [`${QP(3)} + ${S100("gong_02")}*0.6`, `${S100("metal_08")} + ${QP(2)}*0.6`]],
+  // frying pan, wok: a cast-iron pan struck (#18 centroid 1 kHz, rings 1.4 s; #10 63% 500-2k)
+  ["hit-pan", 600, -13, [`${IRON(18)} + ${QP(4)}*0.4`, `${IRON(10)} + ${QP(2)}*0.4`]],
+  // shovel, stop sign: flat sheet-metal whack (metal_sheet_02 3.4 kHz, decay 152, peak 12 ms in; _05 2.1 kHz)
+  ["hit-shovel", 450, -13, [`${MW("metal_sheet_02")} + ${QP(2)}*0.5`, `${MW("metal_sheet_05")} + ${QP(4)}*0.5`]],
+  // steel folding chair: a hollow steel-frame bang (metal_sheet_06 2.4 kHz centroid; slam + sheet ring)
+  ["hit-chair", 480, -12.5, [`${MW("metal_sheet_06")} + ${QP(2)}*0.6`, `${MW("metal_slam_01")} + ${MW("metal_sheet_05")}*0.6 + ${QP(4)}*0.4`]],
+  // pitchfork: tines stab in (a short blade stab over a thud)
+  ["hit-stab", 320, -13, [`rpg80:blade_01.ogg + ${QP(4)}*0.7`, `rpgaudio:OGG/knifeSlice2.ogg + ${QP(2)}*0.7`], { lift: 6 }],
+  // golf club: a lighter metal hit (metal_hit_03 56% 500-2k; _04 83% over 2 kHz)
+  ["hit-light-metal", 380, -13, [`${MW("metal_hit_03")} + ${QP(2)}*0.6`, `${MW("metal_hit_04")} + ${QP(4)}*0.6`]],
+  // rubber chicken: toy squeak (94% 2-6 kHz) over a soft thud
+  ["hit-squeak", 300, -14, [`squeakyrat:qubodupSqueakyRat/qubodupSqueakyRatAttack.flac + ${QP(3)}*0.3`, `squeakyrat:qubodupSqueakyRat/qubodupSqueakyRatPain.flac + ${QP(4)}*0.3`]],
+  // plunger: suction pop (mouth pops, 99% 500-2k, 77-100 ms) over a thud
+  ["hit-plunger", 300, -14, [`pop5:pop5.ogg + ${QP(3)}*0.4`, `pop7:pop7.ogg + ${QP(4)}*0.4`]],
+  // umbrella: cloth whump and a light rib tap
+  ["hit-umbrella", 360, -15, [`rpgaudio:OGG/cloth1.ogg + ${MW("wood_hit_06")}*0.5`], { lift: 4 }],
+  // bike chain: rattle (94% over 6 kHz) over a thud
+  ["hit-chain", 450, -14, [`rpg80:chain_01.ogg + ${QP(3)}*0.5`, `rpg80:chain_02.ogg + ${QP(4)}*0.5`]],
+  // darts: a short thunk (wood_hit_05 95 ms, 79% 150-500) with a point tick
+  ["hit-darts", 200, -15, [`${MW("wood_hit_05")} + ${MW("metal_hit_01")}*0.25`, `${MW("wood_hit_06")} + ${MW("metal_hit_05")}*0.25`], { lift: 5 }],
+  // bricks: heavy thud (bfh1_hit_02 82% <150; slam_04 55% <150)
+  ["hit-brick", 450, -12, [`break75:bfh1_hit_02.ogg + ${QP(3)}`, `${S100("slam_04")} + ${QP(2)}*0.5`]],
+  // paint can: a full can's heavy metal slam (metal_slam_01 48% <150 + 37% 150-500)
+  ["hit-paint", 420, -12, [`${MW("metal_slam_01")} + ${QP(2)}*0.5`], { lift: 7 }],
+  // plastic bottle, lawn flamingo: hollow plastic bonk (plop 87% 500-2k)
+  ["hit-plastic", 250, -14, [`${S100("plop_02")} + ${QP(3)}*0.3`, `${S100("plop_01")} + ${QP(4)}*0.3`], { lift: 6 }],
+  // rubber ball: a real ball smack, no cartoon boing (round 2: "nothing cute"): a rubber thwack
+  // (thwack-07 48% <150, 14% 2-6k: a slap with snap) or a lighter one with a hollow plop
+  ["hit-ball", 360, -14, [`thwack:PCM/thwack-07.wav + ${QP(3)}*0.4`, `thwack:PCM/thwack-02.wav + ${S100("plop_01")}*0.3 + ${QP(4)}*0.3`], { lift: 4 }],
+  // hubcap: thin metal clang (metal_sheet_01, _04: 37-42% over 6 kHz)
+  ["hit-hubcap", 420, -14, [`${MW("metal_sheet_01")} + ${QP(3)}*0.4`, `${MW("metal_sheet_04")} + ${QP(2)}*0.4`], { lift: 4 }],
+  // traffic cone, tyre: rubber thwack (thwack-02 59% 150-500; thwack-05 78% <150)
+  ["hit-rubber", 320, -13, [`thwack:PCM/thwack-02.wav + ${QP(3)}*0.5`, `thwack:PCM/thwack-05.wav + ${QP(4)}*0.5`], { lift: 4 }],
+  // ---- pet contact
+  // dog, raccoon: a jaw snap (eat_02 390 ms, eat_03 272 ms, centroid 4-6 kHz) over a light thud
+  ["hit-bite", 320, -13.5, [`creature80:eat_02.ogg + ${QP(4)}*0.5`, `creature80:eat_03.ogg + ${QP(3)}*0.5`], { lift: 6 }],
+  // crow, goose: a hard beak peck (short wood knock, 95 ms) over a soft thud
+  ["hit-peck", 200, -14, [`${MW("wood_hit_05")} + ${QP(4)}*0.35`, `${MW("wood_hit_06")} + ${QP(3)}*0.35`], { lift: 4 }],
+  // cat: claws rake (a fast swish and a thin scrape) over a light thud
+  ["hit-claw", 280, -14, [`swishes:swishes/swish-11.wav*0.7 + rpg80:blade_03.ogg*0.6 + ${QP(4)}*0.5`, `swishes:swishes/swish-13.wav*0.7 + rpgaudio:OGG/knifeSlice2.ogg*0.5 + ${QP(2)}*0.5`], { lift: 6 }],
+  // boar: a heavy tusk ram with its grunt under the blow
+  ["hit-gore", 450, -12.5, [`${QP(3)} + pig:pig_hit1.mp3*0.35`, `break75:bfh1_hit_02.ogg + creature80:grunt_02.ogg*0.4 + ${QP(2)}*0.6`]],
+  // ---- blocks
+  ["block-arms", 300, -15, [`${QP(4)} + rpgaudio:OGG/cloth3.ogg*0.6`, `${QP(2)} + rpgaudio:OGG/cloth1.ogg*0.6`]],
+  ["block-parry", 360, -14, ["break75:bfh1_metal_hit_02.ogg", MW("metal_hit_04")], { lift: 4 }],
+  // car door: sheet-metal bang (metal_slam_01 low slam + metal_sheet_02 ring)
+  ["block-sheet", 480, -12.5, [`${MW("metal_slam_01")} + ${MW("metal_sheet_02")}*0.7`, `${MW("metal_sheet_06")} + ${QP(2)}*0.5`], { lift: 4 }],
+  // bin lid: tin crash (metal_sheet_01 42% over 6 kHz, metal_02 60% over 6 kHz)
+  ["block-tin", 420, -13, [`${MW("metal_sheet_01")} + ${S100("metal_02")}*0.6`, MW("metal_sheet_04")], { lift: 5 }],
+  // riot shield: hard thock (hit_03 62% 500-2k, hit_04 56% 500-2k); nearest to hard plastic found
+  ["block-plastic", 300, -13.5, [S100("hit_03"), S100("hit_04")]],
+  // wooden pallet, skateboard: wood slams and knocks
+  ["block-wood", 360, -13.5, [MW("wood_slam_01"), MW("wood_slam_04"), "rpg80:wood_03.ogg"], { lift: 5 }],
+  // ironing board: metal frame hit and rattle
+  ["block-frame", 420, -13.5, [`${MW("metal_hit_03")} + break75:bfh1_metal_falling_02.ogg*0.5`]],
+  // ---- swings
+  // light: a fast air swoosh (swish_2 85% 500-2k, 297 ms from its onset), a thin blade swish
+  // (sword.6), and a bright air swish (swish_4) with a quick one under it; every one 150 ms or
+  // more (swish-11 and -13 alone shipped at 65 and 57 ms, then a 123 ms pair of low swishes that a
+  // phone speaker dropped: one fist swing in three was a click, round 2 review)
+  ["swish-light", 220, -20, ["battle:battle_sound_effects/swish_2.wav", "sword20:sword - StarNinjas/sword.6.ogg", "battle:battle_sound_effects/swish_4.wav + swishes:swishes/swish-10.wav*0.5"]],
+  // (swish-7 alone trimmed to 110 ms and sat under 400 Hz; a bright swoosh carries it on)
+  ["swish-medium", 340, -19, ["battle:battle_sound_effects/swish_3.wav", "battle:battle_sound_effects/swish_4.wav", "swishes:swishes/swish-7.wav + battle:battle_sound_effects/swish_2.wav~40*0.8"], { phone: 6 }],
+  // heavy whoomp: low swish (swish-3 centroid 206 Hz) + a metal swing (175 Hz, 857 ms)
+  ["swish-heavy", 520, -17, ["swishes:swishes/swish-3.wav + metalint:metal_interactions/metal_swing1.wav*0.8 + battle:battle_sound_effects/swish_3.wav*0.5", "swishes:swishes/swish-8.wav + metalint:metal_interactions/metal_swing1.wav*0.6 + battle:battle_sound_effects/swish_3.wav*0.5"]],
+  // chain whip: high whoosh with a rattle
+  ["swish-whip", 380, -18, ["sword20:sword - StarNinjas/sword.5.ogg + rpg80:chain_03.ogg*0.5"]],
+  // ---- throws (flight sound at the release)
+  // the plain air whoosh of a thrown thing (and of a Move's throw): no blade in it
+  ["throw", 380, -17, ["battle:battle_sound_effects/swish_3.wav", "swishes:swishes/swish-7.wav + battle:battle_sound_effects/swish_4.wav~30*0.7"], { phone: 6 }],
+  // boomerang, hubcap, tyre: spinning whirr (car_spinning 55% <150, 673 ms)
+  ["throw-spin", 650, -16, ["spin:car_spinning.wav"]],
+  // ---- drops on the floor, by material
+  ["drop-metal", 480, -15, ["break75:bfh1_metal_falling_02.ogg", MW("metal_falling_02")]],
+  ["drop-wood", 420, -15, ["break75:bfh1_wood_falling_02.ogg", MW("wood_falling_01")]],
+  ["drop-soft", 300, -15, ["thwack:PCM/thwack-05.wav", "thwack:PCM/thwack-07.wav"]],
+  // a brick on concrete: a single stone knock (rock_hit_01 109 ms) over a dull thud
+  ["drop-stone", 480, -14, ["break75:bfh1_rock_hit_01.ogg + break75:bfh1_hit_02.ogg*0.6", `rpg80:item_stone_01.ogg + ${QP(3)}*0.4`]],
+  ["drop-sheet", 520, -14, [`${MW("metal_slam_01")} + ${MW("metal_sheet_03")}*0.5`]],
+  // ---- pets
+  ["voice-dog", 420, -15, ["dogsounds:Dog/Dog Bark 1.wav", "dogsounds:Dog/Dog Bark 3.wav", "dogsnarl:dog/dog-growl.flac"]],
+  ["voice-crow", 450, -15, ["crowcaw:crow_caw.wav", "crow:crow.ogg"]],
+  // goose: a synthesised honk (CC0). The licensed Envato honks (two real honks cut from one take,
+  // 400-950 ms and 2200-2900 ms) are in the private folder's manifest and replace these in the
+  // built site only.
+  ["voice-goose", 520, -16, ["synth:goose-honk", "synth:goose-honk-2"]],
+  // raccoon: a creature snort and a low grunt (CC0); the licensed Envato snort and growl are in the
+  // private folder's manifest, as for the goose
+  ["voice-raccoon", 420, -16, ["creature80:nose.ogg", "creature80:grunt_04.ogg"]],
+  // boar: grunts and squeals (toy pig resampled to pig pitch; a low creature grunt 99% 150-500)
+  ["voice-boar", 400, -15, ["pig:pig_hit1.mp3", "pig2:pig_hit2.mp3", "creature80:grunt_02.ogg"]],
+  // cat: upset yowl and hiss (59-77% 500-2k)
+  ["voice-cat", 600, -16, ["catsfx:Cat 7.wav", "catsfx8:Cat 8.wav"]],
+  // ---- the rest of the fight and the app (unchanged picks)
+  ["dash", 240, -20, ["rpgaudio:OGG/footstep01.ogg + swishes:swishes/swish-9.wav*0.4", "rpgaudio:OGG/footstep08.ogg + swishes:swishes/swish-7.wav*0.4"]],
+  ["landing", 520, -11, [`${HIT(30)} + ${QP(3)}*0.6`, `break75:bfh1_hit_02.ogg + ${QP(3)}*0.5`]],
+  ["crowd", 650, -22, [`${CHEER}@2000`, "crowdshout:crowd_shouting.ogg@13250"]],
+  // the family fallback of a Move cue: a quiet cloth rustle, never a music stinger (round 2: four
+  // jingles at impact level were an audio banner on every skill). Every Move has its own sets
+  // (below), so this plays only for a Move the table does not know.
+  ["move", 300, -24, ["rpgaudio:OGG/cloth2.ogg"]],
+  // ---- Moves: each its own sound (apps/web/src/audio/soundMap.ts MOVE_SET), act then effect
+  // Haymaker: the charge crackles on the fist (spell_02 93% 2-6k, a bright zap; fire_06 a hissing
+  // crackle under it); the boosted blow bursts with a pop-boom and the crackle (under the punch)
+  ["move-charge", 600, -18, ["rpg80:spell_02.ogg + rpg80:spell_fire_06.ogg*0.5"]],
+  ["move-haymaker-hit", 520, -15, [`${S100("explosion")} + rpg80:spell_02.ogg*0.6`]],
+  // Energy Drink: the tab clicks (metalLatch 47% 2-6k, 80 ms) and the gas hisses out (noise_01,
+  // 62% over 6 kHz) 25 ms later; then the gulps (burble_02, 91% 500-2k: liquid, throat)
+  ["move-can-open", 320, -18, [`rpgaudio:OGG/metalLatch.ogg*0.8 + ${S100("noise_01")}~25*0.9`]],
+  ["move-gulp", 480, -17, ["creature80:burble_02.ogg"]],
+  // Tarp: shaken out (a cloth flap), then it slaps down and wraps the target (cloth whump, a
+  // leather drop, a soft rubber thud under it)
+  ["move-tarp-shake", 360, -22, ["rpgaudio:OGG/cloth4.ogg + rpgaudio:OGG/clothBelt2.ogg*0.4"]],
+  ["move-tarp-land", 420, -15, ["rpgaudio:OGG/cloth1.ogg + rpgaudio:OGG/dropLeather.ogg*0.8 + thwack:PCM/thwack-05.wav*0.4"]],
+  // Whistle: a referee's pea whistle, one blast (synthesised, see SYNTH)
+  ["move-whistle", 500, -15, ["synth:pea-whistle"]],
+  // Firecrackers: the fuse fizzes (fire_06 hiss crackle); a string of five pops round the feet
+  // over 650 ms (MOVE.crackersMs): two sharp cracks (shot_01 61% 2-6k, shot_02) and two mouth
+  // pops between them, over a low pop-boom, in place of the bare-fist punch
+  ["move-fuse", 520, -21, ["rpg80:spell_fire_06.ogg"]],
+  ["move-crackers", 650, -13, [`${S100("shot_01")} + pop5:pop5.ogg~95*0.8 + ${S100("shot_02")}~190 + pop7:pop7.ogg~300*0.8 + ${S100("shot_01")}~430*0.6 + ${S100("explosion")}*0.35`]],
+  // Snatch: the hand grabs the weapon (a leather grab, a cloth snap, a light slap)
+  ["move-grab", 280, -17, [`rpgaudio:OGG/handleSmallLeather.ogg + rpgaudio:OGG/cloth2.ogg*0.7 + ${QP(4)}*0.3`]],
+  // Air Horn: a handheld can air horn blast (synthesised, see SYNTH)
+  ["move-air-horn", 650, -14, ["synth:air-horn"]],
+  // Body Slam: the heave (a low male grunt, grunt_03 126-160 Hz, voiced), then the body hitting
+  // the floor (slam_02 50% <150 Hz) in place of the punch; the floor's "landing" plays under it
+  ["move-heave", 450, -17, ["creature80:grunt_03.ogg + rpgaudio:OGG/cloth3.ogg*0.4"], { phone: 5 }],
+  ["move-slam", 520, -12, [`${S100("slam_02")} + ${QP(3)}*0.6`]],
+  // Sand in the Eyes: the handful scooped (a grit scatter, quiet), then the hiss and patter of sand
+  // on the face (noise_01 hiss, stones_04 83% 2-6k grit)
+  ["move-sand-scoop", 300, -23, ["rpg80:stones_04.ogg*0.6 + rpgaudio:OGG/cloth4.ogg*0.5"]],
+  ["move-sand", 420, -16, [`${S100("noise_01")} + rpg80:stones_04.ogg*0.45 + rpgaudio:OGG/cloth2.ogg*0.4`]],
+  // Taunt: his shout (misc_09, a voiced male call at 161 Hz, 86% 150-500), then the enemy's angry
+  // snort (nose, 84 Hz)
+  ["move-shout", 520, -15, ["creature80:misc_09.ogg"], { phone: 4 }],
+  ["move-snort", 360, -17, ["creature80:nose.ogg"], { phone: 5 }],
+  // Second Wind: the deep breath in (breath, 52% 500-2k + 32% 2-6k: air through the mouth)
+  ["move-breath", 700, -17, ["creature80:breath.ogg"]],
+  // Grapple: the grab (a short male grunt, hurt_05 122-129 Hz, and the cloth bunching), then the
+  // squeeze: a long strain grunt (grunt_01) and cloth crushed, in place of the punch
+  ["move-grab-grunt", 420, -17, ["creature80:hurt_05.ogg*0.8 + rpgaudio:OGG/cloth3.ogg*0.6"], { phone: 5 }],
+  ["move-squeeze", 600, -14, [`creature80:grunt_01.ogg + rpgaudio:OGG/cloth1.ogg*0.6 + ${QP(4)}*0.4`], { phone: 4 }],
+  // ---- the heavy layer under a crit or the knockout blow: a low body slam (slam_02) and a deep
+  // thump, about 5 dB under the blow itself
+  ["hit-accent", 520, -18, [`${S100("slam_02")} + ${HIT(30)}*0.5`], { phone: 5 }],
+  ["win", 2200, -14, ["winjingle:WinBrass.wav"]],
+  ["loss", 1100, -14, ["jingles:OGG/jingles_SAX/jingles_SAX01.ogg"]],
+  ["ui-tap", 120, -23, ["interface:Audio/click_001.ogg", "interface:Audio/select_001.ogg"]],
+  ["card-flip", 300, -23, ["rpgaudio:OGG/bookFlip3.ogg"]],
+  ["level-up", 1400, -13, ["jingles:OGG/jingles_STEEL/jingles_STEEL04.ogg"]],
+];
+/** The set each stage family and app sound falls back to when a cue names no item. */
+export const ALIASES = {
+  fist: "hit-fist", blunt: "hit-pipe", blade: "hit-blade-small", block: "block-arms", whoosh: "swish-medium", dash: "dash",
+  landing: "landing", throw: "throw", drop: "drop-metal", crowd: "crowd", companion: "voice-dog", move: "move",
+  win: "win", loss: "loss", swing: "swish-medium", "ui-tap": "ui-tap", "card-flip": "card-flip", "level-up": "level-up",
+};
+
+const run = (cmd, args, opts = {}) => execFileSync(cmd, args, { maxBuffer: 1 << 28, ...opts });
+
+function unpack(file, dir) {
+  mkdirSync(dir, { recursive: true });
+  const tries = process.platform === "win32"
+    ? [["C:/Windows/System32/tar.exe", ["-xf", file, "-C", dir]]]
+    : [["bsdtar", ["-xf", file, "-C", dir]], file.endsWith(".zip") ? ["unzip", ["-q", "-o", file, "-d", dir]] : ["7z", ["x", "-y", `-o${dir}`, file]]];
+  for (const [cmd, args] of tries) {
+    try { run(cmd, args, { stdio: "ignore" }); return; } catch { /* next */ }
+  }
+  throw new Error(`could not unpack ${file}`);
+}
+
+/** Downloads (once) and checks every pack. Returns pack id -> folder holding its files. The
+ *  private folder, when the overlay uses it, is the pack "private". */
+function fetchPacks(privateRoot) {
+  const dirs = new Map();
+  for (const p of PACKS) {
+    if (p.synth) { dirs.set(p.id, null); continue; }
+    const home = join(SRC, p.id);
+    mkdirSync(home, { recursive: true });
+    const file = join(home, decodeURIComponent(basename(p.url)));
+    if (!existsSync(file)) run("curl", ["-sfL", "-A", "audio-sprite-tool", "-o", file, p.url]);
+    const sum = createHash("sha256").update(readFileSync(file)).digest("hex");
+    if (sum !== p.sha256) throw new Error(`${p.name}: sha256 ${sum}, expected ${p.sha256}`);
+    if (/\.(zip|7z)$/.test(file)) {
+      const dir = join(home, "x");
+      if (!existsSync(dir)) unpack(file, dir);
+      dirs.set(p.id, dir);
+    } else {
+      dirs.set(p.id, home);
+    }
+  }
+  if (privateRoot) dirs.set("private", privateRoot);
+  return dirs;
+}
+
+/** Mono float samples at RATE from any file ffmpeg reads. */
+function decode(file) {
+  const raw = run("ffmpeg", ["-v", "error", "-i", file, "-ac", "1", "-ar", String(RATE), "-f", "f32le", "-"]);
+  return new Float32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4).slice();
+}
+
+const ms = (n) => Math.round((n / RATE) * 1000 * 10) / 10;
+const dB = (v) => 20 * Math.log10(Math.max(v, 1e-9));
+const peakOf = (pcm) => { let p = 0; for (const v of pcm) p = Math.max(p, Math.abs(v)); return p; };
+/** Loudness: the loudest 50 ms RMS window (10 ms hop), in dBFS. */
+function loudness(pcm) {
+  const n = Math.round(0.05 * RATE);
+  const hop = Math.round(0.01 * RATE);
+  let best = 0;
+  for (let i = 0; i + n <= Math.max(pcm.length, n); i += hop) {
+    let s = 0;
+    for (let j = i; j < Math.min(pcm.length, i + n); j++) s += pcm[j] * pcm[j];
+    best = Math.max(best, Math.sqrt(s / n));
+  }
+  return dB(best);
+}
+
+/** What a phone speaker gives back: the sound with everything under PHONE_HZ cut (24 dB per
+ *  octave), measured the same way as `loudness`. */
+const phoneLoudness = (pcm) => loudness(highpass2(highpass2(pcm, PHONE_HZ), PHONE_HZ));
+
+function parseLayer(spec) {
+  const m = /^([a-z0-9-]+):(.+?)(?:@(\d+))?(?:~(\d+))?(?:\*([\d.]+))?$/.exec(spec.trim());
+  if (!m) throw new Error(`bad layer "${spec}"`);
+  return { pack: m[1], path: m[2], at: m[3] === undefined ? null : Number(m[3]), delay: m[4] === undefined ? 0 : Number(m[4]),
+    gain: m[5] === undefined ? 1 : Number(m[5]) };
+}
+
+/** One layer from its onset (or fixed start), scaled to peak 1 times its gain. */
+function layer(dirs, l, maxMs) {
+  if (!dirs.has(l.pack)) throw new Error(`unknown pack ${l.pack}`);
+  let pcm;
+  if (l.pack === "synth") {
+    if (!SYNTH[l.path]) throw new Error(`synth: no recipe ${l.path}`);
+    pcm = SYNTH[l.path]();
+  } else {
+    const file = join(dirs.get(l.pack), l.path);
+    if (!existsSync(file)) throw new Error(`${l.pack}: no file ${l.path}`);
+    pcm = decode(file);
+  }
+  const peak = peakOf(pcm);
+  let start;
+  if (l.at !== null) {
+    // align the window to the sound's onset inside it (half the window's peak, minus 10 ms)
+    const from = Math.round((l.at / 1000) * RATE);
+    const win = pcm.subarray(from, from + Math.round((maxMs / 1000) * RATE));
+    const wp = peakOf(win);
+    let i = 0;
+    while (i < win.length && Math.abs(win[i]) < 0.5 * wp) i++;
+    start = from + Math.max(0, i - Math.round(0.01 * RATE));
+  } else {
+    let i = 0;
+    while (i < pcm.length && Math.abs(pcm[i]) < 0.5 * peak) i++;
+    start = Math.max(0, i - Math.round(0.005 * RATE));
+  }
+  const out = pcm.slice(start);
+  const g = l.gain / (l.at !== null ? peakOf(out) || 1 : peak || 1);
+  for (let i = 0; i < out.length; i++) out[i] *= g;
+  return out;
+}
+
+function prepare(dirs, spec, maxMs, target, opts = {}) {
+  const layers = spec.split(" + ").map(parseLayer);
+  const parts = layers.map((l) => layer(dirs, l, maxMs));
+  // "~ms": a layer that starts that long after the first (a string of pops, a second swish)
+  const delays = layers.map((l) => Math.round((l.delay / 1000) * RATE));
+  const max = Math.round((maxMs / 1000) * RATE);
+  let len = Math.min(max, Math.max(...parts.map((p, k) => p.length + delays[k])));
+  const out = new Float32Array(len);
+  parts.forEach((p, k) => { for (let i = 0; i + delays[k] < len && i < p.length; i++) out[i + delays[k]] += p[i]; });
+  // trim the quiet tail (-50 dB of the peak)
+  const pk = peakOf(out);
+  while (len > 10 && Math.abs(out[len - 1]) < pk * 0.003) len--;
+  let clip = out.slice(0, len);
+  // presence: when the sound's phone band sits further under its full-band loudness than the set
+  // allows (`phone`, default PHONE_GAP), the band over PRESENCE_HZ is turned up (a shelf, in 1 dB
+  // steps, at most PRESENCE_MAX), so a low voice or a low thud keeps its body and still comes out
+  // of a phone speaker. A sound that is already bright is not touched.
+  const allowed = (opts.phone ?? PHONE_GAP) - PHONE_MARGIN;
+  const windowed = layers[0].at !== null;
+  // fade in: 2 ms (8 ms for a window cut from a long recording, which starts 10 ms before its
+  // onset); before the shelf, so the cut start is not a click the shelf would turn up
+  const fadeIn = () => {
+    const fin = Math.min(len, Math.round((windowed ? 0.008 : 0.002) * RATE));
+    for (let i = 0; i < fin; i++) clip[i] *= i / fin;
+  };
+  fadeIn();
+  let shelfDb = 0;
+  {
+    const hi = highpass2(clip, PRESENCE_HZ);
+    const dry = Float32Array.from(clip);
+    while (loudness(clip) - phoneLoudness(clip) > allowed && shelfDb < PRESENCE_MAX) {
+      shelfDb += 1;
+      const g = 10 ** (shelfDb / 20) - 1;
+      for (let i = 0; i < len; i++) clip[i] = dry[i] + g * hi[i];
+    }
+    // the shelf moves the sound's weight to its bright part, which may start later than the low
+    // part did: start again at the onset (half the new peak, minus the same lead), so the part a
+    // phone plays still lands on the cue
+    if (shelfDb > 0) {
+      const half = 0.5 * peakOf(clip);
+      let on = 0;
+      while (on < len && Math.abs(clip[on]) < half) on++;
+      const cut = on - Math.round((windowed ? 0.01 : 0.005) * RATE);
+      if (cut > 0) { clip = clip.slice(cut); len -= cut; fadeIn(); }
+    }
+  }
+  // fade out: up to 60 ms
+  const fout = Math.min(Math.round(0.06 * RATE), Math.round(len * 0.3));
+  for (let i = 0; i < fout; i++) clip[len - 1 - i] *= 0.5 - 0.5 * Math.cos((Math.PI * i) / fout);
+  // -1 dBFS peak, then down to the family's loudness, or up by at most `lift` dB through a soft
+  // limiter (above 60% of the ceiling, peaks bend toward the ceiling and never reach it)
+  const g1 = PEAK / (peakOf(clip) || 1);
+  for (let i = 0; i < len; i++) clip[i] *= g1;
+  const want = target - loudness(clip);
+  if (want < 0) {
+    const g2 = 10 ** (want / 20);
+    for (let i = 0; i < len; i++) clip[i] *= g2;
+  } else {
+    let left = opts.lift ?? 0;
+    const knee = PEAK * 0.6;
+    const room = PEAK - knee;
+    for (let pass = 0; pass < 4 && left > 0.1; pass++) {
+      const db = Math.min(target - loudness(clip), left);
+      if (db < 0.2) break;
+      left -= db;
+      const g2 = 10 ** (db / 20);
+      for (let i = 0; i < len; i++) {
+        const a = Math.abs(clip[i] * g2);
+        clip[i] = a > knee ? Math.sign(clip[i]) * (knee + room * Math.tanh((a - knee) / room)) : clip[i] * g2;
+      }
+    }
+  }
+  let at = 0;
+  for (let i = 0; i < len; i++) if (Math.abs(clip[i]) > Math.abs(clip[at])) at = i;
+  // onset: the first sample at half the final peak (where the sound is plainly heard)
+  let on = 0;
+  while (on < len && Math.abs(clip[on]) < 0.5 * Math.abs(clip[at])) on++;
+  return { clip, layers, peakDb: dB(peakOf(clip)), loudDb: loudness(clip), phoneDb: phoneLoudness(clip), shelfDb, peakAtMs: ms(at), onsetMs: ms(on) };
+}
+
+/** 16-bit PCM WAV of one or more channels (equal lengths) at RATE. */
+function wav(...chans) {
+  const nc = chans.length;
+  const n = chans[0].length;
+  const data = Buffer.alloc(n * 2 * nc);
+  for (let i = 0; i < n; i++) for (let c = 0; c < nc; c++) data.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(chans[c][i] * 32767))), (i * nc + c) * 2);
+  const h = Buffer.alloc(44);
+  h.write("RIFF", 0); h.writeUInt32LE(36 + data.length, 4); h.write("WAVE", 8); h.write("fmt ", 12);
+  h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(nc, 22); h.writeUInt32LE(RATE, 24);
+  h.writeUInt32LE(RATE * 2 * nc, 28); h.writeUInt16LE(2 * nc, 32); h.writeUInt16LE(16, 34); h.write("data", 36); h.writeUInt32LE(data.length, 40);
+  return Buffer.concat([h, data]);
+}
+
+// ---- which build: the repo's CC0 files, or the overlay with the private folder's files
+let PRIVATE = null;
+let MANIFEST = null;
+let SETS_BUILT = SETS;
+let REPLACED = [];
+if (OVERLAY) {
+  PRIVATE = resolvePrivateRoot({ argv: process.argv, env: process.env, gitCommonDir: gitCommonDirOf(ROOT) });
+  if (PRIVATE === null) {
+    console.log("build-audio --overlay: no private audio folder; the build keeps the CC0 sounds and music from apps/web/public/audio");
+    process.exit(0);
+  }
+  MANIFEST = readManifest(PRIVATE, { setNames: SETS.map(([n]) => n) });
+  if (MANIFEST === null || (Object.keys(MANIFEST.sets).length === 0 && Object.keys(MANIFEST.music).length === 0)) {
+    console.log(`build-audio --overlay: ${PRIVATE} has no manifest.json naming a slot; the build keeps the CC0 sounds and music`);
+    process.exit(0);
+  }
+  if (isTrackedPath(OUT, ROOT)) {
+    console.error(`build-audio --overlay: refusing to write private audio into ${OUT}, a path git tracks (use the build output, apps/web/dist/audio)`);
+    process.exit(1);
+  }
+  if (!existsSync(join(OUT, ".."))) {
+    console.error(`build-audio --overlay: ${join(OUT, "..")} does not exist; run the web build first`);
+    process.exit(1);
+  }
+  ({ sets: SETS_BUILT, replaced: REPLACED } = applySetOverrides(SETS, MANIFEST));
+  console.log(`build-audio --overlay: private folder ${PRIVATE}: ${REPLACED.length} sound set(s) and ${Object.keys(MANIFEST.music).length} music slot(s) replaced, into ${OUT}`);
+}
+
+const dirs = fetchPacks(PRIVATE);
+const gap = Math.round((GAP_MS / 1000) * RATE);
+const used = [];
+const problems = [];
+/** Two sprites: the core holds every set a stage family falls back to (so every cue has a sound
+ *  as soon as the core is in); the content sprite holds the per-weapon, shield and pet sets and
+ *  loads right after it. Both load only after the first tap. */
+// every pet's voice is in the core too, so a pet never borrows another animal's call while the
+// content sprite loads
+// every Move's own sounds and the crit layer too (round 2 review), so a skill never plays a
+// fallback while the content loads
+const CORE = new Set([...Object.values(ALIASES), ...SETS_BUILT.map(([name]) => name).filter((n) => /^(voice|move)-/.test(n) || n === "hit-accent")]);
+const SPRITES = [
+  { file: "sfx.mp3", sets: SETS_BUILT.filter(([name]) => CORE.has(name)) },
+  { file: "sfx-content.mp3", sets: SETS_BUILT.filter(([name]) => !CORE.has(name)) },
+];
+for (const sp of SPRITES) {
+  const parts = [];
+  sp.planned = [];
+  let cursor = gap;
+  for (const [family, maxMs, target, slots, opts] of sp.sets) {
+    const list = [];
+    slots.forEach((spec, v) => {
+      const p = prepare(dirs, spec, maxMs, target, opts);
+      if (p.loudDb < target - LOUD_TOL) problems.push(`${family}[${v}] ends at ${p.loudDb.toFixed(1)} dB, more than ${LOUD_TOL} dB under its ${target} dB target (give the set a lift or a louder source)`);
+      const gapMax = opts?.phone ?? PHONE_GAP;
+      if (p.phoneDb < target - gapMax) problems.push(`${family}[${v}] is ${p.phoneDb.toFixed(1)} dB over ${PHONE_HZ} Hz, more than ${gapMax} dB under its ${target} dB target: a phone speaker drops it (pick or layer a source with more over ${PHONE_HZ} Hz)`);
+      if (/^(swish|throw)/.test(family) && ms(p.clip.length) < SWISH_MIN_MS) problems.push(`${family}[${v}] is ${ms(p.clip.length)} ms, a tick, not a swish (at least ${SWISH_MIN_MS} ms)`);
+      parts.push({ at: cursor, clip: p.clip });
+      list.push({ at: cursor, len: p.clip.length });
+      used.push({ family, variant: v, sprite: sp.file, files: p.layers.map((l) => `${l.pack}:${l.path}`), lenMs: ms(p.clip.length), peakDb: Number(p.peakDb.toFixed(1)), loudDb: Number(p.loudDb.toFixed(1)), phoneDb: Number(p.phoneDb.toFixed(1)), shelfDb: p.shelfDb, peakAtMs: p.peakAtMs, onsetMs: p.onsetMs });
+      cursor += p.clip.length + gap;
+    });
+    sp.planned.push([family, list]);
+  }
+  sp.total = new Float32Array(cursor + gap);
+  for (const p of parts) sp.total.set(p.clip, p.at);
+}
+
+const work = join(tmpdir(), "rankzero-audio-build");
+rmSync(work, { recursive: true, force: true });
+mkdirSync(work, { recursive: true });
+mkdirSync(OUT, { recursive: true });
+// MP3 encoding overshoots a -1 dBFS peak by up to about 2 dB. When a decoded file peaks over
+// -0.5 dBFS, both sprites are turned down by the overshoot (every sound alike, so the balance
+// between sets stays) and encoded again.
+let trim = 1;
+for (let pass = 0; pass < 4; pass++) {
+  let over = -Infinity;
+  for (const sp of SPRITES) {
+    sp.mp3 = join(OUT, sp.file);
+    writeFileSync(join(work, "sprite.wav"), wav(sp.total));
+    run("ffmpeg", ["-v", "error", "-y", "-i", join(work, "sprite.wav"), "-ac", "1", "-ar", String(RATE), "-c:a", "libmp3lame", "-b:a", BITRATE, sp.mp3]);
+    over = Math.max(over, dB(peakOf(decode(sp.mp3))) - -0.5);
+  }
+  if (over <= 0) break;
+  const g = 10 ** (-(over + 0.05) / 20);
+  for (const sp of SPRITES) for (let i = 0; i < sp.total.length; i++) sp.total[i] *= g;
+  trim *= g;
+}
+
+// Measure where the sounds really start in each encoded file. The encoder (and the decoder's
+// handling of its padding) shifts a whole file by one constant amount: it is found as the lag
+// (-10 to +80 ms) at which the decoded file best matches the file that went in, by
+// cross-correlation over every sound, then checked per sound (each must agree within 1 ms).
+const map = {};
+let k = 0;
+let disagree = 0;
+let failed = false;
+SPRITES.forEach((sp, f) => {
+  const total = sp.total;
+  const back = decode(sp.mp3);
+  const corr = (lag, from, n) => {
+    let score = 0;
+    for (let i = from; i < from + n; i++) score += total[i] * (back[i + lag] ?? 0);
+    return score;
+  };
+  const lags = [];
+  for (let lag = -Math.round(0.01 * RATE); lag <= Math.round(0.08 * RATE); lag++) lags.push(lag);
+  const best = (from, n) => lags.reduce((b, lag) => { const sc = corr(lag, from, n); return sc > b.sc ? { lag, sc } : b; }, { lag: 0, sc: -Infinity }).lag;
+  const shift = best(0, total.length - Math.round(0.08 * RATE));
+  for (const [family, list] of sp.planned) {
+    map[family] = list.map(({ at, len }) => {
+      const own = best(at, Math.min(len, Math.round(0.1 * RATE)));
+      if (Math.abs(own - shift) > RATE / 1000) disagree++;
+      k++;
+      return { f, start: ms(at + shift), dur: ms(len) };
+    });
+  }
+  const size = statSync(sp.mp3).size;
+  const peak = peakOf(back);
+  console.log(`${sp.file.padEnd(16)} ${(size / 1024).toFixed(1)} KB (cap ${CAP / 1024} KB) at ${BITRATE}, ${(total.length / RATE).toFixed(2)} s, ${sp.sets.reduce((n, s) => n + s[3].length, 0)} sounds, decoded peak ${dB(peak).toFixed(2)} dBFS, encoder shift ${ms(shift)} ms`);
+  if (size > CAP) { console.error(`build-audio: ${sp.file} is over the 300 KB cap`); failed = true; }
+  if (peak >= 1) { console.error(`build-audio: ${sp.file} clips`); failed = true; }
+});
+const packsUsed = PACKS.filter((p) => used.some((u) => u.files.some((f) => f.startsWith(`${p.id}:`))));
+// the private files' credits (the built site only): name, author, page from the manifest; the
+// cut points are left out of `sources` for them
+const privateCredits = [...new Set(used.flatMap((u) => u.files.filter((f) => f.startsWith("private:")).map((f) => f.slice(8).replace(/(@\d+)?(~\d+)?(\*[\d.]+)?$/, ""))))]
+  .map((file) => ({ pack: "private", name: MANIFEST?.credits?.[file]?.name ?? basename(file), author: MANIFEST?.credits?.[file]?.author ?? "", licence: ENVATO.licence, licenceUrl: ENVATO.licenceUrl, page: MANIFEST?.credits?.[file]?.page ?? "", fetched: "" }));
+const json = {
+  version: 2,
+  files: SPRITES.map((s) => s.file),
+  note: "Offsets in ms, measured on the decoded MP3 (not planned); `f` is the index in `files`. Built by tools/build-audio.mjs. Credits: see `credits` and CREDITS.md.",
+  sets: map,
+  families: ALIASES,
+  sources: used.filter((u) => !u.files.some((f) => f.startsWith("private:"))).map((u) => ({ set: u.family, variant: u.variant, files: u.files, loud: u.loudDb, phone: u.phoneDb, shelf: u.shelfDb, onset: u.onsetMs, peakAt: u.peakAtMs })),
+  credits: [...packsUsed.map((p) => ({ pack: p.id, name: p.name, author: p.author, licence: p.licence, licenceUrl: p.licenceUrl, page: p.page, fetched: p.fetched })), ...privateCredits],
+};
+writeFileSync(join(OUT, "sfx.json"), `${JSON.stringify(json, null, 1)}\n`);
+buildMusic(musicPlan(MANIFEST));
+writeCredits();
+for (const u of used) console.log(`${`${u.family}[${u.variant}]`.padEnd(20)} ${String(u.lenMs).padStart(6)} ms  peak ${String(u.peakDb).padStart(5)} dB  loud ${String(u.loudDb).padStart(6)} dB  phone ${String(u.phoneDb).padStart(6)} dB  shelf ${String(u.shelfDb).padStart(2)} dB  onset ${String(u.onsetMs).padStart(5)} ms  peak at ${String(u.peakAtMs).padStart(5)} ms  ${u.files.join(" + ")}`);
+console.log(`whole-sprite trim ${dB(trim).toFixed(2)} dB; ${k - disagree} of ${k} sounds agree on their file's encoder shift within 1 ms`);
+for (const pr of problems) console.error(`build-audio: ${pr}`);
+if (failed || problems.length > 0) process.exit(1);
+
+/** Rewrites the sound table in CREDITS.md: one row per source file, in order of first use. */
+function writeCredits() {
+  const path = join(ROOT, "CREDITS.md");
+  if (!existsSync(path) || OUT !== resolve(join(ROOT, "apps/web/public/audio"))) return;
+  const rows = new Map();
+  for (const u of used) {
+    for (const f of u.files) {
+      const row = rows.get(f) ?? { sets: [] };
+      if (!row.sets.includes(u.family)) row.sets.push(u.family);
+      rows.set(f, row);
+    }
+  }
+  const lines = [...rows].map(([f, row]) => {
+    const [id, ...rest] = f.split(":");
+    const p = PACKS.find((q) => q.id === id);
+    return `| ${basename(rest.join(":"))} (${p.name}) | ${row.sets.join(", ")} | ${p.page} | ${p.author} | ${p.licence} | ${p.fetched} |`;
+  });
+  const md = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+  const head = "| File | Used for | Source URL | Author | Licence | Fetched |\n|---|---|---|---|---|---|\n";
+  const at = md.indexOf(head, md.indexOf("## Sounds"));
+  const end = md.indexOf("\n## ", at);
+  if (at < 0 || end < 0) throw new Error("CREDITS.md: no sound table under ## Sounds");
+  writeFileSync(path, `${md.slice(0, at)}${head}${lines.join("\n")}\n${md.slice(end)}`);
+}
+
+/** Decoded channels (1 or 2) at RATE from any file ffmpeg reads. */
+function decodeChannels(file, channels) {
+  const raw = run("ffmpeg", ["-v", "error", "-i", file, "-ac", String(channels), "-ar", String(RATE), "-f", "f32le", "-"]);
+  const all = new Float32Array(raw.buffer, raw.byteOffset, raw.byteLength / 4);
+  const n = Math.floor(all.length / channels);
+  return Array.from({ length: channels }, (_, c) => { const ch = new Float32Array(n); for (let i = 0; i < n; i++) ch[i] = all[i * channels + c]; return ch; });
+}
+
+
+/**
+ * Writes OUT/music/<slot>.mp3 and OUT/music.json. A loop is encoded as [its last padMs][the loop]
+ * [its first padMs]; the loop points in music.json are measured on the decoded file (the encoder's
+ * shift found by cross-correlation, as for the sprites), so `loopStart`..`loopEnd` is exactly one
+ * period and wraps with no gap. A private file's loop is the manifest's loopStartMs..loopEndMs,
+ * a sting its startMs..endMs (a 30 ms fade-out at the end).
+ */
+function buildMusic(plan) {
+  const dir = join(OUT, "music");
+  mkdirSync(dir, { recursive: true });
+  const out = { version: 1, note: "Seconds in the decoded file. Loops: play loopStart..loopEnd forever. Built by tools/build-audio.mjs.", tracks: {}, stings: {}, credits: [] };
+  const sources = new Set();
+  for (const slot of [...MUSIC_TRACKS, ...MUSIC_STINGS]) {
+    const p = plan[slot];
+    const loop = MUSIC_TRACKS.includes(slot);
+    let chans;
+    if (p.source === "synth") {
+      if (MUSIC_RATE !== RATE) throw new Error("music rate differs from the sprite rate");
+      chans = [MUSIC_SYNTH[slot].make()];
+    } else {
+      const all = decodeChannels(join(PRIVATE, p.file), 2);
+      const a = Math.round(((loop ? p.loopStartMs : p.startMs ?? 0) / 1000) * RATE);
+      const b = Math.round(((loop ? p.loopEndMs : p.endMs ?? (all[0].length / RATE) * 1000) / 1000) * RATE);
+      if (loop && (b - a) / RATE * 1000 > MUSIC.loopMaxMs) throw new Error(`music.${slot}: loop is ${((b - a) / RATE).toFixed(1)} s, over ${MUSIC.loopMaxMs / 1000} s`);
+      chans = all.map((c) => c.slice(a, Math.min(b, c.length)));
+      if (!loop) {
+        const f = Math.min(chans[0].length, Math.round(0.03 * RATE));
+        for (const c of chans) for (let i = 0; i < f; i++) c[c.length - 1 - i] *= i / f;
+      }
+      sources.add(p.file);
+    }
+    // level: loops by RMS, stings by their loudest 50 ms; never over -1 dBFS peak
+    const peak = Math.max(...chans.map(peakOf));
+    let g;
+    if (loop) {
+      let ss = 0; let n = 0;
+      for (const c of chans) for (const v of c) { ss += v * v; n++; }
+      g = 10 ** (MUSIC.loopRmsDb / 20) / Math.sqrt(ss / n || 1e-12);
+    } else {
+      g = 10 ** ((MUSIC.stingLoudDb - Math.max(...chans.map(loudness))) / 20);
+    }
+    g = Math.min(g, (PEAK * 0.89) / (peak || 1));
+    for (const c of chans) for (let i = 0; i < c.length; i++) c[i] *= g;
+    const len = chans[0].length;
+    const pad = loop ? Math.min(Math.round((MUSIC.padMs / 1000) * RATE), len) : 0;
+    const body = chans.map((c) => {
+      if (!loop) return c;
+      const x = new Float32Array(len + 2 * pad);
+      x.set(c.subarray(len - pad), 0); x.set(c, pad); x.set(c.subarray(0, pad), pad + len);
+      return x;
+    });
+    const file = join(dir, `${slot}.mp3`);
+    const tmp = join(tmpdir(), `rankzero-music-${slot}.wav`);
+    writeFileSync(tmp, wav(...body));
+    const bitrate = body.length === 2 ? "112k" : "64k";
+    run("ffmpeg", ["-v", "error", "-y", "-i", tmp, "-ar", String(RATE), "-c:a", "libmp3lame", "-b:a", bitrate, file]);
+    rmSync(tmp, { force: true });
+    // the encoder's shift: the lag (0 to 80 ms) at which the decoded file best matches the input
+    const back = decodeChannels(file, 1)[0];
+    const mono = body.length === 2 ? body[0].map((v, i) => 0.5 * (v + body[1][i])) : body[0];
+    const span = Math.min(mono.length - Math.round(0.08 * RATE), Math.round(4 * RATE));
+    let best = 0; let bestSc = -Infinity;
+    for (let lag = 0; lag <= Math.round(0.08 * RATE); lag++) {
+      let sc = 0;
+      for (let i = 0; i < span; i += 2) sc += mono[i] * (back[i + lag] ?? 0);
+      if (sc > bestSc) { bestSc = sc; best = lag; }
+    }
+    const kb = statSync(file).size / 1024;
+    const cap = loop ? MUSIC.loopCapKb : MUSIC.stingCapKb;
+    if (kb > cap) problems.push(`music/${slot}.mp3 is ${kb.toFixed(0)} KB, over its ${cap} KB cap`);
+    const r6 = (v) => Math.round(v * 1e6) / 1e6;
+    if (loop) out.tracks[slot] = { file: `music/${slot}.mp3`, loopStart: r6((pad + best) / RATE), loopEnd: r6((pad + best + len) / RATE) };
+    else out.stings[slot] = { file: `music/${slot}.mp3`, start: r6(best / RATE), dur: r6(len / RATE) };
+    console.log(`music/${slot}.mp3`.padEnd(24), `${kb.toFixed(1)} KB, ${(len / RATE).toFixed(2)} s ${loop ? "loop" : "sting"}, ${body.length} ch at ${bitrate}, encoder shift ${ms(best)} ms, ${p.source}`);
+  }
+  out.credits = [
+    ...(Object.values(plan).some((p) => p.source === "synth") ? [{ pack: "synth", name: "Synthesised in tools/audio-music.mjs", author: "Rank Zero", licence: CC0.licence, licenceUrl: CC0.licenceUrl, page: "tools/audio-music.mjs", fetched: "2026-11-19" }] : []),
+    ...[...sources].map((file) => ({ pack: "private", name: MANIFEST?.credits?.[file]?.name ?? basename(file), author: MANIFEST?.credits?.[file]?.author ?? "", licence: ENVATO.licence, licenceUrl: ENVATO.licenceUrl, page: MANIFEST?.credits?.[file]?.page ?? "", fetched: "" })),
+  ];
+  writeFileSync(join(OUT, "music.json"), `${JSON.stringify(out, null, 1)}\n`);
+}

@@ -1,25 +1,106 @@
 name: CI
 
+# One workflow, three jobs: verify -> parity -> deploy.
+# The deploy job runs only on a push to the default branch, and only after the other two pass.
+# The default branch is read from the event, never written here.
+
 on:
   push:
     branches: ["**"]
-  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push cancels the checks of an older one on the same branch. A workflow-level cancel
+# stops every job of the run, the deploy job too, whatever the deploy job's own group says. So
+# runs on the default branch never cancel: they queue, and a deploy that has started always
+# finishes. The deploy job's own group also keeps two deploys from running at once.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_name != github.event.repository.default_branch }}
 
 jobs:
-  test-and-build:
+  verify:
+    name: Verify (typecheck, tests, build, banned terms, ownership)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # version comes from package.json's "packageManager" field
+      # The pnpm version comes from the "packageManager" field of package.json.
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Typecheck
         run: pnpm typecheck
-      - name: Sim test suite (determinism, invariants, draft rules)
-        run: pnpm --filter @agoge/core test
-      - name: Build web app
-        run: pnpm --filter @agoge/web build
+      - name: Tests of every package
+        run: pnpm test
+      - name: Build
+        run: pnpm build
+      - name: Size budgets
+        run: pnpm budgets
+      - name: Banned terms
+        run: pnpm check:terms
+      - name: File ownership
+        run: pnpm check:owners
+
+  parity:
+    name: Parity (golden digests in Chromium and WebKit)
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The parity suite arrives with the sim lane. Until then this job has nothing to compare
+      # and says so. From the first integration on, the script itself fails unless it compared
+      # at least 180 digests in each engine.
+      - name: Is there a parity suite yet?
+        id: suite
+        run: |
+          if [ -f tools/parity/run.mjs ]; then echo "present=true" >> "$GITHUB_OUTPUT"; else echo "present=false" >> "$GITHUB_OUTPUT"; echo "No parity suite in the tree yet: 0 digests compared."; fi
+      - name: Install Chromium and WebKit
+        if: steps.suite.outputs.present == 'true'
+        run: pnpm exec playwright-core install --with-deps chromium webkit
+      - name: Run the golden suite in both engines
+        if: steps.suite.outputs.present == 'true'
+        run: pnpm parity
+
+  deploy:
+    name: Deploy to Pages
+    needs: [verify, parity]
+    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-pages
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @rankzero/web build
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

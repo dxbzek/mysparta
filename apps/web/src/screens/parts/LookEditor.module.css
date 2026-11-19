@@ -1,0 +1,135 @@
+/* The look editor: one row per shape part, a swatch strip per colour. Every control is a 44 px
+   tap target; the rows fit a 320 px phone (the label column narrows first). */
+.editor {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.rows {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(52px, 76px) var(--tap) minmax(0, 1fr) var(--tap);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.label {
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--t-on-panel-dim);
+  overflow-wrap: anywhere;
+}
+.step {
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-raised);
+  color: var(--t-on-raised);
+  box-shadow: var(--shadow-hard-sm);
+  cursor: pointer;
+}
+.step:active {
+  transform: translate(2px, 3px);
+  box-shadow: none;
+}
+.step:focus-visible,
+.swatch:focus-visible {
+  outline: 3px solid var(--c-hazard);
+  outline-offset: 2px;
+}
+.value {
+  display: grid;
+  align-content: center;
+  min-height: var(--tap);
+  min-width: 0;
+  padding: 2px 8px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--tex-halftone-light), var(--c-dark);
+  color: var(--t-on-dark);
+  text-align: center;
+}
+.name {
+  font: 900 15px / 1.05 var(--font-display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.count {
+  font: 700 12px / 1.2 var(--font-body);
+  color: var(--t-on-dark-dim);
+}
+.colours {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.colourTitle {
+  margin: 0;
+  font: 900 14px / 1 var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--t-on-panel-dim);
+}
+.colourTitle .count {
+  color: var(--t-on-panel-dim);
+}
+.strip {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 2px 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+.swatch {
+  flex: 0 0 var(--tap);
+  width: var(--tap);
+  height: var(--tap);
+  padding: 4px;
+  border: var(--line) solid var(--c-ink);
+  border-radius: var(--rough-radius-sm);
+  background: var(--c-raised);
+  cursor: pointer;
+}
+.chip {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--c-ink);
+  border-radius: 2px;
+}
+.on {
+  background: var(--c-hazard);
+  box-shadow: var(--shadow-hard-sm);
+}
+.note {
+  margin: 0;
+  font: 400 13px / 1.35 var(--font-body);
+  color: var(--t-on-panel-dim);
+}
+@media (max-width: 360px) {
+  .row {
+    grid-template-columns: minmax(0, 58px) var(--tap) minmax(0, 1fr) var(--tap);
+    gap: 5px;
+  }
+  .label,
+  .colourTitle {
+    font-size: 13px;
+  }
+  .name {
+    font-size: 13.5px;
+    letter-spacing: 0.01em;
+  }
+}

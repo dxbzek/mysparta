@@ -3,49 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#12151f" />
-    <!-- Type is self-hosted (src/fonts.css) — no CDN, per the single-file constraint. -->
-    <title>RANK ZERO — Rise from nothing</title>
-    <meta name="description" content="Awaken as a nobody. Fight daily. Climb from E-Rank to S-Rank." />
-    <!-- Inline so the build stays the single deployable file vite.config.ts aims for. -->
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2312151f'/%3E%3Cpath d='M3 12h10v2H3z' fill='%23e39a2e'/%3E%3Cpath d='M7 2h2v9H7z' fill='%23f3b64e'/%3E%3Cpath d='M5 4h6v2H5z' fill='%23f3b64e'/%3E%3C/svg%3E"
-    />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="RANK ZERO — Rise from nothing" />
-    <meta
-      property="og:description"
-      content="Awaken as a nobody. Fight daily. Climb from E-Rank to S-Rank."
-    />
-    <meta name="twitter:card" content="summary" />
+    <meta name="theme-color" content="#b9b4aa" />
+    <title>Rank Zero</title>
+    <meta name="description" content="Name a scrapper. Watch them fight." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
-  <body>
-    <div id="root">
-      <!--
-        Painted before a byte of JS arrives, replaced the moment React mounts.
-        A blank parchment page for half a second reads as broken; the wordmark
-        holding the room reads as a game starting. Styles are inline because
-        the bundle (and its CSS) is exactly what we are waiting for.
-      -->
-      <div
-        style="
-          min-height: 100dvh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 14px;
-          background: #efe6cf;
-          color: #3d3428;
-          font: 700 14px/1 monospace;
-          letter-spacing: 0.3em;
-        "
-      >
-        <div style="width: 34px; height: 34px; background: #e39a2e; border: 3px solid #43382a; box-shadow: 0 3px 0 #43382a"></div>
-        RANK&nbsp;ZERO
-      </div>
-    </div>
+  <body style="margin: 0; background: #b9b4aa">
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

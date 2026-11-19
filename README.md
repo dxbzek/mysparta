@@ -1,87 +1,81 @@
-# AGOGE
+# Rank Zero
 
-*You don't control the fight. You author the fighter.*
+Name a scrapper. Watch them fight.
 
-**AGOGE** (working title) is an original browser-based auto-battler RPG inspired by the core loop and progression magic of MyBrute (2009) — and deliberately **not a clone**. You speak a name, the Fates forge you a **Champion**, and that Champion trains, brawls and builds a legend in an eternal arena-academy outside time. Fights are fully automatic 30–45-second spectacles shareable as URLs; your skill lives in *authorship*: drafting your Champion's destiny one **Thread of Fate** at a time, out-thinking rivals with a three-slot **Battle Plan**, and growing a **Lineage** of protégés who carry your sigil.
+Rank Zero is a browser game in the "name a fighter, watch it fight by itself, pick one of two rewards when it levels up, come back tomorrow" genre. It is an original game: its theme, names, art, text and numbers are its own.
 
-This repository contains the complete research, game design and technical documentation set — plus a **playable prototype** implementing the real deterministic combat sim from the GDD.
+## State of this branch
 
-## Play the prototype
+The game is playable in a browser (`pnpm dev`). What works today:
 
-```bash
-pnpm install
-pnpm dev        # → http://localhost:5173
-pnpm test       # deterministic-sim test suite
-pnpm build      # production build
+- name a scrapper (up to three), watch its bouts play by themselves, and pick one of two cards at each level-up;
+- weapons, skills, pets and shields from the level-up cards, a Kit and an Inventory to look them over, and a bout History with replays;
+- a deterministic sim: the same seed always plays the same bout, and the fight screen draws it from the bout log;
+- per-item sounds, a reduced-motion setting, a save on the device (IndexedDB, with a local-storage fallback, backups and save codes);
+- a test arena (Settings, Test arena) to try any kit at any level without touching the save;
+- the repo checks (typecheck, tests, build, size budgets, banned terms, file ownership) in CI.
+
+Not there yet: the shop (the VIP switch in Settings is a temporary test switch), online rivals (rivals are generated on the device) and accounts.
+
+## Layout
+
+| Path | Package | Holds | Rules |
+|---|---|---|---|
+| `packages/core` | `@rankzero/core` | ids, content, creation, progression, the sim, the bout log, the reducer | Pure whole-number code. No browser, no clock, no unseeded randomness. Ids only, never player text. |
+| `packages/rig` | `@rankzero/rig` | bones, flat vector parts, clips, poses, drawing | Pure. Draws through a small Canvas 2D subset, so the same code draws in a browser and in Node. |
+| `packages/stage` | `@rankzero/stage` | the fight player: timeline, choreography, effects, HUD data, sound cues | Pure. Every frame is a function of the time `t`. |
+| `apps/web` | `@rankzero/web` | the React app: screens, fight screen, saves, sound, text | The only place with browser code and player text. |
+| `tools/` | | checks, renders, recordings | Dev only. `.mjs` runs with Node, `.ts` runs with `tsx`. |
+
+Dependencies point one way: `core` <- `rig` <- `stage` <- `web`.
+
+The source of the three pure packages compiles without the DOM library and without Node types, so a browser or Node call in it is a compile error (a contract test proves it). Their tests compile with Node types (`tsconfig.test.json`), so a test may read files and hash. The tools have their own `tools/tsconfig.json`, and `pnpm typecheck` checks all of them.
+
+## Commands
+
+Needs Node 24 (CI runs 24) and pnpm 10 (the exact pnpm version is pinned in `package.json`).
+
+```
+pnpm install --frozen-lockfile
+pnpm dev            # the web app on a local port
+pnpm typecheck      # every package
+pnpm test           # every package, one after another, two workers each
+pnpm build          # typecheck, then the static site in apps/web/dist
+pnpm check:terms    # banned names and words
+pnpm check:owners   # one owner per file
+pnpm smoke          # draws the test rig in Node, writes .review/wp0/smoke.png, fails without a woff2 font
+pnpm budgets        # size budgets of the built site (run pnpm build first)
 ```
 
-Speak a name → the Fates forge your Champion (name-seeded Omen, stats, kit) → set a Battle Plan (Stance / Gambit / Trump) → fight rivals in the Arena → draft your destiny through 1-of-3 Threads of Fate on every level-up. Six Vigor per day (banked to 12), Kleos rating, weapon draw-order authoring, the Tapestry build history — all running on `packages/core`, the pure deterministic sim (mulberry32 seeded PRNG, integer maths, sim v1) that will later run server-side per `docs/04-technical-architecture.md`.
+Tools for renders and checks: `sheet`, `spacing`, `render-bout`, `audit`, `find-bout`, `balance`, `parity`, `record-bout`, `build-audio`, `subset-fonts`, `session`, `shots` (phone, desktop and 320 px screenshots), `a11y` (contrast and tap targets).
 
-| Package | What it is |
-|---|---|
-| `packages/core` | Deterministic fight sim + champion generation + draft engine + XP curve. All 24 weapons, 30 skills, 4 beasts, 7 gambits, 10 trump triggers from the GDD. Zero I/O, fully seeded, covered by determinism/invariant/draft-rule tests. |
-| `apps/web` | React 19 + Vite prototype client: Forge, Champion Hall, Arena board, Battle Plan sheet, fight theatre with paced narration, Threads of Fate drafts, Tapestry. Saves to localStorage (the server replaces this in MVP). |
+On a loaded machine a red test run is rerun once before it is believed.
 
-Prototype simplifications (deliberate, documented in code): localStorage stands in for the server; rivals are generated ghosts rather than real players' snapshots; the fight theatre is DOM-animated (PixiJS arrives with real art); beasts intercept 25% of attacks so beast-hunting counterplay exists (the GDD specifies only the Nemean Cub's 30% guardian redirect).
+## Working in this repo
 
-## The design in one table
+**One writer per file.** `OWNERS.json` maps every path to one lane. `pnpm check:owners` fails when a file has no owner or two, and when a lane branch (`rebuild/v2-<lane>`) changes a file it does not own.
 
-| MyBrute's magic (kept) | MyBrute's failure (fixed) | AGOGE's answer |
-|---|---|---|
-| 10-second name-only onboarding | Whole fate locked at creation | Name seeds flavour; growth is a 1-of-3 draft with earned rerolls |
-| 3-fights-a-day ritual | Pure gate, nothing to decide | 6 Vigor/day + a 10-second Battle Plan mindgame per fight |
-| Slot-machine level-ups | Ruined builds, no recourse | Milestone guarantees, Favour rerolls, Aristeia rebirth |
-| Pupil/master viral loop | Destroyed by proxy farms | Capped, activity-gated, non-power Lineage rewards |
-| Shareable fight URLs | Died with Flash | Web-native deterministic replays with OG-image cards |
-| Free and friendly | Monetisation killed the loop | Cosmetics, season Chronicle, supporter Oath — never power |
+**Frozen contracts.** These files are the interfaces between the lanes. Only the lead changes them, and a change bumps `CONTRACT_REV`:
 
-## Document set
+- `packages/core/src/contracts/` (ids, scrappers, content shapes, the bout log and its rules, the reducer, the log checker, the sim's API)
+- `packages/rig/src/contracts.ts`
+- `packages/stage/src/contracts.ts`
+- `apps/web/src/contracts.ts`
 
-| Document | Covers |
-|---|---|
-| [docs/00-vision.md](docs/00-vision.md) | **The canonical design contract** — pillars, world, vocabulary, numbers, tech canon |
-| [docs/01-research-analysis.md](docs/01-research-analysis.md) | MyBrute teardown (all three generations), nine comparable games, market gap |
-| [docs/02-gdd-core.md](docs/02-gdd-core.md) | GDD I: world, onboarding, combat system & formulas, arsenal, progression |
-| [docs/03-gdd-systems.md](docs/03-gdd-systems.md) | GDD II: Arena, tournaments, PvE Gauntlet, Phalanx guilds, Sagas, economy, social |
-| [docs/04-technical-architecture.md](docs/04-technical-architecture.md) | Stack, deterministic sim core, API, auth, anti-cheat, observability, scaling, costs |
-| [docs/05-database-schema.md](docs/05-database-schema.md) | Full Postgres DDL (61 tables), ERDs, Redis keyspace, data lifecycle |
-| [docs/06-ui-ux.md](docs/06-ui-ux.md) | Wireframes, flows, responsive system, accessibility, motion spec |
-| [docs/07-monetisation-liveops.md](docs/07-monetisation-liveops.md) | Chronicle pass, Patron's Oath, shop, revenue model, LiveOps calendar |
-| [docs/08-roadmap.md](docs/08-roadmap.md) | Milestones, prioritisation, risk register, 49 PR-sized implementation increments |
-| [docs/research/](docs/research/) | Raw research appendices (gameplay, community, market, tech) |
+**Seam files.** Package `index.ts` files, `apps/web/src/main.tsx` and `apps/web/src/seams/` are where finished lanes are joined. Only the lead edits them.
 
-### Mapping to the original brief's deliverables
+**Building before the other lanes exist.**
 
-1. **MyBrute & similar-games analysis** → `01-research-analysis.md` (+ `docs/research/`)
-2. **Innovation & differentiation opportunities** → `01-research-analysis.md` Part 2, `00-vision.md` §3
-3. **Full Game Design Document** → `02-gdd-core.md` + `03-gdd-systems.md`
-4. **Recommended technology stack** → `04-technical-architecture.md` (canon in `00-vision.md` §6)
-5. **Database schema** → `05-database-schema.md`
-6. **System architecture** → `04-technical-architecture.md`
-7. **UI/UX wireframe recommendations** → `06-ui-ux.md`
-8. **Feature roadmap** → `08-roadmap.md` §1–2
-9. **Monetisation strategy** → `07-monetisation-liveops.md` §1–4
-10. **LiveOps & content update plan** → `07-monetisation-liveops.md` §5–7
-11. **Risks & mitigations** → `08-roadmap.md` §3
-12. **Phased implementation plan for Claude Code** → `08-roadmap.md` §4 (49 PR-sized increments)
+- Fixtures: `import { BOUT_FIXTURES, SNAPSHOTS } from "@rankzero/core/fixtures"`. Three bout logs (`bout-gate`, `bout-all-steps`, `bout-cap`) and six snapshots, checked by the reducer. They are frozen objects: clone one before changing it in a test.
+- Checking a log: `checkLog(log)` from `@rankzero/core` returns every broken log rule as a sentence. The rules themselves are written at the top of `packages/core/src/contracts/log.ts`.
+- Test rig: `import { capsuleRig } from "@rankzero/rig/testing"`. A complete `Rig` made of sticks, with the real clip lengths and contact times, five recoloured arenas, and strike and hit points measured from what it draws. Both bend a swing toward an aimed height, so the striking end meets a short target or a tall one. `capsuleGateRig` is the same double limited to what a gate-only rig has (13 gate clips with the clip fallback, placeholder companions, straight placeholder weapons, a placeholder Car Door), for testing that path. The app gets its rig from `apps/web/src/seams/rig.ts` only.
+- Drawing in Node: `tools/lib/node-canvas.ts`. Drawing in the browser: `apps/web/src/seams/canvas.ts`.
+- Opening a browser from a tool: `tools/lib/browser.mjs` (`withBrowser`), which allows one browser at a time on the machine.
 
-## Key facts
+**Banned terms.** `pnpm check:terms` keeps the names of other games, and the words of the earlier build, out of every file. One test may name the earlier build's storage prefix, to prove those keys are never touched: `apps/web/test/state/legacy-keys.test.ts` (listed in `tools/banned-terms.allow`).
 
-- **Stack:** TypeScript monorepo (pnpm + Turborepo) — pure deterministic sim core shared by server and client, React 19 + Vite + PixiJS web app, Fastify + tRPC API, Supabase (Postgres + anonymous-first Auth), Redis (leaderboards + BullMQ), PostHog/Sentry. ~$40–55/month infra until traction; portrait-first PWA → Capacitor for iOS/Android with no rewrite.
-- **Fairness is the brand:** identical Vigor for everyone forever; no loot boxes, no paid power, no paid rerolls. Monetisation is cosmetics, a retroactive never-expiring season Chronicle ($9.99/Saga) and a QoL-only Patron's Oath ($4.99/mo).
-- **Targets:** D1 ≥ 35%, D7 ≥ 15%, D30 ≥ 8%; 3–6-minute sessions; launch estimated May–June 2027 for a solo developer working with Claude Code.
+**Evidence.** Contact sheets, renders and screenshots go to `.review/`, which is git-ignored. A picture counts as evidence only after someone has opened it.
 
-## Open decisions
+## Originality and licences
 
-Consequential calls flagged during design, awaiting an owner's ruling (each has a recommendation in its document):
-
-1. **Daily reset at 00:00 UTC** (`04` §7.1) — aligns Agon maths, but check against the target audience's evening hours.
-2. **Defenders earn Kleos only, never XP** (`02` §6.1) — the reading of "2 XP per win" that Kleos exchange is built on.
-3. **Siege Marks as a separate 2/day token** vs spending Vigor on the Titan raid (`03` §4.2) — second token to teach vs ladder-fight cannibalisation.
-4. **Account-scoped wallets** — Favour earned by one Champion can reroll another's drafts (`05` §1).
-5. **Chronicle track lives under the Labors tab** rather than beside the Shop (`06` §2).
-6. **Dark "golden dusk" theme only at launch**; light theme deferred (`06` §6).
-7. **Saga Patron Bundle ($19.99)** — keep, or drop as bundle-maths dilution (`07` §2.7).
-8. **Beta viral gate K ≥ 0.15** before launch spend, or a softer 0.10 with strong D7 (`08` §6).
-9. **Alpha across the December 2026 holidays** — accept ~6 productive weeks or shift to January (`08` §1).
-10. **IP-differentiation legal review pre-Beta** vs deferring to pre-Launch at higher risk (`08` §3).
+Nothing from another game enters this repo: no code, data tables, art, sound, fonts, text or screenshots. All art is flat vector data drawn in code. Sounds and fonts must be CC0, SIL OFL 1.1, Apache 2.0, OGA-BY, CC BY with credit or the Envato Elements licence (cut clips only), and each one gets a row in [CREDITS.md](CREDITS.md). How the rules were arrived at is in [docs/PROVENANCE.md](docs/PROVENANCE.md).

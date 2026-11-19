@@ -1,0 +1,6899 @@
+{
+ "build": "74fc265",
+ "simVersion": 7,
+ "schemaVersion": 3,
+ "about": "A save of schema 3 written by build 74fc265 (sim version 7) through its own actions: Rue Tack made and levelled 4 times there, Mona Grit and the retired Kip Ladle migrated by it from the 1681640 schema-2 save (with carried kits). `expect` holds that build's snapshotOf of each scrapper.",
+ "doc": {
+  "schemaVersion": 3,
+  "rev": 35,
+  "updatedAt": 1795068000000,
+  "settings": {
+   "sound": true,
+   "speed": 2,
+   "reducedMotion": "system",
+   "liveLog": true,
+   "isVip": false
+  },
+  "activeId": "ID000116e4vq",
+  "fighters": [
+   {
+    "id": "01JRANKZEROOLDSAVEA0000001",
+    "name": "Mona Grit",
+    "seed": 827195806,
+    "lookSalt": 3,
+    "colourSalt": 5,
+    "picks": [
+     "L",
+     "R",
+     "R",
+     "L",
+     "L",
+     "R",
+     "L",
+     "R",
+     "R"
+    ],
+    "xp": 0,
+    "createdDay": "2026-11-15",
+    "day": "2026-11-16",
+    "boutsUsed": 2,
+    "lifetimeBouts": 49,
+    "base": {
+     "picks": 9,
+     "starts": 2,
+     "perks": [
+      "pipe",
+      "padding",
+      "crow",
+      "heavy-hands",
+      "broom",
+      "quick-swap"
+     ],
+     "stats": {
+      "points": {
+       "health": 6,
+       "strength": 9,
+       "agility": 4,
+       "speed": 9
+      },
+      "mult": {
+       "health": 100,
+       "strength": 140,
+       "agility": 100,
+       "speed": 100
+      }
+     }
+    }
+   },
+   {
+    "id": "ID000116e4vq",
+    "name": "Rue Tack",
+    "seed": 1969445058,
+    "lookSalt": 2,
+    "colourSalt": 4,
+    "picks": [
+     "L",
+     "R",
+     "L",
+     "R"
+    ],
+    "xp": 0,
+    "createdDay": "2026-11-15",
+    "day": "2026-11-19",
+    "boutsUsed": 4,
+    "lifetimeBouts": 14
+   }
+  ],
+  "retired": [
+   {
+    "id": "01JRANKZEROOLDSAVEB0000002",
+    "name": "Kip Ladle",
+    "seed": 824623431,
+    "lookSalt": 3,
+    "colourSalt": 5,
+    "picks": [
+     "R",
+     "R",
+     "L",
+     "L",
+     "R",
+     "L",
+     "L",
+     "R"
+    ],
+    "xp": 0,
+    "createdDay": "2026-11-15",
+    "day": "2026-11-16",
+    "boutsUsed": 2,
+    "lifetimeBouts": 46,
+    "base": {
+     "picks": 6,
+     "starts": 2,
+     "perks": [
+      "rubber-ball",
+      "anticipation",
+      "machete",
+      "frying-pan",
+      "raccoon",
+      "crowbar"
+     ],
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 2,
+       "agility": 6,
+       "speed": 7
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     }
+    }
+   }
+  ],
+  "history": [
+   {
+    "id": "ID0015h342fv",
+    "at": 1795068000000,
+    "seed": 3989741385,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 4,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 5,
+       "speed": 6
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry",
+      "shovel",
+      "sand-in-the-eyes"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:4:37",
+     "name": "Sal Sparks",
+     "look": {
+      "build": 1,
+      "head": 1,
+      "hair": 8,
+      "face": 4,
+      "top": 7,
+      "bottom": 3,
+      "shoes": 3,
+      "accessory": 1,
+      "skin": 4,
+      "hairColor": 1,
+      "palette": 5
+     },
+     "level": 4,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 6,
+       "agility": 3,
+       "speed": 5
+      },
+      "mult": {
+       "health": 100,
+       "strength": 150,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "anticipation",
+      "pitchfork",
+      "quick-swap",
+      "heavy-hands"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "b",
+     "reason": "ko",
+     "turns": 8,
+     "hpPct": {
+      "a": 0,
+      "b": 81
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 1,
+    "lineId": 385,
+    "watched": true,
+    "before": {
+     "xp": 7,
+     "boutsUsed": 3
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 3989741385,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 82
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 82
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "weapon",
+         "id": "pitchfork"
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "a0",
+       "weapon": "shovel",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 1,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 74,
+       "n": 0
+      },
+      {
+       "t": "draw",
+       "turn": 2,
+       "actor": "b0",
+       "weapon": "plastic-bottle",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "pitchfork"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 2,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 74,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "pitchfork"
+        }
+       ],
+       "procs": [
+        {
+         "by": "b0",
+         "skill": "heavy-hands"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 3,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 66,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "pitchfork"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 4,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 15,
+       "crit": true,
+       "hpAfter": 51,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "pitchfork"
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 5,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 66,
+       "n": 0
+      },
+      {
+       "t": "swap",
+       "turn": 6,
+       "actor": "b0",
+       "dropped": "plastic-bottle",
+       "weapon": "pitchfork",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 6,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pitchfork",
+       "outcome": "hit",
+       "damage": 49,
+       "crit": true,
+       "hpAfter": 2,
+       "procs": [
+        {
+         "by": "b0",
+         "skill": "quick-swap"
+        }
+       ],
+       "n": 0
+      },
+      {
+       "t": "move",
+       "turn": 7,
+       "actor": "a0",
+       "move": "sand-in-the-eyes",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        }
+       ],
+       "target": "b0"
+      },
+      {
+       "t": "attack",
+       "turn": 8,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pitchfork",
+       "outcome": "hit",
+       "damage": 28,
+       "crit": false,
+       "hpAfter": 0,
+       "n": 0
+      },
+      {
+       "t": "ko",
+       "turn": 8,
+       "actor": "a0",
+       "by": "b0"
+      },
+      {
+       "t": "end",
+       "turn": 8,
+       "winner": "b",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "b",
+      "reason": "ko",
+      "turns": 8,
+      "hpPct": {
+       "a": 0,
+       "b": 81
+      }
+     }
+    }
+   },
+   {
+    "id": "ID0014299iw0",
+    "at": 1795068000000,
+    "seed": 2805360340,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 4,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 5,
+       "speed": 6
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry",
+      "shovel",
+      "sand-in-the-eyes"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:4:147",
+     "name": "Mack Hatch",
+     "look": {
+      "build": 0,
+      "head": 2,
+      "hair": 2,
+      "face": 3,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 2,
+      "accessory": 0,
+      "skin": 0,
+      "hairColor": 0,
+      "palette": 0
+     },
+     "level": 4,
+     "stats": {
+      "points": {
+       "health": 2,
+       "strength": 3,
+       "agility": 9,
+       "speed": 4
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "stop-sign",
+      "flurry",
+      "boomerang"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "a",
+     "reason": "ko",
+     "turns": 12,
+     "hpPct": {
+      "a": 22,
+      "b": 0
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 2,
+    "lineId": 340,
+    "watched": true,
+    "before": {
+     "xp": 5,
+     "boutsUsed": 2
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 2805360340,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 82
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 68
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "stop-sign"
+        },
+        {
+         "k": "weapon",
+         "id": "boomerang"
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "a0",
+       "weapon": "plastic-bottle",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 1,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 6,
+       "crit": false,
+       "hpAfter": 62,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "draw",
+       "turn": 2,
+       "actor": "b0",
+       "weapon": "boomerang",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "stop-sign"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 2,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "boomerang",
+       "outcome": "hit",
+       "damage": 16,
+       "crit": true,
+       "hpAfter": 66,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "stop-sign"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 3,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 6,
+       "crit": false,
+       "hpAfter": 56,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 4,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "boomerang",
+       "outcome": "hit",
+       "damage": 18,
+       "crit": true,
+       "hpAfter": 48,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "stop-sign"
+        }
+       ]
+      },
+      {
+       "t": "swap",
+       "turn": 5,
+       "actor": "a0",
+       "dropped": "plastic-bottle",
+       "weapon": "shovel",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 5,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 6,
+       "crit": false,
+       "hpAfter": 50,
+       "n": 0
+      },
+      {
+       "t": "swap",
+       "turn": 6,
+       "actor": "b0",
+       "dropped": "boomerang",
+       "weapon": "stop-sign",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 6,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "stop-sign",
+       "outcome": "block",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 48,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 6,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "stop-sign",
+       "outcome": "block",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 48,
+       "n": 1,
+       "why": "combo"
+      },
+      {
+       "t": "move",
+       "turn": 7,
+       "actor": "a0",
+       "move": "sand-in-the-eyes",
+       "bagAfter": [],
+       "target": "b0"
+      },
+      {
+       "t": "attack",
+       "turn": 8,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 20,
+       "crit": false,
+       "hpAfter": 30,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 9,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "stop-sign",
+       "outcome": "hit",
+       "damage": 30,
+       "crit": false,
+       "hpAfter": 18,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 10,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 21,
+       "crit": false,
+       "hpAfter": 9,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 11,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "stop-sign",
+       "outcome": "evade",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 18,
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "sand-in-the-eyes"
+        }
+       ],
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 20,
+       "crit": false,
+       "hpAfter": 0,
+       "n": 0
+      },
+      {
+       "t": "ko",
+       "turn": 12,
+       "actor": "b0",
+       "by": "a0"
+      },
+      {
+       "t": "end",
+       "turn": 12,
+       "winner": "a",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "a",
+      "reason": "ko",
+      "turns": 12,
+      "hpPct": {
+       "a": 22,
+       "b": 0
+      }
+     }
+    }
+   },
+   {
+    "id": "ID0013z0sjfx",
+    "at": 1795068000000,
+    "seed": 2426050438,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 4,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 5,
+       "speed": 6
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry",
+      "shovel",
+      "sand-in-the-eyes"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:4:14",
+     "name": "Suki Pickle",
+     "look": {
+      "build": 1,
+      "head": 2,
+      "hair": 7,
+      "face": 0,
+      "top": 5,
+      "bottom": 0,
+      "shoes": 0,
+      "accessory": 1,
+      "skin": 7,
+      "hairColor": 3,
+      "palette": 1
+     },
+     "level": 4,
+     "stats": {
+      "points": {
+       "health": 6,
+       "strength": 6,
+       "agility": 2,
+       "speed": 4
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "rubber-ball",
+      "payback",
+      "paint-can",
+      "quick-swap"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "a",
+     "reason": "ko",
+     "turns": 14,
+     "hpPct": {
+      "a": 2,
+      "b": 0
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 2,
+    "lineId": 438,
+    "watched": true,
+    "before": {
+     "xp": 3,
+     "boutsUsed": 1
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 2426050438,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 82
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 96
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "rubber-ball"
+        },
+        {
+         "k": "weapon",
+         "id": "paint-can"
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "a0",
+       "weapon": "plastic-bottle",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 1,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 87,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "draw",
+       "turn": 2,
+       "actor": "b0",
+       "weapon": "paint-can",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "rubber-ball"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 2,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "paint-can",
+       "outcome": "hit",
+       "damage": 20,
+       "crit": true,
+       "hpAfter": 62,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "rubber-ball"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 3,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 78,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "swap",
+       "turn": 4,
+       "actor": "b0",
+       "dropped": "paint-can",
+       "weapon": "rubber-ball",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 4,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "rubber-ball",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 54,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [],
+       "procs": [
+        {
+         "by": "b0",
+         "skill": "quick-swap"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 5,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "rubber-ball",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 46,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 6,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 11,
+       "crit": false,
+       "hpAfter": 67,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 6,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 10,
+       "crit": false,
+       "hpAfter": 57,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "why": "combo",
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "flurry"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 6,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 48,
+       "n": 2,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "why": "combo"
+      },
+      {
+       "t": "swap",
+       "turn": 7,
+       "actor": "a0",
+       "dropped": "plastic-bottle",
+       "weapon": "shovel",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 7,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 23,
+       "crit": false,
+       "hpAfter": 25,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 8,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "rubber-ball",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 37,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 9,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "rubber-ball",
+       "outcome": "hit",
+       "damage": 7,
+       "crit": false,
+       "hpAfter": 30,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "move",
+       "turn": 10,
+       "actor": "a0",
+       "move": "sand-in-the-eyes",
+       "bagAfter": [],
+       "target": "b0"
+      },
+      {
+       "t": "attack",
+       "turn": 11,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 22,
+       "crit": false,
+       "hpAfter": 3,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 12,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "rubber-ball",
+       "outcome": "hit",
+       "damage": 13,
+       "crit": true,
+       "hpAfter": 17,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 12,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "rubber-ball",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 8,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [],
+       "why": "combo"
+      },
+      {
+       "t": "throw",
+       "turn": 13,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "rubber-ball",
+       "outcome": "hit",
+       "damage": 7,
+       "crit": false,
+       "hpAfter": 1,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 14,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 22,
+       "crit": false,
+       "hpAfter": 0,
+       "n": 0
+      },
+      {
+       "t": "ko",
+       "turn": 14,
+       "actor": "b0",
+       "by": "a0"
+      },
+      {
+       "t": "end",
+       "turn": 14,
+       "winner": "a",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "a",
+      "reason": "ko",
+      "turns": 14,
+      "hpPct": {
+       "a": 2,
+       "b": 0
+      }
+     }
+    }
+   },
+   {
+    "id": "ID0012exnhrl",
+    "at": 1795068000000,
+    "seed": 123132899,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 4,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 5,
+       "speed": 6
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry",
+      "shovel",
+      "sand-in-the-eyes"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:4:56",
+     "name": "Fen Spud",
+     "look": {
+      "build": 1,
+      "head": 5,
+      "hair": 1,
+      "face": 6,
+      "top": 4,
+      "bottom": 3,
+      "shoes": 2,
+      "accessory": 0,
+      "skin": 7,
+      "hairColor": 3,
+      "palette": 4
+     },
+     "level": 4,
+     "stats": {
+      "points": {
+       "health": 6,
+       "strength": 3,
+       "agility": 3,
+       "speed": 8
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 140
+      }
+     },
+     "perks": [
+      "traffic-cone",
+      "sand-in-the-eyes",
+      "anticipation",
+      "fast-twitch"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "a",
+     "reason": "ko",
+     "turns": 12,
+     "hpPct": {
+      "a": 49,
+      "b": 0
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 2,
+    "lineId": 899,
+    "watched": true,
+    "before": {
+     "xp": 1,
+     "boutsUsed": 0
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 123132899,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 82
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 96
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "traffic-cone"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "b0",
+       "weapon": "traffic-cone",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 1,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "traffic-cone",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 74,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "procs": [
+        {
+         "by": "b0",
+         "skill": "fast-twitch"
+        }
+       ]
+      },
+      {
+       "t": "draw",
+       "turn": 2,
+       "actor": "a0",
+       "weapon": "plastic-bottle",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 2,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 87,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 3,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "traffic-cone",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 66,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 4,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 78,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 5,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "traffic-cone",
+       "outcome": "evade",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 66,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "move",
+       "turn": 6,
+       "actor": "a0",
+       "move": "sand-in-the-eyes",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ],
+       "target": "b0"
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 13,
+       "crit": true,
+       "hpAfter": 65,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 11,
+       "crit": false,
+       "hpAfter": 54,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ],
+       "why": "combo"
+      },
+      {
+       "t": "throw",
+       "turn": 8,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "traffic-cone",
+       "outcome": "hit",
+       "damage": 12,
+       "crit": false,
+       "hpAfter": 54,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "swap",
+       "turn": 9,
+       "actor": "a0",
+       "dropped": "plastic-bottle",
+       "weapon": "shovel",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 9,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 22,
+       "crit": false,
+       "hpAfter": 32,
+       "n": 0
+      },
+      {
+       "t": "move",
+       "turn": 10,
+       "actor": "b0",
+       "move": "sand-in-the-eyes",
+       "bagAfter": [],
+       "target": "a0"
+      },
+      {
+       "t": "throw",
+       "turn": 11,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "traffic-cone",
+       "outcome": "hit",
+       "damage": 14,
+       "crit": false,
+       "hpAfter": 40,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 19,
+       "crit": false,
+       "hpAfter": 13,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "evade",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 13,
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "flurry"
+        }
+       ],
+       "n": 1,
+       "why": "combo"
+      },
+      {
+       "t": "attack",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 31,
+       "crit": true,
+       "hpAfter": 0,
+       "n": 2,
+       "why": "combo"
+      },
+      {
+       "t": "ko",
+       "turn": 12,
+       "actor": "b0",
+       "by": "a0"
+      },
+      {
+       "t": "end",
+       "turn": 12,
+       "winner": "a",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "a",
+      "reason": "ko",
+      "turns": 12,
+      "hpPct": {
+       "a": 49,
+       "b": 0
+      }
+     }
+    }
+   },
+   {
+    "id": "ID00112tbwbc",
+    "at": 1794981600000,
+    "seed": 2541664259,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 3,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 5,
+       "speed": 4
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry",
+      "shovel",
+      "sand-in-the-eyes"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:3:189",
+     "name": "Flo Gumbo",
+     "look": {
+      "build": 2,
+      "head": 2,
+      "hair": 6,
+      "face": 3,
+      "top": 4,
+      "bottom": 2,
+      "shoes": 1,
+      "accessory": 0,
+      "skin": 1,
+      "hairColor": 0,
+      "palette": 4
+     },
+     "level": 3,
+     "stats": {
+      "points": {
+       "health": 5,
+       "strength": 4,
+       "agility": 4,
+       "speed": 5
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "pocket-knife",
+      "anticipation"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "a",
+     "reason": "ko",
+     "turns": 14,
+     "hpPct": {
+      "a": 8,
+      "b": 0
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 2,
+    "lineId": 259,
+    "watched": true,
+    "before": {
+     "xp": 5,
+     "boutsUsed": 3
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 2541664259,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 82
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 89
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "pocket-knife"
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "a0",
+       "weapon": "plastic-bottle",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 1,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 81,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "draw",
+       "turn": 2,
+       "actor": "b0",
+       "weapon": "pocket-knife",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 2,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 74,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 3,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 66,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 4,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 73,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 5,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 58,
+       "n": 0
+      },
+      {
+       "t": "move",
+       "turn": 6,
+       "actor": "a0",
+       "move": "sand-in-the-eyes",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ],
+       "target": "b0"
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 10,
+       "crit": false,
+       "hpAfter": 63,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 11,
+       "crit": false,
+       "hpAfter": 52,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ],
+       "why": "combo",
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "flurry"
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 8,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 11,
+       "crit": false,
+       "hpAfter": 47,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 8,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 11,
+       "crit": false,
+       "hpAfter": 36,
+       "n": 1,
+       "why": "combo"
+      },
+      {
+       "t": "attack",
+       "turn": 9,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 10,
+       "crit": false,
+       "hpAfter": 26,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 10,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 44,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 10,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 35,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ],
+       "why": "combo"
+      },
+      {
+       "t": "attack",
+       "turn": 11,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 17,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 15,
+       "crit": true,
+       "hpAfter": 20,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "block",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 20,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ],
+       "why": "combo"
+      },
+      {
+       "t": "attack",
+       "turn": 13,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "block",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 17,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 13,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 11,
+       "crit": false,
+       "hpAfter": 6,
+       "n": 1,
+       "why": "combo"
+      },
+      {
+       "t": "swap",
+       "turn": 14,
+       "actor": "a0",
+       "dropped": "plastic-bottle",
+       "weapon": "shovel",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 14,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 20,
+       "crit": false,
+       "hpAfter": 0,
+       "n": 0
+      },
+      {
+       "t": "ko",
+       "turn": 14,
+       "actor": "b0",
+       "by": "a0"
+      },
+      {
+       "t": "end",
+       "turn": 14,
+       "winner": "a",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "a",
+      "reason": "ko",
+      "turns": 14,
+      "hpPct": {
+       "a": 8,
+       "b": 0
+      }
+     }
+    }
+   },
+   {
+    "id": "ID00106a0och",
+    "at": 1794981600000,
+    "seed": 753357588,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 3,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 5,
+       "speed": 4
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry",
+      "shovel",
+      "sand-in-the-eyes"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:3:86",
+     "name": "Rio Socks",
+     "look": {
+      "build": 0,
+      "head": 2,
+      "hair": 0,
+      "face": 7,
+      "top": 2,
+      "bottom": 3,
+      "shoes": 0,
+      "accessory": 3,
+      "skin": 4,
+      "hairColor": 3,
+      "palette": 0
+     },
+     "level": 3,
+     "stats": {
+      "points": {
+       "health": 3,
+       "strength": 3,
+       "agility": 7,
+       "speed": 4
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "bike-chain",
+      "stubborn",
+      "padding"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "a",
+     "reason": "ko",
+     "turns": 10,
+     "hpPct": {
+      "a": 42,
+      "b": 0
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 2,
+    "lineId": 588,
+    "watched": true,
+    "before": {
+     "xp": 3,
+     "boutsUsed": 2
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 753357588,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 82
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 75
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "bike-chain"
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "b0",
+       "weapon": "bike-chain",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 1,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "bike-chain",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 74,
+       "n": 0
+      },
+      {
+       "t": "draw",
+       "turn": 2,
+       "actor": "a0",
+       "weapon": "shovel",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 2,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "evade",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 75,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 3,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "bike-chain",
+       "outcome": "hit",
+       "damage": 20,
+       "crit": true,
+       "hpAfter": 54,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 4,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 7,
+       "crit": false,
+       "hpAfter": 68,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 5,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "bike-chain",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 46,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 6,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 19,
+       "crit": false,
+       "hpAfter": 49,
+       "procs": [
+        {
+         "by": "b0",
+         "skill": "padding"
+        }
+       ],
+       "n": 0
+      },
+      {
+       "t": "disarm",
+       "turn": 6,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "bike-chain",
+       "cause": "hit"
+      },
+      {
+       "t": "attack",
+       "turn": 6,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 17,
+       "crit": false,
+       "hpAfter": 32,
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "flurry"
+        }
+       ],
+       "n": 1,
+       "why": "combo"
+      },
+      {
+       "t": "attack",
+       "turn": 7,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 5,
+       "crit": false,
+       "hpAfter": 41,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 8,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 19,
+       "crit": false,
+       "hpAfter": 13,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 9,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 7,
+       "crit": false,
+       "hpAfter": 34,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 10,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 18,
+       "crit": false,
+       "hpAfter": 0,
+       "n": 0
+      },
+      {
+       "t": "ko",
+       "turn": 10,
+       "actor": "b0",
+       "by": "a0"
+      },
+      {
+       "t": "end",
+       "turn": 10,
+       "winner": "a",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "a",
+      "reason": "ko",
+      "turns": 10,
+      "hpPct": {
+       "a": 42,
+       "b": 0
+      }
+     }
+    }
+   },
+   {
+    "id": "ID0009rm9gsa",
+    "at": 1794981600000,
+    "seed": 308716087,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 3,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 5,
+       "speed": 4
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry",
+      "shovel",
+      "sand-in-the-eyes"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:3:107",
+     "name": "Elsa Sparks",
+     "look": {
+      "build": 1,
+      "head": 1,
+      "hair": 0,
+      "face": 1,
+      "top": 1,
+      "bottom": 2,
+      "shoes": 2,
+      "accessory": 2,
+      "skin": 7,
+      "hairColor": 2,
+      "palette": 8
+     },
+     "level": 3,
+     "stats": {
+      "points": {
+       "health": 5,
+       "strength": 4,
+       "agility": 5,
+       "speed": 2
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "pocket-knife",
+      "bare-knuckle",
+      "wooden-pallet",
+      "energy-drink"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "b",
+     "reason": "ko",
+     "turns": 16,
+     "hpPct": {
+      "a": 0,
+      "b": 17
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 1,
+    "lineId": 87,
+    "watched": true,
+    "before": {
+     "xp": 2,
+     "boutsUsed": 1
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 308716087,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 82
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 89
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "pocket-knife"
+        },
+        {
+         "k": "move",
+         "id": "energy-drink",
+         "uses": 1
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": "wooden-pallet"
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "a0",
+       "weapon": "plastic-bottle",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 1,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 81,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 2,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 74,
+       "procs": [
+        {
+         "by": "b0",
+         "skill": "bare-knuckle"
+        }
+       ],
+       "n": 0
+      },
+      {
+       "t": "swap",
+       "turn": 3,
+       "actor": "a0",
+       "dropped": "plastic-bottle",
+       "weapon": "shovel",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 3,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 73,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 4,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 66,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 5,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 22,
+       "crit": true,
+       "hpAfter": 51,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 6,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 24,
+       "crit": false,
+       "hpAfter": 42,
+       "n": 0
+      },
+      {
+       "t": "move",
+       "turn": 7,
+       "actor": "a0",
+       "move": "sand-in-the-eyes",
+       "bagAfter": [],
+       "target": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 8,
+       "actor": "b0",
+       "weapon": "pocket-knife",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "energy-drink",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 8,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 34,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 9,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "block",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 51,
+       "procs": [
+        {
+         "by": "b0",
+         "skill": "wooden-pallet"
+        }
+       ],
+       "n": 0
+      },
+      {
+       "t": "intercept",
+       "turn": 10,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "block",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 51
+      },
+      {
+       "t": "attack",
+       "turn": 11,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 26,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 17,
+       "crit": false,
+       "hpAfter": 34,
+       "n": 0
+      },
+      {
+       "t": "move",
+       "turn": 13,
+       "actor": "b0",
+       "move": "energy-drink",
+       "bagAfter": []
+      },
+      {
+       "t": "heal",
+       "turn": 13,
+       "actor": "b0",
+       "target": "b0",
+       "amount": 25,
+       "hpAfter": 59
+      },
+      {
+       "t": "attack",
+       "turn": 14,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 11,
+       "crit": false,
+       "hpAfter": 15,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 14,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 12,
+       "crit": true,
+       "hpAfter": 3,
+       "n": 1,
+       "why": "combo"
+      },
+      {
+       "t": "attack",
+       "turn": 15,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 27,
+       "crit": true,
+       "hpAfter": 32,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 15,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 17,
+       "crit": false,
+       "hpAfter": 15,
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "flurry"
+        }
+       ],
+       "n": 1,
+       "why": "combo"
+      },
+      {
+       "t": "attack",
+       "turn": 16,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "pocket-knife",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 0,
+       "n": 0
+      },
+      {
+       "t": "ko",
+       "turn": 16,
+       "actor": "a0",
+       "by": "b0"
+      },
+      {
+       "t": "end",
+       "turn": 16,
+       "winner": "b",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "b",
+      "reason": "ko",
+      "turns": 16,
+      "hpPct": {
+       "a": 0,
+       "b": 17
+      }
+     }
+    }
+   },
+   {
+    "id": "ID00086tph08",
+    "at": 1794981600000,
+    "seed": 4063723158,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 3,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 5,
+       "speed": 4
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry",
+      "shovel",
+      "sand-in-the-eyes"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:3:19",
+     "name": "Tad Clank",
+     "look": {
+      "build": 2,
+      "head": 2,
+      "hair": 2,
+      "face": 2,
+      "top": 1,
+      "bottom": 3,
+      "shoes": 0,
+      "accessory": 3,
+      "skin": 3,
+      "hairColor": 5,
+      "palette": 3
+     },
+     "level": 3,
+     "stats": {
+      "points": {
+       "health": 5,
+       "strength": 3,
+       "agility": 4,
+       "speed": 4
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "machete",
+      "taunt",
+      "stray-dog",
+      "broom"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "a",
+     "reason": "ko",
+     "turns": 17,
+     "hpPct": {
+      "a": 47,
+      "b": 0
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 2,
+    "lineId": 158,
+    "watched": true,
+    "before": {
+     "xp": 0,
+     "boutsUsed": 0
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 4063723158,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 82
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 73
+       },
+       {
+        "id": "b1",
+        "kind": "stray-dog",
+        "maxHp": 5
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "weapon",
+         "id": "shovel"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "machete"
+        },
+        {
+         "k": "weapon",
+         "id": "broom"
+        },
+        {
+         "k": "move",
+         "id": "taunt",
+         "uses": 1
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b1"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "a0",
+       "weapon": "shovel",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 1,
+       "actor": "a0",
+       "target": "b1",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 2,
+       "crit": false,
+       "hpAfter": 3,
+       "n": 0
+      },
+      {
+       "t": "draw",
+       "turn": 2,
+       "actor": "b0",
+       "weapon": "machete",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "broom"
+        },
+        {
+         "k": "move",
+         "id": "taunt",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 2,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "machete",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 74,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 3,
+       "actor": "b1",
+       "target": "a0",
+       "weapon": null,
+       "outcome": "hit",
+       "damage": 1,
+       "crit": false,
+       "hpAfter": 73,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 4,
+       "actor": "b1",
+       "target": "a0",
+       "weapon": null,
+       "outcome": "hit",
+       "damage": 1,
+       "crit": false,
+       "hpAfter": 72,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 5,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "machete",
+       "outcome": "block",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 72,
+       "n": 0
+      },
+      {
+       "t": "swap",
+       "turn": 6,
+       "actor": "a0",
+       "dropped": "shovel",
+       "weapon": "plastic-bottle",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 6,
+       "actor": "a0",
+       "target": "b1",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 0,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "ko",
+       "turn": 6,
+       "actor": "b1",
+       "by": "a0"
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 64,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 55,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "why": "combo"
+      },
+      {
+       "t": "move",
+       "turn": 8,
+       "actor": "b0",
+       "move": "taunt",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "broom"
+        }
+       ]
+      },
+      {
+       "t": "swap",
+       "turn": 9,
+       "actor": "b0",
+       "dropped": "machete",
+       "weapon": "broom",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 9,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "broom",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 64,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 10,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 46,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 10,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 37,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "why": "combo",
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "flurry"
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 11,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "broom",
+       "outcome": "evade",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 64,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 11,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "broom",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 55,
+       "n": 1,
+       "why": "combo"
+      },
+      {
+       "t": "throw",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 28,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 10,
+       "crit": false,
+       "hpAfter": 18,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ],
+       "why": "combo"
+      },
+      {
+       "t": "attack",
+       "turn": 13,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "broom",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 46,
+       "n": 0
+      },
+      {
+       "t": "move",
+       "turn": 14,
+       "actor": "a0",
+       "move": "sand-in-the-eyes",
+       "bagAfter": [],
+       "target": "b0"
+      },
+      {
+       "t": "throw",
+       "turn": 15,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 10,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 16,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "broom",
+       "outcome": "evade",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 46,
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "sand-in-the-eyes"
+        }
+       ],
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 16,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "broom",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 38,
+       "n": 1,
+       "why": "combo"
+      },
+      {
+       "t": "throw",
+       "turn": 17,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 10,
+       "crit": false,
+       "hpAfter": 0,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "ko",
+       "turn": 17,
+       "actor": "b0",
+       "by": "a0"
+      },
+      {
+       "t": "end",
+       "turn": 17,
+       "winner": "a",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "a",
+      "reason": "ko",
+      "turns": 17,
+      "hpPct": {
+       "a": 47,
+       "b": 0
+      }
+     }
+    }
+   },
+   {
+    "id": "ID0007rf71eu",
+    "at": 1794895200000,
+    "seed": 2707761179,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 2,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 5,
+       "speed": 3
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry",
+      "shovel"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:2:221",
+     "name": "Vic Vex",
+     "look": {
+      "build": 1,
+      "head": 1,
+      "hair": 8,
+      "face": 0,
+      "top": 4,
+      "bottom": 2,
+      "shoes": 3,
+      "accessory": 0,
+      "skin": 2,
+      "hairColor": 0,
+      "palette": 7
+     },
+     "level": 2,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 4,
+       "speed": 5
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "sledgehammer",
+      "flurry"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "a",
+     "reason": "ko",
+     "turns": 12,
+     "hpPct": {
+      "a": 25,
+      "b": 0
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 2,
+    "lineId": 179,
+    "watched": true,
+    "before": {
+     "xp": 3,
+     "boutsUsed": 2
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 2707761179,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 82
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 82
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "sledgehammer"
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "a0",
+       "weapon": "plastic-bottle",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 1,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 74,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "draw",
+       "turn": 2,
+       "actor": "b0",
+       "weapon": "sledgehammer",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 2,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "sledgehammer",
+       "outcome": "evade",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 82,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 3,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 66,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 4,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "sledgehammer",
+       "outcome": "hit",
+       "damage": 20,
+       "crit": true,
+       "hpAfter": 62,
+       "n": 0
+      },
+      {
+       "t": "disarm",
+       "turn": 4,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "cause": "hit"
+      },
+      {
+       "t": "attack",
+       "turn": 5,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 6,
+       "crit": false,
+       "hpAfter": 60,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 6,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 6,
+       "crit": false,
+       "hpAfter": 54,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 7,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "sledgehammer",
+       "outcome": "evade",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 62,
+       "n": 0
+      },
+      {
+       "t": "draw",
+       "turn": 8,
+       "actor": "a0",
+       "weapon": "shovel",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 8,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 21,
+       "crit": false,
+       "hpAfter": 33,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 9,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "sledgehammer",
+       "outcome": "hit",
+       "damage": 42,
+       "crit": false,
+       "hpAfter": 20,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 10,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 18,
+       "crit": false,
+       "hpAfter": 15,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 11,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "sledgehammer",
+       "outcome": "evade",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 20,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 30,
+       "crit": true,
+       "hpAfter": 0,
+       "n": 0
+      },
+      {
+       "t": "ko",
+       "turn": 12,
+       "actor": "b0",
+       "by": "a0"
+      },
+      {
+       "t": "end",
+       "turn": 12,
+       "winner": "a",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "a",
+      "reason": "ko",
+      "turns": 12,
+      "hpPct": {
+       "a": 25,
+       "b": 0
+      }
+     }
+    }
+   },
+   {
+    "id": "ID0006su7ox9",
+    "at": 1794895200000,
+    "seed": 4211112152,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 2,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 5,
+       "speed": 3
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry",
+      "shovel"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:2:186",
+     "name": "Tad Socks",
+     "look": {
+      "build": 2,
+      "head": 5,
+      "hair": 0,
+      "face": 2,
+      "top": 6,
+      "bottom": 1,
+      "shoes": 1,
+      "accessory": 5,
+      "skin": 1,
+      "hairColor": 4,
+      "palette": 7
+     },
+     "level": 2,
+     "stats": {
+      "points": {
+       "health": 5,
+       "strength": 4,
+       "agility": 3,
+       "speed": 4
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "screwdrivers",
+      "head-start"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "b",
+     "reason": "ko",
+     "turns": 14,
+     "hpPct": {
+      "a": 0,
+      "b": 34
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 1,
+    "lineId": 152,
+    "watched": true,
+    "before": {
+     "xp": 2,
+     "boutsUsed": 1
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 4211112152,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 82
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 89
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "screwdrivers"
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "b0",
+       "weapon": "screwdrivers",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 1,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "screwdrivers",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 74,
+       "procs": [
+        {
+         "by": "b0",
+         "skill": "head-start"
+        }
+       ],
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 2,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "screwdrivers",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 66,
+       "n": 0
+      },
+      {
+       "t": "draw",
+       "turn": 3,
+       "actor": "a0",
+       "weapon": "plastic-bottle",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 3,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 81,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 4,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "screwdrivers",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 58,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 5,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 73,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 6,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "screwdrivers",
+       "outcome": "hit",
+       "damage": 10,
+       "crit": false,
+       "hpAfter": 48,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 65,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 13,
+       "crit": true,
+       "hpAfter": 52,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ],
+       "why": "combo",
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "flurry"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 10,
+       "crit": false,
+       "hpAfter": 42,
+       "n": 2,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ],
+       "why": "combo"
+      },
+      {
+       "t": "attack",
+       "turn": 8,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "screwdrivers",
+       "outcome": "hit",
+       "damage": 10,
+       "crit": false,
+       "hpAfter": 38,
+       "n": 0
+      },
+      {
+       "t": "disarm",
+       "turn": 8,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "cause": "hit"
+      },
+      {
+       "t": "attack",
+       "turn": 9,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "screwdrivers",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 30,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 10,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 6,
+       "crit": false,
+       "hpAfter": 36,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 11,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "screwdrivers",
+       "outcome": "hit",
+       "damage": 10,
+       "crit": false,
+       "hpAfter": 20,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 6,
+       "crit": false,
+       "hpAfter": 30,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 13,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "screwdrivers",
+       "outcome": "hit",
+       "damage": 11,
+       "crit": false,
+       "hpAfter": 9,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 14,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "screwdrivers",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 0,
+       "n": 0
+      },
+      {
+       "t": "ko",
+       "turn": 14,
+       "actor": "a0",
+       "by": "b0"
+      },
+      {
+       "t": "end",
+       "turn": 14,
+       "winner": "b",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "b",
+      "reason": "ko",
+      "turns": 14,
+      "hpPct": {
+       "a": 0,
+       "b": 34
+      }
+     }
+    }
+   },
+   {
+    "id": "ID000525jt2v",
+    "at": 1794895200000,
+    "seed": 3152917290,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 2,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 5,
+       "speed": 3
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry",
+      "shovel"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:2:239",
+     "name": "Tess Spud",
+     "look": {
+      "build": 2,
+      "head": 5,
+      "hair": 8,
+      "face": 1,
+      "top": 5,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 1,
+      "skin": 6,
+      "hairColor": 2,
+      "palette": 11
+     },
+     "level": 2,
+     "stats": {
+      "points": {
+       "health": 5,
+       "strength": 3,
+       "agility": 3,
+       "speed": 5
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "padding"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "a",
+     "reason": "ko",
+     "turns": 12,
+     "hpPct": {
+      "a": 30,
+      "b": 0
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 2,
+    "lineId": 290,
+    "watched": true,
+    "before": {
+     "xp": 0,
+     "boutsUsed": 0
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 3152917290,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 82
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 89
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        },
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "a0",
+       "weapon": "plastic-bottle",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 1,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 81,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "draw",
+       "turn": 2,
+       "actor": "b0",
+       "weapon": "plastic-bottle",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 2,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 74,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 3,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 66,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 4,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 73,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "weapon",
+         "id": "shovel"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 5,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 58,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "swap",
+       "turn": 6,
+       "actor": "a0",
+       "dropped": "plastic-bottle",
+       "weapon": "shovel",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 6,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 17,
+       "crit": false,
+       "hpAfter": 56,
+       "procs": [
+        {
+         "by": "b0",
+         "skill": "padding"
+        }
+       ],
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 50,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 8,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 42,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 9,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 19,
+       "crit": false,
+       "hpAfter": 37,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 9,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 21,
+       "crit": false,
+       "hpAfter": 16,
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "flurry"
+        }
+       ],
+       "n": 1,
+       "why": "combo"
+      },
+      {
+       "t": "throw",
+       "turn": 10,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 10,
+       "crit": true,
+       "hpAfter": 32,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 11,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "outcome": "block",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 32,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 11,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 24,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [],
+       "why": "combo"
+      },
+      {
+       "t": "attack",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "shovel",
+       "outcome": "hit",
+       "damage": 25,
+       "crit": true,
+       "hpAfter": 0,
+       "n": 0
+      },
+      {
+       "t": "ko",
+       "turn": 12,
+       "actor": "b0",
+       "by": "a0"
+      },
+      {
+       "t": "end",
+       "turn": 12,
+       "winner": "a",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "a",
+      "reason": "ko",
+      "turns": 12,
+      "hpPct": {
+       "a": 30,
+       "b": 0
+      }
+     }
+    }
+   },
+   {
+    "id": "ID0004g17sll",
+    "at": 1794808800000,
+    "seed": 306351137,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 1,
+     "stats": {
+      "points": {
+       "health": 3,
+       "strength": 3,
+       "agility": 5,
+       "speed": 3
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:1:133",
+     "name": "Hattie Socks",
+     "look": {
+      "build": 0,
+      "head": 5,
+      "hair": 8,
+      "face": 4,
+      "top": 0,
+      "bottom": 3,
+      "shoes": 2,
+      "accessory": 3,
+      "skin": 1,
+      "hairColor": 2,
+      "palette": 1
+     },
+     "level": 1,
+     "stats": {
+      "points": {
+       "health": 5,
+       "strength": 3,
+       "agility": 4,
+       "speed": 2
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "bat",
+      "head-start"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "b",
+     "reason": "ko",
+     "turns": 11,
+     "hpPct": {
+      "a": 0,
+      "b": 16
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 1,
+    "lineId": 137,
+    "watched": true,
+    "before": {
+     "xp": 2,
+     "boutsUsed": 2
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 306351137,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 75
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 89
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "bat"
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "b0",
+       "weapon": "bat",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 1,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "bat",
+       "outcome": "hit",
+       "damage": 18,
+       "crit": true,
+       "hpAfter": 57,
+       "procs": [
+        {
+         "by": "b0",
+         "skill": "head-start"
+        }
+       ],
+       "n": 0
+      },
+      {
+       "t": "draw",
+       "turn": 2,
+       "actor": "a0",
+       "weapon": "plastic-bottle",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 2,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 81,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 3,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "bat",
+       "outcome": "hit",
+       "damage": 7,
+       "crit": false,
+       "hpAfter": 50,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 4,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 73,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 5,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "bat",
+       "outcome": "hit",
+       "damage": 7,
+       "crit": false,
+       "hpAfter": 43,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 6,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 64,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 6,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 11,
+       "crit": false,
+       "hpAfter": 53,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [],
+       "why": "combo"
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 12,
+       "crit": true,
+       "hpAfter": 41,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 8,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "bat",
+       "outcome": "hit",
+       "damage": 15,
+       "crit": false,
+       "hpAfter": 28,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 8,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "bat",
+       "outcome": "hit",
+       "damage": 14,
+       "crit": false,
+       "hpAfter": 14,
+       "n": 1,
+       "why": "combo"
+      },
+      {
+       "t": "throw",
+       "turn": 9,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 32,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 10,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 10,
+       "crit": false,
+       "hpAfter": 22,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 10,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 14,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [],
+       "why": "combo",
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "flurry"
+        }
+       ]
+      },
+      {
+       "t": "attack",
+       "turn": 11,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "bat",
+       "outcome": "hit",
+       "damage": 15,
+       "crit": false,
+       "hpAfter": 0,
+       "n": 0
+      },
+      {
+       "t": "ko",
+       "turn": 11,
+       "actor": "a0",
+       "by": "b0"
+      },
+      {
+       "t": "end",
+       "turn": 11,
+       "winner": "b",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "b",
+      "reason": "ko",
+      "turns": 11,
+      "hpPct": {
+       "a": 0,
+       "b": 16
+      }
+     }
+    }
+   },
+   {
+    "id": "ID0003vimprb",
+    "at": 1794808800000,
+    "seed": 4273661013,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 1,
+     "stats": {
+      "points": {
+       "health": 3,
+       "strength": 3,
+       "agility": 5,
+       "speed": 3
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:1:40",
+     "name": "Buzz Rook",
+     "look": {
+      "build": 2,
+      "head": 2,
+      "hair": 0,
+      "face": 7,
+      "top": 1,
+      "bottom": 1,
+      "shoes": 1,
+      "accessory": 1,
+      "skin": 7,
+      "hairColor": 6,
+      "palette": 4
+     },
+     "level": 1,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 4,
+       "agility": 2,
+       "speed": 4
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "darts",
+      "sand-in-the-eyes"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "b",
+     "reason": "ko",
+     "turns": 20,
+     "hpPct": {
+      "a": 0,
+      "b": 14
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 1,
+    "lineId": 13,
+    "watched": true,
+    "before": {
+     "xp": 1,
+     "boutsUsed": 1
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 4273661013,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 75
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 82
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "darts"
+        },
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "a0",
+       "weapon": "plastic-bottle",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 1,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 74,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "draw",
+       "turn": 2,
+       "actor": "b0",
+       "weapon": "darts",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 2,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 4,
+       "crit": true,
+       "hpAfter": 71,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 3,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 4,
+       "crit": false,
+       "hpAfter": 67,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 4,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 66,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 5,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "evade",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 67,
+       "n": 0,
+       "after": "held",
+       "bagAfter": [
+        {
+         "k": "move",
+         "id": "sand-in-the-eyes",
+         "uses": 1
+        }
+       ]
+      },
+      {
+       "t": "move",
+       "turn": 6,
+       "actor": "b0",
+       "move": "sand-in-the-eyes",
+       "bagAfter": [],
+       "target": "a0"
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 3,
+       "crit": false,
+       "hpAfter": 64,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 6,
+       "crit": true,
+       "hpAfter": 58,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [],
+       "why": "combo"
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 4,
+       "crit": false,
+       "hpAfter": 54,
+       "n": 2,
+       "after": "held",
+       "bagAfter": [],
+       "why": "combo"
+      },
+      {
+       "t": "throw",
+       "turn": 8,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 15,
+       "crit": true,
+       "hpAfter": 51,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 9,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 4,
+       "crit": false,
+       "hpAfter": 50,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 10,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 4,
+       "crit": false,
+       "hpAfter": 46,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 10,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 3,
+       "crit": false,
+       "hpAfter": 43,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [],
+       "why": "combo"
+      },
+      {
+       "t": "throw",
+       "turn": 11,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 43,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 11,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 34,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [],
+       "why": "combo",
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "flurry"
+        }
+       ]
+      },
+      {
+       "t": "throw",
+       "turn": 12,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 6,
+       "crit": true,
+       "hpAfter": 37,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 12,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 6,
+       "crit": true,
+       "hpAfter": 31,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [],
+       "why": "combo"
+      },
+      {
+       "t": "throw",
+       "turn": 13,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 25,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 14,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 4,
+       "crit": false,
+       "hpAfter": 27,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 14,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 4,
+       "crit": false,
+       "hpAfter": 23,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [],
+       "why": "combo"
+      },
+      {
+       "t": "disarm",
+       "turn": 14,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "cause": "hit"
+      },
+      {
+       "t": "throw",
+       "turn": 14,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 5,
+       "crit": false,
+       "hpAfter": 18,
+       "n": 2,
+       "after": "held",
+       "bagAfter": [],
+       "why": "combo"
+      },
+      {
+       "t": "throw",
+       "turn": 15,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 4,
+       "crit": false,
+       "hpAfter": 14,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 16,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 17,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 17,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 4,
+       "crit": true,
+       "hpAfter": 10,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 18,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 4,
+       "crit": false,
+       "hpAfter": 6,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 19,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 6,
+       "crit": false,
+       "hpAfter": 11,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 20,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 3,
+       "crit": false,
+       "hpAfter": 3,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 20,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "darts",
+       "outcome": "hit",
+       "damage": 3,
+       "crit": false,
+       "hpAfter": 0,
+       "n": 1,
+       "after": "held",
+       "bagAfter": [],
+       "why": "combo"
+      },
+      {
+       "t": "ko",
+       "turn": 20,
+       "actor": "a0",
+       "by": "b0"
+      },
+      {
+       "t": "end",
+       "turn": 20,
+       "winner": "b",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "b",
+      "reason": "ko",
+      "turns": 20,
+      "hpPct": {
+       "a": 0,
+       "b": 14
+      }
+     }
+    }
+   },
+   {
+    "id": "ID0002rxkshr",
+    "at": 1794808800000,
+    "seed": 1093256499,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "ID000116e4vq",
+     "name": "Rue Tack",
+     "look": {
+      "build": 1,
+      "head": 3,
+      "hair": 1,
+      "face": 1,
+      "top": 6,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 4,
+      "skin": 6,
+      "hairColor": 4,
+      "palette": 3
+     },
+     "level": 1,
+     "stats": {
+      "points": {
+       "health": 3,
+       "strength": 3,
+       "agility": 5,
+       "speed": 3
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "plastic-bottle",
+      "flurry"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:1:212",
+     "name": "Suki Crumb",
+     "look": {
+      "build": 0,
+      "head": 2,
+      "hair": 7,
+      "face": 5,
+      "top": 6,
+      "bottom": 4,
+      "shoes": 2,
+      "accessory": 4,
+      "skin": 0,
+      "hairColor": 3,
+      "palette": 6
+     },
+     "level": 1,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 3,
+       "agility": 5,
+       "speed": 2
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "frying-pan",
+      "stubborn"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "b",
+     "reason": "ko",
+     "turns": 15,
+     "hpPct": {
+      "a": 0,
+      "b": 42
+     }
+    },
+    "role": "attacker",
+    "fighterId": "ID000116e4vq",
+    "xp": 1,
+    "lineId": 499,
+    "watched": true,
+    "before": {
+     "xp": 0,
+     "boutsUsed": 0
+    },
+    "log": {
+     "logVersion": 2,
+     "rulesVersion": 1,
+     "seed": 1093256499,
+     "init": {
+      "actors": [
+       {
+        "id": "a0",
+        "kind": "scrapper",
+        "maxHp": 75
+       },
+       {
+        "id": "b0",
+        "kind": "scrapper",
+        "maxHp": 82
+       }
+      ],
+      "bag": {
+       "a": [
+        {
+         "k": "weapon",
+         "id": "plastic-bottle"
+        }
+       ],
+       "b": [
+        {
+         "k": "weapon",
+         "id": "frying-pan"
+        }
+       ]
+      },
+      "shield": {
+       "a": null,
+       "b": null
+      }
+     },
+     "steps": [
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "a0"
+      },
+      {
+       "t": "enter",
+       "turn": 0,
+       "actor": "b0"
+      },
+      {
+       "t": "draw",
+       "turn": 1,
+       "actor": "b0",
+       "weapon": "frying-pan",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 1,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "frying-pan",
+       "outcome": "hit",
+       "damage": 7,
+       "crit": false,
+       "hpAfter": 68,
+       "n": 0
+      },
+      {
+       "t": "draw",
+       "turn": 2,
+       "actor": "a0",
+       "weapon": "plastic-bottle",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 2,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 74,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 3,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 66,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 4,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "frying-pan",
+       "outcome": "evade",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 68,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 4,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "frying-pan",
+       "outcome": "hit",
+       "damage": 7,
+       "crit": false,
+       "hpAfter": 61,
+       "procs": [
+        {
+         "by": "b0",
+         "skill": "stubborn"
+        }
+       ],
+       "n": 1,
+       "why": "stubborn"
+      },
+      {
+       "t": "throw",
+       "turn": 5,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 8,
+       "crit": false,
+       "hpAfter": 58,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 6,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "frying-pan",
+       "outcome": "hit",
+       "damage": 14,
+       "crit": false,
+       "hpAfter": 47,
+       "n": 0
+      },
+      {
+       "t": "throw",
+       "turn": 7,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "block",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 58,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "throw",
+       "turn": 8,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "plastic-bottle",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": false,
+       "hpAfter": 49,
+       "n": 0,
+       "after": "held",
+       "bagAfter": []
+      },
+      {
+       "t": "attack",
+       "turn": 9,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "frying-pan",
+       "outcome": "hit",
+       "damage": 14,
+       "crit": false,
+       "hpAfter": 33,
+       "n": 0
+      },
+      {
+       "t": "disarm",
+       "turn": 9,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "plastic-bottle",
+       "cause": "hit"
+      },
+      {
+       "t": "attack",
+       "turn": 10,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "fists",
+       "outcome": "evade",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 49,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 11,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "frying-pan",
+       "outcome": "hit",
+       "damage": 18,
+       "crit": true,
+       "hpAfter": 15,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 6,
+       "crit": false,
+       "hpAfter": 43,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 12,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "fists",
+       "outcome": "hit",
+       "damage": 9,
+       "crit": true,
+       "hpAfter": 34,
+       "procs": [
+        {
+         "by": "a0",
+         "skill": "flurry"
+        }
+       ],
+       "n": 1,
+       "why": "combo"
+      },
+      {
+       "t": "attack",
+       "turn": 13,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "frying-pan",
+       "outcome": "hit",
+       "damage": 12,
+       "crit": false,
+       "hpAfter": 3,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 14,
+       "actor": "a0",
+       "target": "b0",
+       "weapon": "fists",
+       "outcome": "block",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 34,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 15,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "frying-pan",
+       "outcome": "block",
+       "damage": 0,
+       "crit": false,
+       "hpAfter": 3,
+       "n": 0
+      },
+      {
+       "t": "attack",
+       "turn": 15,
+       "actor": "b0",
+       "target": "a0",
+       "weapon": "frying-pan",
+       "outcome": "hit",
+       "damage": 12,
+       "crit": false,
+       "hpAfter": 0,
+       "procs": [
+        {
+         "by": "b0",
+         "skill": "stubborn"
+        }
+       ],
+       "n": 1,
+       "why": "stubborn"
+      },
+      {
+       "t": "ko",
+       "turn": 15,
+       "actor": "a0",
+       "by": "b0"
+      },
+      {
+       "t": "end",
+       "turn": 15,
+       "winner": "b",
+       "reason": "ko"
+      }
+     ],
+     "result": {
+      "winner": "b",
+      "reason": "ko",
+      "turns": 15,
+      "hpPct": {
+       "a": 0,
+       "b": 42
+      }
+     }
+    }
+   },
+   {
+    "id": "bout-01JRANKZEROOLDSAVEA0000001",
+    "at": 1794830399000,
+    "seed": 4126477466,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "01JRANKZEROOLDSAVEA0000001",
+     "name": "Mona Grit",
+     "look": {
+      "build": 2,
+      "head": 2,
+      "hair": 3,
+      "face": 0,
+      "top": 2,
+      "bottom": 0,
+      "shoes": 3,
+      "accessory": 2,
+      "skin": 2,
+      "hairColor": 2,
+      "palette": 8
+     },
+     "level": 10,
+     "stats": {
+      "points": {
+       "health": 6,
+       "strength": 9,
+       "agility": 4,
+       "speed": 9
+      },
+      "mult": {
+       "health": 100,
+       "strength": 140,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "pipe",
+      "padding",
+      "crow",
+      "heavy-hands",
+      "broom",
+      "quick-swap"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:10:7",
+     "name": "Vic Nugget",
+     "look": {
+      "build": 0,
+      "head": 0,
+      "hair": 9,
+      "face": 0,
+      "top": 4,
+      "bottom": 4,
+      "shoes": 3,
+      "accessory": 0,
+      "skin": 4,
+      "hairColor": 7,
+      "palette": 4
+     },
+     "level": 10,
+     "stats": {
+      "points": {
+       "health": 6,
+       "strength": 7,
+       "agility": 6,
+       "speed": 5
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "broom",
+      "grapple",
+      "paint-can",
+      "padding",
+      "plastic-bottle",
+      "hand-axe",
+      "haymaker"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "a",
+     "reason": "ko",
+     "turns": 15,
+     "hpPct": {
+      "a": 34,
+      "b": 0
+     }
+    },
+    "role": "attacker",
+    "fighterId": "01JRANKZEROOLDSAVEA0000001",
+    "xp": 1,
+    "lineId": 0,
+    "watched": true,
+    "before": {
+     "xp": 0,
+     "boutsUsed": 1
+    }
+   },
+   {
+    "id": "bout-01JRANKZEROOLDSAVEB0000002",
+    "at": 1794830398000,
+    "seed": 2535196783,
+    "rulesVersion": 1,
+    "logVersion": 2,
+    "snapshotA": {
+     "id": "01JRANKZEROOLDSAVEB0000002",
+     "name": "Kip Ladle",
+     "look": {
+      "build": 1,
+      "head": 0,
+      "hair": 3,
+      "face": 7,
+      "top": 6,
+      "bottom": 2,
+      "shoes": 2,
+      "accessory": 5,
+      "skin": 5,
+      "hairColor": 6,
+      "palette": 0
+     },
+     "level": 7,
+     "stats": {
+      "points": {
+       "health": 4,
+       "strength": 2,
+       "agility": 6,
+       "speed": 7
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "rubber-ball",
+      "anticipation",
+      "machete",
+      "frying-pan",
+      "raccoon",
+      "crowbar"
+     ],
+     "rulesVersion": 1
+    },
+    "snapshotB": {
+     "id": "rival:yard-1:7:7",
+     "name": "Moe Oats",
+     "look": {
+      "build": 2,
+      "head": 1,
+      "hair": 1,
+      "face": 2,
+      "top": 3,
+      "bottom": 4,
+      "shoes": 2,
+      "accessory": 3,
+      "skin": 4,
+      "hairColor": 4,
+      "palette": 8
+     },
+     "level": 7,
+     "stats": {
+      "points": {
+       "health": 7,
+       "strength": 5,
+       "agility": 4,
+       "speed": 3
+      },
+      "mult": {
+       "health": 100,
+       "strength": 100,
+       "agility": 100,
+       "speed": 100
+      }
+     },
+     "perks": [
+      "folding-chair",
+      "anticipation",
+      "sledgehammer",
+      "broom",
+      "padding",
+      "machete"
+     ],
+     "rulesVersion": 1
+    },
+    "result": {
+     "winner": "b",
+     "reason": "ko",
+     "turns": 14,
+     "hpPct": {
+      "a": 0,
+      "b": 33
+     }
+    },
+    "role": "attacker",
+    "fighterId": "01JRANKZEROOLDSAVEB0000002",
+    "xp": 1,
+    "lineId": 0,
+    "watched": true,
+    "before": {
+     "xp": 0,
+     "boutsUsed": 1
+    }
+   }
+  ]
+ },
+ "expect": {
+  "Mona Grit": {
+   "id": "01JRANKZEROOLDSAVEA0000001",
+   "name": "Mona Grit",
+   "look": {
+    "build": 2,
+    "head": 2,
+    "hair": 3,
+    "face": 0,
+    "top": 2,
+    "bottom": 0,
+    "shoes": 3,
+    "accessory": 2,
+    "skin": 2,
+    "hairColor": 2,
+    "palette": 8
+   },
+   "level": 10,
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 9,
+     "agility": 4,
+     "speed": 9
+    },
+    "mult": {
+     "health": 100,
+     "strength": 140,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "perks": [
+    "pipe",
+    "padding",
+    "crow",
+    "heavy-hands",
+    "broom",
+    "quick-swap"
+   ],
+   "rulesVersion": 1
+  },
+  "Rue Tack": {
+   "id": "ID000116e4vq",
+   "name": "Rue Tack",
+   "look": {
+    "build": 1,
+    "head": 3,
+    "hair": 1,
+    "face": 1,
+    "top": 6,
+    "bottom": 0,
+    "shoes": 3,
+    "accessory": 4,
+    "skin": 6,
+    "hairColor": 4,
+    "palette": 3
+   },
+   "level": 5,
+   "stats": {
+    "points": {
+     "health": 6,
+     "strength": 3,
+     "agility": 5,
+     "speed": 6
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "perks": [
+    "plastic-bottle",
+    "flurry",
+    "shovel",
+    "sand-in-the-eyes"
+   ],
+   "rulesVersion": 1
+  },
+  "Kip Ladle": {
+   "id": "01JRANKZEROOLDSAVEB0000002",
+   "name": "Kip Ladle",
+   "look": {
+    "build": 1,
+    "head": 0,
+    "hair": 3,
+    "face": 7,
+    "top": 6,
+    "bottom": 2,
+    "shoes": 2,
+    "accessory": 5,
+    "skin": 5,
+    "hairColor": 6,
+    "palette": 0
+   },
+   "level": 9,
+   "stats": {
+    "points": {
+     "health": 4,
+     "strength": 2,
+     "agility": 6,
+     "speed": 7
+    },
+    "mult": {
+     "health": 100,
+     "strength": 100,
+     "agility": 100,
+     "speed": 100
+    }
+   },
+   "perks": [
+    "rubber-ball",
+    "anticipation",
+    "machete",
+    "frying-pan",
+    "raccoon",
+    "crowbar",
+    "quick-swap",
+    "raccoon"
+   ],
+   "rulesVersion": 1
+  }
+ }
+}
