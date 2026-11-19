@@ -165,6 +165,8 @@ async function main() {
         check(await drawer.count() === 0, "the log and the fighter cards are closed by default");
         const cardsUnder = await page.locator("[data-side] [data-card-hp], section[data-side]").count();
         check(cardsUnder === 0, "no fighter card and no log under the stage", `${cardsUnder} cards`);
+        // (a little into the bout, so the log has lines)
+        await page.waitForFunction(() => Number(document.querySelector("[data-phase]")?.getAttribute("data-t") ?? 0) > 2500, null, { timeout: 15000 });
         const tBefore = Number(await page.locator("[data-phase]").getAttribute("data-t"));
         await page.getByRole("button", { name: "Open the bout log and the fighter cards" }).first().click();
         await page.getByRole("dialog", { name: "Bout log" }).waitFor();
