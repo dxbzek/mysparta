@@ -33,7 +33,7 @@ import { twoBone } from "./ik";
 import type { BendAmount, Body } from "./sample";
 import { clipTime, frameAt, hullAt, poseAt, sampleRaw } from "./sample";
 import { companionPortraitArt, iconArt, portraitArt } from "./svg";
-import { HAT_BRIM, bellyD, cutAbove } from "./build";
+import { HAT_BRIM, INNER_BELLY, bellyD, cutAbove } from "./build";
 
 /** Length of the back arm, shoulder to wrist (figure units). */
 const BACK_ARM = Math.hypot(SCRAPPER_RIG.bones[BONE.armBlo]!.x, SCRAPPER_RIG.bones[BONE.armBlo]!.y)
@@ -242,7 +242,7 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
 
   // --------------------------------------------------------------------------- figures
   interface Fig {
-    fr: Xf[]; wa: number[]; map: Xf; s: number; build: { scale: number; limb: number; torso: number; belly?: number; head?: number };
+    fr: Xf[]; wa: number[]; map: Xf; s: number; build: { scale: number; limb: number; torso: number; belly?: number; head?: number; seat?: number; leg?: number };
     rot: number[]; held: HeldId; art: WeaponArt | null; backLeads: boolean; facing: 1 | -1;
     /** 1 while the back hand holds a two-hand item's grip2, 0 once it has let go. */
     hold2: number;
@@ -759,13 +759,17 @@ export const createRig: CreateRig = (gate: GatePack, content?: ContentPack): Rig
         if (boneId === "handF") z = sh.z - 40; else if (boneId === "handB") z = sh.z + 40;
         if (boneId.startsWith("armF")) z = sh.z - 40; else if (boneId.startsWith("armB")) z = sh.z + 40;
       }
-      const kx = LIMB_BONES.has(boneId) ? f.build.limb : TRUNK_BONES.has(boneId) ? f.build.torso : HEAD_BONES.has(boneId) ? (f.build.head ?? 1) : 1;
-      const xf = mul(mul(f.map, f.fr[bi]!), scaleXf(kx, 1));
+      const kx = LIMB_BONES.has(boneId) ? (boneId.startsWith("leg") ? (f.build.leg ?? f.build.limb) : f.build.limb) : TRUNK_BONES.has(boneId) ? f.build.torso : HEAD_BONES.has(boneId) ? (f.build.head ?? 1) : 1;
+      // a heavy build's seat: the pelvis drawn deeper too, so its wide thighs stay covered at the hip
+      const ky = boneId === "pelvis" ? (f.build.seat ?? 1) : 1;
+      const xf = mul(mul(f.map, f.fr[bi]!), scaleXf(kx, ky));
       const lit = slotColour(sh.slot, colours);
       const side = boneId.startsWith("arm") || boneId.startsWith("leg") ? boneId[3] : boneId.startsWith("hand") || boneId.startsWith("foot") ? boneId[4] : null;
       const isArm = boneId.startsWith("arm") || boneId.startsWith("hand");
       const veil = side !== null && side === (isArm && f.backLeads ? "F" : "B");
-      const belly = boneId === "torso" ? (f.build.belly ?? 0) : 0;
+      // a layer under the top (the shirt in an open jacket) follows the belly a little less, so
+      // the jacket's own edge stays round it and the shirt shows inside the opening, not past it
+      const belly = boneId === "torso" ? (f.build.belly ?? 0) * (sh0.slot === "accent" || sh0.slot === "skin" ? INNER_BELLY : 1) : 0;
       const p: Paint = { d: belly > 0 ? bellyD(sh.d, belly) : sh.d, z, xf, lit, shade: shadeOf(lit), ink: sh.slot === "ink", veil, tag: boneId, kx };
       if (sh.shade !== undefined) p.extra = belly > 0 ? bellyD(sh.shade, belly) : sh.shade;
       parts.push(p);

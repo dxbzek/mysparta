@@ -3,7 +3,7 @@
  * parts, same colours and the same Night Ink outline as the canvas; a portrait is the idle
  * pose's head and shoulders, flat lit colour plus each part's own shadow shape.
  */
-import { bellyD } from "./build";
+import { INNER_BELLY, bellyD } from "./build";
 import type { CompanionId, Look } from "@rankzero/core";
 import type { AppearanceSet, Clip, ColourSlot, FaceId, IconArt, IconRef, PropArt, RigDef, Shape, SvgArt, SvgPart } from "../contracts";
 import type { CompanionArt } from "../gate/placeholders";
@@ -50,10 +50,13 @@ export function portraitArt(looks: AppearanceSet, look: Look, rig: RigDef, idle:
   // the build shows in the bust as it does on the stage: the trunk and the arms drawn wider or
   // narrower (the engine's `kx` per bone), so a stocky fighter's card is not a lean one's
   const build = wrap(looks.builds, look.build);
-  const kxOf = (b: string): number => (b === "torso" || b === "pelvis" ? build.torso : /^(arm|leg)[FB]\.(up|lo)$/.test(b) ? build.limb
+  const kxOf = (b: string): number => (b === "torso" || b === "pelvis" ? build.torso : /^arm[FB]\.(up|lo)$/.test(b) ? build.limb : /^leg[FB]\.(up|lo)$/.test(b) ? (build.leg ?? build.limb)
     : b === "head" || b === "hair" ? (build.head ?? 1) : 1);
   const belly = build.belly ?? 0;
-  if (belly > 0) for (let i = 0; i < shapes.length; i++) if (shapes[i]!.bone === "torso") shapes[i] = { ...shapes[i]!, d: bellyD(shapes[i]!.d, belly) };
+  if (belly > 0) for (let i = 0; i < shapes.length; i++) {
+    const sh = shapes[i]!;
+    if (sh.bone === "torso") shapes[i] = { ...sh, d: bellyD(sh.d, belly * (sh.slot === "accent" || sh.slot === "skin" ? INNER_BELLY : 1)) };
+  }
   const head = fr[model.index.get("head") ?? 0]!;
   const cx = head.e + 2.4;
   const cy = head.f - 7;

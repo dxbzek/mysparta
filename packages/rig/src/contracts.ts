@@ -276,7 +276,12 @@ export interface AppearanceSet {            // list lengths may be under LOOK_SP
   /** `belly` (content v3 batch 4, optional): the front of the trunk pushed forward round the stomach
    *  by this share of its depth (engine/build.ts), for a heavy build; `head` (optional) widens the
    *  head and neck across the head bone (a heavy man's fuller face, a wiry one's gaunt one). */
-  builds: readonly { scale: number; limb: number; torso: number; belly?: number; head?: number }[];
+  builds: readonly { scale: number; limb: number; torso: number; belly?: number; head?: number;
+    /** (optional) the pelvis drawn this much deeper down the body (a heavy build's seat), so wide
+     *  thighs stay covered round the hip pins in every bend. A drawing scale, never a bone length. */
+    seat?: number;
+    /** (optional) the legs' width when it is not the arms' (`limb`). */
+    leg?: number }[];
   heads: readonly Shape[][]; hair: readonly Shape[][]; faces: readonly Record<FaceId, Shape[]>[];
   tops: readonly Shape[][]; bottoms: readonly Shape[][]; shoes: readonly Shape[][];
   accessories: readonly Shape[][]; hands: readonly Shape[];

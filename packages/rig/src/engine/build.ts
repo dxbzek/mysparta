@@ -10,7 +10,10 @@ import type { Pt } from "../gate/vocab";
 import { dPoly, parsePolys } from "../gate/vocab";
 
 /** Where the belly is fullest on the trunk (torso-bone y), and how far up and down it fades. */
-export const BELLY = { y: -4.8, up: 9.0, down: 5.0 } as const;
+export const BELLY = { y: -4.8, up: 9.0, down: 5.0, back: 0.35 } as const;
+/** How much of the belly a layer under the top (an open jacket's shirt, bare skin in a vest's
+ *  armhole) takes, so the top's own edge stays outside it. */
+export const INNER_BELLY = 0.8;
 /** The trunk's edges are cut into pieces no longer than this before the push, so the belly is a
  *  curve, not a point. */
 const STEP = 0.8;
@@ -29,7 +32,8 @@ export function bellyD(d: string, belly: number): string {
   const key = `${belly}|${d}`;
   const hit = cache.get(key);
   if (hit !== undefined) return hit;
-  const push = ([x, y]: Pt): Pt => [x > 0 ? x * (1 + belly * bellyAt(y)) : x, y];
+  // the front pushed out by `belly`, the back (the flanks seen from the side) by `back` of that
+  const push = ([x, y]: Pt): Pt => [x * (1 + belly * bellyAt(y) * (x > 0 ? 1 : BELLY.back)), y];
   const out = parsePolys(d).map((poly) => {
     const dense: Pt[] = [];
     for (let i = 0; i < poly.length; i++) {
@@ -37,7 +41,7 @@ export function bellyD(d: string, belly: number): string {
       const b = poly[(i + 1) % poly.length]!;
       const n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / STEP));
       // only edges on the front, where the belly is, need the extra points
-      const front = (a[0] > 0 || b[0] > 0) && Math.max(bellyAt(a[1]), bellyAt(b[1]), bellyAt((a[1] + b[1]) / 2)) > 0.02;
+      const front = Math.max(bellyAt(a[1]), bellyAt(b[1]), bellyAt((a[1] + b[1]) / 2)) > 0.02;
       const k = front ? n : 1;
       for (let j = 0; j < k; j++) dense.push([a[0] + ((b[0] - a[0]) * j) / k, a[1] + ((b[1] - a[1]) * j) / k]);
     }
