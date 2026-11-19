@@ -70,7 +70,7 @@ export const BOSSES: readonly BossDef[] = [
     look: look(0, 9, 11, 13, 14, 8, 1, 9, 7, 2, 22),
     points: pts(13, 12, 6, 5, 10, 8),
     perks: ["golf-club", "boomerang", "paint-can", "trick-shot", "pitcher", "stubborn", "whistle", "goose",
-      "work-vest", "rain-boots", "motorbike-helmet"] },
+      "work-vest", "rain-boots"] },
   { rung: 9, name: "Duchess", level: 28, branch: "arsenal",
     look: look(2, 0, 10, 13, 6, 6, 7, 8, 9, 11, 16),
     points: pts(12, 12, 5, 5, 10, 7),

@@ -68,6 +68,7 @@ export const LADDER_WORDS = {
   cost: "Costs 1 energy. Lose and you can try again.",
   boss: "Boss",
   gateShort: "Rank",
+  gear: "Gear",
   bossLabel: (name: string, rank: string, title: string, state: string) => `${name}, ${rank}, ${title}. ${state}`,
   says: (name: string) => `${name} says`,
   prize: "Claim prize",

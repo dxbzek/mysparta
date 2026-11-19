@@ -1042,21 +1042,33 @@
 
 /* ------------------------------------------------------------------ the ladder (plan 13.10 item 1) */
 /* the rank tag beside the level in the HUD */
+.side {
+  position: relative;
+}
 .rankTag {
-  flex: none;
-  padding: 2px 5px 1px;
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  padding: 2px 6px 1px;
   border: var(--line-thin) solid var(--c-ink);
   border-radius: var(--rough-radius-sm);
   background: var(--c-dark);
   color: var(--t-on-dark-hazard);
-  font: 900 13px / 1 var(--font-display);
-  letter-spacing: 0.04em;
+  font: 900 12px / 1 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.sideB .rankTag {
+  left: auto;
+  right: 0;
 }
 /* the boss banner over the first seconds of a boss bout, under the HUD */
 .bossBanner {
   position: absolute;
   left: 50%;
-  top: 76px;
+  top: 84px;
   z-index: 3;
   display: grid;
   justify-items: center;
@@ -1122,9 +1134,22 @@
 .rankUp b {
   font-size: 20px;
 }
-@media (orientation: landscape) {
-  .bossBanner { top: 56px; }
+/* the banner keeps off the FIGHT card and the fighters: on a short phone it sits low, over the
+   floor; turned, it stands in the free wall on the left */
+@media (orientation: portrait) and (max-height: 700px) {
+  .bossBanner { top: auto; bottom: 64px; }
   .bossName { font-size: 28px; }
+}
+@media (orientation: landscape) {
+  .bossBanner {
+    left: 12px;
+    top: 78px;
+    width: min(30%, 260px);
+    margin-left: 0;
+    justify-items: start;
+  }
+  .bossName { font-size: 24px; }
+  .bossTaunt { font-size: 14px; text-align: left; }
   .rankUp {
     grid-column: 1 / -1;
     grid-row: 3;

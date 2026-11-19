@@ -45,9 +45,15 @@ export function ResultCard({ resultIn, data, winnerName, onAction, doneLabel = "
   const buttons: { a: ResultAction; label: string }[] = [];
   if (data.levelUp) buttons.push({ a: "levelup", label: "Level up!" });
   else if (data.rankUp !== undefined) buttons.push({ a: "prize", label: "Claim prize" });
-  if (data.boss === true) buttons.push({ a: "ladder", label: "Ladder" });
-  else if (data.energy > 0) buttons.push({ a: "next", label: "Next bout" });
-  buttons.push({ a: "replay", label: "Replay" }, { a: "locker", label: "Locker" });
+  if (data.boss === true) {
+    // a boss bout: three buttons at most (the card's room over the stage); Replay is in History
+    buttons.push({ a: "ladder", label: "Ladder" });
+    if (buttons.length < 2) buttons.push({ a: "replay", label: "Replay" });
+    buttons.push({ a: "locker", label: "Locker" });
+  } else {
+    if (data.energy > 0) buttons.push({ a: "next", label: "Next bout" });
+    buttons.push({ a: "replay", label: "Replay" }, { a: "locker", label: "Locker" });
+  }
   return (
     <section className={css.result} style={style} aria-label="Result">
       <div className={css.resultHead}>

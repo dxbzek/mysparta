@@ -60,8 +60,14 @@ export function LadderScreen() {
     const ss = core.snapshotSheet(me);
     return { sheet, me, ss, ladder: core.ladderOf(shown) };
   }, [core, shown]);
+  // the next rung up in view once the page is laid out (fonts in), never past the header on a tall screen
   useEffect(() => {
-    nextRef.current?.scrollIntoView?.({ block: "center" });
+    let live = true;
+    const go = (): void => { if (live) nextRef.current?.scrollIntoView?.({ block: "nearest" }); };
+    const fonts = (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts;
+    if (fonts) void fonts.ready.then(() => requestAnimationFrame(go));
+    else requestAnimationFrame(go);
+    return () => { live = false; };
   }, []);
   if (!rec || !shown || !info) return null;
   const { ladder, sheet } = info;
@@ -96,7 +102,7 @@ export function LadderScreen() {
     : ladder.prizeWaiting ? LADDER_WORDS.refused["prize-waiting"]
     : unwatchedOf(doc) ? LADDER_WORDS.refused["unwatched-bout"]
     : energy <= 0 ? LADDER_WORDS.refused["no-energy"] : null;
-  const scale = bossSheet ? Math.max(10, ...Object.values(info.ss.effective), ...Object.values(bossSheet.effective)) : 10;
+  const count = (x: FighterSnapshot, kind: string): number => x.perks.filter((p) => perkKind(p) === kind).length;
 
   return (
     <div className={common.screen}>
@@ -169,9 +175,9 @@ export function LadderScreen() {
             <div className={css.compare}>
               <CompareStat label="LV" mine={level} theirs={boss.level} max={Math.max(level, boss.level)} />
               <CompareStat label={UI.hp} mine={info.ss.maxHp} theirs={bossSheet.maxHp} max={Math.max(info.ss.maxHp, bossSheet.maxHp)} />
-              <CompareStat label="STR" stat="strength" mine={info.ss.effective.strength} theirs={bossSheet.effective.strength} max={scale} />
-              <CompareStat label="AGI" stat="agility" mine={info.ss.effective.agility} theirs={bossSheet.effective.agility} max={scale} />
-              <CompareStat label="TOU" stat="toughness" mine={info.ss.effective.toughness} theirs={bossSheet.effective.toughness} max={scale} />
+              <CompareStat label={UI.card.weapons} mine={count(info.me, "weapon")} theirs={count(boss, "weapon")} max={Math.max(1, count(info.me, "weapon"), count(boss, "weapon"))} />
+              <CompareStat label={UI.card.skills} mine={count(info.me, "skill")} theirs={count(boss, "skill")} max={Math.max(1, count(info.me, "skill"), count(boss, "skill"))} />
+              <CompareStat label={LADDER_WORDS.gear} mine={count(info.me, "gear")} theirs={count(boss, "gear")} max={Math.max(1, count(info.me, "gear"), count(boss, "gear"))} />
             </div>
             {state === "beaten" ? (
               <p className={css.note}>{LADDER_WORDS.beaten}</p>

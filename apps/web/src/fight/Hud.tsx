@@ -52,7 +52,6 @@ function SideHud({ side, frame, info, levelLabel, reduced, onCard }: { side: Sid
       <div className={css.nameRow}>
         <Sticker size="small" tilt={side === "a" ? -1.5 : 1.5} slap={frame.namesIn} className={`${css.tape} ${sizeClass(info.name)}`}>{info.name}</Sticker>
         <span className={css.lvl}>{levelLabel(info.level)}</span>
-        {info.rank !== undefined ? <span className={css.rankTag} data-testid={`hud-rank-${side}`} aria-label={info.rank.label}>{info.rank.short}</span> : null}
       </div>
       <span
         className={css.hpBar}
@@ -66,6 +65,8 @@ function SideHud({ side, frame, info, levelLabel, reduced, onCard }: { side: Sid
         <span className={css.hpFill} style={{ width: pct(main?.now ?? 0, max || 1) }} />
         {g > 0 ? <span className={css.hpFlash} style={{ opacity: (reduced ? 0.25 : 0.4) * g }} /> : null}
       </span>
+      {/* the rank (the ladder) hangs under the HP bar, so the name keeps its room and the HUD its height */}
+      {info.rank !== undefined ? <span className={css.rankTag} data-testid={`hud-rank-${side}`}>{info.rank.label}</span> : null}
     </>
   );
   const cls = `${css.side} ${side === "b" ? css.sideB : css.sideA}`;

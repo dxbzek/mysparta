@@ -242,14 +242,15 @@ function DebugBosses({ scale }: { scale: number }) {
   }, []);
   const h = Math.round(200 * scale);
   return (
+    <RigGate>
     <div data-testid="boss-sheet" style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: 8, background: "var(--c-dark)" }}>
       {Array.from({ length: 10 }, (_, i) => i + 1).map((rung) => {
         const b = core.bossSnapshot(rung);
         const d = dressOf(b);
         return (
-          <figure key={rung} style={{ margin: 0, width: Math.round(150 * scale), display: "grid", gap: 4 }}>
+          <figure key={rung} style={{ margin: 0, width: Math.round(190 * scale), display: "grid", gap: 4 }}>
             <ActorStage look={b.look} held={d.held} shield={d.shield} gear={d.gear} companions={d.pets} facing={-1} height={h} floorAt={0.86}
-              window={{ w: 150, h: 200 }} label={b.name} t={500} clip="idle" />
+              window={{ w: 150, h: 146 }} label={b.name} t={500} clip="idle" />
             <figcaption style={{ color: "var(--t-on-dark)", font: "900 14px/1.1 var(--font-display)", textAlign: "center" }}>
               <Sticker size="small">{b.name}</Sticker><br />{rungRank(rung)} · {RUNG_TITLE[rung]} · LV {b.level}
             </figcaption>
@@ -257,6 +258,7 @@ function DebugBosses({ scale }: { scale: number }) {
         );
       })}
     </div>
+    </RigGate>
   );
 }
 

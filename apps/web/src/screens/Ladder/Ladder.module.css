@@ -200,9 +200,13 @@ button.rung:active {
   .rankBadge {
     width: 42px;
   }
+  /* the state on the row's lower right corner, beside the short level line */
   .state {
-    grid-column: 3;
-    justify-self: start;
+    position: absolute;
+    right: 6px;
+    bottom: 7px;
+    padding: 3px 5px;
+    font-size: 11px;
   }
   .bossName {
     font-size: 19px;
