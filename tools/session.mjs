@@ -585,6 +585,7 @@ async function main() {
               m.xp = 0;
               m.energy = 6;
               if (f.unranked) m.ladder = { rank: 0, prizes: [] };
+              doc.activeId = m.id;                    // (the look editor's step made another scrapper active)
               doc.history = doc.history.map((h) => ({ ...h, watched: true }));
               store.put(JSON.stringify({ ...doc, rev: doc.rev + 1 }), keys[1 - top]);
             };
@@ -605,7 +606,8 @@ async function main() {
         await page.waitForURL(/#\/ladder$/);
         await page.locator("button[data-rung='1']").waitFor();
         check(await page.locator("button[data-rung='1']").getAttribute("data-state") === "ready" && await page.locator("button[data-rung='2']").getAttribute("data-state") === "locked",
-          "the Ladder shows the first boss ready at level 5 and the next one locked");
+          "the Ladder shows the first boss ready at level 5 and the next one locked",
+          await (async () => { const m = await marla(); return `picks ${m.picks.length}, ladder ${JSON.stringify(m.ladder)}, rung 1 ${await page.locator("button[data-rung='1']").getAttribute("data-state")}, why: ${await page.locator("[data-testid=fight-why]").textContent().catch(() => "")}`; })());
         let won = false;
         let losses = 0;
         let lossChecked = false;
